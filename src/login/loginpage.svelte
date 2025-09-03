@@ -7,6 +7,7 @@
   import '@material/web/iconbutton/icon-button.js';
   import '@material/web/progress/circular-progress.js';
   import '../lib/styles/design-system.css';
+  import qcuLogo from '../lib/assets/qcu-logo.png';
 
   // Svelte 5 runes for state management
   let email = $state('');
@@ -84,7 +85,7 @@
     <!-- QCU Header -->
     <div class="login-header">
       <div class="qcu-logo">
-        <img src="../src/lib/assets/qcu-logo.png" alt="QCU Logo" srcset="">
+        <img src={qcuLogo} alt="QCU Logo">
       </div>
       <h1 class="login-title">QCU Integrated Registrar System</h1>
       <p class="login-subtitle">Sign in to access your academic records</p>
