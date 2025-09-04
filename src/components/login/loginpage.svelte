@@ -28,10 +28,9 @@
 
   const validatePassword = (password) => {
     if (!password) return 'Password is required';
-    if (password.length < 6) return 'Password must be at least 6 characters';
     return '';
   };
-
+  
   // Handle form submission
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -83,7 +82,7 @@
 <div class="login-container">
   <div class="login-card">
     <div class="left-side">
-      <h1>test</h1>
+      <h1>dito lalagay image</h1>
     </div>
     <div class="right-side">
       <!-- QCU Header -->
@@ -147,12 +146,25 @@
           </md-outlined-text-field>
         </div>
 
+        <!-- Remember Me Checkbox -->
+        <div class="form-field remember-me-field">
+          <label class="remember-me-label" for="remember-me-checkbox">
+            <md-checkbox
+              id="remember-me-checkbox"
+              checked={rememberMe}
+              onchange={(e) => (rememberMe = e.target.checked)}
+            ></md-checkbox>
+            <span>Remember me</span>
+          </label>
+        </div>
+
         <!-- Submit Button -->
         <md-filled-button 
           id="login-submit-btn"
           type="submit" 
           class="login-submit"
           disabled={isLoading}
+          aria-label="Sign in"
         >
           {#if isLoading}
             <md-circular-progress indeterminate></md-circular-progress>
@@ -162,7 +174,7 @@
         </md-filled-button>
 
         <!-- Forgot password -->
-        <md-text-button id="forgot-password-btn" class="forgot-password">
+        <md-text-button id="forgot-password-btn" class="forgot-password" aria-label="forgot-password">
           Forgot Password?
         </md-text-button>
 
