@@ -9,12 +9,39 @@
 
   .login-card {
     width: 100%;
-    max-width: 420px;
+    max-width: 920px; 
+    display: flex;
+    gap: var(--spacing-lg);
     background-color: var(--md-sys-color-surface);
     border-radius: var(--radius-xl);
-    padding: var(--spacing-2xl);
+    overflow: hidden;
     box-shadow: var(--shadow-xl);
     border: 1px solid var(--md-sys-color-outline-variant);
+    padding: 0;
+  }
+
+  .left-side {
+    flex: 1 1 40%;
+    min-width: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-2xl);
+    background: white;
+    color: var(--md-sys-color-on-primary-container);
+  }
+
+  .left-side h1{
+    color: black;
+  }
+
+  .right-side {
+    flex: 1 1 60%;
+    padding: var(--spacing-2xl);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: var(--md-sys-color-surface);
   }
 
   .login-header {
@@ -124,13 +151,14 @@
   }
 
   /* Mobile Optimizations */
-  @media (max-width: 480px) {
+  @media (max-width: 768px) {
     .login-container {
       padding: var(--spacing-sm);
     }
 
     .login-card {
-      padding: var(--spacing-xl);
+      flex-direction: column;
+      max-width: 480px; 
     }
 
     .login-title {

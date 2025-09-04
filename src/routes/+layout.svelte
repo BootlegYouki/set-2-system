@@ -1,7 +1,6 @@
 <script>
 	import favicon from '$lib/assets/favicon.svg';
 	import '../lib/styles/design-system.css';
-
 	let { children } = $props();
 </script>
 
