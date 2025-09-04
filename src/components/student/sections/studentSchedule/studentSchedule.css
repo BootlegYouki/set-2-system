@@ -1,7 +1,11 @@
 /* Schedule Container */
+*{
+	transition: background-color var(--transition-normal) !important;
+}
+
 .schedule-container {
 	margin: 0 auto;
-	background-color: var(--md-sys-color-surface);
+	/* background-color: var(--md-sys-color-surface); */
 	color: var(--md-sys-color-on-surface);
 	padding-left: var(--spacing-lg);
 }
@@ -32,7 +36,6 @@
 
 /* Week Navigation */
 .week-navigation {
-	background-color: var(--md-sys-color-surface);
 	padding: var(--spacing-lg) var(--spacing-xl);
 }
 
@@ -55,6 +58,18 @@
 .day-selector {
 	display: flex;
 	gap: var(--spacing-md);
+}
+
+.day-buttons-desktop {
+	display: flex;
+	gap: var(--spacing-md);
+	flex: 1;
+}
+
+.day-dropdown-mobile {
+	display: none;
+	position: relative;
+	width: 100%;
 }
 
 .day-btn {
@@ -85,15 +100,92 @@
 	font-weight: 500;
 }
 
-.day-name-full {
-	display: none;
+/* Dropdown Styles */
+.dropdown-trigger {
+	background-color: var(--md-sys-color-surface-variant);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-md) var(--spacing-lg);
+	cursor: pointer;
+	transition: all 0.2s;
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	color: var(--md-sys-color-on-surface-variant);
 	font-size: 1rem;
 	font-weight: 500;
 }
 
+.dropdown-trigger:hover {
+	background-color: var(--md-sys-color-surface);
+	border-color: var(--md-sys-color-outline);
+}
+
+.dropdown-arrow {
+	transition: transform 0.2s ease;
+	font-size: 0.8rem;
+}
+
+.dropdown-arrow.open {
+	transform: rotate(180deg);
+}
+
+.dropdown-menu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	z-index: 1000;
+	margin-top: var(--spacing-xs);
+	overflow: hidden;
+	animation: dropdownSlide 0.2s ease-out;
+}
+
+@keyframes dropdownSlide {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.dropdown-item {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-lg);
+	background: none;
+	border: none;
+	text-align: left;
+	cursor: pointer;
+	transition: background-color 0.2s;
+	color: var(--md-sys-color-on-surface);
+	font-size: 1rem;
+	font-weight: 500;
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.dropdown-item:last-child {
+	border-bottom: none;
+}
+
+.dropdown-item:hover {
+	background-color: var(--md-sys-color-surface-variant);
+}
+
+.dropdown-item.active {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
 /* Classes Section */
 .classes-section {
-	background-color: var(--md-sys-color-surface);
 	padding: var(--spacing-xl);
 	border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
@@ -109,7 +201,22 @@
 .classes-list {
 	display: flex;
 	flex-direction: column;
-	gap: var(--spacing-md);
+	gap: var(--spacing-sm);
+}
+
+.no-classes-message {
+	text-align: center;
+	padding: var(--spacing-lg) var(--spacing-md);
+	color: var(--text-secondary);
+	background-color: var(--surface-secondary);
+	border-radius: var(--border-radius);
+	border: 1px solid var(--border-color);
+}
+
+.no-classes-message p {
+	margin: 0;
+	font-size: 1rem;
+	font-style: italic;
 }
 
 /* Class Cards */
@@ -295,6 +402,7 @@
 	}
 
 	.week-navigation {
+		border-radius:var(--radius-xl) var(--radius-xl) 0 0;
 		padding: var(--spacing-md) var(--spacing-lg);
 	}
 
@@ -324,16 +432,20 @@
 }
 
 @media (max-width: 480px) {
-	.day-selector {
-		flex-direction: column;
-		
+	.schedule-header {
+		padding: 0;
+	}
+	
+	.classes-section, .week-navigation {
+		padding: 0;
+		padding-top: var(--spacing-md);
 	}
 
-	.day-name {
+	.day-buttons-desktop {
 		display: none;
 	}
 
-	.day-name-full {
+	.day-dropdown-mobile {
 		display: block;
 	}
 
@@ -344,13 +456,5 @@
 	.class-header {
 		flex-direction: row;
 		align-items: center;
-	}
-
-	.day-btn {
-		flex: none;
-	}
-
-	.week-title {
-		gap: var(--spacing-md);
 	}
 }
