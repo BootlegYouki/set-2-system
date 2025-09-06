@@ -1,7 +1,7 @@
 <script>
 	export let selectedWeek = 'October 23';
 	export let selectedDay = 'Friday';
-
+  import './studentSchedule.css';
 	const schedule = {
 		Friday: [
 			{
@@ -128,7 +128,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	@import './studentSchedule.css';
-</style>

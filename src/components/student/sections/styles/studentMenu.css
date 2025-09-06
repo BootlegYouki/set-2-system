@@ -36,7 +36,6 @@
   width: 56px;
   height: 56px;
   position: relative;
-  transition: background-color var(--transition-normal), width 150ms cubic-bezier(.2,.9,.2,1);
 }
 
 .rail-item:hover {
