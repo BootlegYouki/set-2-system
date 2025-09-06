@@ -5,7 +5,8 @@
   import StudentMenu from '../components/student/studentMenu.svelte';
   import StudentGrade from '../components/student/sections/studentgrade/studentGrade.svelte';
   import StudentSchedule from '../components/student/sections/studentSchedule/studentSchedule.svelte';
-  import StudentDocument from '../components/student/sections/studentDocument.svelte';
+  import StudentDocument from '../components/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
+  import '../lib/styles/+page.css';
 
   // Subscribe to auth store
   let authState = $state();
@@ -16,9 +17,17 @@
   // Current active section for student portal
   let activeSection = $state('grades');
 
+  // Navigation rail visibility state (false = collapsed/icons only, true = expanded/with labels)
+  let isNavRailVisible = $state(false);
+
   // Handle navigation from student menu
   function handleNavigation(event) {
     activeSection = event.detail.section;
+  }
+
+  // Handle navigation rail toggle
+  function handleToggleNavRail() {
+    isNavRailVisible = !isNavRailVisible;
   }
 
   // Handle logout
@@ -53,12 +62,13 @@
     <Login />
   {:else if authState.userType === 'student'}
     <!-- Student Portal -->
-    <div class="student-portal">
+    <div class="student-portal" class:nav-rail-collapsed={!isNavRailVisible}>
       <StudentNavbar 
         studentName={authState.userData?.name || 'Student'}
         studentId={authState.userData?.id || 'N/A'}
         profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
+        onToggleNavRail={handleToggleNavRail}
       />
       
       <main class="content-area">
@@ -71,7 +81,7 @@
         {/if}
       </main>
 
-      <StudentMenu {activeSection} onnavigate={handleNavigation} />
+      <StudentMenu {activeSection} {isNavRailVisible} onnavigate={handleNavigation} />
     </div>
   {:else if authState.userType === 'teacher'}
     <!-- Teacher Portal Placeholder -->
@@ -99,69 +109,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .app-container {
-    min-height: 100vh;
-    width: 100%;
-  }
-
-  .student-portal {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-
-  .content-area {
-    flex: 1;
-    padding: 1rem;
-    margin-top: 64px; /* Account for fixed navbar height */
-    margin-bottom: 64px; /* Account for fixed bottom menu height */
-    min-height: calc(100vh - 128px); /* Ensure proper height calculation */
-  }
-
-  .teacher-portal,
-  .registrar-portal {
-    min-height: 100vh;
-    padding: 2rem;
-  }
-
-  .portal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  .portal-header h1 {
-    margin: 0;
-    color: #1565c0;
-  }
-
-  .logout-btn {
-    padding: 0.5rem 1rem;
-    background-color: #f44336;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-
-  .logout-btn:hover {
-    background-color: #d32f2f;
-  }
-
-  .portal-content {
-    background: #f5f5f5;
-    padding: 2rem;
-    border-radius: 8px;
-  }
-
-  .portal-content p {
-    margin: 0.5rem 0;
-    color: #666;
-  }
-</style>

@@ -6,7 +6,6 @@
   import '@material/web/icon/icon.js';
   import '@material/web/iconbutton/icon-button.js';
   import '@material/web/progress/circular-progress.js';
-  import '../../lib/styles/design-system.css';
   import './loginpage.css';
   import { authStore } from '../../lib/stores/auth.js';
 

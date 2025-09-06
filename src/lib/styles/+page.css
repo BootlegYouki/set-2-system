@@ -1,0 +1,83 @@
+  .app-container {
+    min-height: 100vh;
+    width: 100%;
+  }
+
+  .student-portal {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  .content-area {
+    flex: 1;
+    padding: 1rem;
+    padding-left: 1.5rem;
+    padding-top: 0.5rem;
+    margin-top: 64px; /* Account for fixed navbar height */
+    margin-bottom: 64px; /* Account for fixed bottom menu height */
+    min-height: calc(100vh - 128px); /* Ensure proper height calculation */
+    margin-left: 0;
+  }
+
+  /* Desktop layout adjustments for navigation rail */
+  @media (min-width: 768px) {
+    .content-area {
+      margin-left: 56px; /* Account for collapsed navigation rail width */
+      margin-top: 64px; /* Account for navbar height */
+      margin-bottom: 0; /* No bottom menu on desktop */
+      min-height: calc(100vh - 64px); /* Only account for navbar height */
+      transition: margin 150ms cubic-bezier(.2,.9,.2,1);
+    }
+
+    /* Adjust content area when navigation rail is expanded */
+    .student-portal.nav-rail-collapsed .content-area {
+      margin-left: 220px;
+      transition: margin 150ms cubic-bezier(.2,.9,.2,1);
+    }
+  }
+
+  .teacher-portal,
+  .registrar-portal {
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .portal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .portal-header h1 {
+    margin: 0;
+    color: #1565c0;
+  }
+
+  .logout-btn {
+    padding: 0.5rem 1rem;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  .logout-btn:hover {
+    background-color: #d32f2f;
+  }
+
+  .portal-content {
+    background: #f5f5f5;
+    padding: 2rem;
+    border-radius: 8px;
+  }
+
+  .portal-content p {
+    margin: 0.5rem 0;
+    color: #666;
+  }

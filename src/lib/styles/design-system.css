@@ -229,7 +229,7 @@
 
 html {
   background-color: var(--md-sys-color-surface);
-  transition: background-color var(--transition-normal);
+  transition: background-color var(--transition-normal) !important;
 }
 
 body {

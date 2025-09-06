@@ -31,8 +31,7 @@
 			grade: 'A+',
 			numericGrade: 95,
 			progress: 95,
-			color: 'var(--success)',
-			trend: 'up'
+			color: 'var(--success)'
 		},
 		{
 			id: 2,
@@ -42,8 +41,7 @@
 			grade: 'A',
 			numericGrade: 88,
 			progress: 88,
-			color: 'var(--info)',
-			trend: 'up'
+			color: 'var(--info)'
 		},
 		{
 			id: 3,
@@ -53,8 +51,7 @@
 			grade: 'B+',
 			numericGrade: 82,
 			progress: 82,
-			color: 'var(--warning)',
-			trend: 'down'
+			color: 'var(--warning)'
 		},
 		{
 			id: 4,
@@ -64,8 +61,7 @@
 			grade: 'A+',
 			numericGrade: 94,
 			progress: 94,
-			color: 'var(--school-accent)',
-			trend: 'up'
+			color: 'var(--school-accent)'
 		},
 		{
 			id: 5,
@@ -75,8 +71,7 @@
 			grade: 'B',
 			numericGrade: 0,
 			progress: 0,
-			color: 'var(--school-secondary)',
-			trend: 'neutral'
+			color: 'var(--school-secondary)'
 		}
 	];
 
@@ -99,14 +94,7 @@
 		return 'var(--md-sys-color-on-surface-variant)'; // Gray for no grade
 	}
 
-	// Get trend icon
-	function getTrendIcon(trend) {
-		switch (trend) {
-			case 'up': return 'trending_up';
-			case 'down': return 'trending_down';
-			default: return 'trending_flat';
-		}
-	}
+
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -161,37 +149,37 @@
 		<div class="subjects-grid">
 			{#each subjects as subject (subject.id)}
 				<div class="subject-card">
-					<div class="subject-header">
-						<div class="subject-info">
-							<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
-								<span class="material-symbols-outlined">book</span>
-							</div>
-							<div class="subject-details">
+					<!-- Column 1: Icon -->
+					<div class="subject-icon-column">
+						<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
+							<span class="material-symbols-outlined">book</span>
+						</div>
+					</div>
+					
+					<!-- Column 2: Subject Details -->
+					<div class="subject-details-column">
 						<h3 class="subject-name">{subject.name}</h3>
 						<p class="teacher-name">{subject.teacher}</p>
-					</div>
-						</div>
-						<div class="grade-display">
-							{#if subject.numericGrade > 0}
-								<div class="grade-badge" style="background-color: {getGradeColor(subject.numericGrade)}">
-									{subject.numericGrade}
-								</div>
-							{:else}
-								<div class="no-grade">
-									<span class="material-symbols-outlined">remove</span>
-									<span class="no-grade-text">No Grade</span>
-								</div>
-							{/if}
-						</div>
-					</div>
-					{#if subject.numericGrade > 0}
-						<div class="progress-section">
+						{#if subject.numericGrade > 0}
 							<div class="progress-bar">
 								<div class="progress-fill" style="width: {subject.progress}%; background-color: {subject.color}"></div>
 							</div>
-						</div>
-					{/if}
+						{/if}
+					</div>
 					
+					<!-- Column 3: Grade Display -->
+					<div class="grade-column">
+						{#if subject.numericGrade > 0}
+							<div class="grade-large" style="color: {getGradeColor(subject.numericGrade)}">
+								{subject.numericGrade}
+							</div>
+						{:else}
+							<div class="no-grade-large">
+								<span class="material-symbols-outlined">remove</span>
+								<span class="no-grade-text">No Grade</span>
+							</div>
+						{/if}
+					</div>
 				</div>
 			{/each}
 		</div>
