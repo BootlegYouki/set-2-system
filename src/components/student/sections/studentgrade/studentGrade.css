@@ -257,6 +257,14 @@
   line-height: 1.2;
 }
 
+.teacher-name {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+  line-height: 1.2;
+}
+
 .subject-credits {
   font-size: 14px;
   color: var(--md-sys-color-on-surface-variant);

@@ -50,11 +50,11 @@
     margin-bottom: var(--spacing-xl);
   }
 
-  .qcu-logo {
+  .school-logo {
     margin-bottom: var(--spacing-md);
   }
 
-  .qcu-logo img {
+  .school-logo img {
     width: 100px;
     height: 100px;
     background: var(--md-sys-color-primary);

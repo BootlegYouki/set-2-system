@@ -30,21 +30,21 @@
   // Reactive title based on auth state
   let pageTitle = $derived(() => {
     if (!authState?.isAuthenticated) {
-      return 'Login - QCU Integrated Registrar System';
+      return 'Login - High School Student Information System';
     } else if (authState.userType === 'student') {
-      return 'Student Portal - QCU';
+      return 'Student Portal - High School';
     } else if (authState.userType === 'teacher') {
-      return 'Teacher Portal - QCU';
+      return 'Teacher Portal - High School';
     } else if (authState.userType === 'registrar') {
-      return 'Registrar Portal - QCU';
+      return 'Registrar Portal - High School';
     }
-    return 'QCU Integrated Registrar System';
+    return 'High School Student Information System';
   });
 </script>
 
 <svelte:head>
   <title>{pageTitle}</title>
-  <meta name="description" content="QCU Integrated Registrar System" />
+  <meta name="description" content="High School Student Information System" />
 </svelte:head>
 
 <div class="app-container">

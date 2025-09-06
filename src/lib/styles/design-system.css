@@ -1,16 +1,16 @@
-/* QCU Integrated Registrar System - Design System */
+/* High School Student Information System - Design System */
 /* Material Web Components Theme Configuration */
 
 /* Import Material Symbols font for Material Web Components icons */
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 :root {
-  /* QCU Brand Colors */
-  --qcu-primary: #1565c0;
-  --qcu-primary-variant: #0d47a1;
-  --qcu-secondary: #ff6f00;
-  --qcu-secondary-variant: #e65100;
-  --qcu-accent: #00acc1;
+  /* School Brand Colors */
+  --school-primary: #1565c0;
+  --school-primary-variant: #0d47a1;
+  --school-secondary: #ff6f00;
+  --school-secondary-variant: #e65100;
+  --school-accent: #00acc1;
   
   /* Academic Status Colors */
   --success: #2e7d32;
@@ -162,12 +162,12 @@
   --outline: #79747e;
   --outline-variant: #cac4d0;
   
-  --md-sys-color-primary: var(--qcu-primary);
+  --md-sys-color-primary: var(--school-primary);
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #e3f2fd;
   --md-sys-color-on-primary-container: #0d47a1;
   
-  --md-sys-color-secondary: var(--qcu-secondary);
+  --md-sys-color-secondary: var(--school-secondary);
   --md-sys-color-on-secondary: #ffffff;
   --md-sys-color-secondary-container: #fff3e0;
   --md-sys-color-on-secondary-container: #e65100;

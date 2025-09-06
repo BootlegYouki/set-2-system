@@ -94,7 +94,7 @@
       <h1>dito lalagay image</h1>
     </div>
     <div class="right-side">
-      <!-- QCU Header -->
+      <!-- High School Header -->
       <div class="login-header">
         <h1 class="login-title">Integrated Registrar System</h1>
       </div>

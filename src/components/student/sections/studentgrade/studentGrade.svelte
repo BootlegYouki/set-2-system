@@ -26,6 +26,7 @@
 		{
 			id: 1,
 			name: 'Mathematics',
+			teacher: 'Prof. Maria Santos',
 			credits: 3,
 			grade: 'A+',
 			numericGrade: 95,
@@ -36,6 +37,7 @@
 		{
 			id: 2,
 			name: 'Physics',
+			teacher: 'Dr. John Rodriguez',
 			credits: 3,
 			grade: 'A',
 			numericGrade: 88,
@@ -46,6 +48,7 @@
 		{
 			id: 3,
 			name: 'Chemistry',
+			teacher: 'Prof. Ana Dela Cruz',
 			credits: 3,
 			grade: 'B+',
 			numericGrade: 82,
@@ -56,21 +59,23 @@
 		{
 			id: 4,
 			name: 'Computer Science',
+			teacher: 'Dr. Michael Tan',
 			credits: 4,
 			grade: 'A+',
 			numericGrade: 94,
 			progress: 94,
-			color: 'var(--qcu-accent)',
+			color: 'var(--school-accent)',
 			trend: 'up'
 		},
 		{
 			id: 5,
 			name: 'English Literature',
+			teacher: 'Prof. Sarah Johnson',
 			credits: 2,
 			grade: 'B',
 			numericGrade: 0,
 			progress: 0,
-			color: 'var(--qcu-secondary)',
+			color: 'var(--school-secondary)',
 			trend: 'neutral'
 		}
 	];
@@ -162,8 +167,9 @@
 								<span class="material-symbols-outlined">book</span>
 							</div>
 							<div class="subject-details">
-								<h3 class="subject-name">{subject.name}</h3>
-							</div>
+						<h3 class="subject-name">{subject.name}</h3>
+						<p class="teacher-name">{subject.teacher}</p>
+					</div>
 						</div>
 						<div class="grade-display">
 							{#if subject.numericGrade > 0}
