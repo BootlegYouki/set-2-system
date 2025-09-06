@@ -3,30 +3,31 @@
 	margin: 0 auto;
 	background-color: var(--md-sys-color-surface);
 	color: var(--md-sys-color-on-surface);
-	padding: var(--spacing-lg);
+	padding-left: var(--spacing-lg);
 }
 
 /* Header Styles */
-.schedule-header {
-	background-color: var(--md-sys-color-primary-container);
-	color: var(--md-sys-color-on-primary-container);
-	padding: var(--spacing-xl);
-	border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-	margin-bottom: 0;
+.grades-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  gap: var(--spacing-md);
 }
 
-.schedule-header h1 {
-	color: var(--md-sys-color-on-primary-container);
-	margin: 0 0 var(--spacing-xs) 0;
-	font-size: 2rem;
-	font-weight: 600;
+.page-title {
+  font-family: var(--md-sys-typescale-headline-large-font);
+  font-size: var(--md-sys-typescale-headline-large-size);
+  font-weight: var(--md-sys-typescale-headline-large-weight);
+  color: var(--md-sys-color-on-surface);
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
-.schedule-header p {
-	color: var(--md-sys-color-on-primary-container);
-	margin: 0;
-	opacity: 0.9;
-	font-size: 1rem;
+.page-subtitle {
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
 }
 
 /* Week Navigation */

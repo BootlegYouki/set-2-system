@@ -8,6 +8,8 @@
   import '@material/web/progress/circular-progress.js';
   import './loginpage.css';
   import { authStore } from '../../lib/stores/auth.js';
+  import { onMount } from 'svelte';
+  import { showSuccess, showError } from '../../stores/toastStore.js';
 
   // Svelte 5 runes for state management
   let email = $state('');
@@ -17,6 +19,35 @@
   let showPassword = $state(false);
   let errors = $state({ email: '', password: '', general: '' });
   let userType = $state('student'); // 'student' or 'staff'
+  
+  // Theme state (default to dark mode)
+  let isDarkMode = $state(true);
+
+  // Check initial theme preference
+  onMount(() => {
+    const savedTheme = localStorage.getItem('theme');
+    
+    // Default to dark mode if no saved preference
+    isDarkMode = savedTheme !== 'light';
+    updateTheme();
+  });
+
+  // Toggle theme mode
+  function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    updateTheme();
+  }
+
+  // Update theme
+  function updateTheme() {
+    if (isDarkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('theme', 'light');
+    }
+  }
 
   // Validation functions
   const validateEmail = (email) => {
@@ -62,12 +93,25 @@
       };
       
       authStore.login(userType, userData);
+      showSuccess('Login successful! Welcome back.');
       console.log('Login successful:', { email, userType, rememberMe });
       
     } catch (error) {
       errors = { ...errors, general: 'Login failed. Please check your credentials.' };
+      showError('Login failed. Please check your credentials and try again.');
     } finally {
       isLoading = false;
+    }
+  };
+
+  // Handle enter key press on form elements
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !isLoading) {
+      // If focus is on password toggle button, don't submit
+      if (event.target.closest('#password-toggle-btn')) {
+        return;
+      }
+      handleSubmit(event);
     }
   };
 
@@ -88,6 +132,17 @@
 </script>
 
 <div class="login-container">
+  <!-- Theme toggle button -->
+  <button 
+    class="theme-toggle-btn" 
+    onclick={toggleDarkMode}
+    aria-label="Toggle dark mode"
+  >
+    <span class="material-symbols-outlined">
+      {isDarkMode ? 'light_mode' : 'dark_mode'}
+    </span>
+  </button>
+  
   <div class="login-card">
     <div class="left-side">
       <h1>dito lalagay image</h1>
@@ -98,7 +153,7 @@
         <h1 class="login-title">Integrated Registrar System</h1>
       </div>
       <!-- Login Form -->
-      <form class="login-form" onsubmit={handleSubmit}>
+      <form class="login-form" onsubmit={handleSubmit} onkeydown={handleKeyDown}>
         <!-- Email Field -->
         <div class="form-field">
           <md-outlined-text-field

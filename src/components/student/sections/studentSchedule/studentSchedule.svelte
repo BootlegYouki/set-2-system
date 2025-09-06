@@ -76,8 +76,8 @@
 
 <div class="schedule-container">
 	<div class="schedule-header">
-		<h1>Schedule</h1>
-		<p>Your weekly class schedule</p>
+		<h1 class="page-title">Schedule</h1>
+		<p class="page-subtitle">Your weekly class schedule</p>
 	</div>
 
 	<div class="week-navigation">
@@ -113,12 +113,12 @@
 					
 					<div class="class-details">
 						<div class="class-location">
-							<span class="location-icon">📍</span>
+							<span class="material-symbols-outlined"> location_on</span>
 							<span>{classItem.room}</span>
 						</div>
 						{#if classItem.teacher}
 							<div class="class-teacher">
-								<span class="teacher-icon">👤</span>
+								<span class="material-symbols-outlined"> person_book </span>
 								<span>{classItem.teacher}</span>
 							</div>
 						{/if}

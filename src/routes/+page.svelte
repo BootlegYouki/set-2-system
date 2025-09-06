@@ -5,7 +5,7 @@
   import StudentMenu from '../components/student/studentMenu.svelte';
   import StudentGrade from '../components/student/sections/studentgrade/studentGrade.svelte';
   import StudentSchedule from '../components/student/sections/studentSchedule/studentSchedule.svelte';
-  import StudentDocument from '../components/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
+  import StudentDocument from '../components/student/sections/StudentDocumentRequest/studentDocumentRequest.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
@@ -37,18 +37,17 @@
   }
 
   // Reactive title based on auth state
-  let pageTitle = $derived(() => {
-    if (!authState?.isAuthenticated) {
-      return 'Login - High School Student Information System';
-    } else if (authState.userType === 'student') {
-      return 'Student Portal - High School';
-    } else if (authState.userType === 'teacher') {
-      return 'Teacher Portal - High School';
-    } else if (authState.userType === 'registrar') {
-      return 'Registrar Portal - High School';
-    }
-    return 'High School Student Information System';
-  });
+  let pageTitle = $derived(
+    !authState?.isAuthenticated
+      ? 'Login - High School Student Information System'
+      : authState.userType === 'student'
+      ? 'Student Portal - High School'
+      : authState.userType === 'teacher'
+      ? 'Teacher Portal - High School'
+      : authState.userType === 'registrar'
+      ? 'Registrar Portal - High School'
+      : 'High School Student Information System'
+  );
 </script>
 
 <svelte:head>

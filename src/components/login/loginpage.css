@@ -1,11 +1,47 @@
 
-.login-container {
+/* Theme toggle button */
+  .theme-toggle-btn {
+    position: fixed;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: var(--radius-full);
+    background-color: var(--md-sys-color-surface-container);
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--md-sys-color-outline-variant);
+  }
+
+  .theme-toggle-btn:hover {
+    background-color: var(--md-sys-color-surface-variant);
+    color: var(--md-sys-color-on-surface);
+    box-shadow: var(--shadow-md);
+  }
+
+  .theme-toggle-btn:active {
+    transform: scale(0.95);
+  }
+
+  .theme-toggle-btn .material-symbols-outlined {
+    font-size: 24px;
+  }
+
+  .login-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: var(--spacing-md);
     background-color: var(--surface-container);
+    position: relative;
   }
 
   .login-card {

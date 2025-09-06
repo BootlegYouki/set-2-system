@@ -200,33 +200,3 @@
 		</div>
 	</div>
 </div>
-
-<style>
-	/* Ensure CSS custom properties are inherited from the global theme */
-	:global(.grades-container) {
-		padding: var(--spacing-lg);
-		background-color: var(--md-sys-color-surface);
-		color: var(--md-sys-color-on-surface);
-		min-height: 100%;
-		box-sizing: border-box;
-	}
-	
-	:global(.dropdown-menu) {
-		background-color: var(--md-sys-color-surface);
-		border: 1px solid var(--md-sys-color-outline-variant);
-		box-shadow: var(--shadow-lg);
-	}
-	
-	:global(.dropdown-item) {
-		color: var(--md-sys-color-on-surface);
-	}
-	
-	:global(.dropdown-item:hover) {
-		background-color: var(--md-sys-color-surface-variant);
-	}
-	
-	:global(.dropdown-item.active) {
-		background-color: var(--md-sys-color-primary-container);
-		color: var(--md-sys-color-on-primary-container);
-	}
-</style>

@@ -12,7 +12,6 @@
   .content-area {
     flex: 1;
     padding: 1rem;
-    padding-left: 1.5rem;
     padding-top: 0.5rem;
     margin-top: 64px; /* Account for fixed navbar height */
     margin-bottom: 64px; /* Account for fixed bottom menu height */
@@ -32,7 +31,7 @@
 
     /* Adjust content area when navigation rail is expanded */
     .student-portal.nav-rail-collapsed .content-area {
-      margin-left: 220px;
+      margin-left: 200px;
       transition: margin 150ms cubic-bezier(.2,.9,.2,1);
     }
   }
