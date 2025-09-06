@@ -170,11 +170,6 @@
 								<div class="grade-badge" style="background-color: {getGradeColor(subject.numericGrade)}">
 									{subject.numericGrade}
 								</div>
-								<div class="trend-indicator">
-									<span class="material-symbols-outlined" style="color: {subject.trend === 'up' ? 'var(--success)' : subject.trend === 'down' ? 'var(--error)' : 'var(--md-sys-color-on-surface-variant)'}">
-										{getTrendIcon(subject.trend)}
-									</span>
-								</div>
 							{:else}
 								<div class="no-grade">
 									<span class="material-symbols-outlined">remove</span>
@@ -190,6 +185,7 @@
 							</div>
 						</div>
 					{/if}
+					
 				</div>
 			{/each}
 		</div>

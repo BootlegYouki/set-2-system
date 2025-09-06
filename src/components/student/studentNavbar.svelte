@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 
 	// Props
-	let { studentName = 'John Does', studentId = '2024-001234', profileImage = null } = $props();
+	let { studentName = 'John Does', studentId = '2024-001234', profileImage = null, onlogout } = $props();
 
 	// Theme state (default to dark mode)
 	let isDarkMode = $state(true);
@@ -65,6 +65,15 @@
 				<span class="material-symbols-outlined">
 					{isDarkMode ? 'dark_mode' : 'light_mode'}
 				</span>
+			</button>
+
+			<!-- Logout button -->
+			<button 
+				class="icon-button logout-button" 
+				onclick={onlogout}
+				aria-label="Logout"
+			>
+				<span class="material-symbols-outlined">logout</span>
 			</button>
 
 			<!-- User profile section -->
@@ -160,6 +169,11 @@
 
 	.icon-button:active {
 		transform: scale(0.95);
+	}
+
+	.logout-button:hover {
+		background-color: var(--md-sys-color-error-container);
+		color: var(--md-sys-color-on-error-container);
 	}
 
 	.user-profile {

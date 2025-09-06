@@ -8,6 +8,7 @@
   import '@material/web/progress/circular-progress.js';
   import '../../lib/styles/design-system.css';
   import './loginpage.css';
+  import { authStore } from '../../lib/stores/auth.js';
 
   // Svelte 5 runes for state management
   let email = $state('');
@@ -53,7 +54,15 @@
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Handle successful login
+      // Handle successful login - update auth store
+      const userData = {
+        name: email.split('@')[0], // Use email prefix as name for now
+        id: userType === 'student' ? '2024-001234' : 'STAFF-001',
+        email: email,
+        profileImage: null
+      };
+      
+      authStore.login(userType, userData);
       console.log('Login successful:', { email, userType, rememberMe });
       
     } catch (error) {
