@@ -355,10 +355,12 @@
 
 @media (max-width: 480px) {
   .subject-card {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
     gap: var(--spacing-md);
     text-align: center;
+  }
+
+  .subject-icon {
+    display: none;
   }
 
   .subject-icon-column {

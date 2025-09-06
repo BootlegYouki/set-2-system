@@ -51,7 +51,7 @@
     
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Handle successful login - update auth store
       const userData = {

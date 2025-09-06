@@ -28,6 +28,7 @@
 	},
 	"dependencies": {
 		"@material/textfield": "^14.0.0",
-		"@material/web": "^2.4.0"
+		"@material/web": "^2.4.0",
+		"odometer": "^0.4.8"
 	}
 }

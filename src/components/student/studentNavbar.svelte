@@ -73,7 +73,7 @@
 				aria-label="Toggle dark mode"
 			>
 				<span class="material-symbols-outlined">
-					{isDarkMode ? 'dark_mode' : 'light_mode'}
+					{isDarkMode ? 'light_mode' : 'dark_mode'}
 				</span>
 			</button>
 

@@ -1,0 +1,289 @@
+/* Schedule Container */
+.schedule-container {
+	margin: 0 auto;
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+}
+
+/* Header Styles */
+.schedule-header {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	padding: var(--spacing-xl);
+	border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+	margin-bottom: 0;
+}
+
+.schedule-header h1 {
+	color: var(--md-sys-color-on-primary-container);
+	margin: 0 0 var(--spacing-xs) 0;
+	font-size: 2rem;
+	font-weight: 600;
+}
+
+.schedule-header p {
+	color: var(--md-sys-color-on-primary-container);
+	margin: 0;
+	opacity: 0.9;
+	font-size: 1rem;
+}
+
+/* Week Navigation */
+.week-navigation {
+	background-color: var(--md-sys-color-surface);
+	padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.week-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: var(--spacing-lg);
+}
+
+.week-title span {
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: var(--md-sys-color-on-surface);
+}
+
+.nav-btn {
+	background: none;
+	border: none;
+	font-size: 1.5rem;
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: pointer;
+	padding: var(--spacing-sm);
+	border-radius: var(--radius-md);
+	transition: all 0.2s;
+}
+
+.nav-btn:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface);
+}
+
+/* Day Selector */
+.day-selector {
+	display: flex;
+	gap: var(--spacing-md);
+}
+
+.day-btn {
+	background-color: var(--md-sys-color-surface-variant);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-md) var(--spacing-lg);
+	cursor: pointer;
+	transition: all 0.2s;
+	flex: 1;
+	text-align: center;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.day-btn:hover {
+	background-color: var(--md-sys-color-surface);
+	border-color: var(--md-sys-color-outline);
+}
+
+.day-btn.active {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	border-color: var(--md-sys-color-primary-container);
+}
+
+.day-name {
+	font-size: 0.875rem;
+	font-weight: 500;
+	margin-bottom: 4px;
+}
+
+.day-date {
+	font-size: 1.25rem;
+	font-weight: 600;
+}
+
+/* Classes Section */
+.classes-section {
+	background-color: var(--md-sys-color-surface);
+	padding: var(--spacing-xl);
+	border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+
+.classes-section h2 {
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-xl) 0;
+	font-size: 1.5rem;
+	font-weight: 600;
+}
+
+/* Classes List */
+.classes-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+/* Class Cards */
+.class-card {
+	background-color: var(--md-sys-color-surface-container);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-lg);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	transition: all 0.2s;
+	cursor: pointer;
+}
+
+.class-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Class Card Colors - Using Material Design System */
+.class-card.blue {
+	background-color: var(--md-sys-color-primary-container);
+	border-color: var(--md-sys-color-primary);
+}
+
+.class-card.green {
+	background-color: var(--md-sys-color-secondary-container);
+	border-color: var(--md-sys-color-secondary);
+}
+
+.class-card.purple {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline);
+}
+
+.class-card.yellow {
+	background-color: var(--md-sys-color-secondary-container);
+	border-color: var(--md-sys-color-secondary);
+}
+
+.class-card.orange {
+	background-color: var(--md-sys-color-primary-container);
+	border-color: var(--md-sys-color-primary);
+}
+
+.class-card.gray {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+}
+
+.class-card.pink {
+	background-color: var(--md-sys-color-secondary-container);
+	border-color: var(--md-sys-color-secondary);
+}
+
+.class-card.light-purple {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline);
+}
+
+/* Class Header */
+.class-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: var(--spacing-md);
+}
+
+.class-name {
+	margin: 0;
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: var(--md-sys-color-on-surface);
+}
+
+.class-time {
+	font-size: 0.875rem;
+	color: var(--md-sys-color-on-surface-variant);
+	font-weight: 500;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+}
+
+.class-time::before {
+	content: '🕐';
+	font-size: 0.75rem;
+}
+
+/* Class Details */
+.class-details {
+	display: flex;
+	gap: var(--spacing-xl);
+	flex-wrap: wrap;
+}
+
+.class-location,
+.class-teacher {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	font-size: 0.875rem;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.location-icon,
+.teacher-icon {
+	font-size: 0.75rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.schedule-container {
+		padding: var(--spacing-md);
+	}
+
+	.schedule-header {
+		padding: var(--spacing-lg);
+	}
+
+	.schedule-header h1 {
+		font-size: 1.5rem;
+	}
+
+	.week-navigation {
+		padding: var(--spacing-md) var(--spacing-lg);
+	}
+
+	.day-selector {
+		flex-wrap: wrap;
+		gap: var(--spacing-sm);
+	}
+
+	.day-btn {
+		padding: var(--spacing-md) var(--spacing-md);
+		min-width: 60px;
+	}
+
+	.classes-section {
+		padding: var(--spacing-lg);
+	}
+
+	.class-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--spacing-sm);
+	}
+
+	.class-details {
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+}
+
+@media (max-width: 480px) {
+	.day-selector {
+		flex-direction: column;
+	}
+
+	.day-btn {
+		flex: none;
+	}
+
+	.week-title {
+		gap: var(--spacing-md);
+	}
+}

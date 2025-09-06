@@ -1,7 +1,7 @@
 <script>
 	import './sections/styles/studentMenu.css';
 	// Props
-	let { activeSection = 'grades', isNavRailVisible = true } = $props();
+	let { activeSection = 'grades', isNavRailVisible = true, onnavigate } = $props();
 
 	// Navigation items
 	const navigationItems = [
@@ -35,11 +35,10 @@
 	// Handle navigation
 	function handleNavigation(sectionId) {
 		activeSection = sectionId;
-		// Dispatch custom event for parent component
-		dispatchEvent(new CustomEvent('navigate', {
-			detail: { section: sectionId },
-			bubbles: true
-		}));
+		// Call the parent's navigation handler
+		if (onnavigate) {
+			onnavigate({ detail: { section: sectionId } });
+		}
 	}
 </script>
 
