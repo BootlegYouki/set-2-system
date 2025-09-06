@@ -1,5 +1,6 @@
 <script>
   import './studentGrade.css';
+	import Odometer from '../../../common/Odometer.svelte';
 	// Sample data - in real app this would come from props or API
 	let currentQuarter = '1st Quarter';
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
@@ -21,79 +22,89 @@
 	}
 	let totalSubjects = 5;
 
-	// Sample grades data
+	// Get grade color based on numeric value - using CSS variables
+	function getGradeColor(grade) {
+		if (grade >= 90) return 'var(--grade-excellent)';      // 90-100: Excellent
+		if (grade >= 80) return 'var(--grade-good)';           // 80-89: Good
+		if (grade >= 70) return 'var(--grade-satisfactory)';   // 70-79: Satisfactory
+		if (grade >= 60) return 'var(--grade-needs-improvement)'; // 60-69: Needs Improvement
+		return 'var(--grade-no-grade)';                        // Below 60 or no grade
+	}
+
+	// Sample grades data - Updated to use grade-based colors
 	let subjects = [
 		{
 			id: 1,
 			name: 'Mathematics',
 			teacher: 'Prof. Maria Santos',
 			credits: 3,
-			grade: 'A+',
 			numericGrade: 95,
 			progress: 95,
-			color: 'var(--success)'
+			color: 'var(--grade-excellent)'
 		},
 		{
 			id: 2,
 			name: 'Physics',
 			teacher: 'Dr. John Rodriguez',
 			credits: 3,
-			grade: 'A',
 			numericGrade: 88,
 			progress: 88,
-			color: 'var(--info)'
+			color: 'var(--grade-good)'
 		},
 		{
 			id: 3,
 			name: 'Chemistry',
 			teacher: 'Prof. Ana Dela Cruz',
 			credits: 3,
-			grade: 'B+',
-			numericGrade: 82,
-			progress: 82,
-			color: 'var(--warning)'
+			numericGrade: 76,
+			progress: 76,
+			color: 'var(--grade-satisfactory)'
 		},
 		{
 			id: 4,
 			name: 'Computer Science',
 			teacher: 'Dr. Michael Tan',
 			credits: 4,
-			grade: 'A+',
 			numericGrade: 94,
 			progress: 94,
-			color: 'var(--school-accent)'
+			color: 'var(--grade-excellent)'
 		},
 		{
 			id: 5,
 			name: 'English Literature',
 			teacher: 'Prof. Sarah Johnson',
 			credits: 2,
-			grade: 'B',
 			numericGrade: 0,
 			progress: 0,
-			color: 'var(--school-secondary)'
+			color: 'var(--grade-no-grade)'
 		}
 	];
+
+	// Update subject colors based on grades reactively
+	$: {
+		subjects = subjects.map(subject => ({
+			...subject,
+			color: getGradeColor(subject.numericGrade)
+		}));
+	}
 
 	// Calculate overall average
 	let overallAverage;
 	$: {
-		const totalPoints = subjects.reduce((sum, subject) => {
-			return sum + subject.numericGrade;
-		}, 0);
-		const subjectsWithGrades = subjects.filter(subject => subject.numericGrade > 0).length;
-		overallAverage = subjectsWithGrades > 0 ? (totalPoints / subjectsWithGrades).toFixed(2) : '0.00';
+		// Include all subjects with valid numeric grades (> 0)
+		const validSubjects = subjects.filter(subject => 
+			subject.numericGrade != null && 
+			typeof subject.numericGrade === 'number' && 
+			subject.numericGrade > 0
+		);
+		
+		if (validSubjects.length > 0) {
+			const totalPoints = validSubjects.reduce((sum, subject) => sum + subject.numericGrade, 0);
+			overallAverage = (totalPoints / validSubjects.length).toFixed(2);
+		} else {
+			overallAverage = '0.00';
+		}
 	}
-
-	// Get grade color based on numeric value
-	function getGradeColor(grade) {
-		if (grade >= 90) return 'var(--success)'; // Green
-		if (grade >= 80) return 'var(--info)'; // Blue
-		if (grade >= 70) return 'var(--warning)'; // Orange
-		if (grade >= 60) return 'var(--error)'; // Red
-		return 'var(--md-sys-color-on-surface-variant)'; // Gray for no grade
-	}
-
 
 </script>
 
@@ -132,11 +143,15 @@
 		<div class="performance-content">
 			<div class="performance-main">
 				<div class="average-section">
-					<div class="average-value">{overallAverage}</div>
+					<div class="average-value" style="color: {getGradeColor(parseFloat(overallAverage))}">
+						<div><Odometer value={parseFloat(overallAverage)} format="d.dd" duration={3000} animation="ease-out" /></div>
+					</div>
 					<div class="average-label">Current Average</div>
 				</div>
 				<div class="subjects-section-card">
-					<div class="subjects-value">{totalSubjects}</div>
+					<div class="subjects-value">
+						{totalSubjects}
+					</div>
 					<div class="subjects-label">Total Subjects</div>
 				</div>
 			</div>
@@ -170,11 +185,11 @@
 					<!-- Column 3: Grade Display -->
 					<div class="grade-column">
 						{#if subject.numericGrade > 0}
-							<div class="grade-large" style="color: {getGradeColor(subject.numericGrade)}">
-								{subject.numericGrade}
+							<div class="grade-large" style="color: {subject.color}">
+								<Odometer value={subject.numericGrade} format="d" duration={3000} animation="ease-out" />
 							</div>
 						{:else}
-							<div class="no-grade-large">
+							<div class="no-grade-large" style="color: {subject.color}">
 								<span class="material-symbols-outlined">remove</span>
 								<span class="no-grade-text">No Grade</span>
 							</div>

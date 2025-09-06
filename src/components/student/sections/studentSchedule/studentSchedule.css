@@ -132,6 +132,7 @@
 	border: 1px solid var(--md-sys-color-outline-variant);
 	transition: all 0.2s;
 	cursor: pointer;
+	color: var(--md-sys-color-on-surface);
 }
 
 .class-card:hover {
@@ -139,45 +140,109 @@
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Class Card Colors - Using Material Design System */
+/* Class Card Colors - Using Material Design System with proper text colors */
 .class-card.blue {
 	background-color: var(--md-sys-color-primary-container);
 	border-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.class-card.blue .class-name,
+.class-card.blue .class-time,
+.class-card.blue .class-location,
+.class-card.blue .class-teacher {
+	color: var(--md-sys-color-on-primary-container);
 }
 
 .class-card.green {
 	background-color: var(--md-sys-color-secondary-container);
 	border-color: var(--md-sys-color-secondary);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+.class-card.green .class-name,
+.class-card.green .class-time,
+.class-card.green .class-location,
+.class-card.green .class-teacher {
+	color: var(--md-sys-color-on-secondary-container);
 }
 
 .class-card.purple {
 	background-color: var(--md-sys-color-surface-variant);
 	border-color: var(--md-sys-color-outline);
+	color: var(--md-sys-color-on-surface);
+}
+
+.class-card.purple .class-name,
+.class-card.purple .class-time,
+.class-card.purple .class-location,
+.class-card.purple .class-teacher {
+	color: var(--md-sys-color-on-surface);
 }
 
 .class-card.yellow {
 	background-color: var(--md-sys-color-secondary-container);
 	border-color: var(--md-sys-color-secondary);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+.class-card.yellow .class-name,
+.class-card.yellow .class-time,
+.class-card.yellow .class-location,
+.class-card.yellow .class-teacher {
+	color: var(--md-sys-color-on-secondary-container);
 }
 
 .class-card.orange {
 	background-color: var(--md-sys-color-primary-container);
 	border-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.class-card.orange .class-name,
+.class-card.orange .class-time,
+.class-card.orange .class-location,
+.class-card.orange .class-teacher {
+	color: var(--md-sys-color-on-primary-container);
 }
 
 .class-card.gray {
 	background-color: var(--md-sys-color-surface-variant);
 	border-color: var(--md-sys-color-outline-variant);
+	color: var(--md-sys-color-on-surface);
+}
+
+.class-card.gray .class-name,
+.class-card.gray .class-time,
+.class-card.gray .class-location,
+.class-card.gray .class-teacher {
+	color: var(--md-sys-color-on-surface);
 }
 
 .class-card.pink {
 	background-color: var(--md-sys-color-secondary-container);
 	border-color: var(--md-sys-color-secondary);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+.class-card.pink .class-name,
+.class-card.pink .class-time,
+.class-card.pink .class-location,
+.class-card.pink .class-teacher {
+	color: var(--md-sys-color-on-secondary-container);
 }
 
 .class-card.light-purple {
 	background-color: var(--md-sys-color-surface-variant);
 	border-color: var(--md-sys-color-outline);
+	color: var(--md-sys-color-on-surface);
+}
+
+.class-card.light-purple .class-name,
+.class-card.light-purple .class-time,
+.class-card.light-purple .class-location,
+.class-card.light-purple .class-teacher {
+	color: var(--md-sys-color-on-surface);
 }
 
 /* Class Header */
@@ -192,21 +257,17 @@
 	margin: 0;
 	font-size: 1.125rem;
 	font-weight: 600;
-	color: var(--md-sys-color-on-surface);
+	/* Color now handled by parent class card */
 }
 
 .class-time {
 	font-size: 0.875rem;
-	color: var(--md-sys-color-on-surface-variant);
 	font-weight: 500;
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-xs);
-}
-
-.class-time::before {
-	content: '🕐';
-	font-size: 0.75rem;
+	opacity: 0.9;
+	/* Color now handled by parent class card */
 }
 
 /* Class Details */
@@ -222,7 +283,8 @@
 	align-items: center;
 	gap: var(--spacing-xs);
 	font-size: 0.875rem;
-	color: var(--md-sys-color-on-surface-variant);
+	opacity: 0.85;
+	/* Color now handled by parent class card */
 }
 
 .location-icon,

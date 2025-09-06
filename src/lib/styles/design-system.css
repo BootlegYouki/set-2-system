@@ -18,6 +18,13 @@
   --error: #d32f2f;
   --info: #1976d2;
   
+  /* Grade Performance Colors */
+  --grade-excellent: #2e7d32;    /* 90-100: Green */
+  --grade-good: #1976d2;         /* 80-89: Blue */
+  --grade-satisfactory: #f57c00; /* 70-79: Orange */
+  --grade-needs-improvement: #d32f2f; /* 60-69: Red */
+  --grade-no-grade: #9e9e9e;     /* No grade: Gray */
+  
   /* Neutral Colors (Default Dark Theme) */
   --surface: #121212;
   --surface-variant: #1e1e1e;
@@ -114,31 +121,32 @@
 /* Dark Mode Theme */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Dark Mode Colors */
+    /* Dark Mode Colors - Improved contrast */
     --surface: #121212;
     --surface-variant: #1e1e1e;
     --surface-container: #242424;
     --surface-container-high: #2a2a2a;
-    --on-surface: #e0e0e0;
-    --on-surface-variant: #c4c4c4;
-    --outline: #8a8a8a;
-    --outline-variant: #4a4a4a;
+    --on-surface: #f5f5f5;
+    --on-surface-variant: #e0e0e0;
+    --outline: #9e9e9e;
+    --outline-variant: #616161;
     
-    /* Material Web Component Dark Tokens */
+    /* Material Web Component Dark Tokens - Better contrast */
     --md-sys-color-primary: #90caf9;
     --md-sys-color-on-primary: #0d47a1;
-    --md-sys-color-primary-container: #1565c0;
-    --md-sys-color-on-primary-container: #e3f2fd;
+    --md-sys-color-primary-container: #1976d2;
+    --md-sys-color-on-primary-container: #ffffff;
     
     --md-sys-color-secondary: #ffb74d;
     --md-sys-color-on-secondary: #e65100;
-    --md-sys-color-secondary-container: #ff6f00;
-    --md-sys-color-on-secondary-container: #fff3e0;
+    --md-sys-color-secondary-container: #ff8f00;
+    --md-sys-color-on-secondary-container: #ffffff;
     
     --md-sys-color-surface: var(--surface);
     --md-sys-color-on-surface: var(--on-surface);
     --md-sys-color-surface-variant: var(--surface-variant);
     --md-sys-color-on-surface-variant: var(--on-surface-variant);
+    --md-sys-color-surface-container: var(--surface-container);
     
     --md-sys-color-outline: var(--outline);
     --md-sys-color-outline-variant: var(--outline-variant);
@@ -147,6 +155,13 @@
     --md-sys-color-on-error: #b71c1c;
     --md-sys-color-error-container: #d32f2f;
     --md-sys-color-on-error-container: #ffebee;
+    
+    /* Grade Performance Colors - Dark Mode */
+    --grade-excellent: #4caf50;    /* Brighter green for dark mode */
+    --grade-good: #2196f3;         /* Brighter blue for dark mode */
+    --grade-satisfactory: #ff9800; /* Brighter orange for dark mode */
+    --grade-needs-improvement: #f44336; /* Brighter red for dark mode */
+    --grade-no-grade: #bdbdbd;     /* Lighter gray for dark mode */
   }
 }
 
@@ -184,34 +199,42 @@
   --md-sys-color-on-error: #b71c1c;
   --md-sys-color-error-container: #d32f2f;
   --md-sys-color-on-error-container: #ffebee;
+  
+  /* Grade Performance Colors - Light Mode */
+  --grade-excellent: #2e7d32;
+  --grade-good: #1976d2;
+  --grade-satisfactory: #f57c00;
+  --grade-needs-improvement: #d32f2f;
+  --grade-no-grade: #757575;
 }
 
 /* Manual Dark Mode Toggle */
 [data-theme="dark"] {
-  /* Same dark mode variables as above */
+  /* Same dark mode variables as above - Improved contrast */
   --surface: #121212;
   --surface-variant: #1e1e1e;
   --surface-container: #242424;
   --surface-container-high: #2a2a2a;
-  --on-surface: #e0e0e0;
-  --on-surface-variant: #c4c4c4;
-  --outline: #8a8a8a;
-  --outline-variant: #4a4a4a;
+  --on-surface: #f5f5f5;
+  --on-surface-variant: #e0e0e0;
+  --outline: #9e9e9e;
+  --outline-variant: #616161;
   
   --md-sys-color-primary: #90caf9;
   --md-sys-color-on-primary: #0d47a1;
-  --md-sys-color-primary-container: #1565c0;
-  --md-sys-color-on-primary-container: #e3f2fd;
+  --md-sys-color-primary-container: #1976d2;
+  --md-sys-color-on-primary-container: #ffffff;
   
   --md-sys-color-secondary: #ffb74d;
   --md-sys-color-on-secondary: #e65100;
-  --md-sys-color-secondary-container: #ff6f00;
-  --md-sys-color-on-secondary-container: #fff3e0;
+  --md-sys-color-secondary-container: #ff8f00;
+  --md-sys-color-on-secondary-container: #ffffff;
   
   --md-sys-color-surface: var(--surface);
   --md-sys-color-on-surface: var(--on-surface);
   --md-sys-color-surface-variant: var(--surface-variant);
   --md-sys-color-on-surface-variant: var(--on-surface-variant);
+  --md-sys-color-surface-container: var(--surface-container);
   
   --md-sys-color-outline: var(--outline);
   --md-sys-color-outline-variant: var(--outline-variant);
@@ -220,6 +243,13 @@
   --md-sys-color-on-error: #b71c1c;
   --md-sys-color-error-container: #d32f2f;
   --md-sys-color-on-error-container: #ffebee;
+  
+  /* Grade Performance Colors - Dark Mode */
+  --grade-excellent: #4caf50;
+  --grade-good: #2196f3;
+  --grade-satisfactory: #ff9800;
+  --grade-needs-improvement: #f44336;
+  --grade-no-grade: #bdbdbd;
 }
 
 /* Base Styles */

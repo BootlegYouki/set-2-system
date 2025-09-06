@@ -1,36 +1,26 @@
 <script>
 	import './sections/styles/studentMenu.css';
 	// Props
-	let { activeSection = 'grades', isNavRailVisible = true, onnavigate } = $props();
+	let { activeSection = $bindable('grades'), isNavRailVisible = true, onnavigate } = $props();
 
 	// Navigation items
 	const navigationItems = [
 		{
 			id: 'grades',
 			label: 'My Grades',
-			icon: 'grade',
-			active: true
+			icon: 'grade'
 		},
 		{
 			id: 'schedule',
 			label: 'Schedule',
-			icon: 'schedule',
-			active: false
+			icon: 'schedule'
 		},
 		{
 			id: 'documents',
 			label: 'Documents',
-			icon: 'description',
-			active: false
+			icon: 'description'
 		}
 	];
-
-	// Update active state
-	$effect(() => {
-		navigationItems.forEach(item => {
-			item.active = item.id === activeSection;
-		});
-	});
 
 	// Handle navigation
 	function handleNavigation(sectionId) {
@@ -48,10 +38,10 @@
 		{#each navigationItems as item (item.id)}
 			<button 
 				class="rail-item" 
-				class:active={item.active}
+				class:active={item.id === activeSection}
 				onclick={() => handleNavigation(item.id)}
 				aria-label={item.label}
-				aria-current={item.active ? 'page' : undefined}
+				aria-current={item.id === activeSection ? 'page' : undefined}
 			>
 				<div class="rail-icon-container">
 					<span class="material-symbols-outlined rail-icon">
@@ -70,10 +60,10 @@
 		{#each navigationItems as item (item.id)}
 			<button 
 				class="nav-item" 
-				class:active={item.active}
+				class:active={item.id === activeSection}
 				onclick={() => handleNavigation(item.id)}
 				aria-label={item.label}
-				aria-current={item.active ? 'page' : undefined}
+				aria-current={item.id === activeSection ? 'page' : undefined}
 			>
 				<div class="nav-icon-container">
 					<span class="material-symbols-outlined nav-icon">

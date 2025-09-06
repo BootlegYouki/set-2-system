@@ -184,6 +184,14 @@
   margin-bottom: var(--spacing-xs);
 }
 
+.average-value :global(.odometer),
+.subjects-value :global(.odometer) {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+
 .average-label, .subjects-label {
   font-size: 16px;
   color: var(--md-sys-color-on-surface-variant);
@@ -288,6 +296,13 @@
   font-weight: 700;
   text-align: center;
   min-width: 60px;
+}
+
+.grade-large :global(.odometer) {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-align: inherit;
 }
 
 .no-grade-large {
