@@ -5,7 +5,7 @@
   import StudentMenu from '../components/student/studentMenu.svelte';
   import StudentGrade from '../components/student/sections/studentgrade/studentGrade.svelte';
   import StudentSchedule from '../components/student/sections/studentSchedule/studentSchedule.svelte';
-  import StudentDocument from '../components/student/sections/StudentDocumentRequest/studentDocumentRequest.svelte';
+  import StudentDocument from '../components/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
