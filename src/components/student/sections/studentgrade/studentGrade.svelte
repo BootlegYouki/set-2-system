@@ -144,7 +144,9 @@
 			<div class="performance-main">
 				<div class="average-section">
 					<div class="average-value" style="color: {getGradeColor(parseFloat(overallAverage))}">
-						<div><Odometer value={parseFloat(overallAverage)} format="d.dd" duration={3000} animation="ease-out" /></div>
+						<div>
+							<Odometer value={parseFloat(overallAverage)} format="d.dd" duration={3000} animation="ease-out" />
+						</div>
 					</div>
 					<div class="average-label">Current Average</div>
 				</div>

@@ -206,7 +206,6 @@
 
 .average-value, .subjects-value {
   font-size: 48px;
-  font-weight: 300;
   color: var(--md-sys-color-primary);
   line-height: 1;
   margin-bottom: var(--spacing-xs);

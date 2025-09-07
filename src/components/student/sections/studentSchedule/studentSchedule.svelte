@@ -1,6 +1,15 @@
 <script>
 	export let selectedWeek = 'October 23';
 	export let selectedDay = 'Friday';
+	
+	// Get current date info
+	const today = new Date();
+	const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+		'July', 'August', 'September', 'October', 'November', 'December'];
+	const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+	const currentMonth = monthNames[today.getMonth()];
+	const currentDay = today.getDate();
+	const currentDayName = dayNames[today.getDay()];
   import './studentSchedule.css';
 	const schedule = {
 		Friday: [
@@ -64,14 +73,24 @@
 	};
 
 	const weekDays = [
-		{ day: 'Mon', date: 23 },
-		{ day: 'Tue', date: 24 },
-		{ day: 'Wed', date: 25 },
-		{ day: 'Thu', date: 26 },
-		{ day: 'Fri', date: 27 }
+		{ day: 'Mon' },
+		{ day: 'Tue' },
+		{ day: 'Wed' },
+		{ day: 'Thu' },
+		{ day: 'Fri' }
 	];
 
+	// Map abbreviated days to full day names
+	const dayNameMap = {
+		'Mon': 'Monday',
+		'Tue': 'Tuesday', 
+		'Wed': 'Wednesday',
+		'Thu': 'Thursday',
+		'Fri': 'Friday'
+	};
+
 	let currentClasses = schedule[selectedDay] || [];
+	$: fullDayName = dayNameMap[selectedDay] || selectedDay;
 </script>
 
 <div class="schedule-container">
@@ -82,26 +101,24 @@
 
 	<div class="week-navigation">
 		<div class="week-title">
-			<button class="nav-btn prev">‹</button>
-			<span>Week of {selectedWeek}</span>
-			<button class="nav-btn next">›</button>
+			<span>{currentDayName}, {currentMonth} {currentDay}</span>
 		</div>
 
 		<div class="day-selector">
-			{#each weekDays as { day, date }}
+			{#each weekDays as { day }}
 				<button 
-					class="day-btn {day === 'Fri' ? 'active' : ''}"
+					class="day-btn {day === selectedDay ? 'active' : ''}"
 					on:click={() => selectedDay = day}
 				>
 					<div class="day-name">{day}</div>
-					<div class="day-date">{date}</div>
+					<div class="day-name-full">{dayNameMap[day]}</div>
 				</button>
 			{/each}
 		</div>
 	</div>
 
 	<div class="classes-section">
-		<h2>{selectedDay} Classes</h2>
+		<h2>{fullDayName} Classes</h2>
 		
 		<div class="classes-list">
 			{#each currentClasses as classItem}
