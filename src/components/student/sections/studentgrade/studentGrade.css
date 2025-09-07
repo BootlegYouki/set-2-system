@@ -1,6 +1,4 @@
-*{
-  transition: background-color var(--transition-normal);
-}
+
 
 :global(.grades-container) {
   padding: var(--spacing-lg);
@@ -31,10 +29,9 @@
 
 
 .grades-container {
-  background-color: var(--md-sys-color-surface);
   min-height: 100%;
   box-sizing: border-box;
-  padding-left: var(--spacing-lg);
+  padding: var(--spacing-sm);
 }
 
 /* Header Styles */

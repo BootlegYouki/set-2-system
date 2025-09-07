@@ -1,6 +1,21 @@
-  .app-container {
+
+  
+.app-container {
     min-height: 100vh;
     width: 100%;
+    background-color: var(--md-sys-color-surface);
+  }
+
+  /* Match navbar colors on desktop */
+  @media (min-width: 768px) {
+    .app-container {
+      background-color: var(--md-sys-color-primary-container);
+    }
+    
+    /* Dark mode specific colors for desktop */
+    [data-theme="dark"] .app-container {
+      background-color: var(--md-sys-color-surface-container-low);
+    }
   }
 
   .student-portal {
@@ -12,26 +27,27 @@
   .content-area {
     flex: 1;
     padding: 1rem;
-    padding-top: 0.5rem;
     margin-top: 64px; /* Account for fixed navbar height */
     margin-bottom: 64px; /* Account for fixed bottom menu height */
     min-height: calc(100vh - 128px); /* Ensure proper height calculation */
     margin-left: 0;
+    border-top-left-radius: 20px;
+    background-color: var(--md-sys-color-surface);
   }
 
   /* Desktop layout adjustments for navigation rail */
   @media (min-width: 768px) {
     .content-area {
-      margin-left: 56px; /* Account for collapsed navigation rail width */
+      margin-left: 73px; /* Account for collapsed navigation rail width */
       margin-top: 64px; /* Account for navbar height */
       margin-bottom: 0; /* No bottom menu on desktop */
       min-height: calc(100vh - 64px); /* Only account for navbar height */
-      transition: margin 150ms cubic-bezier(.2,.9,.2,1);
+      transition: background-color var(--transition-normal), margin 150ms cubic-bezier(.2,.9,.2,1);
     }
 
     /* Adjust content area when navigation rail is expanded */
     .student-portal.nav-rail-collapsed .content-area {
-      margin-left: 200px;
+      margin-left: 220px;
       transition: margin 150ms cubic-bezier(.2,.9,.2,1);
     }
   }

@@ -9,11 +9,26 @@
 		box-shadow: var(--shadow-sm);
 	}
 
-	/* Remove border and shadow on desktop */
+	/* Remove border and shadow on desktop, change background */
 	@media (min-width: 768px) {
 		.student-navbar {
 			border-bottom: none;
 			box-shadow: none;
+			background-color: var(--md-sys-color-primary-container);
+		}
+		
+		/* Change dropdown menu background on desktop */
+		.user-dropdown-menu {
+			background-color: var(--md-sys-color-primary-container);
+		}
+		
+		/* Dark mode specific colors for desktop */
+		[data-theme="dark"] .student-navbar {
+			background-color: var(--md-sys-color-surface-container-low);
+		}
+		
+		[data-theme="dark"] .user-dropdown-menu {
+			background-color: var(--md-sys-color-surface-container-low);
 		}
 	}
 
