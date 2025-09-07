@@ -333,7 +333,6 @@
 	}
 
 	.class-details {
-		flex-direction: column;
 		gap: var(--spacing-sm);
 	}
 }
@@ -341,6 +340,16 @@
 @media (max-width: 480px) {
 	.day-selector {
 		flex-direction: column;
+		
+	}
+
+	.class-details {
+		justify-content: space-between;
+	}
+
+	.class-header {
+		flex-direction: row;
+		align-items: center;
 	}
 
 	.day-btn {

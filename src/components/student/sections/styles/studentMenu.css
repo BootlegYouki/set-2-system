@@ -165,19 +165,14 @@
   position: relative;
 }
 
-.nav-item:hover {
-  background-color: var(--md-sys-color-surface-variant);
-  border-radius: 50%;
-}
-
 .nav-item:active {
   transform: scale(0.95);
 }
 
 .nav-item.active {
-  background-color: var(--md-sys-color-primary-container);
+  /* background-color: var(--md-sys-color-primary-container); */
   color: var(--md-sys-color-on-primary-container);
-  border-radius: var(--radius-full);
+  /* border-radius: var(--radius-full); */
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
