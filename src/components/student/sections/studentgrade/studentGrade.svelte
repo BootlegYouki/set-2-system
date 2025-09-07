@@ -125,9 +125,9 @@
 					<span class="material-symbols-outlined dropdown-arrow" class:rotated={isDropdownOpen}>expand_more</span>
 				</button>
 				{#if isDropdownOpen}
-					<div class="dropdown-menu">
+					<div class="dropdown-menu-quarter">
 						{#each quarters as quarter}
-							<button class="dropdown-item" class:active={quarter === currentQuarter} on:click={() => selectQuarter(quarter)}>
+							<button class="dropdown-item-quarter" class:active={quarter === currentQuarter} on:click={() => selectQuarter(quarter)}>
 								{quarter}
 							</button>
 						{/each}

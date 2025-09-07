@@ -54,6 +54,11 @@
   --md-sys-color-outline: var(--outline);
   --md-sys-color-outline-variant: var(--outline-variant);
   
+  /* Hover State Colors */
+  --md-sys-color-surface-container-hover: #2f2f2f;
+  --md-sys-color-primary-hover: #64b5f6;
+  --md-sys-color-secondary-hover: #ffcc80;
+  
   --md-sys-color-error: var(--error);
   --md-sys-color-on-error: #ffffff;
   --md-sys-color-error-container: #ffebee;
@@ -151,6 +156,11 @@
     --md-sys-color-outline: var(--outline);
     --md-sys-color-outline-variant: var(--outline-variant);
     
+    /* Hover State Colors - Dark Mode */
+    --md-sys-color-surface-container-hover: #3a3a3a;
+    --md-sys-color-primary-hover: #64b5f6;
+    --md-sys-color-secondary-hover: #ffcc80;
+    
     --md-sys-color-error: #f48fb1;
     --md-sys-color-on-error: #b71c1c;
     --md-sys-color-error-container: #d32f2f;
@@ -195,6 +205,11 @@
   --md-sys-color-outline: var(--outline);
   --md-sys-color-outline-variant: var(--outline-variant);
   
+  /* Hover State Colors - Light Mode */
+  --md-sys-color-surface-container-hover: #f0f0f0;
+  --md-sys-color-primary-hover: #1976d2;
+  --md-sys-color-secondary-hover: #ff8f00;
+  
   --md-sys-color-error: #f48fb1;
   --md-sys-color-on-error: #b71c1c;
   --md-sys-color-error-container: #d32f2f;
@@ -238,6 +253,11 @@
   
   --md-sys-color-outline: var(--outline);
   --md-sys-color-outline-variant: var(--outline-variant);
+  
+  /* Hover State Colors - Manual Dark Mode */
+  --md-sys-color-surface-container-hover: #3a3a3a;
+  --md-sys-color-primary-hover: #64b5f6;
+  --md-sys-color-secondary-hover: #ffcc80;
   
   --md-sys-color-error: #f48fb1;
   --md-sys-color-on-error: #b71c1c;
