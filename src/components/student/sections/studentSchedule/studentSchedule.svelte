@@ -1,5 +1,6 @@
 <script>
 	export let selectedWeek = 'October 23';
+	export let selectedDay = 'Friday';
 	
 	// Get current date info
 	const today = new Date();
@@ -9,21 +10,9 @@
 	const currentMonth = monthNames[today.getMonth()];
 	const currentDay = today.getDate();
 	const currentDayName = dayNames[today.getDay()];
-	
-	// Auto-select current day if it's a weekday, otherwise no selection
-	const todayDayIndex = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-	const weekdayMap = {
-		1: 'Mon', // Monday
-		2: 'Tue', // Tuesday
-		3: 'Wed', // Wednesday
-		4: 'Thu', // Thursday
-		5: 'Fri'  // Friday
-	};
-	
-	export let selectedDay = weekdayMap[todayDayIndex] || null;
   import './studentSchedule.css';
 	const schedule = {
-		Fri: [
+		Friday: [
 			{
 				name: 'Algebra II',
 				time: '08:00 - 08:45',
@@ -100,21 +89,8 @@
 		'Fri': 'Friday'
 	};
 
-	$: currentClasses = schedule[selectedDay] || [];
+	let currentClasses = schedule[selectedDay] || [];
 	$: fullDayName = dayNameMap[selectedDay] || selectedDay;
-	$: dropdownDisplayText = selectedDay ? dayNameMap[selectedDay] : 'Select Day';
-	
-	// Dropdown state for mobile
-	let isDropdownOpen = false;
-	
-	function toggleDropdown() {
-		isDropdownOpen = !isDropdownOpen;
-	}
-	
-	function selectDay(day) {
-		selectedDay = day;
-		isDropdownOpen = false;
-	}
 </script>
 
 <div class="schedule-container">
@@ -129,72 +105,43 @@
 		</div>
 
 		<div class="day-selector">
-			<!-- Desktop view - all buttons visible -->
-			<div class="day-buttons-desktop">
-				{#each weekDays as { day }}
-					<button 
-						class="day-btn {day === selectedDay ? 'active' : ''}"
-						on:click={() => selectedDay = day}
-					>
-						<div class="day-name">{day}</div>
-					</button>
-				{/each}
-			</div>
-			
-			<!-- Mobile view - dropdown -->
-			<div class="day-dropdown-mobile">
-				<button class="dropdown-trigger" on:click={toggleDropdown}>
-					<span>{dropdownDisplayText}</span>
-					<span class="dropdown-arrow {isDropdownOpen ? 'open' : ''}">▼</span>
+			{#each weekDays as { day }}
+				<button 
+					class="day-btn {day === selectedDay ? 'active' : ''}"
+					on:click={() => selectedDay = day}
+				>
+					<div class="day-name">{day}</div>
+					<div class="day-name-full">{dayNameMap[day]}</div>
 				</button>
-				
-				{#if isDropdownOpen}
-					<div class="dropdown-menu">
-						{#each weekDays as { day }}
-							<button 
-								class="dropdown-item {day === selectedDay ? 'active' : ''}"
-								on:click={() => selectDay(day)}
-							>
-								{dayNameMap[day]}
-							</button>
-						{/each}
-					</div>
-				{/if}
-			</div>
+			{/each}
 		</div>
 	</div>
 
 	<div class="classes-section">
-		<h2>{selectedDay ? fullDayName + ' Classes' : 'Select a Day'}</h2>
+		<h2>{fullDayName} Classes</h2>
 		
 		<div class="classes-list">
-			{#if currentClasses.length > 0}
-				{#each currentClasses as classItem}
-					<div class="class-card {classItem.color}">
-						<div class="class-header">
-							<h3 class="class-name">{classItem.name}</h3>
-							<span class="class-time">{classItem.time}</span>
-						</div>
-						
-						<div class="class-details">
-							<div class="class-location">
-								<span class="material-symbols-outlined"> location_on</span>
-								<span>{classItem.room}</span>
-							</div>
-							{#if classItem.teacher}
-								<div class="class-teacher">
-									<span class="material-symbols-outlined"> person_book </span>
-									<span>{classItem.teacher}</span>
-								</div>
-							{/if}
-						</div>
+			{#each currentClasses as classItem}
+				<div class="class-card {classItem.color}">
+					<div class="class-header">
+						<h3 class="class-name">{classItem.name}</h3>
+						<span class="class-time">{classItem.time}</span>
 					</div>
-				{/each}
-			{:else}
-				<div class="no-classes-message">
-					<p>No classes scheduled</p>
+					
+					<div class="class-details">
+						<div class="class-location">
+							<span class="material-symbols-outlined"> location_on</span>
+							<span>{classItem.room}</span>
+						</div>
+						{#if classItem.teacher}
+							<div class="class-teacher">
+								<span class="material-symbols-outlined"> person_book </span>
+								<span>{classItem.teacher}</span>
+							</div>
+						{/if}
+					</div>
 				</div>
-			{/if}
+			{/each}
 		</div>
 	</div>
 </div>
