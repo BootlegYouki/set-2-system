@@ -6,8 +6,27 @@
 	let selectedDocumentType = '';
 	let requestPurpose = '';
 	let isSubmitting = false;
-	let selectedUrgency = 'normal';
-	let selectedDelivery = 'email';
+	
+	// Custom dropdown state
+	let isDropdownOpen = false;
+	
+	// Close dropdown when clicking outside
+	function handleClickOutside(event) {
+		if (!event.target.closest('.custom-dropdown')) {
+			isDropdownOpen = false;
+		}
+	}
+	
+	// Toggle dropdown
+	function toggleDropdown() {
+		isDropdownOpen = !isDropdownOpen;
+	}
+	
+	// Select document type and close dropdown
+	function selectDocumentType(docType) {
+		selectedDocumentType = docType.id;
+		isDropdownOpen = false;
+	}
 
 	// Document types
 	const documentTypes = [
@@ -46,14 +65,27 @@
 		}
 	];
 
+	function handleCancelRequest(requestId) {
+		// Find and update the request status
+		requestHistory = requestHistory.map(request => {
+			if (request.id === requestId && request.status === 'processing') {
+				return {
+					...request,
+					status: 'cancelled',
+					cancelledDate: new Date().toLocaleDateString('en-US')
+				};
+			}
+			return request;
+		});
+	}
+
 	function toggleRequestForm() {
 		isRequestFormOpen = !isRequestFormOpen;
 		if (!isRequestFormOpen) {
 			// Reset form when closing
 			selectedDocumentType = '';
 			requestPurpose = '';
-			selectedUrgency = 'normal';
-			selectedDelivery = 'email';
+			isDropdownOpen = false;
 		}
 	}
 
@@ -81,6 +113,7 @@
 			case 'completed': return 'var(--success)';
 			case 'processing': return 'var(--warning)';
 			case 'rejected': return 'var(--error)';
+			case 'cancelled': return 'var(--md-sys-color-on-surface-variant)';
 			default: return 'var(--md-sys-color-on-surface-variant)';
 		}
 	}
@@ -90,6 +123,7 @@
 			case 'completed': return 'check_circle';
 			case 'processing': return 'hourglass_empty';
 			case 'rejected': return 'cancel';
+			case 'cancelled': return 'block';
 			default: return 'help';
 		}
 	}
@@ -99,7 +133,7 @@
 
 
 
-<div class="document-request-container">
+<div class="document-request-container" on:click={handleClickOutside} on:keydown={handleClickOutside} role="button" tabindex="0">
 	<!-- Header Section - Same style as grades page -->
 	<div class="document-header">
 		<div class="header-content">
@@ -132,43 +166,59 @@
 				
 				<div class="form-content">
 					<div class="form-group">
-						<label class="form-label" for="document-type">Document Type</label>
-						<select id="document-type" class="form-select" bind:value={selectedDocumentType}>
-							<option value="">Select document type</option>
-							{#each documentTypes as docType}
-								<option value={docType.id}>{docType.name}</option>
-							{/each}
-						</select>
+						<label class="form-label">
+							<span class="material-symbols-outlined form-icon">description</span>
+							Document Type
+						</label>
+						
+						<!-- Custom Dropdown -->
+						<div class="custom-dropdown">
+							<button class="dropdown-toggle" on:click={toggleDropdown}>
+								<span>
+									{#if selectedDocumentType}
+										{documentTypes.find(d => d.id === selectedDocumentType)?.name || 'Select Document Type'}
+									{:else}
+										Choose the document you need
+									{/if}
+								</span>
+								<span class="material-symbols-outlined dropdown-icon {isDropdownOpen ? 'open' : ''}">
+									expand_more
+								</span>
+							</button>
+							
+							{#if isDropdownOpen}
+								<div class="dropdown-menu-document">
+									{#each documentTypes as docType}
+										<button 
+											class="dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''}"
+											on:click={() => selectDocumentType(docType)}
+										>
+											<div class="dropdown-item-content">
+												<span class="dropdown-item-name">{docType.name}</span>
+												<span class="dropdown-item-desc">{docType.description}</span>
+											</div>
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
 					</div>
 					
 					<div class="form-group">
-						<label class="form-label" for="description">Description</label>
+						<label class="form-label" for="description">
+							<span class="material-symbols-outlined form-icon">edit_note</span>
+							Purpose & Details
+						</label>
 						<textarea 
 							id="description" 
-							class="form-textarea" 
+							class="form-textarea enhanced" 
 							bind:value={requestPurpose} 
-							placeholder="Please provide details about your request..."
-							rows="4"
+							placeholder="Please describe the purpose of your request and any specific requirements..."
+							rows="5"
 						></textarea>
-					</div>
-
-					<div class="form-row">
-						<div class="form-group">
-							<label class="form-label" for="urgency">Urgency</label>
-							<select id="urgency" class="form-select" bind:value={selectedUrgency}>
-								<option value="normal">Normal (5-7 days)</option>
-								<option value="urgent">Urgent (2-3 days)</option>
-								<option value="rush">Rush (1 day)</option>
-							</select>
-						</div>
-						
-						<div class="form-group">
-							<label class="form-label" for="delivery">Delivery Method</label>
-							<select id="delivery" class="form-select" bind:value={selectedDelivery}>
-								<option value="email">Email</option>
-								<option value="pickup">Campus Pickup</option>
-								<option value="mail">Postal Mail</option>
-							</select>
+						<div class="form-help">
+							<span class="material-symbols-outlined help-icon">info</span>
+							Be specific about your needs to help us process your request efficiently
 						</div>
 					</div>
 					
@@ -200,7 +250,7 @@
 		
 		<div class="request-history-grid">
 			{#each requestHistory as request (request.id)}
-				<div class="request-card">
+				<div class="request-card {request.status}">
 					<div class="request-main-content">
 						<div class="request-status-icon" style="color: {getStatusColor(request.status)}">
 							<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
@@ -215,7 +265,8 @@
 								<div class="status-badge" style="background-color: {getStatusColor(request.status)}20; color: {getStatusColor(request.status)}">
 									{request.status === 'completed' ? 'Completed' : 
 									 request.status === 'processing' ? 'Processing' : 
-									 request.status === 'rejected' ? 'Rejected' : 'Unknown'}
+									 request.status === 'rejected' ? 'Rejected' : 
+									 request.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
 								</div>
 							</div>
 							<p class="request-description">{request.purpose}</p>
@@ -234,6 +285,14 @@
 					{:else if request.status === 'processing'}
 						<div class="request-footer processing-footer">
 							<span class="footer-info">Estimated completion: {request.estimatedCompletion}</span>
+							<button class="cancel-request-button" on:click={() => handleCancelRequest(request.id)}>
+								<span class="material-symbols-outlined">close</span>
+								Cancel
+							</button>
+						</div>
+					{:else if request.status === 'cancelled'}
+						<div class="request-footer cancelled-footer">
+							<span class="footer-info">Cancelled on {request.cancelledDate}</span>
 						</div>
 					{:else if request.status === 'rejected'}
 						<div class="request-footer rejected-footer">
