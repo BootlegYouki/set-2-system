@@ -156,7 +156,7 @@
             autocomplete="email"
             class="w-full"
           >
-            <md-icon slot="leading-icon">email</md-icon>
+            <span slot="leading-icon" class="material-symbols-outlined">email</span>
           </md-outlined-text-field>
         </div>
 
@@ -173,7 +173,7 @@
             autocomplete="current-password"
             class="w-full"
           >
-            <md-icon slot="leading-icon">lock</md-icon>
+            <span slot="leading-icon" class="material-symbols-outlined">lock</span>
             <md-icon-button 
               id="password-toggle-btn"
               slot="trailing-icon"
@@ -193,7 +193,7 @@
               role="button"
               tabindex="0"
             >
-              <md-icon>{showPassword ? 'visibility' : 'visibility_off'}</md-icon>
+              <span class="material-symbols-outlined">{showPassword ? 'visibility' : 'visibility_off'}</span>
             </md-icon-button>
           </md-outlined-text-field>
         </div>
@@ -240,7 +240,7 @@
         <!-- Error Message -->
         {#if errors.general}
           <div class="error-message" role="alert">
-            <md-icon>error</md-icon>
+            <span class="material-symbols-outlined">error</span>
             <span>{errors.general}</span>
           </div>
         {/if}

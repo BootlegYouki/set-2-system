@@ -104,13 +104,9 @@
   align-items: center;
   width: 24px;
   padding-left: var(--spacing-md);
-  width: 95%;
-  gap: 2px;
+  width: 100%;
 }
 
-.navigation-rail.collapsed .rail-item.active{
-  width: 95%;
-}
 
 .navigation-rail.collapsed .rail-icon-container{
   justify-content: start;

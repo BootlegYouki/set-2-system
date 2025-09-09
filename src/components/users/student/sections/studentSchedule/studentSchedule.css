@@ -19,7 +19,6 @@
 
 .page-title {
   font-family: var(--md-sys-typescale-headline-large-font);
-  font-size: var(--md-sys-typescale-headline-large-size);
   font-weight: var(--md-sys-typescale-headline-large-weight);
   color: var(--md-sys-color-on-surface);
   margin: 0 0 var(--spacing-xs) 0;
@@ -130,7 +129,9 @@
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Class Card Colors - Using Material Design System with proper text colors */
+/* Class Card Colors - Distinct variants that complement blue school brand */
+
+/* Blue - Primary school brand color */
 .class-card.blue {
 	background-color: var(--md-sys-color-primary-container);
 	border-color: var(--md-sys-color-primary);
@@ -144,58 +145,87 @@
 	color: var(--md-sys-color-on-primary-container);
 }
 
+/* Green - Cool complement to blue */
 .class-card.green {
-	background-color: var(--md-sys-color-secondary-container);
-	border-color: var(--md-sys-color-secondary);
-	color: var(--md-sys-color-on-secondary-container);
+	background-color: #e8f5e8;
+	border-color: #4caf50;
+	color: #1b5e20;
+}
+
+[data-theme="dark"] .class-card.green {
+	background-color: #263f26;
+	border-color: #66bb6a;
+	color: #c8e6c9;
 }
 
 .class-card.green .class-name,
 .class-card.green .class-time,
 .class-card.green .class-location,
 .class-card.green .class-teacher {
-	color: var(--md-sys-color-on-secondary-container);
+	color: inherit;
 }
 
+/* Purple - Analogous to blue */
 .class-card.purple {
-	background-color: var(--md-sys-color-surface-variant);
-	border-color: var(--md-sys-color-outline);
-	color: var(--md-sys-color-on-surface);
+	background-color: #f3e5f5;
+	border-color: #9c27b0;
+	color: #4a148c;
+}
+
+[data-theme="dark"] .class-card.purple {
+	background-color: #3a2f3b;
+	border-color: #ba68c8;
+	color: #e1bee7;
 }
 
 .class-card.purple .class-name,
 .class-card.purple .class-time,
 .class-card.purple .class-location,
 .class-card.purple .class-teacher {
-	color: var(--md-sys-color-on-surface);
+	color: inherit;
 }
 
+/* Yellow/Amber - Warm complement to cool blue */
 .class-card.yellow {
-	background-color: var(--md-sys-color-secondary-container);
-	border-color: var(--md-sys-color-secondary);
-	color: var(--md-sys-color-on-secondary-container);
+	background-color: #fff8e1;
+	border-color: #ffc107;
+	color: #ff6f00;
+}
+
+[data-theme="dark"] .class-card.yellow {
+	background-color: #3e3823;
+	border-color: #ffcc02;
+	color: #fff3c4;
 }
 
 .class-card.yellow .class-name,
 .class-card.yellow .class-time,
 .class-card.yellow .class-location,
 .class-card.yellow .class-teacher {
-	color: var(--md-sys-color-on-secondary-container);
+	color: inherit;
 }
 
+/* Orange - Energetic warm tone */
 .class-card.orange {
-	background-color: var(--md-sys-color-primary-container);
-	border-color: var(--md-sys-color-primary);
-	color: var(--md-sys-color-on-primary-container);
+	background-color: #fff3e0;
+	border-color: #ff9800;
+	color: #e65100;
+}
+
+[data-theme="dark"] .class-card.orange {
+	background-color: #3e2f23;
+	border-color: #ffb74d;
+	color: #ffe0b2;
 }
 
 .class-card.orange .class-name,
 .class-card.orange .class-time,
 .class-card.orange .class-location,
 .class-card.orange .class-teacher {
-	color: var(--md-sys-color-on-primary-container);
+	color: inherit;
 }
 
+/* Gray - Neutral for lunch/breaks */
 .class-card.gray {
 	background-color: var(--md-sys-color-surface-variant);
 	border-color: var(--md-sys-color-outline-variant);
@@ -209,30 +239,44 @@
 	color: var(--md-sys-color-on-surface);
 }
 
+/* Pink/Rose - Soft contrast to blue */
 .class-card.pink {
-	background-color: var(--md-sys-color-secondary-container);
-	border-color: var(--md-sys-color-secondary);
-	color: var(--md-sys-color-on-secondary-container);
+	background-color: #fce4ec;
+	border-color: #e91e63;
+	color: #880e4f;
+}
+
+[data-theme="dark"] .class-card.pink {
+	background-color: #3b2832;
+	border-color: #f06292;
+	color: #f8bbd9;
 }
 
 .class-card.pink .class-name,
 .class-card.pink .class-time,
 .class-card.pink .class-location,
 .class-card.pink .class-teacher {
-	color: var(--md-sys-color-on-secondary-container);
+	color: inherit;
 }
 
+/* Light Purple/Lavender - Softer purple variant */
 .class-card.light-purple {
-	background-color: var(--md-sys-color-surface-variant);
-	border-color: var(--md-sys-color-outline);
-	color: var(--md-sys-color-on-surface);
+	background-color: #ede7f6;
+	border-color: #673ab7;
+	color: #311b92;
+}
+
+[data-theme="dark"] .class-card.light-purple {
+	background-color: #332d3a;
+	border-color: #9575cd;
+	color: #d1c4e9;
 }
 
 .class-card.light-purple .class-name,
 .class-card.light-purple .class-time,
 .class-card.light-purple .class-location,
 .class-card.light-purple .class-teacher {
-	color: var(--md-sys-color-on-surface);
+	color: inherit;
 }
 
 /* Class Header */
@@ -397,13 +441,6 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-	.schedule-container {
-		padding: var(--spacing-md);
-	}
-
-	.schedule-header {
-		padding: var(--spacing-lg);
-	}
 
 	.schedule-header h1 {
 		font-size: 1.5rem;
@@ -422,7 +459,7 @@
 	}
 
 	.classes-section {
-		padding: var(--spacing-lg);
+		padding: var(--spacing-sm);
 	}
 
 	.class-header {

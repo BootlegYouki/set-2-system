@@ -109,7 +109,7 @@
 	}
 </script>
 
-<div class="schedule-container" on:click={handleClickOutside}>
+<div class="schedule-container" on:click={handleClickOutside} on:keydown={handleClickOutside} role="button" tabindex="0">
 	<div class="schedule-header">
 		<h1 class="page-title">Schedule</h1>
 		<p class="page-subtitle">Your weekly class schedule</p>

@@ -1,6 +1,6 @@
 <script>
   import './studentGrade.css';
-	import Odometer from '../../../common/Odometer.svelte';
+	import Odometer from '../../../../common/Odometer.svelte';
 	// Sample data - in real app this would come from props or API
 	let currentQuarter = '1st Quarter';
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
@@ -24,10 +24,10 @@
 
 	// Get grade color based on numeric value - using CSS variables
 	function getGradeColor(grade) {
-		if (grade >= 90) return 'var(--grade-excellent)';      // 90-100: Excellent
+		if (grade >= 85) return 'var(--grade-excellent)';      // 90-100: Excellent
 		if (grade >= 80) return 'var(--grade-good)';           // 80-89: Good
-		if (grade >= 70) return 'var(--grade-satisfactory)';   // 70-79: Satisfactory
-		if (grade >= 60) return 'var(--grade-needs-improvement)'; // 60-69: Needs Improvement
+		if (grade >= 75) return 'var(--grade-satisfactory)';   // 70-79: Satisfactory
+		if (grade >= 65) return 'var(--grade-needs-improvement)'; // 60-69: Needs Improvement
 		return 'var(--grade-no-grade)';                        // Below 60 or no grade
 	}
 
@@ -39,7 +39,6 @@
 			teacher: 'Prof. Maria Santos',
 			credits: 3,
 			numericGrade: 95,
-			progress: 95,
 			color: 'var(--grade-excellent)'
 		},
 		{
@@ -48,7 +47,6 @@
 			teacher: 'Dr. John Rodriguez',
 			credits: 3,
 			numericGrade: 88,
-			progress: 88,
 			color: 'var(--grade-good)'
 		},
 		{
@@ -57,7 +55,6 @@
 			teacher: 'Prof. Ana Dela Cruz',
 			credits: 3,
 			numericGrade: 76,
-			progress: 76,
 			color: 'var(--grade-satisfactory)'
 		},
 		{
@@ -66,7 +63,6 @@
 			teacher: 'Dr. Michael Tan',
 			credits: 4,
 			numericGrade: 94,
-			progress: 94,
 			color: 'var(--grade-excellent)'
 		},
 		{
@@ -75,7 +71,6 @@
 			teacher: 'Prof. Sarah Johnson',
 			credits: 2,
 			numericGrade: 0,
-			progress: 0,
 			color: 'var(--grade-no-grade)'
 		}
 	];
@@ -118,9 +113,9 @@
 			<p class="page-subtitle">Academic Performance Overview</p>
 		</div>
 		<div class="quarter-selector">
-			<span class="material-symbols-outlined">calendar_today</span>
 			<div class="custom-dropdown">
 				<button class="dropdown-button" on:click={toggleDropdown}>
+					<span class="material-symbols-outlined">calendar_today</span>
 					<span class="dropdown-text">{currentQuarter}</span>
 					<span class="material-symbols-outlined dropdown-arrow" class:rotated={isDropdownOpen}>expand_more</span>
 				</button>
@@ -179,7 +174,7 @@
 						<p class="teacher-name">{subject.teacher}</p>
 						{#if subject.numericGrade > 0}
 							<div class="progress-bar">
-								<div class="progress-fill" style="width: {subject.progress}%; background-color: {subject.color}"></div>
+								<div class="progress-fill" style="width: {subject.numericGrade}%; background-color: {subject.color}"></div>
 							</div>
 						{/if}
 					</div>

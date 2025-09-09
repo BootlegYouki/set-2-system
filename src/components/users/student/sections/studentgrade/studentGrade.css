@@ -117,7 +117,7 @@
 .dropdown-menu-quarter {
   position: absolute;
   top: 170%;
-  left: -45px;
+  left: -20px;
   right: 0;
   background: var(--md-sys-color-surface-container);
   border-radius: var(--radius-xl);
@@ -207,7 +207,6 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  gap: var(--spacing-xl);
 }
 
 .average-section, .subjects-section-card {
@@ -261,7 +260,7 @@
   box-shadow: var(--shadow-sm);
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
   align-items: center;
   cursor: pointer;
 }
@@ -282,7 +281,7 @@
 .subject-details-column {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   flex: 1;
 }
 
@@ -390,17 +389,12 @@
     gap: var(--spacing-md);
   }
 
-  .performance-main {
-    flex-direction: column;
-    gap: var(--spacing-lg);
-  }
-
   .subjects-grid {
     grid-template-columns: 1fr;
   }
 
   .page-title {
-    font-size: 28px;
+    font-size: 1.5rem;
   }
 
   .average-value, .subjects-value {

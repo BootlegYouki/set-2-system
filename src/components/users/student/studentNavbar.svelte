@@ -1,7 +1,7 @@
 <script>
 	import './styles/studentNavbar.css';
 	import { onMount } from 'svelte';
-	import { showSuccess } from '../../stores/toastStore.js';
+	import { showSuccess } from '../../../stores/toastStore.js';
 
 	// Props
 	let { studentName = 'John Does', studentId = '2024-001234', profileImage = null, onlogout, onToggleNavRail } = $props();
@@ -108,7 +108,7 @@
 
 			<!-- User profile section with dropdown -->
 			<div class="user-profile-container">
-				<div class="user-profile" onclick={toggleDropdown}>
+				<button class="user-profile" onclick={toggleDropdown}>
 					<div class="user-info">
 						<span class="user-name">{studentName}</span>
 						<span class="user-id">ID: {studentId}</span>
@@ -123,7 +123,7 @@
 							</div>
 						{/if}
 					</div>
-				</div>
+				</button>
 
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
