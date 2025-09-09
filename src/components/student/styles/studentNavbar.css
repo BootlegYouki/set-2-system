@@ -83,7 +83,6 @@
 		background-color: transparent;
 		color: var(--md-sys-color-on-surface-variant);
 		cursor: pointer;
-		transition: all var(--transition-fast);
 	}
 
 	.icon-button:hover {

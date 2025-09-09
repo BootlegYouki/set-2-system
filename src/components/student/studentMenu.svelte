@@ -1,5 +1,5 @@
 <script>
-	import './sections/styles/studentMenu.css';
+	import './styles/studentMenu.css';
 	// Props
 	let { activeSection = $bindable('grades'), isNavRailVisible = true, onnavigate } = $props();
 

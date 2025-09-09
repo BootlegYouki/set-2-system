@@ -1,5 +1,5 @@
 <script>
-	import './sections/styles/studentNavbar.css';
+	import './styles/studentNavbar.css';
 	import { onMount } from 'svelte';
 	import { showSuccess } from '../../stores/toastStore.js';
 

@@ -20,16 +20,14 @@
   let errors = $state({ email: '', password: '', general: '' });
   let userType = $state('student'); // 'student' or 'staff'
   
-  // Theme state (default to dark mode)
-  let isDarkMode = $state(true);
+  // Theme state (sync with already-set theme from app.html)
+  let isDarkMode = $state(false);
 
-  // Check initial theme preference
+  // Sync component state with the theme set in app.html
   onMount(() => {
-    const savedTheme = localStorage.getItem('theme');
-    
-    // Default to dark mode if no saved preference
-    isDarkMode = savedTheme !== 'light';
-    updateTheme();
+    // Read the current theme from the document
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    isDarkMode = currentTheme === 'dark';
   });
 
   // Toggle theme mode
@@ -104,16 +102,7 @@
     }
   };
 
-  // Handle enter key press on form elements
-  const handleKeyDown = (event) => {
-    if (event.key === 'Enter' && !isLoading) {
-      // If focus is on password toggle button, don't submit
-      if (event.target.closest('#password-toggle-btn')) {
-        return;
-      }
-      handleSubmit(event);
-    }
-  };
+
 
   // Handle input changes with real-time validation
   const handleEmailChange = (event) => {
@@ -153,7 +142,7 @@
         <h1 class="login-title">Integrated Registrar System</h1>
       </div>
       <!-- Login Form -->
-      <form class="login-form" onsubmit={handleSubmit} onkeydown={handleKeyDown}>
+      <form class="login-form" onsubmit={handleSubmit}>
         <!-- Email Field -->
         <div class="form-field">
           <md-outlined-text-field
@@ -222,12 +211,19 @@
         </div>
 
         <!-- Submit Button -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <md-filled-button 
           id="login-submit-btn"
           type="submit" 
           class="login-submit"
           disabled={isLoading}
           aria-label="Sign in"
+          onkeydown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
         >
           {#if isLoading}
             <md-circular-progress indeterminate></md-circular-progress>

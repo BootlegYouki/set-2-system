@@ -4,6 +4,7 @@
     min-height: 100vh;
     width: 100%;
     background-color: var(--md-sys-color-surface);
+    transition: background-color var(--transition-normal);
   }
 
   /* Match navbar colors on desktop */
@@ -33,6 +34,7 @@
     margin-left: 0;
     border-top-left-radius: 20px;
     background-color: var(--md-sys-color-surface);
+    transition: margin 150ms cubic-bezier(.2,.9,.2,1), background-color var(--transition-normal) !important;
   }
 
   /* Desktop layout adjustments for navigation rail */
@@ -42,7 +44,7 @@
       margin-top: 64px; /* Account for navbar height */
       margin-bottom: 0; /* No bottom menu on desktop */
       min-height: calc(100vh - 64px); /* Only account for navbar height */
-      transition: background-color var(--transition-normal), margin 150ms cubic-bezier(.2,.9,.2,1);
+      transition: margin 150ms cubic-bezier(.2,.9,.2,1);
     }
 
     /* Adjust content area when navigation rail is expanded */

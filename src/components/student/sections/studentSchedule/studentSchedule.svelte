@@ -134,7 +134,7 @@
 		
 		<!-- Mobile Dropdown -->
 		<div class="mobile-dropdown">
-			<button class="dropdown-toggle" on:click={toggleDropdown}>
+			<button class="dropdown-toggle-date" on:click={toggleDropdown}>
 				<span>{dayNameMap[selectedDay] || 'Select Day'}</span>
 				<span class="material-symbols-outlined dropdown-icon {isDropdownOpen ? 'open' : ''}">
 					expand_more

@@ -288,7 +288,7 @@
 	position: relative;
 }
 
-.dropdown-toggle {
+.dropdown-toggle-date {
 	width: 100%;
 	background-color: var(--md-sys-color-surface-variant);
 	border: 1px solid var(--md-sys-color-outline-variant);
