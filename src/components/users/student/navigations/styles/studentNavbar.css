@@ -5,38 +5,38 @@
     left: 0;
     right: 0;
 		top: 0;
-		z-index: var(--z-sticky);
+		z-index: var(--z-fixed);
 		background-color: var(--md-sys-color-surface);
 		border-bottom: 1px solid var(--md-sys-color-outline-variant);
 		box-shadow: var(--shadow-sm);
+		height: 64px;
+		overflow: hidden;
 	}
 
-	/* Remove border and shadow on desktop, change background */
-	@media (min-width: 768px) {
-		.student-navbar {
-			border-bottom: none;
-			box-shadow: none;
-			background-color: var(--md-sys-color-primary-container);
-		}
-		
-		.user-profile-container, .user-profile{
-			background-color: transparent;
-		}
-		
-		/* Change dropdown menu background on desktop */
-		.user-dropdown-menu {
-			background-color: var(--md-sys-color-primary-container);
-		}
-		
-		/* Dark mode specific colors for desktop */
-		[data-theme="dark"] .student-navbar {
-			background-color: var(--md-sys-color-surface-container-low);
-		}
-		
-		[data-theme="dark"] .user-dropdown-menu {
-			background-color: var(--md-sys-color-surface-container-low);
-		}
+@media (min-width: 768px) {
+	.user-profile-container, .user-profile{
+		background-color: transparent;
 	}
+	.student-navbar {
+		border-bottom: none;
+		box-shadow: none;
+		background-color: var(--md-sys-color-primary-container);
+	}
+	
+	/* Change dropdown menu background on desktop */
+	.user-dropdown-menu {
+		background-color: var(--md-sys-color-primary-container);
+	}
+	
+	/* Dark mode specific colors for desktop */
+	[data-theme="dark"] .student-navbar {
+		background-color: var(--md-sys-color-surface-container-low);
+	}
+	
+	[data-theme="dark"] .user-dropdown-menu {
+		background-color: var(--md-sys-color-surface-container-low);
+	}
+}
 
 	.navbar-container {
 		display: flex;
@@ -243,12 +243,22 @@
 		font-size: 14px;
 	}
 
+	
+@media (max-width: 767px) {
+	.user-profile-container, .user-profile{
+		background-color: transparent;
+	}
+}
+
+
+
 	/* Responsive Design */
 	@media (min-width: 768px) {
 		/* Show hamburger menu on desktop */
 		.hamburger-menu {
 			display: flex;
 		}
+		
 	}
 
 	@media (max-width: 640px) {

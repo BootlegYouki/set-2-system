@@ -1,8 +1,31 @@
 
 .grades-container {
-  min-height: 100%;
+  height: 100%;
   box-sizing: border-box;
   padding: var(--spacing-sm);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for grades container */
+.grades-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.grades-container::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-sm);
+}
+
+.grades-container::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+}
+
+.grades-container::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
 }
 
 /* Header Styles */

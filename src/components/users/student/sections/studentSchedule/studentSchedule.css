@@ -5,6 +5,31 @@
 	margin: 0 auto;
 	color: var(--md-sys-color-on-surface);
   padding: var(--spacing-sm);
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for schedule container */
+.schedule-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.schedule-container::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-sm);
+}
+
+.schedule-container::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+}
+
+.schedule-container::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
 }
 
 /* Header Styles */

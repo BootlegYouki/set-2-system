@@ -3,8 +3,31 @@
 .document-request-container {
   padding: var(--spacing-sm);
   color: var(--md-sys-color-on-surface);
-  min-height: 100%;
+  height: 100%;
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for document request container */
+.document-request-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.document-request-container::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-sm);
+}
+
+.document-request-container::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+}
+
+.document-request-container::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
 }
 
 /* Header Styles - Copied from studentGrade.css */

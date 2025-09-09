@@ -1,26 +1,58 @@
 .app-container {
-    min-height: 100vh;
+    height: 100vh;
     width: 100%;
     background-color: var(--md-sys-color-surface);
     transition: background-color var(--transition-normal);
+    overflow: hidden;
   }
 
 .student-portal {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
 }
 
 .content-area {
-  flex: 1;
-  padding: 1rem;
-  margin-top: 64px; /* Account for fixed navbar height */
-  margin-bottom: 64px; /* Account for fixed bottom menu height */
-  min-height: calc(100vh - 128px); /* Ensure proper height calculation */
-  margin-left: 0;
+  position: fixed;
+  top: 64px; /* Account for fixed navbar height */
+  bottom: 64px; /* Account for fixed bottom menu height */
+  left: 0;
+  right: 0;
+  padding: 0;
   border-top-left-radius: 20px;
   background-color: var(--md-sys-color-surface);
-  transition: margin 150ms cubic-bezier(.2,.9,.2,1), background-color var(--transition-normal) !important;
+  transition: left 150ms cubic-bezier(.2,.9,.2,1), background-color var(--transition-normal) !important;
+  overflow: hidden;
+}
+
+.content-area > * {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for content area */
+.content-area > *::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-area > *::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-sm);
+}
+
+.content-area > *::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+}
+
+.content-area > *::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
 }
 
 .teacher-portal,
@@ -80,23 +112,55 @@
   }
 
   .content-area {
-    margin-left: 73px; /* Account for collapsed navigation rail width */
-    margin-top: 64px; /* Account for navbar height */
-    margin-bottom: 0; /* No bottom menu on desktop */
-    min-height: calc(100vh - 64px); /* Only account for navbar height */
-    transition: margin 150ms cubic-bezier(.2,.9,.2,1);
+    left: 73px; /* Account for collapsed navigation rail width */
+    top: 64px; /* Account for navbar height */
+    bottom: 0; /* No bottom menu on desktop */
+    transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
 
   /* Adjust content area when navigation rail is expanded */
   .student-portal.nav-rail-collapsed .content-area {
-    margin-left: 220px;
-    transition: margin 150ms cubic-bezier(.2,.9,.2,1);
+    left: 220px;
+    transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
 }
 
 /* Mobile layout adjustments */
 @media (max-width: 768px) {
-  .app-container {
-    min-height: 90vh;
+  .content-area > *::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .content-area {
+    border-top-left-radius: 16px;
+    /* Ensure proper touch scrolling on mobile */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .content-area > * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Adjust padding for mobile */
+  .content-area > * {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* Tablet layout adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .content-area {
+    left: 73px;
+  }
+  
+  .student-portal.nav-rail-collapsed .content-area {
+    left: 220px;
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+  .content-area > * {
+    padding: var(--spacing-lg);
   }
 }
