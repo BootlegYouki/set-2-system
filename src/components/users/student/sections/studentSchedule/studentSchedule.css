@@ -3,7 +3,6 @@
 /* Schedule Container */
 .schedule-container {
 	margin: 0 auto;
-	background-color: var(--md-sys-color-surface);
 	color: var(--md-sys-color-on-surface);
   padding: var(--spacing-sm);
 }

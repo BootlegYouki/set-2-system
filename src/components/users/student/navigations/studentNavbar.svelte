@@ -1,7 +1,7 @@
 <script>
 	import './styles/studentNavbar.css';
 	import { onMount } from 'svelte';
-	import { showSuccess } from '../../../stores/toastStore.js';
+	import { showSuccess } from '../../../../stores/toastStore.js';
 
 	// Props
 	let { studentName = 'John Does', studentId = '2024-001234', profileImage = null, onlogout, onToggleNavRail } = $props();

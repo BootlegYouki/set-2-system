@@ -1,8 +1,8 @@
 <script>
   import { authStore } from '../lib/stores/auth.js';
   import Login from '../components/login/loginpage.svelte';
-  import StudentNavbar from '../components/users/student/studentNavbar.svelte';
-  import StudentMenu from '../components/users/student/studentMenu.svelte';
+  import StudentNavbar from '../components/users/student/navigations/studentNavbar.svelte';
+  import StudentMenu from '../components/users/student/navigations/studentMenu.svelte';
   import StudentGrade from '../components/users/student/sections/studentgrade/studentGrade.svelte';
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';

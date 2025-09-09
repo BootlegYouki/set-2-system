@@ -252,6 +252,9 @@
 	}
 
 	@media (max-width: 640px) {
+		.user-profile{
+			background-color: transparent;
+		}
 		.navbar-container {
 			padding: var(--spacing-sm) var(--spacing-md);
 		}
