@@ -4,6 +4,12 @@
 /* Import Material Symbols font for Material Web Components icons */
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+}
+
 :root {
   /* School Brand Colors */
   --school-primary: #1565c0;

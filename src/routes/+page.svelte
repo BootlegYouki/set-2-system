@@ -6,6 +6,8 @@
   import StudentGrade from '../components/users/student/sections/studentgrade/studentGrade.svelte';
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
+  import Notification from '../components/users/student/sections/notification/notification.svelte';
+  import TodoList from '../components/users/student/sections/todolist/todolist.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
@@ -77,6 +79,10 @@
           <StudentSchedule />
         {:else if activeSection === 'documents'}
           <StudentDocument />
+        {:else if activeSection === 'notifications'}
+          <Notification />
+        {:else if activeSection === 'todo'}
+          <TodoList />
         {/if}
       </main>
 

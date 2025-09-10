@@ -19,6 +19,16 @@
 			id: 'documents',
 			label: 'Documents',
 			icon: 'description'
+		},
+		{
+			id: 'notifications',
+			label: 'Notifications',
+			icon: 'notifications'
+		},
+		{
+			id: 'todo',
+			label: 'Todo List',
+			icon: 'checklist'
 		}
 	];
 
@@ -57,7 +67,38 @@
 <!-- Bottom Navigation (Mobile) -->
 <nav class="bottom-navigation" role="	navigation" aria-label="Student portal navigation">
 	<div class="nav-container">
-		{#each navigationItems as item (item.id)}
+		<!-- First half of navigation items -->
+		{#each navigationItems.slice(0, 2) as item (item.id)}
+			<button 
+				class="nav-item" 
+				class:active={item.id === activeSection}
+				onclick={() => handleNavigation(item.id)}
+				aria-label={item.label}
+				aria-current={item.id === activeSection ? 'page' : undefined}
+			>
+				<div class="nav-icon-container">
+					<span class="material-symbols-outlined nav-icon">
+						{item.icon}
+					</span>
+				</div>
+			</button>
+		{/each}
+
+		<!-- Center add_diamond button (Todo List) -->
+		<button 
+			class="nav-item" 
+			class:active={'todo' === activeSection}
+			onclick={() => handleNavigation('todo')}
+			aria-label="Todo List"
+			aria-current={'todo' === activeSection ? 'page' : undefined}
+		>
+			<div class="nav-icon-container">
+				<span class="material-symbols-outlined nav-icon" style="font-variation-settings: 'FILL' 1; font-size: 28px;">add_diamond</span>
+			</div>
+		</button>
+
+		<!-- Second half of navigation items -->
+		{#each navigationItems.slice(2, 4) as item (item.id)}
 			<button 
 				class="nav-item" 
 				class:active={item.id === activeSection}
