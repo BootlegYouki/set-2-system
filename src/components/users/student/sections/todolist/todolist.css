@@ -795,7 +795,9 @@
 }
 
 .todo-card {
-  animation: todoSlideIn 0.3s ease-out;
+  animation: todoSlideIn 0.4s ease-out;
+  animation-fill-mode: both;
+  animation-delay: calc(var(--card-index, 0) * 0.1s);
 }
 
 /* Reduced motion support */

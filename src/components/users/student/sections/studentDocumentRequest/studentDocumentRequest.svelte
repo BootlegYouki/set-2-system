@@ -260,8 +260,8 @@
 		<h2 class="section-title">Request History</h2>
 		
 		<div class="request-history-grid">
-			{#each requestHistory as request (request.id)}
-				<div class="request-card {request.status}">
+			{#each requestHistory as request, index (request.id)}
+				<div class="request-card {request.status}" style="--card-index: {index + 1};">
 					<div class="request-main-content">
 						<div class="request-status-icon">
 							<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>

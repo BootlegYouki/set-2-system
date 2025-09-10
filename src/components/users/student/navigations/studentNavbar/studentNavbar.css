@@ -120,64 +120,7 @@
 		position: relative;
 	}
 
-	.navbar-notifications-container {
-		position: relative;
-	}
 
-	.navbar-notifications-dropdown {
-		position: absolute;
-		top: 45px;
-		right: -105px;
-		margin-top: var(--spacing-xs);
-		background-color: var(--md-sys-color-surface-container);
-		border: 1px solid var(--md-sys-color-outline-variant);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-md);
-		min-width: 280px;
-		max-width: 320px;
-		overflow: hidden;
-		z-index: var(--z-modal);
-		animation: dropdownFadeIn 0.2s ease-out;
-	}
-
-	.navbar-notifications-header {
-		padding: var(--spacing-md);
-		border-bottom: 1px solid var(--md-sys-color-outline-variant);
-		background-color: var(--md-sys-color-surface-variant);
-	}
-
-	.navbar-notifications-header h3 {
-		margin: 0;
-		font-family: var(--md-sys-typescale-title-medium-font);
-		font-size: var(--md-sys-typescale-title-medium-size);
-		font-weight: var(--md-sys-typescale-title-medium-weight);
-		color: var(--md-sys-color-on-surface);
-	}
-
-	.navbar-notifications-content {
-		padding: var(--spacing-lg);
-	}
-
-	.navbar-no-notifications {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--spacing-sm);
-		padding: var(--spacing-lg) 0;
-		color: var(--md-sys-color-on-surface-variant);
-		text-align: center;
-	}
-
-	.navbar-no-notifications .material-symbols-outlined {
-		font-size: 32px;
-		opacity: 0.6;
-	}
-
-	.navbar-no-notifications p {
-		margin: 0;
-		font-family: var(--md-sys-typescale-body-medium-font);
-		font-size: var(--md-sys-typescale-body-medium-size);
-	}
 
 	.user-profile {
 		display: flex;
@@ -334,10 +277,5 @@
 
 		.app-title {
 			font-size: 18px;
-		}
-
-		.navbar-notifications-dropdown {
-			min-width: 260px;
-			max-width: 280px;
 		}
 	}

@@ -124,7 +124,7 @@
 			{#each weekDays as { day }}
 				<button 
 					class="day-btn {day === selectedDay ? 'active' : ''}"
-					on:click={() => selectedDay = day}
+					on:click={() => selectDay(day)}
 				>
 					<div class="day-name">{day}</div>
 					<div class="day-name-full">{dayNameMap[day]}</div>

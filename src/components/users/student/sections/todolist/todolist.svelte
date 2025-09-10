@@ -26,6 +26,22 @@
       dueDate: 'Next Week',
       completed: true,
       category: 'personal'
+    },
+    {
+      id: 4,
+      title: 'Buy groceries',
+      description: 'Buy milk, bread, and eggs',
+      dueDate: 'Next Week',
+      completed: false,
+      category: 'personal'
+    },
+    {
+      id: 5,
+      title: 'Read a book',
+      description: 'Read a book on Svelte',
+      dueDate: 'Next Week',
+      completed: false,
+      category: 'personal'
     }
   ];
 
@@ -433,8 +449,8 @@
   <div class="todos-section">
     {#if todos.length > 0}
       <div class="todos-list">
-        {#each todos as todo (todo.id)}
-          <div class="todo-card" class:completed={todo.completed}>
+        {#each todos as todo, index (todo.id)}
+          <div class="todo-card" class:completed={todo.completed} style="--card-index: {index + 1};">
             <div class="todo-checkbox">
               <input
                 type="checkbox"

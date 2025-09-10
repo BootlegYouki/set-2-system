@@ -1,5 +1,5 @@
 <script>
-	import './styles/studentMenu.css';
+	import './studentMenu.css';
 	// Props
 	let { activeSection = $bindable('grades'), isNavRailVisible = true, onnavigate } = $props();
 
@@ -93,7 +93,7 @@
 			aria-current={'todo' === activeSection ? 'page' : undefined}
 		>
 			<div class="nav-icon-container">
-				<span class="material-symbols-outlined nav-icon" style="font-variation-settings: 'FILL' 1; font-size: 28px;">add_diamond</span>
+				<span class="material-symbols-outlined nav-icon" style="font-variation-settings: 'FILL' 1; font-size: 28px;">checklist</span>
 			</div>
 		</button>
 

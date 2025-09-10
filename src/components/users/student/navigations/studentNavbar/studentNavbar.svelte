@@ -1,7 +1,7 @@
 <script>
-	import './styles/studentNavbar.css';
+	import './studentNavbar.css';
 	import { onMount } from 'svelte';
-	import { showSuccess } from '../../../common/js/toastStore.js';
+	import { showSuccess } from '../../../../common/js/toastStore.js';
 
 	// Props
 	let { studentName = 'John Does', studentId = '2024-001234', profileImage = null, onlogout, onToggleNavRail } = $props();
@@ -11,24 +11,10 @@
 
 	// Dropdown state
 	let isDropdownOpen = $state(false);
-	let isNotificationsOpen = $state(false);
 
 	// Toggle dropdown
 	function toggleDropdown() {
 		isDropdownOpen = !isDropdownOpen;
-		// Close notifications if open
-		if (isNotificationsOpen) {
-			isNotificationsOpen = false;
-		}
-	}
-
-	// Toggle notifications dropdown
-	function toggleNotifications() {
-		isNotificationsOpen = !isNotificationsOpen;
-		// Close user dropdown if open
-		if (isDropdownOpen) {
-			isDropdownOpen = false;
-		}
 	}
 
 	// Close dropdown when clicking outside
@@ -36,18 +22,12 @@
 		isDropdownOpen = false;
 	}
 
-	// Close notifications dropdown
-	function closeNotifications() {
-		isNotificationsOpen = false;
-	}
+
 
 	// Handle click outside to close dropdown
 	function handleClickOutside(event) {
 		if (isDropdownOpen && !event.target.closest('.user-profile-container')) {
 			closeDropdown();
-		}
-		if (isNotificationsOpen && !event.target.closest('.navbar-notifications-container')) {
-			closeNotifications();
 		}
 	}
 
@@ -117,32 +97,6 @@
 
 		<!-- Right section - User info and controls -->
 		<div class="navbar-right">
-			<!-- Notifications -->
-			<div class="navbar-notifications-container">
-				<button 
-					class="icon-button notifications-button" 
-					onclick={toggleNotifications}
-					aria-label="Notifications"
-				>
-					<span class="material-symbols-outlined">notifications</span>
-				</button>
-
-				<!-- Notifications dropdown -->
-				{#if isNotificationsOpen}
-					<div class="navbar-notifications-dropdown">
-						<div class="navbar-notifications-header">
-							<h3>Notifications</h3>
-						</div>
-						<div class="navbar-notifications-content">
-							<div class="navbar-no-notifications">
-								<span class="material-symbols-outlined">notifications_off</span>
-								<p>No new notifications</p>
-							</div>
-						</div>
-					</div>
-				{/if}
-			</div>
-
 			<!-- Dark mode toggle -->
 			<button 
 				class="icon-button dark-mode-toggle" 
