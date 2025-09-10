@@ -7,9 +7,10 @@
   import '@material/web/iconbutton/icon-button.js';
   import '@material/web/progress/circular-progress.js';
   import './loginpage.css';
-  import { authStore } from '../../lib/stores/auth.js';
   import { onMount } from 'svelte';
-  import { showSuccess, showError } from '../../stores/toastStore.js';
+  import { validateEmail, validatePassword } from './js/validation.js';
+  import { getCurrentTheme, toggleTheme } from './js/theme.js';
+  import { handleLogin } from './js/authHelpers.js';
 
   // Svelte 5 runes for state management
   let email = $state('');
@@ -25,40 +26,15 @@
 
   // Sync component state with the theme set in app.html
   onMount(() => {
-    // Read the current theme from the document
-    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const currentTheme = getCurrentTheme();
     isDarkMode = currentTheme === 'dark';
   });
 
   // Toggle theme mode
   function toggleDarkMode() {
-    isDarkMode = !isDarkMode;
-    updateTheme();
+    const newTheme = toggleTheme();
+    isDarkMode = newTheme === 'dark';
   }
-
-  // Update theme
-  function updateTheme() {
-    if (isDarkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('theme', 'light');
-    }
-  }
-
-  // Validation functions
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email) return 'Email is required';
-    if (!emailRegex.test(email)) return 'Please enter a valid email address';
-    return '';
-  };
-
-  const validatePassword = (password) => {
-    if (!password) return 'Password is required';
-    return '';
-  };
   
   // Handle form submission
   const handleSubmit = async (event) => {
@@ -79,30 +55,13 @@
     isLoading = true;
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Handle successful login - update auth store
-      const userData = {
-        name: email.split('@')[0], // Use email prefix as name for now
-        id: userType === 'student' ? '2024-001234' : 'STAFF-001',
-        email: email,
-        profileImage: null
-      };
-      
-      authStore.login(userType, userData);
-      showSuccess('Login successful! Welcome back.');
-      console.log('Login successful:', { email, userType, rememberMe });
-      
+      await handleLogin({ email, password, userType, rememberMe });
     } catch (error) {
-      errors = { ...errors, general: 'Login failed. Please check your credentials.' };
-      showError('Login failed. Please check your credentials and try again.');
+      errors = { ...errors, general: error.message };
     } finally {
       isLoading = false;
     }
   };
-
-
 
   // Handle input changes with real-time validation
   const handleEmailChange = (event) => {
