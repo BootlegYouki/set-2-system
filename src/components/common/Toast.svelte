@@ -216,13 +216,12 @@
     .toast {
       min-width: auto;
       max-width: none;
-      /* Override desktop animations with mobile slide down */
       transform: translateY(-100%) scale(0.95);
       animation: slideDownIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
 
     .toast.toast-hiding {
-      animation: slideDownOut 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+      animation: slideDownOut 0.2s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
     }
 
     .toast-visible {

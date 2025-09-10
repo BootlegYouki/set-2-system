@@ -127,6 +127,10 @@
 
 /* Mobile layout adjustments */
 @media (max-width: 768px) {
+  .app-container {
+    height: 90vh;
+  }
+
   .content-area > *::-webkit-scrollbar {
     width: 4px;
   }

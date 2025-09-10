@@ -127,16 +127,6 @@
   margin-bottom: var(--spacing-xl);
 }
 
-.user-type-btn {
-  --md-filled-button-container-color: var(--md-sys-color-surface-variant);
-  --md-filled-button-label-text-color: var(--md-sys-color-on-surface-variant);
-}
-
-.user-type-btn.active {
-  --md-filled-button-container-color: var(--md-sys-color-primary);
-  --md-filled-button-label-text-color: var(--md-sys-color-on-primary);
-}
-
 .login-form {
   display: flex;
   flex-direction: column;
@@ -337,15 +327,6 @@
   line-height: 16px;
 }
 
-/* Prevent FOUC for Material Design components */
-md-icon-button:not(:defined) {
-  visibility: hidden;
-}
-
-md-icon-button:defined {
-  visibility: visible;
-}
-
 .forgot-password {
   width: 50%;
   transform: translateX(50%);
@@ -525,25 +506,23 @@ md-icon-button:defined {
   }
 
   /* Larger text fields for mobile */
-  md-filled-text-field {
-    --md-filled-text-field-container-height: 70px;
-    --md-filled-text-field-input-text-size: 18px;
-    --md-filled-text-field-label-text-size: 16px;
+  .custom-text-field {
+    min-height: 70px;
+    padding: 0 20px;
   }
-}
 
-/* Filled text field theming for dark mode adaptation */
+  .text-label {
+    left: 56px;
+    font-size: 18px;
+  }
 
-/* Touch-friendly tap targets */
-md-filled-button,
-md-text-button,
-md-icon-button {
-  min-height: 44px;
-  min-width: 44px;
-}
+  .text-input:focus + .text-label,
+  .text-input:not(:placeholder-shown) + .text-label {
+    font-size: 14px;
+    top: 14px;
+  }
 
-
-/* Loading state */
-md-circular-progress {
-  --md-circular-progress-size: 20px;
+  .trailing-icon-button .material-symbols-outlined {
+    font-size: 28px;
+  }
 }
