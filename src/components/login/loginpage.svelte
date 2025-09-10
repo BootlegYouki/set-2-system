@@ -1,7 +1,6 @@
 <script>
-  import '@material/web/button/filled-button.js';
-  import '@material/web/button/text-button.js';
-  import '@material/web/textfield/outlined-text-field.js';
+
+  import '@material/web/textfield/filled-text-field.js';
   import '@material/web/checkbox/checkbox.js';
   import '@material/web/icon/icon.js';
   import '@material/web/iconbutton/icon-button.js';
@@ -77,6 +76,14 @@
       errors = { ...errors, password: validatePassword(password) };
     }
   };
+
+  // Handle Enter key press in form fields
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSubmit(event);
+    }
+  };
 </script>
 
 <div class="login-container">
@@ -101,41 +108,44 @@
         <h1 class="login-title">Integrated Registrar System</h1>
       </div>
       <!-- Login Form -->
-      <form class="login-form" onsubmit={handleSubmit}>
+      <form class="login-form" onsubmit={handleSubmit} novalidate>
         <!-- Email Field -->
         <div class="form-field">
-          <md-outlined-text-field
-            label="Email Address"
-            type="email"
-            value={email}
-            oninput={handleEmailChange}
-            error={!!errors.email}
-            error-text={errors.email}
-            required
-            autocomplete="email"
-            class="w-full"
-          >
-            <span slot="leading-icon" class="material-symbols-outlined">email</span>
-          </md-outlined-text-field>
+          <div class="custom-text-field {errors.email ? 'error' : ''}">
+            <span class="leading-icon material-symbols-outlined">email</span>
+            <input
+                 type="email"
+                 value={email}
+                 oninput={handleEmailChange}
+                 onkeydown={handleKeyDown}
+                 autocomplete="email"
+                 class="text-input"
+                 placeholder=" "
+               />
+            <label class="text-label" for="email-input">Email Address</label>
+          </div>
+          {#if errors.email}
+            <div class="error-text">{errors.email}</div>
+          {/if}
         </div>
 
         <!-- Password Field -->
         <div class="form-field">
-          <md-outlined-text-field
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            oninput={handlePasswordChange}
-            error={!!errors.password}
-            error-text={errors.password}
-            required
-            autocomplete="current-password"
-            class="w-full"
-          >
-            <span slot="leading-icon" class="material-symbols-outlined">lock</span>
-            <md-icon-button 
-              id="password-toggle-btn"
-              slot="trailing-icon"
+          <div class="custom-text-field {errors.password ? 'error' : ''}">
+            <span class="leading-icon material-symbols-outlined">lock</span>
+            <input
+                 type={showPassword ? 'text' : 'password'}
+                 value={password}
+                 oninput={handlePasswordChange}
+                 onkeydown={handleKeyDown}
+                 autocomplete="current-password"
+                 class="text-input"
+                 placeholder=" "
+               />
+            <label class="text-label" for="password-input">Password</label>
+            <button
+              type="button"
+              class="trailing-icon-button"
               onclick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -149,32 +159,35 @@
                 }
               }}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              role="button"
-              tabindex="0"
             >
               <span class="material-symbols-outlined">{showPassword ? 'visibility' : 'visibility_off'}</span>
-            </md-icon-button>
-          </md-outlined-text-field>
+            </button>
+          </div>
+          {#if errors.password}
+            <div class="error-text">{errors.password}</div>
+          {/if}
         </div>
 
         <!-- Remember Me Checkbox -->
         <div class="form-field remember-me-field">
           <label class="remember-me-label" for="remember-me-checkbox">
-            <md-checkbox
+            <input
+              type="checkbox"
               id="remember-me-checkbox"
+              class="custom-checkbox"
               checked={rememberMe}
               onchange={(e) => (rememberMe = e.target.checked)}
-            ></md-checkbox>
+            />
+            <span class="checkbox-checkmark"></span>
             <span>Remember me</span>
           </label>
         </div>
 
         <!-- Submit Button -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <md-filled-button 
+        <button 
           id="login-submit-btn"
           type="submit" 
-          class="login-submit"
+          class="custom-filled-button login-submit"
           disabled={isLoading}
           aria-label="Sign in"
           onkeydown={(e) => {
@@ -185,16 +198,16 @@
           }}
         >
           {#if isLoading}
-            <md-circular-progress indeterminate></md-circular-progress>
+            <div class="loading-spinner"></div>
           {:else}
             <span>Sign in</span>
           {/if}
-        </md-filled-button>
+        </button>
 
         <!-- Forgot password -->
-        <md-text-button id="forgot-password-btn" class="forgot-password" aria-label="forgot-password">
+        <button type="button" id="forgot-password-btn" class="custom-text-button forgot-password" aria-label="forgot-password">
           Forgot Password?
-        </md-text-button>
+        </button>
 
         <!-- Error Message -->
         {#if errors.general}

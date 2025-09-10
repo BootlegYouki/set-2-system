@@ -181,6 +181,171 @@
   line-height: 1;
 }
 
+/* Custom checkbox styling - Material Design inspired */
+.custom-checkbox {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkbox-checkmark {
+  position: relative;
+  display: inline-block;
+  height: 18px;
+  width: 18px;
+  border: 2px solid var(--md-sys-color-outline);
+  border-radius: 2px;
+  background-color: transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.custom-checkbox:checked + .checkbox-checkmark {
+  background-color: var(--md-sys-color-primary);
+  border-color: var(--md-sys-color-primary);
+}
+
+.checkbox-checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--md-sys-color-on-primary);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.custom-checkbox:checked + .checkbox-checkmark:after {
+  display: block;
+}
+/* Custom text field styling - Material Design inspired */
+.custom-text-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  background-color: var(--md-sys-color-surface-container-highest);
+  border-radius: 4px 4px 0 0;
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  transition: all 0.2s ease;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.custom-text-field:focus-within {
+  border-bottom: 2px solid var(--md-sys-color-primary);
+  transition: none;
+}
+
+
+.custom-text-field.error {
+  border-bottom: 2px solid var(--md-sys-color-error);
+}
+
+.custom-text-field.error:focus-within {
+  border-bottom: 2px solid var(--md-sys-color-error);
+}
+
+.leading-icon {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 24px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.custom-text-field:focus-within .leading-icon {
+  color: var(--md-sys-color-primary);
+}
+
+.custom-text-field.error .leading-icon {
+  color: var(--md-sys-color-error);
+}
+
+.text-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--md-sys-color-on-surface);
+  padding: 16px 0 0 0;
+  font-family: var(--md-sys-typescale-body-large-font);
+}
+
+.text-input::placeholder {
+  color: transparent;
+}
+
+.text-label {
+  position: absolute;
+  left: 52px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--md-sys-color-on-surface-variant);
+  pointer-events: none;
+  transition: all 0.1s ease;
+  font-family: var(--md-sys-typescale-body-large-font);
+}
+
+.text-input:focus + .text-label,
+.text-input:not(:placeholder-shown) + .text-label {
+  top: 12px;
+  font-size: 12px;
+  color: var(--md-sys-color-primary);
+  transform: translateY(-6px);
+}
+
+.custom-text-field.error .text-input:focus + .text-label,
+.custom-text-field.error .text-input:not(:placeholder-shown) + .text-label {
+  color: var(--md-sys-color-error);
+}
+
+.trailing-icon-button {
+  background: none;
+  border: none;
+  padding: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trailing-icon-button .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.error-text {
+  font-size: 12px;
+  color: var(--md-sys-color-error);
+  font-family: var(--md-sys-typescale-body-small-font);
+  margin-top: 4px;
+  margin-left: 16px;
+  padding-left: 36px;
+  line-height: 16px;
+}
+
+/* Prevent FOUC for Material Design components */
+md-icon-button:not(:defined) {
+  visibility: hidden;
+}
+
+md-icon-button:defined {
+  visibility: visible;
+}
+
 .error-message {
   display: flex;
   align-items: center;
@@ -197,14 +362,132 @@
   transform: translateX(50%);
 }
 
+/* Custom filled button styling - Material Design inspired */
+.custom-filled-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 20px;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  overflow: hidden;
+  outline: none;
+}
+
+.custom-filled-button:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 92%, var(--md-sys-color-on-primary) 8%);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+}
+
+.custom-filled-button:focus-visible {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-primary) 12%);
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.custom-filled-button:active {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-primary) 12%);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  transform: scale(0.98);
+}
+
+.custom-filled-button:disabled {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.custom-filled-button:disabled:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  box-shadow: none;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Custom text button styling - Material Design inspired */
+.custom-text-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 20px;
+  background-color: transparent;
+  color: var(--md-sys-color-primary);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  overflow: hidden;
+  outline: none;
+}
+
+.custom-text-button:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+}
+
+.custom-text-button:focus-visible {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.custom-text-button:active {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  transform: scale(0.98);
+}
+
+.custom-text-button:disabled {
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.custom-text-button:disabled:hover {
+  background-color: transparent;
+}
+
 .login-submit {
   width: 100%;
   height: 48px;
   margin-top: var(--spacing-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
 }
 
 /* Mobile Optimizations */
@@ -253,12 +536,14 @@
   }
 
   /* Larger text fields for mobile */
-  md-outlined-text-field {
-    --md-outlined-text-field-container-height: 70px;
-    --md-outlined-text-field-input-text-size: 18px;
-    --md-outlined-text-field-label-text-size: 16px;
+  md-filled-text-field {
+    --md-filled-text-field-container-height: 70px;
+    --md-filled-text-field-input-text-size: 18px;
+    --md-filled-text-field-label-text-size: 16px;
   }
 }
+
+/* Filled text field theming for dark mode adaptation */
 
 /* Touch-friendly tap targets */
 md-filled-button,

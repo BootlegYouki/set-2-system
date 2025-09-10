@@ -55,7 +55,7 @@
 </nav>
 
 <!-- Bottom Navigation (Mobile) -->
-<nav class="bottom-navigation" role="navigation" aria-label="Student portal navigation">
+<nav class="bottom-navigation" role="	navigation" aria-label="Student portal navigation">
 	<div class="nav-container">
 		{#each navigationItems as item (item.id)}
 			<button 
