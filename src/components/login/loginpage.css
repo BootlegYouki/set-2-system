@@ -4,7 +4,7 @@
   transition: background var(--transition-normal);
 }
 
-.theme-toggle-btn {
+.login-container .theme-toggle-btn {
   position: fixed;
   top: var(--spacing-lg);
   right: var(--spacing-lg);
@@ -24,17 +24,17 @@
   border: 1px solid var(--md-sys-color-outline-variant);
 }
 
-.theme-toggle-btn:hover {
+.login-container .theme-toggle-btn:hover {
   background-color: var(--md-sys-color-surface-variant);
   color: var(--md-sys-color-on-surface);
   box-shadow: var(--shadow-md);
 }
 
-.theme-toggle-btn:active {
+.login-container .theme-toggle-btn:active {
   transform: scale(0.95);
 }
 
-.theme-toggle-btn .material-symbols-outlined {
+.login-container .theme-toggle-btn .material-symbols-outlined {
   font-size: 24px;
 }
 

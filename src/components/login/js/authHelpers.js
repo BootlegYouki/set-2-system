@@ -6,7 +6,7 @@ import { showSuccess, showError } from '../../common/js/toastStore.js';
  * @param {number} delay - Delay in milliseconds
  * @returns {Promise} Promise that resolves after delay
  */
-const simulateAPICall = () => {
+const simulateAPICall = (delay) => {
   return new Promise(resolve => setTimeout(resolve, delay));
 };
 
