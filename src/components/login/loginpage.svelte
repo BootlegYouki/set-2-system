@@ -18,7 +18,6 @@
   let isLoading = $state(false);
   let showPassword = $state(false);
   let errors = $state({ email: '', password: '', general: '' });
-  let userType = $state('student'); // 'student' or 'staff'
   
   // Theme state (sync with already-set theme from app.html)
   let isDarkMode = $state(false);
@@ -54,7 +53,7 @@
     isLoading = true;
     
     try {
-      await handleLogin({ email, password, userType, rememberMe });
+      await handleLogin({ email, password, rememberMe });
     } catch (error) {
       errors = { ...errors, general: error.message };
     } finally {

@@ -10,40 +10,80 @@ const simulateAPICall = (delay) => {
   return new Promise(resolve => setTimeout(resolve, delay));
 };
 
+// Predefined test accounts
+const testAccounts = {
+  'student@school.edu': {
+    password: 'student123',
+    userType: 'student',
+    userData: {
+      name: 'John Student',
+      id: '2024-001234',
+      email: 'student@school.edu',
+      profileImage: null
+    }
+  },
+  'teacher@school.edu': {
+    password: 'teacher123',
+    userType: 'teacher',
+    userData: {
+      name: 'Jane Teacher',
+      id: 'TEACH-001',
+      email: 'teacher@school.edu',
+      profileImage: null
+    }
+  },
+  'registrar@school.edu': {
+    password: 'registrar123',
+    userType: 'registrar',
+    userData: {
+      name: 'Admin Registrar',
+      id: 'REG-001',
+      email: 'registrar@school.edu',
+      profileImage: null
+    }
+  }
+};
+
 /**
  * Handle user login
  * @param {Object} loginData - Login data object
  * @param {string} loginData.email - User email
  * @param {string} loginData.password - User password  
- * @param {string} loginData.userType - User type ('student' or 'staff')
  * @param {boolean} loginData.rememberMe - Remember me option
  * @returns {Promise<Object>} Promise that resolves with user data or rejects with error
  */
-export const handleLogin = async ({ email, password, userType, rememberMe }) => {
+export const handleLogin = async ({ email, password, rememberMe }) => {
   try {
     // Simulate API call
     await simulateAPICall(500);
     
-    // Create user data (this would typically come from the API)
-    const userData = {
-      name: email.split('@')[0], // Use email prefix as name for now
-      id: userType === 'student' ? '2024-001234' : 'STAFF-001',
-      email: email,
-      profileImage: null
-    };
+    // Check if the email exists in test accounts
+    const account = testAccounts[email.toLowerCase()];
     
-    // Update auth store
-    authStore.login(userType, userData);
+    if (!account ) {
+      throw new Error('Invalid credentials. Please try again.');
+    }
+    
+    // Verify password
+    if (account.password !== password) {
+      throw new Error('Invalid credentials. Please try again.');
+    }
+    
+    // Use the account's user type and data
+    const { userType: accountUserType, userData } = account;
+    
+    // Update auth store with the correct user type from the account
+    authStore.login(accountUserType, userData);
     
     // Show success message
-    showSuccess('Login successful! Welcome back.');
+    showSuccess(`Login successful! Welcome back, ${userData.name}.`);
     
-    console.log('Login successful:', { email, userType, rememberMe });
+    console.log('Login successful:', { email, userType: accountUserType, rememberMe });
     
     return userData;
   } catch (error) {
-    showError('Login failed. Please check your credentials and try again.');
-    throw new Error('Login failed. Please check your credentials.');
+    showError(error.message);
+    throw error;
   }
 };
 

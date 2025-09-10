@@ -1,4 +1,4 @@
-/* Todo Container */
+Todo Container
 .todo-container {
   height: 100%;
   box-sizing: border-box;
@@ -246,7 +246,6 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   margin-top: 4px;
-  max-height: 200px;
   overflow-y: auto;
   animation: dropdownSlideIn 0.2s ease-out;
 }

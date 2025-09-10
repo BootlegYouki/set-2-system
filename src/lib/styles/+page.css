@@ -14,6 +14,14 @@
   position: relative;
 }
 
+.teacher-portal {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
 .content-area {
   position: fixed;
   top: 64px; /* Account for fixed navbar height */
@@ -55,7 +63,6 @@
   background: var(--md-sys-color-outline);
 }
 
-.teacher-portal,
 .registrar-portal {
   min-height: 100vh;
   padding: 2rem;
@@ -119,7 +126,8 @@
   }
 
   /* Adjust content area when navigation rail is expanded */
-  .student-portal.nav-rail-collapsed .content-area {
+  .student-portal.nav-rail-collapsed .content-area, 
+  .teacher-portal.nav-rail-collapsed .content-area {
     left: 220px;
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
@@ -157,9 +165,11 @@
     left: 73px;
   }
   
-  .student-portal.nav-rail-collapsed .content-area {
+  .student-portal.nav-rail-collapsed .content-area, 
+  .teacher-portal.nav-rail-collapsed .content-area {
     left: 220px;
   }
+
 }
 
 /* Large screen optimizations */

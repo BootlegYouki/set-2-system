@@ -1,0 +1,363 @@
+/* Teacher Class Management Dashboard Styles */
+
+.class-management-container {
+  margin: 0 auto;
+  color: var(--md-sys-color-on-surface);
+  padding: var(--spacing-lg);
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for class management container */
+.class-management-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.class-management-container::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-sm);
+}
+
+.class-management-container::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+}
+
+.class-management-container::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
+}
+
+/* Header Section */
+.page-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.header-content {
+  max-width: 800px;
+}
+
+.page-title {
+  font-size: var(--md-sys-typescale-headline-large-size);
+  font-weight: var(--md-sys-typescale-headline-large-weight);
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.page-subtitle {
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Stats Section */
+.stats-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.stats-grid {
+  display: flex;
+  gap: var(--spacing-lg);
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.stat-card {
+  background-color: var(--md-sys-color-surface-container);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  transition: all var(--transition-normal);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.stat-card:hover {
+  background-color: var(--md-sys-color-surface-container-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon .material-symbols-outlined {
+  font-size: 28px;
+}
+
+.stat-content {
+  flex-direction: column;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-label {
+  font-size: var(--md-sys-typescale-title-small-size);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+  color: var(--md-sys-color-on-surface);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-description {
+  font-size: var(--md-sys-typescale-label-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+
+.section-title {
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.year-levels-grid {
+  display: grid;
+  gap: var(--spacing-xl);
+}
+
+/* Year Level Container */
+.year-level-container {
+  background-color: var(--md-sys-color-surface-container);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.year-level-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.year-level-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.year-level-icon {
+  width: 48px;
+  height: 48px;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.year-level-icon .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.year-level-details {
+  flex: 1;
+}
+
+.year-level-title {
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.year-level-summary {
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+
+
+/* Sections Grid */
+.sections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.section-card {
+  background-color: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  transition: all var(--transition-normal);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-card:hover {
+  background-color: var(--md-sys-color-surface-container-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.section-name {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
+  color: var(--md-sys-color-on-surface);
+  margin: 0;
+}
+
+.section-students {
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+.student-count {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background-color: var(--md-sys-color-surface-variant);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+
+.student-count .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.count-number {
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+}
+
+.count-label {
+  font-size: var(--md-sys-typescale-label-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .stats-grid {
+    gap: var(--spacing-md);
+  }
+  
+  .sections-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .class-management-container {
+    padding: var(--spacing-md);
+  }
+  
+  .sections-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .year-level-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+  
+  .stat-card {
+    padding: var(--spacing-md);
+  }
+  
+  .year-level-container {
+    padding: var(--spacing-md);
+  }
+  
+  .stat-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+  
+  .stat-card {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-sm);
+  }
+  
+  .stat-content {
+    text-align: center;
+  }
+}
+
+/* Animation for loading states */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-card,
+.year-level-container,
+.section-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Focus states for accessibility */
+
+.stat-card:focus-within,
+.section-card:focus-within {
+  box-shadow: var(--shadow-lg);
+}
+
+/* Print styles */
+@media print {
+  .class-management-container {
+    background-color: white;
+    color: black;
+  }
+  
+  .stat-card,
+  .year-level-container,
+  .section-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+  
+
+}
