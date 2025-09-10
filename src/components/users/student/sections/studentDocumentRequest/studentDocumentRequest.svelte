@@ -60,15 +60,22 @@
 			type: 'Grade Report',
 			purpose: 'Semester grade report',
 			requestedDate: '10/15/2023',
-			rejectionReason: 'Outstanding fees must be cleared first',
+			rejectionReason: 'Incomplete coursework - final grades not yet submitted by instructors',
 			status: 'rejected'
+		},
+		{
+			id: 4,
+			type: 'Certificate',
+			purpose: 'Academic achievement certificate for internship application',
+			requestedDate: '10/12/2023',
+			status: 'pending'
 		}
 	];
 
 	function handleCancelRequest(requestId) {
 		// Find and update the request status
 		requestHistory = requestHistory.map(request => {
-			if (request.id === requestId && request.status === 'processing') {
+			if (request.id === requestId && (request.status === 'pending')) {
 				return {
 					...request,
 					status: 'cancelled',
@@ -86,6 +93,17 @@
 			selectedDocumentType = '';
 			requestPurpose = '';
 			isDropdownOpen = false;
+		} else {
+			// Scroll to form when opening
+			setTimeout(() => {
+				const formElement = document.querySelector('.request-form-section');
+				if (formElement) {
+					formElement.scrollIntoView({
+						behavior: 'smooth',
+						block: 'center'
+					});
+				}
+			}, 100); // Small delay to ensure the form is rendered
 		}
 	}
 
@@ -108,20 +126,13 @@
 		}, 2000);
 	}
 
-	function getStatusColor(status) {
-		switch (status) {
-			case 'completed': return 'var(--success)';
-			case 'processing': return 'var(--warning)';
-			case 'rejected': return 'var(--error)';
-			case 'cancelled': return 'var(--md-sys-color-on-surface-variant)';
-			default: return 'var(--md-sys-color-on-surface-variant)';
-		}
-	}
+
 
 	function getStatusIcon(status) {
 		switch (status) {
 			case 'completed': return 'check_circle';
-			case 'processing': return 'hourglass_empty';
+			case 'processing': return 'sync';
+			case 'pending': return 'hourglass_empty';
 			case 'rejected': return 'cancel';
 			case 'cancelled': return 'block';
 			default: return 'help';
@@ -166,14 +177,14 @@
 				
 				<div class="form-content">
 					<div class="form-group">
-						<label class="form-label">
+						<label class="form-label" for="document-type-dropdown">
 							<span class="material-symbols-outlined form-icon">description</span>
 							Document Type
 						</label>
 						
 						<!-- Custom Dropdown -->
 						<div class="custom-dropdown">
-							<button class="dropdown-toggle" on:click={toggleDropdown}>
+							<button id="document-type-dropdown" class="dropdown-toggle" on:click={toggleDropdown}>
 								<span>
 									{#if selectedDocumentType}
 										{documentTypes.find(d => d.id === selectedDocumentType)?.name || 'Select Document Type'}
@@ -252,7 +263,7 @@
 			{#each requestHistory as request (request.id)}
 				<div class="request-card {request.status}">
 					<div class="request-main-content">
-						<div class="request-status-icon" style="color: {getStatusColor(request.status)}">
+						<div class="request-status-icon">
 							<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
 						</div>
 						
@@ -262,9 +273,10 @@
 									<h3 class="request-title">{request.type}</h3>
 									<p class="request-date">Requested on {request.requestedDate}</p>
 								</div>
-								<div class="status-badge" style="background-color: {getStatusColor(request.status)}20; color: {getStatusColor(request.status)}">
+								<div class="status-badge status-{request.status}">
 									{request.status === 'completed' ? 'Completed' : 
 									 request.status === 'processing' ? 'Processing' : 
+									 request.status === 'pending' ? 'Pending' : 
 									 request.status === 'rejected' ? 'Rejected' : 
 									 request.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
 								</div>
@@ -285,6 +297,10 @@
 					{:else if request.status === 'processing'}
 						<div class="request-footer processing-footer">
 							<span class="footer-info">Estimated completion: {request.estimatedCompletion}</span>
+						</div>
+					{:else if request.status === 'pending'}
+						<div class="request-footer pending-footer">
+							<span class="footer-info">Awaiting review - We'll process your request soon</span>
 							<button class="cancel-request-button" on:click={() => handleCancelRequest(request.id)}>
 								<span class="material-symbols-outlined">close</span>
 								Cancel

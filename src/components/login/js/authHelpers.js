@@ -1,5 +1,5 @@
 import { authStore } from '../../../lib/stores/auth.js';
-import { showSuccess, showError } from '../../../stores/toastStore.js';
+import { showSuccess, showError } from '../../../lib/stores/toastStore.js';
 
 /**
  * Simulate API call with delay

@@ -1,5 +1,5 @@
 <script>
-  import { toastStore } from '../../stores/toastStore.js';
+  import { toastStore } from '../../lib/stores/toastStore.js';
   import Toast from './Toast.svelte';
 
   // Subscribe to toast store
