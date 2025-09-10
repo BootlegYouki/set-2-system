@@ -630,6 +630,10 @@ Todo Container
   flex-wrap: wrap;
 }
 
+.todo-meta span{
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
 .todo-category {
   font-size: 12px;
   font-weight: 500;
