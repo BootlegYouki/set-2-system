@@ -1,12 +1,12 @@
-import { authStore } from '../../../lib/stores/auth.js';
-import { showSuccess, showError } from '../../../lib/stores/toastStore.js';
+import { authStore } from './auth.js';
+import { showSuccess, showError } from '../../common/js/toastStore.js';
 
 /**
  * Simulate API call with delay
  * @param {number} delay - Delay in milliseconds
  * @returns {Promise} Promise that resolves after delay
  */
-const simulateAPICall = (delay = 1000) => {
+const simulateAPICall = (delay) => {
   return new Promise(resolve => setTimeout(resolve, delay));
 };
 
@@ -22,7 +22,7 @@ const simulateAPICall = (delay = 1000) => {
 export const handleLogin = async ({ email, password, userType, rememberMe }) => {
   try {
     // Simulate API call
-    await simulateAPICall(1000);
+    await simulateAPICall(500);
     
     // Create user data (this would typically come from the API)
     const userData = {

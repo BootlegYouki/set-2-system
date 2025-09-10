@@ -1,5 +1,5 @@
 <script>
-  import { toastStore } from '../../lib/stores/toastStore.js';
+  import { toastStore } from './js/toastStore.js';
   import Toast from './Toast.svelte';
 
   // Subscribe to toast store
@@ -44,14 +44,13 @@
 
   .toast-container :global(.toast) {
     pointer-events: auto;
-    position: relative;
-    top: auto;
-    right: auto;
   }
 
   /* Responsive adjustments */
   @media (max-width: 640px) {
     .toast-container {
+      top: var(--spacing-md);
+      bottom: auto;
       left: var(--spacing-md);
       right: var(--spacing-md);
     }

@@ -67,9 +67,7 @@
 
 <style>
   .toast {
-    position: fixed;
-    top: var(--spacing-lg);
-    right: var(--spacing-lg);
+    position: relative;
     z-index: 9999;
     min-width: 300px;
     max-width: 500px;
@@ -118,6 +116,37 @@
 
   .toast.toast-hiding {
     animation: slideOutBounce 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+  }
+
+  /* Mobile slide down animations */
+  @keyframes slideDownIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-100%) scale(0.95);
+    }
+    50% {
+      opacity: 0.8;
+      transform: translateY(10px) scale(1.02);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes slideDownOut {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    30% {
+      opacity: 0.7;
+      transform: translateY(-5px) scale(0.98);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-100%) scale(0.9);
+    }
   }
 
   .toast-success {
@@ -185,10 +214,20 @@
   /* Responsive adjustments */
   @media (max-width: 640px) {
     .toast {
-      left: var(--spacing-md);
-      right: var(--spacing-md);
       min-width: auto;
       max-width: none;
+      /* Override desktop animations with mobile slide down */
+      transform: translateY(-100%) scale(0.95);
+      animation: slideDownIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .toast.toast-hiding {
+      animation: slideDownOut 0.3s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+    }
+
+    .toast-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
   }
 </style>

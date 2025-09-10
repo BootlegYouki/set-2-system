@@ -1,5 +1,5 @@
 <script>
-  import { authStore } from '../lib/stores/auth.js';
+  import { authStore } from '../components/login/js/auth.js';
   import Login from '../components/login/loginpage.svelte';
   import StudentNavbar from '../components/users/student/navigations/studentNavbar.svelte';
   import StudentMenu from '../components/users/student/navigations/studentMenu.svelte';

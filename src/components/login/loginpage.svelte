@@ -209,13 +209,6 @@
           Forgot Password?
         </button>
 
-        <!-- Error Message -->
-        {#if errors.general}
-          <div class="error-message" role="alert">
-            <span class="material-symbols-outlined">error</span>
-            <span>{errors.general}</span>
-          </div>
-        {/if}
       </form>
     </div>
   </div>

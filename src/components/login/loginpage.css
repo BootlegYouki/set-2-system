@@ -346,17 +346,6 @@ md-icon-button:defined {
   visibility: visible;
 }
 
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
-  border-radius: var(--radius-md);
-  font-size: var(--md-sys-typescale-body-large-size);
-}
-
 .forgot-password {
   width: 50%;
   transform: translateX(50%);
