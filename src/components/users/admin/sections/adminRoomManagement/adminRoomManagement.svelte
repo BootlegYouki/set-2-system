@@ -28,42 +28,64 @@
 
 
 
-	// Mock data for existing rooms
+	// Mock data for existing rooms (Philippine Junior High School)
 	let existingRooms = [
 		{
 			id: 1,
-			name: 'Physics Lab A',
-			building: 'Science Building',
-			floor: '1st Floor',
+			name: 'Science Laboratory',
+			building: 'Academic Building A',
+			floor: '2nd Floor',
 			status: 'available',
 			assignedTo: null
 		},
 		{
 			id: 2,
-			name: 'Main Auditorium',
-			building: 'Main Building',
-			floor: 'Ground Floor',
+			name: 'Room 101',
+			building: 'Academic Building A',
+			floor: '1st Floor',
 			status: 'assigned',
-			assignedTo: 'Grade 12 - Section A'
+			assignedTo: 'Grade 7 - Section A (Matatag)'
 		},
 		{
 			id: 3,
-			name: 'Computer Lab 1',
-			building: 'Technology Building',
-			floor: '2nd Floor',
+			name: 'Computer Laboratory',
+			building: 'Academic Building B',
+			floor: '3rd Floor',
 			status: 'assigned',
-			assignedTo: 'Mr. Johnson (IT Teacher)'
+			assignedTo: 'Grade 9 - Section B (Matapat)'
+		},
+		{
+			id: 4,
+			name: 'Room 205',
+			building: 'Academic Building B',
+			floor: '2nd Floor',
+			status: 'available',
+			assignedTo: null
+		},
+		{
+			id: 5,
+			name: 'Audio Visual Room',
+			building: 'Main Building',
+			floor: 'Ground Floor',
+			status: 'assigned',
+			assignedTo: 'Grade 10 - Section C (Mapaglingkod)'
 		}
 	];
 
-	// Mock data for sections and teachers
+	// Mock data for sections (Philippine DepEd Junior High School - Grades 7-10)
 	let sections = [
-		{ id: 'grade10-a', name: 'Grade 10 - Section A' },
-		{ id: 'grade10-b', name: 'Grade 10 - Section B' },
-		{ id: 'grade11-a', name: 'Grade 11 - Section A' },
-		{ id: 'grade11-b', name: 'Grade 11 - Section B' },
-		{ id: 'grade12-a', name: 'Grade 12 - Section A' },
-		{ id: 'grade12-b', name: 'Grade 12 - Section B' }
+		{ id: 'grade7-a', name: 'Grade 7 - Section A (Matatag)' },
+		{ id: 'grade7-b', name: 'Grade 7 - Section B (Masigasig)' },
+		{ id: 'grade7-c', name: 'Grade 7 - Section C (Malikhain)' },
+		{ id: 'grade8-a', name: 'Grade 8 - Section A (Makabayan)' },
+		{ id: 'grade8-b', name: 'Grade 8 - Section B (Malikhaing)' },
+		{ id: 'grade8-c', name: 'Grade 8 - Section C (Masipag)' },
+		{ id: 'grade9-a', name: 'Grade 9 - Section A (Matalinong)' },
+		{ id: 'grade9-b', name: 'Grade 9 - Section B (Matapat)' },
+		{ id: 'grade9-c', name: 'Grade 9 - Section C (Mapagmahal)' },
+		{ id: 'grade10-a', name: 'Grade 10 - Section A (Maunlad)' },
+		{ id: 'grade10-b', name: 'Grade 10 - Section B (Mapagkakatiwalaan)' },
+		{ id: 'grade10-c', name: 'Grade 10 - Section C (Mapaglingkod)' }
 	];
 
 	// Teachers data removed - rooms can only be assigned to sections

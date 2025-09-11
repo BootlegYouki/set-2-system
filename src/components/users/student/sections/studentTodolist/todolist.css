@@ -235,7 +235,7 @@ Todo Container
   transform: rotate(180deg);
 }
 
-.dropdown-menu {
+.dropdown-menu-category {
   position: absolute;
   top: 100%;
   left: 0;

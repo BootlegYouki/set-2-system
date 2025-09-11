@@ -20,14 +20,14 @@
       studentNumber: "2024-001234",
       gradesVerified: false,
       grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 92, quarter: "Q1", verified: false, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 88, quarter: "Q1", verified: false, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 85, quarter: "Q1", verified: false, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 90, quarter: "Q1", verified: false, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 87, quarter: "Q1", verified: false, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 95, quarter: "Q1", verified: false, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 89, quarter: "Q1", verified: false, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 93, quarter: "Q1", verified: false, submittedDate: "2024-01-11" }
+        { subject: "Mathematics", teacher: "Mr. Smith", grade: 92, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-15" },
+        { subject: "Science", teacher: "Ms. Davis", grade: 88, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-14" },
+        { subject: "English", teacher: "Mrs. Brown", grade: 85, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-16" },
+        { subject: "History", teacher: "Mr. Wilson", grade: 90, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-13" },
+        { subject: "Filipino", teacher: "Ms. Cruz", grade: 87, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-17" },
+        { subject: "PE", teacher: "Coach Martinez", grade: 95, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-12" },
+        { subject: "Arts", teacher: "Ms. Garcia", grade: 89, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-18" },
+        { subject: "Computer", teacher: "Mr. Lee", grade: 93, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-11" }
       ]
     },
     {
@@ -36,14 +36,14 @@
       studentNumber: "2024-001235",
       gradesVerified: true,
       grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 78, quarter: "Q1", verified: true, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 82, quarter: "Q1", verified: true, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 80, quarter: "Q1", verified: true, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 85, quarter: "Q1", verified: true, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 79, quarter: "Q1", verified: true, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 90, quarter: "Q1", verified: true, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 83, quarter: "Q1", verified: true, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 88, quarter: "Q1", verified: true, submittedDate: "2024-01-11" }
+        { subject: "Mathematics", teacher: "Mr. Smith", grade: 78, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-15" },
+        { subject: "Science", teacher: "Ms. Davis", grade: 82, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-14" },
+        { subject: "English", teacher: "Mrs. Brown", grade: 80, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-16" },
+        { subject: "History", teacher: "Mr. Wilson", grade: 85, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-13" },
+        { subject: "Filipino", teacher: "Ms. Cruz", grade: 79, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-17" },
+        { subject: "PE", teacher: "Coach Martinez", grade: 90, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-12" },
+        { subject: "Arts", teacher: "Ms. Garcia", grade: 83, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-18" },
+        { subject: "Computer", teacher: "Mr. Lee", grade: 88, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-11" }
       ]
     },
     {
@@ -52,14 +52,14 @@
       studentNumber: "2024-001236",
       gradesVerified: false,
       grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 95, quarter: "Q1", verified: false, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 91, quarter: "Q1", verified: false, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 88, quarter: "Q1", verified: false, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 92, quarter: "Q1", verified: false, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 90, quarter: "Q1", verified: false, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 98, quarter: "Q1", verified: false, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 94, quarter: "Q1", verified: false, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 96, quarter: "Q1", verified: false, submittedDate: "2024-01-11" }
+        { subject: "Mathematics", teacher: "Mr. Smith", grade: 95, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-15" },
+        { subject: "Science", teacher: "Ms. Davis", grade: 91, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-14" },
+        { subject: "English", teacher: "Mrs. Brown", grade: 88, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-16" },
+        { subject: "History", teacher: "Mr. Wilson", grade: 92, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-13" },
+        { subject: "Filipino", teacher: "Ms. Cruz", grade: 90, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-17" },
+        { subject: "PE", teacher: "Coach Martinez", grade: 98, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-12" },
+        { subject: "Arts", teacher: "Ms. Garcia", grade: 94, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-18" },
+        { subject: "Computer", teacher: "Mr. Lee", grade: 96, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-11" }
       ]
     },
     {
@@ -68,14 +68,14 @@
       studentNumber: "2024-001237",
       gradesVerified: false,
       grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 84, quarter: "Q1", verified: false, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 86, quarter: "Q1", verified: false, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 82, quarter: "Q1", verified: false, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 88, quarter: "Q1", verified: false, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 85, quarter: "Q1", verified: false, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 92, quarter: "Q1", verified: false, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 87, quarter: "Q1", verified: false, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 89, quarter: "Q1", verified: false, submittedDate: "2024-01-11" }
+        { subject: "Mathematics", teacher: "Mr. Smith", grade: 84, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-15" },
+        { subject: "Science", teacher: "Ms. Davis", grade: 86, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-14" },
+        { subject: "English", teacher: "Mrs. Brown", grade: 82, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-16" },
+        { subject: "History", teacher: "Mr. Wilson", grade: 88, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-13" },
+        { subject: "Filipino", teacher: "Ms. Cruz", grade: 85, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-17" },
+        { subject: "PE", teacher: "Coach Martinez", grade: 92, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-12" },
+        { subject: "Arts", teacher: "Ms. Garcia", grade: 87, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-18" },
+        { subject: "Computer", teacher: "Mr. Lee", grade: 89, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-11" }
       ]
     },
     {
@@ -84,14 +84,14 @@
       studentNumber: "2024-001238",
       gradesVerified: true,
       grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 91, quarter: "Q1", verified: true, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 89, quarter: "Q1", verified: true, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 93, quarter: "Q1", verified: true, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 87, quarter: "Q1", verified: true, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 88, quarter: "Q1", verified: true, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 94, quarter: "Q1", verified: true, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 91, quarter: "Q1", verified: true, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 92, quarter: "Q1", verified: true, submittedDate: "2024-01-11" }
+        { subject: "Mathematics", teacher: "Mr. Smith", grade: 91, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-15" },
+        { subject: "Science", teacher: "Ms. Davis", grade: 89, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-14" },
+        { subject: "English", teacher: "Mrs. Brown", grade: 93, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-16" },
+        { subject: "History", teacher: "Mr. Wilson", grade: 87, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-13" },
+        { subject: "Filipino", teacher: "Ms. Cruz", grade: 88, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-17" },
+        { subject: "PE", teacher: "Coach Martinez", grade: 94, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-12" },
+        { subject: "Arts", teacher: "Ms. Garcia", grade: 91, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-18" },
+        { subject: "Computer", teacher: "Mr. Lee", grade: 92, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-11" }
       ]
     }
   ];
@@ -313,31 +313,30 @@
       {#each studentsWithAverages as student (student.id)}
         <div class="advisory-student-card {student.gradesVerified ? 'verified' : 'pending'}" class:selected={selectedStudent?.id === student.id}>
           <div class="student-header" on:click={() => selectStudent(student)}>
-            <div class="advisory-student-info">
-              <div class="advisory-student-avatar">
-                <span class="material-symbols-outlined">person</span>
+            <div class="student-header-content">
+              <div class="student-title-section">
+                <h3 class="student-title">{student.name} · Grade {student.gradeLevel || '7'}</h3>
               </div>
-              <div class="student-details">
-                <h3 class="advisory-student-name">{student.name}</h3>
-                <p class="advisory-student-number">{student.studentNumber}</p>
-                <div class="verification-status">
-                  {#if student.gradesVerified}
-                    <span class="status-badge verified">✓ Verified</span>
-                  {:else}
-                    <span class="status-badge pending">⏳ Pending</span>
-                  {/if}
+              <div class="student-info-row">
+                <div class="student-info-item">
+                  <span class="material-symbols-outlined">person</span>
+                  <span>Student #{student.studentNumber}</span>
                 </div>
-                <div class="grade-counts">
-                  <small>Verified: {student.verifiedGradesCount} | Pending: {student.pendingGradesCount}</small>
+                <div class="student-info-item">
+                  <span class="material-symbols-outlined">{student.gradesVerified ? 'verified' : 'pending'}</span>
+                  <span>{student.gradesVerified ? 'Verified' : 'Pending'}</span>
+                </div>
+                <div class="student-info-item">
+                  <span class="material-symbols-outlined">assignment</span>
+                  <span>{student.verifiedGradesCount} Verified, {student.pendingGradesCount} Pending</span>
                 </div>
               </div>
             </div>
             <div class="student-average">
               <div class="average-score" style="color: {getGradeColor(student.average)}">
-               {student.average}%
-             </div>
+                {student.average}%
+              </div>
             </div>
-
             <div class="expand-icon">
               <span class="material-symbols-outlined">
                 {selectedStudent?.id === student.id ? 'expand_less' : 'expand_more'}
@@ -348,7 +347,7 @@
           {#if selectedStudent?.id === student.id}
             <div class="student-grades">
               <div class="grades-header">
-                <h4 class="grades-title">Subject Grades (Q1)</h4>
+                <h4 class="grades-title">Subject Grades (1st Quarter)</h4>
                 <div class="student-verification-controls">
                   {#if student.gradesVerified}
                     <button class="unverify-btn" on:click|stopPropagation={() => unverifyStudentGrades(student.id)}>

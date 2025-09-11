@@ -4,6 +4,7 @@
 	// Account creation state
 	let isCreating = false;
 	let selectedAccountType = '';
+	let selectedGender = '';
 	let firstName = '';
 	let lastName = '';
 	let middleInitial = '';
@@ -12,11 +13,18 @@
 
 	// Custom dropdown state
 	let isDropdownOpen = false;
+	let isGenderDropdownOpen = false;
 
 	// Account types
 	const accountTypes = [
 		{ id: 'student', name: 'Student Account', description: 'Create a new student account', icon: 'school' },
 		{ id: 'teacher', name: 'Teacher Account', description: 'Create a new teacher account', icon: 'person' }
+	];
+
+	// Gender options
+	const genderOptions = [
+		{ id: 'male', name: 'Male', icon: 'male' },
+		{ id: 'female', name: 'Female', icon: 'female' }
 	];
 
 	// Recent account creations (mock data)
@@ -51,6 +59,7 @@
 	function handleClickOutside(event) {
 		if (!event.target.closest('.custom-dropdown')) {
 			isDropdownOpen = false;
+			isGenderDropdownOpen = false;
 		}
 	}
 
@@ -65,9 +74,20 @@
 		isDropdownOpen = false;
 	}
 
+	// Toggle gender dropdown
+	function toggleGenderDropdown() {
+		isGenderDropdownOpen = !isGenderDropdownOpen;
+	}
+
+	// Select gender and close dropdown
+	function selectGender(gender) {
+		selectedGender = gender.id;
+		isGenderDropdownOpen = false;
+	}
+
 	// Handle form submission
 	async function handleCreateAccount() {
-		if (!selectedAccountType || !firstName || !lastName) {
+		if (!selectedAccountType || !selectedGender || !firstName || !lastName) {
 			alert('Please fill in all required fields.');
 			return;
 		}
@@ -102,6 +122,7 @@
 
 			// Reset form
 			selectedAccountType = '';
+			selectedGender = '';
 			firstName = '';
 			lastName = '';
 			middleInitial = '';
@@ -121,6 +142,9 @@
 
 	// Get selected account type object
 	$: selectedTypeObj = accountTypes.find(type => type.id === selectedAccountType);
+
+	// Get selected gender object
+	$: selectedGenderObj = genderOptions.find(gender => gender.id === selectedGender);
 
 	// Generate next account number for the selected type
 	function getNextAccountNumber(accountType) {
@@ -172,45 +196,89 @@
 
 		<div class="form-container">
 			<form on:submit|preventDefault={handleCreateAccount}>
-				<!-- Account Type Selection -->
-				<div class="form-group">
-					<label class="form-label" for="account-type">Account Type *</label>
-					<div class="custom-dropdown" class:open={isDropdownOpen}>
-						<button 
-							type="button"
-							class="dropdown-trigger" 
-							class:selected={selectedAccountType}
-							on:click={toggleDropdown}
-							id="account-type"
-						>
-							{#if selectedTypeObj}
-								<div class="selected-option">
-									<span class="material-symbols-outlined option-icon">{selectedTypeObj.icon}</span>
-									<div class="option-content">
-										<span class="option-name">{selectedTypeObj.name}</span>
-										<span class="option-description">{selectedTypeObj.description}</span>
+				<!-- Account Type and Gender Selection Row -->
+				<div class="account-type-gender-row">
+					<!-- Account Type Selection -->
+					<div class="form-group">
+						<label class="form-label" for="account-type">Account Type *</label>
+						<div class="custom-dropdown" class:open={isDropdownOpen}>
+							<button 
+								type="button"
+								class="dropdown-trigger" 
+								class:selected={selectedAccountType}
+								on:click={toggleDropdown}
+								id="account-type"
+							>
+								{#if selectedTypeObj}
+									<div class="selected-option">
+										<span class="material-symbols-outlined option-icon">{selectedTypeObj.icon}</span>
+										<div class="option-content">
+											<span class="option-name">{selectedTypeObj.name}</span>
+											<span class="option-description">{selectedTypeObj.description}</span>
+										</div>
 									</div>
-								</div>
-							{:else}
-								<span class="placeholder">Select account type</span>
-							{/if}
-							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-						</button>
-						<div class="dropdown-menu">
-							{#each accountTypes as type (type.id)}
-								<button 
-									type="button"
-									class="dropdown-option" 
-									class:selected={selectedAccountType === type.id}
-									on:click={() => selectAccountType(type)}
-								>
-									<span class="material-symbols-outlined option-icon">{type.icon}</span>
-									<div class="option-content">
-										<span class="option-name">{type.name}</span>
-										<span class="option-description">{type.description}</span>
+								{:else}
+									<span class="placeholder">Select account type</span>
+								{/if}
+								<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							</button>
+							<div class="dropdown-menu">
+								{#each accountTypes as type (type.id)}
+									<button 
+										type="button"
+										class="dropdown-option" 
+										class:selected={selectedAccountType === type.id}
+										on:click={() => selectAccountType(type)}
+									>
+										<span class="material-symbols-outlined option-icon">{type.icon}</span>
+										<div class="option-content">
+											<span class="option-name">{type.name}</span>
+											<span class="option-description">{type.description}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
+						</div>
+					</div>
+
+					<!-- Gender Selection -->
+					<div class="form-group">
+						<label class="form-label" for="gender">Gender *</label>
+						<div class="custom-dropdown" class:open={isGenderDropdownOpen}>
+							<button 
+								type="button"
+								class="dropdown-trigger" 
+								class:selected={selectedGender}
+								on:click={toggleGenderDropdown}
+								id="gender"
+							>
+								{#if selectedGenderObj}
+									<div class="selected-option">
+										<span class="material-symbols-outlined option-icon">{selectedGenderObj.icon}</span>
+										<div class="option-content">
+											<span class="option-name">{selectedGenderObj.name}</span>
+										</div>
 									</div>
-								</button>
-							{/each}
+								{:else}
+									<span class="placeholder">Select gender</span>
+								{/if}
+								<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							</button>
+							<div class="dropdown-menu">
+								{#each genderOptions as gender (gender.id)}
+									<button 
+										type="button"
+										class="dropdown-option" 
+										class:selected={selectedGender === gender.id}
+										on:click={() => selectGender(gender)}
+									>
+										<span class="material-symbols-outlined option-icon">{gender.icon}</span>
+										<div class="option-content">
+											<span class="option-name">{gender.name}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -277,7 +345,7 @@
 						type="submit" 
 						class="create-button"
 						class:loading={isCreating}
-						disabled={isCreating || !selectedAccountType || !firstName || !lastName}
+						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName}
 					>
 						{#if isCreating}
 							<span class="material-symbols-outlined loading-icon">hourglass_empty</span>

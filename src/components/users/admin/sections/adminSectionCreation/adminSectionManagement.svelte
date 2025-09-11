@@ -21,6 +21,44 @@
 	let adviserSearchTerm = '';
 	let studentSearchTerm = '';
 
+	// Edit section states
+	let editingSectionId = null;
+	let editSectionName = '';
+	let editSelectedAdviser = null;
+	let editSelectedStudents = [];
+	let isUpdating = false;
+
+	// Edit dropdown states
+	let isEditAdviserDropdownOpen = false;
+	let isEditStudentDropdownOpen = false;
+
+	// Edit search states
+	let editAdviserSearchTerm = '';
+	let editStudentSearchTerm = '';
+
+	// Edit student selection functions
+	function toggleEditStudentDropdown() {
+		isEditStudentDropdownOpen = !isEditStudentDropdownOpen;
+		isEditAdviserDropdownOpen = false;
+	}
+
+	function toggleEditStudentSelection(student) {
+		const index = editSelectedStudents.findIndex(s => s.id === student.id);
+		if (index > -1) {
+			editSelectedStudents = editSelectedStudents.filter(s => s.id !== student.id);
+		} else {
+			editSelectedStudents = [...editSelectedStudents, student];
+		}
+	}
+
+	function removeEditSelectedStudent(student) {
+		editSelectedStudents = editSelectedStudents.filter(s => s.id !== student.id);
+	}
+
+	function clearAllEditSelectedStudents() {
+		editSelectedStudents = [];
+	}
+
 	// Grade levels for Philippine high school (Grades 7-10)
 	const gradeLevels = [
 		{ id: '7', name: 'Grade 7', description: 'First Year Junior High School' },
@@ -64,7 +102,8 @@
 			studentCount: 35,
 			schoolYear: '2024-2025',
 			createdDate: '01/15/2024',
-			status: 'active'
+			status: 'active',
+			room: 'Room 101 - Academic Building A'
 		},
 		{
 			id: 2,
@@ -74,7 +113,30 @@
 			studentCount: 32,
 			schoolYear: '2024-2025',
 			createdDate: '01/14/2024',
-			status: 'active'
+			status: 'active',
+			room: 'Room 205 - Academic Building B'
+		},
+		{
+			id: 3,
+			name: 'Bonifacio',
+			grade: 'Grade 9',
+			adviser: 'Mr. Jose Mercado',
+			studentCount: 28,
+			schoolYear: '2024-2025',
+			createdDate: '01/13/2024',
+			status: 'active',
+			room: 'Computer Laboratory - Academic Building B'
+		},
+		{
+			id: 4,
+			name: 'Aguinaldo',
+			grade: 'Grade 10',
+			adviser: 'Mrs. Carmen Santos',
+			studentCount: 30,
+			schoolYear: '2024-2025',
+			createdDate: '01/12/2024',
+			status: 'active',
+			room: 'Audio Visual Room - Main Building'
 		}
 	];
 
@@ -210,6 +272,109 @@
 			isCreating = false;
 		}
 	}
+
+	// Edit section functions
+	function toggleEditForm(section) {
+		if (editingSectionId === section.id) {
+			// Close the form
+			editingSectionId = null;
+			editSectionName = '';
+			editSelectedAdviser = null;
+			editSelectedStudents = [];
+			editAdviserSearchTerm = '';
+			editStudentSearchTerm = '';
+			isEditAdviserDropdownOpen = false;
+			isEditStudentDropdownOpen = false;
+		} else {
+			// Open the form
+			editingSectionId = section.id;
+			editSectionName = section.name;
+			editSelectedAdviser = availableAdvisers.find(adviser => adviser.name === section.adviser) || null;
+			// Populate selected students from the section
+			editSelectedStudents = section.students || [];
+			editStudentSearchTerm = '';
+		}
+	}
+
+
+
+	async function handleEditSection() {
+		if (!editSectionName || !editSelectedAdviser) {
+			errorMessage = 'Please fill in all required fields.';
+			setTimeout(() => errorMessage = '', 5000);
+			return;
+		}
+
+		isUpdating = true;
+		errorMessage = '';
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1500));
+
+			// Update section in the array
+			recentSections = recentSections.map(section => {
+					if (section.id === editingSectionId) {
+						return {
+							...section,
+							name: editSectionName,
+							adviser: editSelectedAdviser.name,
+							students: editSelectedStudents,
+							studentCount: editSelectedStudents.length
+						};
+					}
+					return section;
+				});
+
+			// Show success message
+			successMessage = `Section ${editSectionName} updated successfully!`;
+			showSuccessMessage = true;
+
+			// Close edit form
+			editingSectionId = null;
+			editSectionName = '';
+			editSelectedAdviser = null;
+			editSelectedStudents = [];
+			editAdviserSearchTerm = '';
+			editStudentSearchTerm = '';
+			isEditAdviserDropdownOpen = false;
+			isEditStudentDropdownOpen = false;
+
+			// Hide success message after 5 seconds
+			setTimeout(() => {
+				showSuccessMessage = false;
+			}, 5000);
+
+		} catch (error) {
+			console.error('Error updating section:', error);
+			errorMessage = 'Failed to update section. Please try again.';
+			setTimeout(() => errorMessage = '', 5000);
+		} finally {
+			isUpdating = false;
+		}
+	}
+
+	// Edit dropdown functions
+	function toggleEditAdviserDropdown() {
+		isEditAdviserDropdownOpen = !isEditAdviserDropdownOpen;
+		isEditStudentDropdownOpen = false;
+	}
+
+	function selectEditAdviser(adviser) {
+		editSelectedAdviser = adviser;
+		isEditAdviserDropdownOpen = false;
+		editAdviserSearchTerm = '';
+	}
+
+	// Edit filtered data
+	$: editFilteredAdvisers = availableAdvisers.filter(adviser => 
+		!adviser.hasSection && 
+		adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase())
+	);
+	$: editFilteredStudents = availableStudents.filter(student => 
+		!student.hasSection && 
+		student.name.toLowerCase().includes(editStudentSearchTerm.toLowerCase())
+	);
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -492,24 +657,228 @@
 
 		<div class="sectionmgmt-sections-grid">
 			{#each recentSections as section (section.id)}
-				<div class="sectionmgmt-section-card">
-					<div class="sectionmgmt-section-info">
-						<div class="sectionmgmt-section-avatar">
-							<span class="material-symbols-outlined sectionmgmt-avatar-icon">groups</span>
-						</div>
-						<div class="sectionmgmt-section-details">
-							<h3 class="sectionmgmt-section-name">{section.name}</h3>
-							<p class="sectionmgmt-section-grade">{section.grade}</p>
-							<p class="sectionmgmt-section-adviser">Adviser: {section.adviser}</p>
-							<p class="sectionmgmt-section-students">{section.studentCount} students</p>
-						</div>
+			<div class="sectionmgmt-section-card">
+				<div class="sectionmgmt-section-header">
+					<div class="sectionmgmt-section-title">
+						<h3 class="sectionmgmt-section-name">{section.name} · {section.grade}</h3>
 					</div>
-					<div class="sectionmgmt-section-meta">
-						<span class="sectionmgmt-created-date">Created: {section.createdDate}</span>
-						<span class="sectionmgmt-status-badge sectionmgmt-status-{section.status}">{section.status}</span>
+					<button 
+						type="button"
+						class="sectionmgmt-edit-button"
+						on:click={() => toggleEditForm(section)}
+						title="{editingSectionId === section.id ? 'Cancel Edit' : 'Edit Section'}"
+					>
+						<span class="material-symbols-outlined">{editingSectionId === section.id ? 'close' : 'edit'}</span>
+					</button>
+				</div>
+				
+				<div class="sectionmgmt-section-details">
+						<div class="sectionmgmt-section-adviser">
+							<span class="material-symbols-outlined">person_book</span>
+							<span>{section.adviser}</span>
+						</div>
+						<div class="sectionmgmt-section-students">
+							<span class="material-symbols-outlined">group</span>
+							<span>{section.studentCount} students</span>
+						</div>
+						<div class="sectionmgmt-section-room">
+							<span class="material-symbols-outlined">location_on</span>
+							<span>{section.room}</span>
+						</div>
+						<div class="sectionmgmt-section-created">
+						<span class="material-symbols-outlined">calendar_today</span>
+						<span>Created: {section.createdDate}</span>
 					</div>
 				</div>
-			{/each}
+		</div>
+
+		<!-- Inline Edit Form -->
+		{#if editingSectionId === section.id}
+			<div class="sectionmgmt-edit-form-section">
+				<div class="sectionmgmt-edit-form-container">
+					<div class="sectionmgmt-edit-form-header">
+						<h2 class="sectionmgmt-edit-form-title">Edit Section</h2>
+						<p class="sectionmgmt-edit-form-subtitle">Update section information and manage students</p>
+					</div>
+					
+					<form class="sectionmgmt-edit-form-content" on:submit|preventDefault={handleEditSection}>
+						<!-- Section Name -->
+						<div class="sectionmgmt-form-group">
+							<label class="sectionmgmt-form-label" for="edit-section-name">
+								<span class="material-symbols-outlined sectionmgmt-form-icon">school</span>
+								Section Name
+							</label>
+							<input 
+								type="text" 
+								id="edit-section-name"
+								class="sectionmgmt-form-input" 
+								bind:value={editSectionName}
+								placeholder="Enter section name (e.g., Mabini, Rizal, Bonifacio)"
+								required
+							/>
+						</div>
+
+
+
+						<!-- Section Adviser -->
+						<div class="sectionmgmt-form-group">
+							<label class="sectionmgmt-form-label" for="edit-section-adviser">
+								<span class="material-symbols-outlined sectionmgmt-form-icon">person</span>
+								Section Adviser
+							</label>
+							<div class="sectionmgmt-custom-dropdown" class:open={isEditAdviserDropdownOpen}>
+								<button 
+									type="button"
+									class="sectionmgmt-dropdown-trigger" 
+									class:selected={editSelectedAdviser}
+									on:click={toggleEditAdviserDropdown}
+									id="edit-section-adviser"
+								>
+									<span class="sectionmgmt-placeholder">
+										{editSelectedAdviser ? editSelectedAdviser.name : 'Select section adviser'}
+									</span>
+									<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+								</button>
+								<div class="sectionmgmt-dropdown-menu">
+									<div class="sectionmgmt-search-container">
+										<input 
+											type="text" 
+											class="sectionmgmt-search-input"
+											placeholder="Search advisers..."
+											bind:value={editAdviserSearchTerm}
+										/>
+										<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+									</div>
+									{#each editFilteredAdvisers as adviser (adviser.id)}
+										<button 
+											type="button"
+											class="sectionmgmt-dropdown-option" 
+											class:selected={editSelectedAdviser?.id === adviser.id}
+											on:click={() => selectEditAdviser(adviser)}
+										>
+											<div class="sectionmgmt-option-content">
+												<span class="sectionmgmt-option-name">{adviser.name}</span>
+												<span class="sectionmgmt-option-description">{adviser.subject} • {adviser.employeeId}</span>
+											</div>
+										</button>
+									{/each}
+									{#if editFilteredAdvisers.length === 0}
+										<div class="sectionmgmt-no-results">
+											<span class="material-symbols-outlined">person_off</span>
+											<span>No available advisers found</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+						</div>
+
+
+
+						<!-- Student Selection -->
+						<div class="sectionmgmt-form-group">
+							<label class="sectionmgmt-form-label" for="edit-students">
+								<span class="material-symbols-outlined sectionmgmt-form-icon">groups</span>
+								Students ({editSelectedStudents.length} selected)
+							</label>
+							<div class="sectionmgmt-custom-dropdown" class:open={isEditStudentDropdownOpen}>
+								<button 
+									type="button"
+									class="sectionmgmt-dropdown-trigger" 
+									class:selected={editSelectedStudents.length > 0}
+									on:click={toggleEditStudentDropdown}
+									id="edit-students"
+								>
+									<span class="sectionmgmt-placeholder">
+										{editSelectedStudents.length > 0 ? `${editSelectedStudents.length} students selected` : 'Select students'}
+									</span>
+									<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+								</button>
+								<div class="sectionmgmt-dropdown-menu">
+									<div class="sectionmgmt-search-container">
+										<input 
+											type="text" 
+											class="sectionmgmt-search-input"
+											placeholder="Search students..."
+											bind:value={editStudentSearchTerm}
+										/>
+										<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+									</div>
+									{#each editFilteredStudents as student (student.id)}
+										<button 
+											type="button"
+											class="sectionmgmt-dropdown-option" 
+											class:selected={editSelectedStudents.some(s => s.id === student.id)}
+											on:click={() => toggleEditStudentSelection(student)}
+										>
+											<span class="material-symbols-outlined sectionmgmt-option-icon">
+												{editSelectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
+											</span>
+											<div class="sectionmgmt-option-content">
+												<span class="sectionmgmt-option-name">{student.name}</span>
+												<span class="sectionmgmt-option-description">{student.studentId} • Grade {student.grade}</span>
+											</div>
+										</button>
+									{/each}
+									{#if editFilteredStudents.length === 0}
+										<div class="sectionmgmt-no-results">
+											<span class="material-symbols-outlined">person_off</span>
+											<span>No available students found</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+
+							<!-- Selected Students Display -->
+							{#if editSelectedStudents.length > 0}
+								<div class="sectionmgmt-selected-students">
+									<div class="sectionmgmt-selected-header">
+										<span class="sectionmgmt-selected-title">Selected Students ({editSelectedStudents.length})</span>
+										<button 
+											type="button" 
+											class="sectionmgmt-clear-all-button"
+											on:click={clearAllEditSelectedStudents}
+										>
+											Clear All
+										</button>
+									</div>
+									<div class="sectionmgmt-selected-list">
+										{#each editSelectedStudents as student (student.id)}
+											<div class="sectionmgmt-selected-student">
+												<div class="sectionmgmt-student-info">
+													<span class="sectionmgmt-student-name">{student.name}</span>
+													<span class="sectionmgmt-student-id">{student.studentId}</span>
+												</div>
+												<button 
+													type="button" 
+													class="sectionmgmt-remove-student-button"
+													on:click={() => removeEditSelectedStudent(student)}
+													title="Remove student"
+												>
+													<span class="material-symbols-outlined">close</span>
+												</button>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Form Actions -->
+						<div class="sectionmgmt-edit-form-actions">
+							<button type="button" class="sectionmgmt-cancel-button" on:click={() => toggleEditForm(section)}>
+								Cancel
+							</button>
+							<button type="submit" class="sectionmgmt-submit-button">
+								Update Section
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		{/if}
+	{/each}
 		</div>
 	</div>
+
+
 </div>

@@ -1,7 +1,6 @@
 /* Account Creation Page Styles */
 
 .account-creation-container {
-  padding: var(--spacing-lg);
   color: var(--md-sys-color-on-surface);
   box-sizing: border-box;
   overflow-y: auto;
@@ -129,12 +128,20 @@
   width: 100%;
 }
 
+/* Account type and gender fields layout */
+.account-type-gender-row {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: var(--spacing-md);
+	align-items: end;
+}
+
 /* Name fields layout */
 .name-fields-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 100px;
-  gap: var(--spacing-md);
-  align-items: end;
+	display: grid;
+	grid-template-columns: 1fr 1fr 100px;
+	gap: var(--spacing-md);
+	align-items: end;
 }
 
 #middle-initial {
@@ -142,9 +149,14 @@
 }
 
 @media (max-width: 768px) {
-  .name-fields-row {
-    gap: var(--spacing-sm);
-  }
+	.account-type-gender-row {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-sm);
+	}
+
+	.name-fields-row {
+		gap: var(--spacing-sm);
+	}
 
 }
 
@@ -160,7 +172,7 @@
 .form-input {
   width: 100%;
   padding: var(--spacing-md);
-  border: 2px solid var(--md-sys-color-outline-variant);
+  border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--radius-md);
   background-color: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
@@ -189,7 +201,7 @@
 .dropdown-trigger {
   width: 100%;
   padding: var(--spacing-md);
-  border: 2px solid var(--md-sys-color-outline-variant);
+  border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--radius-md);
   background-color: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);

@@ -32,13 +32,13 @@
   border-top-left-radius: 20px;
   background-color: var(--md-sys-color-surface);
   transition: left 150ms cubic-bezier(.2,.9,.2,1), background-color var(--transition-normal) !important;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .content-area > * {
   height: 100%;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: visible;
   padding: var(--spacing-lg);
   scroll-behavior: smooth;
 }

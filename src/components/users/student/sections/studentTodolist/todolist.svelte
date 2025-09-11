@@ -354,7 +354,7 @@
             </button>
             
             {#if isCategoryDropdownOpen}
-              <div class="dropdown-menu">
+              <div class="dropdown-menu-category">
                 {#each categoryOptions as option}
                   <button 
                     class="dropdown-item {option.value === newTodoCategory ? 'selected' : ''}"
