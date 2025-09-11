@@ -12,6 +12,8 @@
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
   import TeacherSchedule from '../components/users/teacher/sections/teacherSchedule/teacherSchedule.svelte';
   import TeacherStudentList from '../components/users/teacher/sections/teacherClassManagement/teacherClassManagement.svelte';
+  import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
+  import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
@@ -25,12 +27,18 @@
   
   // Current active section for teacher portal
   let teacherActiveSection = $state('schedule');
+  
+  // Current active section for admin portal
+  let adminActiveSection = $state('dashboard');
 
   // Navigation rail visibility state (false = collapsed/icons only, true = expanded/with labels)
   let isNavRailVisible = $state(false);
   
   // Teacher navigation rail visibility state
   let teacherNavRailVisible = $state(false);
+  
+  // Admin navigation rail visibility state
+  let adminNavRailVisible = $state(false);
 
   // Handle navigation from student menu
   function handleNavigation(event) {
@@ -40,6 +48,11 @@
   // Handle navigation from teacher menu
   function handleTeacherNavigation(event) {
     teacherActiveSection = event.detail.section;
+  }
+  
+  // Handle navigation from admin menu
+  function handleAdminNavigation(event) {
+    adminActiveSection = event.detail.section;
   }
 
   // Handle navigation rail toggle
@@ -51,12 +64,18 @@
   function handleTeacherToggleNavRail() {
     teacherNavRailVisible = !teacherNavRailVisible;
   }
+  
+  // Handle admin navigation rail toggle
+  function handleAdminToggleNavRail() {
+    adminNavRailVisible = !adminNavRailVisible;
+  }
 
   // Handle logout
   function handleLogout() {
     authStore.logout();
     activeSection = 'grades'; // Reset to default section
     teacherActiveSection = 'schedule'; // Reset teacher section
+    adminActiveSection = 'dashboard'; // Reset admin section
   }
 
   // Reactive title based on auth state
@@ -67,8 +86,8 @@
       ? 'Student Portal - High School'
       : authState.userType === 'teacher'
       ? 'Teacher Portal - High School'
-      : authState.userType === 'registrar'
-      ? 'Registrar Portal - High School'
+      : authState.userType === 'admin'
+        ? 'Admin Portal - High School'
       : 'High School Student Information System'
   );
 </script>
@@ -130,17 +149,47 @@
 
       <TeacherMenu {teacherActiveSection} {teacherNavRailVisible} onnavigate={handleTeacherNavigation} />
     </div>
-  {:else if authState.userType === 'registrar'}
-    <!-- Registrar Portal Placeholder -->
-    <div class="registrar-portal">
-      <div class="portal-header">
-        <h1>Registrar Portal</h1>
-        <button onclick={handleLogout} class="logout-btn">Logout</button>
-      </div>
-      <div class="portal-content">
-        <p>Registrar portal components will be implemented here.</p>
-        <p>Welcome, {authState.userData?.name || 'Registrar'}!</p>
-      </div>
+  {:else if authState.userType === 'admin'}
+    <!-- Admin Portal -->
+    <div class="admin-portal" class:nav-rail-collapsed={!adminNavRailVisible}>
+      <AdminNavbar 
+        adminName={authState.userData?.name || 'Admin'}
+        adminId={authState.userData?.id || 'N/A'}
+        profileImage={authState.userData?.profileImage}
+        onlogout={handleLogout}
+        onToggleNavRail={handleAdminToggleNavRail}
+      />
+      
+      <main class="content-area">
+        {#if adminActiveSection === 'dashboard'}
+          <div class="admin-section">
+            <h2>Dashboard</h2>
+            <p>Admin dashboard content will be implemented here.</p>
+          </div>
+        {:else if adminActiveSection === 'users'}
+          <div class="admin-section">
+            <h2>User Management</h2>
+            <p>User management content will be implemented here.</p>
+          </div>
+        {:else if adminActiveSection === 'reports'}
+          <div class="admin-section">
+            <h2>Reports</h2>
+            <p>Reports content will be implemented here.</p>
+          </div>
+        {:else if adminActiveSection === 'settings'}
+          <div class="admin-section">
+            <h2>System Settings</h2>
+            <p>System settings content will be implemented here.</p>
+          </div>
+        {:else if adminActiveSection === 'analytics'}
+          <div class="admin-section">
+            <h2>Analytics</h2>
+            <p>Analytics content will be implemented here.</p>
+          </div>
+        {/if}
+      </main>
+
+      <AdminMenu {adminActiveSection} {adminNavRailVisible} onnavigate={handleAdminNavigation} />
     </div>
   {/if}
 </div>

@@ -12,10 +12,10 @@ Use these predefined accounts to test the role-based login system:
 - **Password:** `teacher123`
 - **Redirects to:** Teacher Portal (placeholder interface)
 
-## Registrar Account
-- **Email:** `registrar@school.edu`
-- **Password:** `registrar123`
-- **Redirects to:** Registrar Portal (placeholder interface)
+## Admin Account
+- **Email:** `admin@school.edu`
+- **Password:** `admin123`
+- **Redirects to:** Admin Portal (placeholder interface)
 
 ## How to Test
 1. Open the application at http://localhost:5173

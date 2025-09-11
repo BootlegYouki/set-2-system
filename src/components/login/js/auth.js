@@ -4,7 +4,7 @@ import { writable } from 'svelte/store';
 function createAuthStore() {
   const { subscribe, set, update } = writable({
     isAuthenticated: false,
-    userType: null, // 'student', 'teacher', 'registrar'
+    userType: null, // 'student', 'teacher', 'admin'
     userData: null
   });
 

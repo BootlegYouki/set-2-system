@@ -63,48 +63,31 @@
   background: var(--md-sys-color-outline);
 }
 
-.registrar-portal {
-  min-height: 100vh;
-  padding: 2rem;
-}
-
-.portal-header {
+.admin-portal {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
 }
 
-.portal-header h1 {
+.admin-section {
+  padding: var(--spacing-lg);
+}
+
+.admin-section h2 {
+  font-family: var(--md-sys-typescale-headline-medium-font);
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  font-weight: var(--md-sys-typescale-headline-medium-weight);
+  color: var(--md-sys-color-on-surface);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.admin-section p {
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
   margin: 0;
-  color: #1565c0;
-}
-
-.logout-btn {
-  padding: 0.5rem 1rem;
-  background-color: #f44336;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.logout-btn:hover {
-  background-color: #d32f2f;
-}
-
-.portal-content {
-  background: #f5f5f5;
-  padding: 2rem;
-  border-radius: 8px;
-}
-
-.portal-content p {
-  margin: 0.5rem 0;
-  color: #666;
 }
 
 /* Desktop layout adjustments */
@@ -127,7 +110,8 @@
 
   /* Adjust content area when navigation rail is expanded */
   .student-portal.nav-rail-collapsed .content-area, 
-  .teacher-portal.nav-rail-collapsed .content-area {
+  .teacher-portal.nav-rail-collapsed .content-area,
+  .admin-portal.nav-rail-collapsed .content-area {
     left: 220px;
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
@@ -166,7 +150,8 @@
   }
   
   .student-portal.nav-rail-collapsed .content-area, 
-  .teacher-portal.nav-rail-collapsed .content-area {
+  .teacher-portal.nav-rail-collapsed .content-area,
+  .admin-portal.nav-rail-collapsed .content-area {
     left: 220px;
   }
 

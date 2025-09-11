@@ -24,7 +24,7 @@
     {
       id: 3,
       title: 'Document Ready',
-      message: 'Your requested transcript is ready for pickup at the registrar\'s office.',
+      message: 'Your requested transcript is ready for pickup at the admin office.',
       type: 'document',
       timestamp: '2024-01-14T16:45:00Z',
       isRead: true,

@@ -104,7 +104,7 @@
     <div class="right-side">
       <!-- High School Header -->
       <div class="login-header">
-        <h1 class="login-title">Integrated Registrar System</h1>
+        <h1 class="login-title">Integrated Admin System</h1>
       </div>
       <!-- Login Form -->
       <form class="login-form" onsubmit={handleSubmit} novalidate>

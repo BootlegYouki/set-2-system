@@ -32,13 +32,13 @@ const testAccounts = {
       profileImage: null
     }
   },
-  'registrar@school.edu': {
-    password: 'registrar123',
-    userType: 'registrar',
+  'admin@school.edu': {
+    password: 'admin123',
+    userType: 'admin',
     userData: {
-      name: 'Admin Registrar',
-      id: 'REG-001',
-      email: 'registrar@school.edu',
+      name: 'System Admin',
+      id: 'ADM001',
+      email: 'admin@school.edu',
       profileImage: null
     }
   }
