@@ -1,7 +1,7 @@
 
 
 /* Navigation Rail (Desktop) */
-.navigation-rail {
+.teacher-menu-navigation-rail {
   position: fixed;
   top: 64px;
   left: 0;
@@ -18,7 +18,7 @@
   overflow-x: hidden;
 }
 
-.rail-container {
+.teacher-menu-rail-container {
   display: flex;
   flex-direction: column;
   align-items: start;
@@ -27,7 +27,7 @@
   height: 100%;
 }
 
-.rail-item {
+.teacher-menu-rail-item {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -42,18 +42,18 @@
   position: relative;
 }
 
-.rail-item:hover {
+.teacher-menu-rail-item:hover {
   background-color: var(--md-sys-color-surface-variant);
   border-radius: var(--radius-full);
 }
 
-.rail-item.active {
+.teacher-menu-rail-item.active {
   background-color: var(--md-sys-color-on-primary); 
   color: var(--md-sys-color-on-primary-container);
   border-radius: var(--radius-full);
 }
 
-.rail-icon-container {
+.teacher-menu-rail-icon-container {
   position: relative;
   display: flex;
   align-items: center;
@@ -62,18 +62,18 @@
   height: 32px;
 }
 
-.rail-icon {
+.teacher-menu-rail-icon {
   font-size: 24px;
   color: var(--md-sys-color-on-surface-variant);
 
 }
 
-.rail-item.active .rail-icon {
+.teacher-menu-rail-item.active .teacher-menu-rail-icon {
   color: var(--md-sys-color-on-primary-container);
   font-variation-settings: 'FILL' 1;
 }
 
-.rail-label {
+.teacher-menu-rail-label {
   font-family: var(--md-sys-typescale-label-small-font);
   font-size: 10px;
   font-weight: var(--md-sys-typescale-label-small-weight);
@@ -84,22 +84,22 @@
   word-wrap: break-word;
 }
 
-.navigation-rail:not(.collapsed) .rail-label {
+.teacher-menu-navigation-rail:not(.collapsed) .teacher-menu-rail-label {
   display: none;
 }
 
-.navigation-rail:not(.collapsed) .rail-item {
+.teacher-menu-navigation-rail:not(.collapsed) .teacher-menu-rail-item {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.navigation-rail.collapsed {
+.teacher-menu-navigation-rail.collapsed {
   width: 220px;
 }
 
 
-.navigation-rail.collapsed .rail-item {
+.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-item {
   display: flex;
   flex-direction: row;
   justify-content: start;
@@ -110,23 +110,23 @@
 }
 
 
-.navigation-rail.collapsed .rail-icon-container{
+.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-icon-container{
   justify-content: start;
 }
 
-.navigation-rail.collapsed .rail-label {
+.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-label {
   font-size: 14px;
   max-width: none;
   white-space: nowrap;
 }
 
-.rail-item.active .rail-label {
+.teacher-menu-rail-item.active .teacher-menu-rail-label {
   color: var(--md-sys-color-on-primary-container);
   font-weight: 600;
 }
 
 /* Bottom Navigation (Mobile) */
-.bottom-navigation {
+.teacher-menu-bottom-navigation {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -139,7 +139,7 @@
   transition: background-color var(--transition-normal), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.nav-container {
+.teacher-menu-nav-container {
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -149,7 +149,7 @@
   height: 64px;
 }
 
-.nav-item {
+.teacher-menu-nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -165,18 +165,18 @@
   position: relative;
 }
 
-.nav-item:active {
+.teacher-menu-nav-item:active {
   transform: scale(0.95);
 }
 
-.nav-item.active {
+.teacher-menu-nav-item.active {
   /* background-color: var(--md-sys-color-primary-container); */
   color: var(--md-sys-color-on-primary-container);
   /* border-radius: var(--radius-full); */
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.nav-icon-container {
+.teacher-menu-nav-icon-container {
   position: relative;
   display: flex;
   align-items: center;
@@ -185,20 +185,20 @@
   height: 32px;
 }
 
-.nav-icon {
+.teacher-menu-nav-icon {
   font-size: 24px;
   color: var(--md-sys-color-on-surface-variant);
   transition: color var(--transition-fast);
 }
 
-.nav-item.active .nav-icon {
+.teacher-menu-nav-item.active .teacher-menu-nav-icon {
   color: var(--md-sys-color-on-primary-container);
   font-variation-settings: 'FILL' 1;
 }
 
 
 
-.nav-label {
+.teacher-menu-nav-label {
   font-family: var(--md-sys-typescale-label-large-font);
   font-size: 12px;
   font-weight: var(--md-sys-typescale-label-large-weight);
@@ -208,7 +208,7 @@
   line-height: 1.2;
 }
 
-.nav-item.active .nav-label {
+.teacher-menu-nav-item.active .teacher-menu-nav-label {
   color: var(--md-sys-color-on-primary-container);
   font-weight: 600;
 }
@@ -218,57 +218,57 @@
 /* Responsive Design */
 @media (min-width: 768px) {
   /* Show navigation rail on desktop */
-  .navigation-rail {
+  .teacher-menu-navigation-rail {
     display: block;
     background-color: var(--md-sys-color-primary-container);
   }
 
   /* Hide bottom navigation on desktop */
-  .bottom-navigation {
+  .teacher-menu-bottom-navigation {
     display: none;
   }
   
   /* Dark mode specific colors for desktop */
-   [data-theme="dark"] .navigation-rail {
+   [data-theme="dark"] .teacher-menu-navigation-rail {
      background-color: var(--md-sys-color-surface-container-low);
    }
 }
 
 @media (max-width: 767px) {
   /* Hide navigation rail on mobile */
-  .navigation-rail {
+  .teacher-menu-navigation-rail {
     display: none;
   }
 
   /* Show bottom navigation on mobile */
-  .bottom-navigation {
+  .teacher-menu-bottom-navigation {
     display: block;
   }
 }
 
 @media (max-width: 480px) {
-  .nav-container {
+  .teacher-menu-nav-container {
     padding: var(--spacing-xs) var(--spacing-sm);
   }
 
-  .nav-item {
+  .teacher-menu-nav-item {
     min-width: 56px;
     padding: 6px;
   }
 
-  .nav-icon {
+  .teacher-menu-nav-icon {
     font-size: 22px;
   }
 }
 
 /* Dark mode specific adjustments */
-[data-theme="dark"] .bottom-navigation {
+[data-theme="dark"] .teacher-menu-bottom-navigation {
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Safe area for devices with notches */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .bottom-navigation {
+  .teacher-menu-bottom-navigation {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }

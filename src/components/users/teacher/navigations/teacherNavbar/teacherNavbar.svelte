@@ -76,13 +76,13 @@
 	}
 </script>
 
-<nav class="teacher-navbar">
-	<div class="navbar-container">
+<nav class="teacher-navbar" role="navigation" aria-label="Teacher navigation">
+	<div class="teacher-navbar-container">
 		<!-- Left section - Hamburger menu and Logo/Title -->
-		<div class="navbar-left">
+		<div class="teacher-navbar-left">
 			<!-- Hamburger menu button (desktop only) -->
 			<button 
-				class="icon-button hamburger-menu" 
+				class="teacher-navbar-icon-button hamburger-menu" 
 				onclick={onToggleNavRail}
 				aria-label="Toggle navigation menu"
 			>
@@ -96,10 +96,10 @@
 		</div>
 
 		<!-- Right section - User info and controls -->
-		<div class="navbar-right">
+		<div class="teacher-navbar-right">
 			<!-- Dark mode toggle -->
 			<button 
-				class="icon-button dark-mode-toggle" 
+				class="teacher-navbar-icon-button dark-mode-toggle" 
 				onclick={toggleDarkMode}
 				aria-label="Toggle dark mode"
 			>
@@ -110,13 +110,13 @@
 
 			<!-- User profile section with dropdown -->
 			<div class="user-profile-container">
-				<button class="user-profile" onclick={toggleDropdown}>
-					<div class="user-info">
-						<span class="user-name">{teacherName}</span>
+				<button class="teacher-navbar-user-profile" onclick={toggleDropdown}>
+					<div class="teacher-navbar-user-info">
+						<span class="teacher-navbar-user-name">{teacherName}</span>
 				<span class="user-id">ID: {teacherId}</span>
 					</div>
 					
-					<div class="user-avatar">
+					<div class="teacher-navbar-user-avatar">
 						{#if profileImage}
 							<img src={profileImage} alt="Profile" class="avatar-image" />
 						{:else}
@@ -129,12 +129,12 @@
 
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
-					<div class="user-dropdown-menu">
-						<button class="dropdown-item" onclick={closeDropdown}>
+					<div class="teacher-navbar-dropdown-menu">
+						<button class="teacher-navbar-dropdown-item" onclick={closeDropdown}>
 							<span class="material-symbols-outlined">person</span>
 							Profile
 						</button>
-						<button class="dropdown-item" onclick={() => { closeDropdown(); showSuccess('Logged out successfully. See you next time!'); onlogout(); }}>
+						<button class="teacher-navbar-dropdown-item" onclick={() => { closeDropdown(); showSuccess('Logged out successfully. See you next time!'); onlogout(); }}>
 							<span class="material-symbols-outlined">logout</span>
 							Logout
 						</button>

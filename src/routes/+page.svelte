@@ -14,7 +14,9 @@
   import TeacherStudentList from '../components/users/teacher/sections/teacherClassManagement/teacherClassManagement.svelte';
   import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
-  import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
+import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
+import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
+import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
@@ -188,6 +190,14 @@
           <div class="admin-section">
             <h2>Analytics</h2>
             <p>Analytics content will be implemented here.</p>
+          </div>
+        {:else if adminActiveSection === 'account-creation'}
+          <div class="admin-section">
+            <AdminAccountCreation />
+          </div>
+        {:else if adminActiveSection === 'room-management'}
+          <div class="admin-section">
+            <AdminRoomManagement />
           </div>
         {/if}
       </main>

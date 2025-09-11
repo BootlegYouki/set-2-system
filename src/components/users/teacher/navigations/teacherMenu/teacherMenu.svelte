@@ -33,41 +33,41 @@
 </script>
 
 <!-- Navigation Rail (Desktop) -->
-<nav class="navigation-rail" class:collapsed={!teacherNavRailVisible} role="navigation" aria-label="Teacher portal navigation">
-	<div class="rail-container">
+<nav class="teacher-menu-navigation-rail" class:collapsed={!teacherNavRailVisible} role="navigation" aria-label="Teacher portal navigation">
+	<div class="teacher-menu-rail-container">
 		{#each navigationItems as item (item.id)}
 			<button 
-				class="rail-item" 
+				class="teacher-menu-rail-item" 
 				class:active={item.id === teacherActiveSection}
 				onclick={() => handleNavigation(item.id)}
 				aria-label={item.label}
 				aria-current={item.id === teacherActiveSection ? 'page' : undefined}
 			>
-				<div class="rail-icon-container">
-					<span class="material-symbols-outlined rail-icon">
+				<div class="teacher-menu-rail-icon-container">
+					<span class="material-symbols-outlined teacher-menu-rail-icon">
 						{item.icon}
 					</span>
 				</div>
-				<span class="rail-label">{item.label}</span>
+				<span class="teacher-menu-rail-label">{item.label}</span>
 			</button>
 		{/each}
 	</div>
 </nav>
 
 <!-- Bottom Navigation (Mobile) -->
-<nav class="bottom-navigation" role="navigation" aria-label="Teacher portal navigation">
-	<div class="nav-container">
+<nav class="teacher-menu-bottom-navigation" role="navigation" aria-label="Teacher portal navigation">
+	<div class="teacher-menu-nav-container">
 		<!-- Navigation items -->
 		{#each navigationItems as item (item.id)}
 			<button 
-				class="nav-item" 
+				class="teacher-menu-nav-item" 
 				class:active={item.id === teacherActiveSection}
 				onclick={() => handleNavigation(item.id)}
 				aria-label={item.label}
 				aria-current={item.id === teacherActiveSection ? 'page' : undefined}
 			>
-				<div class="nav-icon-container">
-					<span class="material-symbols-outlined nav-icon">
+				<div class="teacher-menu-nav-icon-container">
+					<span class="material-symbols-outlined teacher-menu-nav-icon">
 						{item.icon}
 					</span>
 				</div>

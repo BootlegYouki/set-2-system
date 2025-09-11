@@ -6,29 +6,16 @@
 	// Navigation items for admin
 	const navigationItems = [
 		{
-			id: 'dashboard',
-			label: 'Dashboard',
-			icon: 'dashboard'
+			id: 'account-creation',
+			label: 'Account Creation',
+			icon: 'person_add',
+			description: 'Create new student and teacher accounts'
 		},
 		{
-			id: 'users',
-			label: 'User Management',
-			icon: 'group'
-		},
-		{
-			id: 'reports',
-			label: 'Reports',
-			icon: 'assessment'
-		},
-		{
-			id: 'settings',
-			label: 'System Settings',
-			icon: 'settings'
-		},
-		{
-			id: 'analytics',
-			label: 'Analytics',
-			icon: 'analytics'
+			id: 'room-management',
+			label: 'Room Management',
+			icon: 'meeting_room',
+			description: 'Create and manage rooms, assign to sections and teachers'
 		}
 	];
 

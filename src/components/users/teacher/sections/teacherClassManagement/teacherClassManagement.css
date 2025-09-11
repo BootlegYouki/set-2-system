@@ -32,7 +32,7 @@
 }
 
 /* Header Section */
-.page-header {
+.class-mgmt-page-header {
   margin-bottom: var(--spacing-xl);
 }
 
@@ -40,14 +40,14 @@
   max-width: 800px;
 }
 
-.page-title {
+.class-mgmt-page-title {
   font-size: var(--md-sys-typescale-headline-large-size);
   font-weight: var(--md-sys-typescale-headline-large-weight);
   margin: 0 0 var(--spacing-sm) 0;
   color: var(--md-sys-color-on-surface);
 }
 
-.page-subtitle {
+.class-mgmt-page-subtitle {
   font-size: var(--md-sys-typescale-body-large-size);
   color: var(--md-sys-color-on-surface-variant);
   margin: 0;
@@ -55,18 +55,18 @@
 }
 
 /* Stats Section */
-.stats-section {
+.class-mgmt-stats-section {
   margin-bottom: var(--spacing-2xl);
 }
 
-.stats-grid {
+.class-mgmt-stats-grid {
   display: flex;
   gap: var(--spacing-lg);
   justify-content: space-between;
   align-items: stretch;
 }
 
-.stat-card {
+.class-mgmt-stat-card {
   background-color: var(--md-sys-color-surface-container);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
@@ -86,7 +86,7 @@
   transform: translateY(-2px);
 }
 
-.stat-icon {
+.class-mgmt-stat-icon {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
@@ -107,14 +107,21 @@
   align-items: center;
 }
 
-.stat-value {
-  font-size: 32px;
+.class-mgmt-stat-value {
+  font-size: 40px !important;
   font-weight: 600;
   line-height: 1;
   margin-bottom: var(--spacing-xs);
 }
 
-.stat-label {
+.stat-value .odometer-container,
+.stat-value .odometer,
+.stat-value .odometer .odometer-digit {
+  font-size: 40px !important;
+  font-weight: 600 !important;
+}
+
+.class-mgmt-stat-label {
   font-size: var(--md-sys-typescale-title-small-size);
   font-weight: var(--md-sys-typescale-title-large-weight);
   color: var(--md-sys-color-on-surface);
@@ -127,7 +134,7 @@
 }
 
 
-.section-title {
+.class-mgmt-section-title {
   font-size: var(--md-sys-typescale-title-large-size);
   font-weight: var(--md-sys-typescale-title-large-weight);
   margin: 0 0 var(--spacing-lg) 0;
@@ -263,7 +270,7 @@
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-  .stats-grid {
+  .class-mgmt-stats-grid {
     gap: var(--spacing-md);
   }
   
@@ -274,7 +281,7 @@
 
 @media (max-width: 768px) {
   .class-management-container {
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg);
   }
   
   .sections-grid {
@@ -287,7 +294,7 @@
     gap: var(--spacing-md);
   }
   
-  .stat-card {
+  .class-mgmt-stat-card {
     padding: var(--spacing-md);
   }
   
@@ -295,21 +302,21 @@
     padding: var(--spacing-md);
   }
   
-  .stat-label {
+  .class-mgmt-stat-label {
     display: none;
   }
 }
 
 @media (max-width: 480px) {
-  .page-title {
+  .class-mgmt-page-title {
     font-size: 24px;
   }
   
-  .stat-value {
+  .class-mgmt-stat-value {
     font-size: 24px;
   }
   
-  .stat-card {
+  .class-mgmt-stat-card {
     flex-direction: column;
     text-align: center;
     gap: var(--spacing-sm);
@@ -332,7 +339,7 @@
   }
 }
 
-.stat-card,
+.class-mgmt-stat-card,
 .year-level-container,
 .section-card {
   animation: fadeInUp 0.6s ease-out;
@@ -340,7 +347,7 @@
 
 /* Focus states for accessibility */
 
-.stat-card:focus-within,
+.class-mgmt-stat-card:focus-within,
 .section-card:focus-within {
   box-shadow: var(--shadow-lg);
 }
@@ -352,7 +359,7 @@
     color: black;
   }
   
-  .stat-card,
+  .class-mgmt-stat-card,
   .year-level-container,
   .section-card {
     box-shadow: none;

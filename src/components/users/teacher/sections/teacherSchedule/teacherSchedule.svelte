@@ -120,9 +120,9 @@
 </script>
 
 <div class="schedule-container" on:click={handleClickOutside} on:keydown={handleClickOutside} role="button" tabindex="0">
-	<div class="schedule-header">
-		<h1 class="page-title">Teaching Schedule</h1>
-		<p class="page-subtitle">Your weekly teaching schedule</p>
+	<div class="schedule-schedule-header">
+		<h1 class="schedule-page-title">Teaching Schedule</h1>
+		<p class="schedule-page-subtitle">Your weekly teaching schedule</p>
 	</div>
 
 	<div class="week-navigation">
@@ -130,10 +130,10 @@
 			<span>{currentDayName}, {currentMonth} {currentDay}</span>
 		</div>
 
-		<div class="day-selector">
+		<div class="schedule-day-selector">
 			{#each weekDays as { day }}
 				<button 
-					class="day-btn {day === selectedDay ? 'active' : ''}"
+					class="schedule-day-btn {day === selectedDay ? 'active' : ''}"
 					on:click={() => selectDay(day)}
 				>
 					<div class="day-name">{day}</div>
@@ -170,21 +170,21 @@
 		<h2>{fullDayName} Classes</h2>
 		
 		{#if currentClasses.length > 0}
-			<div class="classes-list">
+			<div class="schedule-classes-grid">
 				{#each currentClasses as classItem}
-					<div class="class-card {classItem.color}">
+					<div class="schedule-class-card {classItem.color}">
 						<div class="class-header">
-							<h3 class="class-name">{classItem.name}</h3>
-							<span class="class-time">{classItem.time}</span>
+							<h3 class="schedule-class-name">{classItem.name}</h3>
+							<span class="schedule-class-time">{classItem.time}</span>
 						</div>
 						
 						<div class="class-details">
-							<div class="class-location">
+							<div class="schedule-class-location">
 								<span class="material-symbols-outlined"> location_on</span>
 								<span>{classItem.room}</span>
 							</div>
 							{#if classItem.students}
-								<div class="class-teacher">
+								<div class="schedule-class-teacher">
 									<span class="material-symbols-outlined"> groups </span>
 									<span>{classItem.students}</span>
 								</div>

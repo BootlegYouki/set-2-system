@@ -39,7 +39,7 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1rem;
+  padding: var(--spacing-lg);
   scroll-behavior: smooth;
 }
 
@@ -67,25 +67,6 @@
   height: 100vh;
   overflow: hidden;
   position: relative;
-}
-
-.admin-section {
-  padding: var(--spacing-lg);
-}
-
-.admin-section h2 {
-  font-family: var(--md-sys-typescale-headline-medium-font);
-  font-size: var(--md-sys-typescale-headline-medium-size);
-  font-weight: var(--md-sys-typescale-headline-medium-weight);
-  color: var(--md-sys-color-on-surface);
-  margin: 0 0 var(--spacing-md) 0;
-}
-
-.admin-section p {
-  font-family: var(--md-sys-typescale-body-large-font);
-  font-size: var(--md-sys-typescale-body-large-size);
-  color: var(--md-sys-color-on-surface-variant);
-  margin: 0;
 }
 
 /* Desktop layout adjustments */

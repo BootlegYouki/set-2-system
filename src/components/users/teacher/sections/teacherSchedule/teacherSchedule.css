@@ -39,14 +39,14 @@
   gap: var(--spacing-md);
 }
 
-.page-title {
+.schedule-page-title {
   font-family: var(--md-sys-typescale-headline-large-font);
   font-weight: var(--md-sys-typescale-headline-large-weight);
   color: var(--md-sys-color-on-surface);
   margin: 0 0 var(--spacing-xs) 0;
 }
 
-.page-subtitle {
+.schedule-page-subtitle {
   font-family: var(--md-sys-typescale-body-large-font);
   font-size: var(--md-sys-typescale-body-large-size);
   color: var(--md-sys-color-on-surface-variant);
@@ -73,12 +73,12 @@
 }
 
 /* Day Selector */
-.day-selector {
+.schedule-day-selector {
 	display: flex;
 	gap: var(--spacing-md);
 }
 
-.day-btn {
+.schedule-day-btn {
 	background-color: var(--md-sys-color-surface-variant);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
@@ -90,12 +90,12 @@
 	color: var(--md-sys-color-on-surface-variant);
 }
 
-.day-btn:hover {
+.schedule-day-btn:hover {
 	background-color: var(--md-sys-color-surface);
 	border-color: var(--md-sys-color-outline);
 }
 
-.day-btn.active {
+.schedule-day-btn.active {
 	background-color: var(--md-sys-color-primary-container);
 	color: var(--md-sys-color-on-primary-container);
 	border-color: var(--md-sys-color-primary-container);
@@ -115,7 +115,6 @@
 /* Classes Section */
 .classes-section {
 	background-color: var(--md-sys-color-surface);
-	padding: var(--spacing-xl);
 	border-radius: 0 0 var(--radius-xl) var(--radius-xl);
 }
 
@@ -127,14 +126,14 @@
 }
 
 /* Classes List */
-.classes-list {
+.schedule-classes-grid {
 	display: flex;
 	flex-direction: column;
 	gap: var(--spacing-md);
 }
 
 /* Class Cards */
-.class-card {
+.schedule-class-card {
 	background-color: var(--md-sys-color-surface-container);
 	border-radius: var(--radius-lg);
 	padding: var(--spacing-lg);
@@ -144,7 +143,7 @@
 	color: var(--md-sys-color-on-surface);
 }
 
-.class-card:hover {
+.schedule-class-card:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -152,150 +151,150 @@
 /* Class Card Colors - Distinct variants that complement blue school brand */
 
 /* Blue - Primary school brand color */
-.class-card.blue {
+.schedule-class-card.blue {
 	background-color: var(--md-sys-color-primary-container);
 	border-color: var(--md-sys-color-primary);
 	color: var(--md-sys-color-on-primary-container);
 }
 
-.class-card.blue .class-name,
-.class-card.blue .class-time,
-.class-card.blue .class-location,
-.class-card.blue .class-teacher {
+.schedule-class-card.blue .schedule-class-name,
+.schedule-class-card.blue .schedule-class-time,
+.schedule-class-card.blue .schedule-class-location,
+.schedule-class-card.blue .schedule-class-teacher {
 	color: var(--md-sys-color-on-primary-container);
 }
 
 /* Green - Cool complement to blue */
-.class-card.green {
+.schedule-class-card.green {
 	background-color: #e8f5e8;
 	border-color: #4caf50;
 	color: #1b5e20;
 }
 
-[data-theme="dark"] .class-card.green {
+[data-theme="dark"] .schedule-class-card.green {
 	background-color: #263f26;
 	border-color: #66bb6a;
 	color: #c8e6c9;
 }
 
-.class-card.green .class-name,
-.class-card.green .class-time,
-.class-card.green .class-location,
-.class-card.green .class-teacher {
+.schedule-class-card.green .schedule-class-name,
+.schedule-class-card.green .schedule-class-time,
+.schedule-class-card.green .schedule-class-location,
+.schedule-class-card.green .schedule-class-teacher {
 	color: inherit;
 }
 
 /* Purple - Analogous to blue */
-.class-card.purple {
+.schedule-class-card.purple {
 	background-color: #f3e5f5;
 	border-color: #9c27b0;
 	color: #4a148c;
 }
 
-[data-theme="dark"] .class-card.purple {
+[data-theme="dark"] .schedule-class-card.purple {
 	background-color: #3a2f3b;
 	border-color: #ba68c8;
 	color: #e1bee7;
 }
 
-.class-card.purple .class-name,
-.class-card.purple .class-time,
-.class-card.purple .class-location,
-.class-card.purple .class-teacher {
+.schedule-class-card.purple .schedule-class-name,
+.schedule-class-card.purple .schedule-class-time,
+.schedule-class-card.purple .schedule-class-location,
+.schedule-class-card.purple .schedule-class-teacher {
 	color: inherit;
 }
 
 /* Yellow/Amber - Warm complement to cool blue */
-.class-card.yellow {
+.schedule-class-card.yellow {
 	background-color: #fff8e1;
 	border-color: #ffc107;
 	color: #ff6f00;
 }
 
-[data-theme="dark"] .class-card.yellow {
+[data-theme="dark"] .schedule-class-card.yellow {
 	background-color: #3e3823;
 	border-color: #ffcc02;
 	color: #fff3c4;
 }
 
-.class-card.yellow .class-name,
-.class-card.yellow .class-time,
-.class-card.yellow .class-location,
-.class-card.yellow .class-teacher {
+.schedule-class-card.yellow .schedule-class-name,
+.schedule-class-card.yellow .schedule-class-time,
+.schedule-class-card.yellow .schedule-class-location,
+.schedule-class-card.yellow .schedule-class-teacher {
 	color: inherit;
 }
 
 /* Orange - Energetic warm tone */
-.class-card.orange {
+.schedule-class-card.orange {
 	background-color: #fff3e0;
 	border-color: #ff9800;
 	color: #e65100;
 }
 
-[data-theme="dark"] .class-card.orange {
+[data-theme="dark"] .schedule-class-card.orange {
 	background-color: #3e2f23;
 	border-color: #ffb74d;
 	color: #ffe0b2;
 }
 
-.class-card.orange .class-name,
-.class-card.orange .class-time,
-.class-card.orange .class-location,
-.class-card.orange .class-teacher {
+.schedule-class-card.orange .schedule-class-name,
+.schedule-class-card.orange .schedule-class-time,
+.schedule-class-card.orange .schedule-class-location,
+.schedule-class-card.orange .schedule-class-teacher {
 	color: inherit;
 }
 
 /* Gray - Neutral for lunch/breaks */
-.class-card.gray {
+.schedule-class-card.gray {
 	background-color: var(--md-sys-color-surface-variant);
 	border-color: var(--md-sys-color-outline-variant);
 	color: var(--md-sys-color-on-surface);
 }
 
-.class-card.gray .class-name,
-.class-card.gray .class-time,
-.class-card.gray .class-location,
-.class-card.gray .class-teacher {
+.schedule-class-card.gray .schedule-class-name,
+.schedule-class-card.gray .schedule-class-time,
+.schedule-class-card.gray .schedule-class-location,
+.schedule-class-card.gray .schedule-class-teacher {
 	color: var(--md-sys-color-on-surface);
 }
 
 /* Pink/Rose - Soft contrast to blue */
-.class-card.pink {
+.schedule-class-card.pink {
 	background-color: #fce4ec;
 	border-color: #e91e63;
 	color: #880e4f;
 }
 
-[data-theme="dark"] .class-card.pink {
+[data-theme="dark"] .schedule-class-card.pink {
 	background-color: #3b2832;
 	border-color: #f06292;
 	color: #f8bbd9;
 }
 
-.class-card.pink .class-name,
-.class-card.pink .class-time,
-.class-card.pink .class-location,
-.class-card.pink .class-teacher {
+.schedule-class-card.pink .schedule-class-name,
+.schedule-class-card.pink .schedule-class-time,
+.schedule-class-card.pink .schedule-class-location,
+.schedule-class-card.pink .schedule-class-teacher {
 	color: inherit;
 }
 
 /* Light Purple/Lavender - Softer purple variant */
-.class-card.light-purple {
+.schedule-class-card.light-purple {
 	background-color: #ede7f6;
 	border-color: #673ab7;
 	color: #311b92;
 }
 
-[data-theme="dark"] .class-card.light-purple {
+[data-theme="dark"] .schedule-class-card.light-purple {
 	background-color: #332d3a;
 	border-color: #9575cd;
 	color: #d1c4e9;
 }
 
-.class-card.light-purple .class-name,
-.class-card.light-purple .class-time,
-.class-card.light-purple .class-location,
-.class-card.light-purple .class-teacher {
+.schedule-class-card.light-purple .schedule-class-name,
+.schedule-class-card.light-purple .schedule-class-time,
+.schedule-class-card.light-purple .schedule-class-location,
+.schedule-class-card.light-purple .schedule-class-teacher {
 	color: inherit;
 }
 
@@ -307,14 +306,14 @@
 	margin-bottom: var(--spacing-md);
 }
 
-.class-name {
+.schedule-class-name {
 	margin: 0;
 	font-size: 1.125rem;
 	font-weight: 600;
 	/* Color now handled by parent class card */
 }
 
-.class-time {
+.schedule-class-time {
 	font-size: 0.875rem;
 	font-weight: 500;
 	display: flex;
@@ -331,8 +330,8 @@
 	flex-wrap: wrap;
 }
 
-.class-location,
-.class-teacher {
+.schedule-class-location,
+.schedule-class-teacher {
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-xs);
@@ -462,7 +461,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
 
-	.schedule-header h1 {
+	.schedule-schedule-header h1 {
 		font-size: 1.5rem;
 	}
 
@@ -470,7 +469,7 @@
 		padding: var(--spacing-md) var(--spacing-lg);
 	}
 
-	.day-selector {
+	.schedule-day-selector {
 		display: none;
 	}
 
@@ -520,7 +519,7 @@
 		align-items: center;
 	}
 
-	.day-btn {
+	.schedule-day-btn {
 		flex: none;
 	}
 

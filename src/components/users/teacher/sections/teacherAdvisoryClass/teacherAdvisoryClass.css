@@ -32,22 +32,18 @@
 }
 
 /* Header Section */
-.page-header {
+.advisory-page-header {
   margin-bottom: var(--spacing-xl);
 }
 
-.header-content {
-  max-width: 800px;
-}
-
-.page-title {
+.advisory-page-title {
   font-size: var(--md-sys-typescale-headline-large-size);
   font-weight: var(--md-sys-typescale-headline-large-weight);
   margin: 0 0 var(--spacing-md) 0;
   color: var(--md-sys-color-on-surface);
 }
 
-.class-info {
+.advisory-class-info {
   display: flex;
   gap: var(--spacing-lg);
   flex-wrap: wrap;
@@ -71,18 +67,18 @@
 }
 
 /* Stats Section */
-.stats-section {
+.advisory-stats-section {
   margin-bottom: var(--spacing-2xl);
 }
 
-.stats-grid {
+.advisory-stats-grid {
   display: flex;
   gap: var(--spacing-lg);
   justify-content: space-between;
   align-items: stretch;
 }
 
-.stat-card {
+.advisory-stat-card {
   background-color: var(--md-sys-color-surface-container);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
@@ -102,7 +98,7 @@
   transform: translateY(-2px);
 }
 
-.stat-icon {
+.advisory-stat-icon {
   width: 56px;
   height: 56px;
   border-radius: var(--radius-lg);
@@ -122,7 +118,7 @@
   width: 100%;
 }
 
-.stat-value {
+.advisory-stat-value {
   font-size: var(--md-sys-typescale-headline-medium-size);
   font-weight: var(--md-sys-typescale-headline-medium-weight);
   margin-bottom: var(--spacing-xs);
@@ -132,7 +128,7 @@
   gap: 2px;
 }
 
-.stat-label {
+.advisory-stat-label {
   font-size: var(--md-sys-typescale-body-medium-size);
   color: var(--md-sys-color-on-surface-variant);
   font-weight: 500;
@@ -143,20 +139,20 @@
   margin-bottom: var(--spacing-2xl);
 }
 
-.section-title {
+.advisory-section-title {
   font-size: var(--md-sys-typescale-headline-small-size);
   font-weight: var(--md-sys-typescale-headline-small-weight);
   margin: 0 0 var(--spacing-lg) 0;
   color: var(--md-sys-color-on-surface);
 }
 
-.students-grid {
+.advisory-students-grid {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
 }
 
-.student-card {
+.advisory-student-card {
   background-color: var(--md-sys-color-surface-container);
   border-radius: var(--radius-lg);
   border: 1px solid var(--md-sys-color-outline-variant);
@@ -164,12 +160,12 @@
   transition: all var(--transition-normal);
 }
 
-.student-card:hover {
+.advisory-student-card:hover {
   background-color: var(--md-sys-color-surface-container-hover);
   box-shadow: var(--shadow-sm);
 }
 
-.student-card.selected {
+.advisory-student-card.selected {
   border-color: var(--school-primary);
   box-shadow: 0 0 0 2px var(--school-primary)20;
 }
@@ -255,14 +251,14 @@
   background-color: var(--md-sys-color-surface-container-highest);
 }
 
-.student-info {
+.advisory-student-info {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   flex: 1;
 }
 
-.student-avatar {
+.advisory-student-avatar {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-full);
@@ -274,7 +270,7 @@
   flex-shrink: 0;
 }
 
-.student-avatar .material-symbols-outlined {
+.advisory-student-avatar .material-symbols-outlined {
   font-size: 24px;
 }
 
@@ -282,14 +278,14 @@
   flex: 1;
 }
 
-.student-name {
+.advisory-student-name {
   font-size: var(--md-sys-typescale-title-medium-size);
   font-weight: var(--md-sys-typescale-title-medium-weight);
   margin: 0 0 var(--spacing-xs) 0;
   color: var(--md-sys-color-on-surface);
 }
 
-.student-number {
+.advisory-student-number {
   font-size: var(--md-sys-typescale-body-small-size);
   color: var(--md-sys-color-on-surface-variant);
   margin: 0;
@@ -547,7 +543,6 @@
   gap: var(--spacing-sm);
   margin: var(--spacing-md) 0 0 0;
   padding: var(--spacing-md);
-  background: linear-gradient(135deg, var(--md-sys-color-primary-container) 0%, var(--md-sys-color-surface-variant) 100%);
   border-radius: var(--radius-md);
   border: 1px solid var(--md-sys-color-outline-variant);
   box-shadow: var(--shadow-xs);
@@ -568,16 +563,17 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .advisory-class-container {
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg);
   }
 
-  .stats-grid {
+  .advisory-stats-grid {
     flex-direction: column;
     gap: var(--spacing-md);
   }
 
-  .class-info {
-    flex-direction: column;
+  .advisory-class-info {
+    /* flex-direction: column; */
+    justify-content: stretch;
     gap: var(--spacing-sm);
   }
 
@@ -609,11 +605,11 @@
 }
 
 @media (max-width: 480px) {
-  .page-title {
+  .advisory-page-title {
     font-size: var(--md-sys-typescale-headline-medium-size);
   }
 
-  .student-info {
+  .advisory-student-info {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-sm);

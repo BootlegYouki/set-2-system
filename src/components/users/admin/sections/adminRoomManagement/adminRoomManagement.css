@@ -1,0 +1,661 @@
+/* Room Management Container */
+.admin-room-room-management-container {
+	padding: var(--spacing-sm);
+	height: 100%;
+	box-sizing: border-box;
+	overflow-y: auto;
+	overflow-x: hidden;
+	scroll-behavior: smooth;
+	color: var(--md-sys-color-on-surface);
+}
+
+/* Custom scrollbar for room management container */
+.admin-room-room-management-container::-webkit-scrollbar {
+	width: 8px;
+}
+
+.admin-room-room-management-container::-webkit-scrollbar-track {
+	background: var(--md-sys-color-surface-variant);
+	border-radius: var(--radius-sm);
+}
+
+.admin-room-room-management-container::-webkit-scrollbar-thumb {
+	background: var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-sm);
+	transition: background-color var(--transition-normal);
+}
+
+.admin-room-room-management-container::-webkit-scrollbar-thumb:hover {
+	background: var(--md-sys-color-outline);
+}
+
+/* Header Styles */
+.admin-room-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--spacing-xl);
+	gap: var(--spacing-md);
+}
+
+.header-content {
+	flex: 1;
+}
+
+.page-title {
+	font-family: var(--md-sys-typescale-headline-large-font);
+	font-size: var(--md-sys-typescale-headline-large-size);
+	font-weight: var(--md-sys-typescale-headline-large-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-xs) 0;
+}
+
+.page-subtitle {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+.admin-room-page-subtitle {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+/* Success and Error Messages */
+.admin-room-success-message,
+.admin-room-error-message {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md);
+	border-radius: var(--radius-md);
+	margin-bottom: var(--spacing-lg);
+	animation: slideIn 0.3s ease-out;
+}
+
+.admin-room-success-message {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	border: 1px solid var(--md-sys-color-primary);
+}
+
+.admin-room-error-message {
+	background: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+	border: 1px solid var(--md-sys-color-error);
+}
+
+.admin-room-success-icon,
+.admin-room-error-icon {
+	font-size: 20px;
+}
+
+.admin-room-success-text,
+.admin-room-error-text {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: 500;
+}
+
+/* Tab Navigation */
+.admin-room-tab-navigation {
+	display: flex;
+	gap: var(--spacing-xs);
+	margin-bottom: var(--spacing-xl);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.admin-room-tab-button {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
+	background: transparent;
+	color: var(--md-sys-color-on-surface-variant);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	position: relative;
+}
+
+.admin-room-tab-button:hover {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface);
+}
+
+.admin-room-tab-button.admin-room-active {
+	color: var(--md-sys-color-primary);
+	background: var(--md-sys-color-primary-container);
+}
+
+.admin-room-tab-button.admin-room-active::after {
+	content: '';
+	position: absolute;
+	bottom: -1px;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: var(--md-sys-color-primary);
+}
+
+/* Tab Content */
+.admin-room-tab-content {
+	margin-bottom: var(--spacing-xl);
+}
+
+/* Form Sections */
+.admin-room-creation-form-section,
+.admin-room-assignment-form-section {
+	background: var(--md-sys-color-surface-container-low);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-xl);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.admin-room-section-header {
+	margin-bottom: var(--spacing-xl);
+	text-align: center;
+}
+
+.admin-room-section-title {
+	font-family: var(--md-sys-typescale-headline-medium-font);
+	font-size: var(--md-sys-typescale-headline-medium-size);
+	font-weight: var(--md-sys-typescale-headline-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-sm) 0;
+}
+
+.admin-room-section-subtitle {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+
+/* Form Rows */
+.admin-room-form-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--spacing-lg);
+	margin-bottom: var(--spacing-lg);
+}
+
+/* Form Labels */
+.admin-room-form-label {
+	display: block;
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface);
+	margin-bottom: var(--spacing-sm);
+}
+
+/* Form Inputs */
+.admin-room-form-input,
+.admin-room-form-select,
+.admin-room-form-textarea {
+	width: 100%;
+	padding: var(--spacing-md);
+	border: 2px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all 0.2s ease;
+	box-sizing: border-box;
+	min-height: 56px;
+	margin-bottom: var(--spacing-md);
+}
+
+.admin-room-form-input:focus,
+.admin-room-form-select:focus,
+.admin-room-form-textarea:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	background-color: var(--md-sys-color-surface);
+	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.admin-room-form-textarea {
+	resize: vertical;
+	min-height: 100px;
+	font-family: inherit;
+}
+
+/* Radio Groups */
+.admin-room-radio-group {
+	display: flex;
+	gap: var(--spacing-lg);
+	margin-top: var(--spacing-sm);
+}
+
+.admin-room-radio-option {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	cursor: pointer;
+	padding: var(--spacing-sm);
+	border-radius: var(--radius-sm);
+	transition: background-color 0.2s ease;
+}
+
+.admin-room-radio-option:hover {
+	background-color: var(--md-sys-color-surface-variant);
+}
+
+.admin-room-radio-option input[type="radio"] {
+	width: 20px;
+	height: 20px;
+	margin: 0;
+	accent-color: var(--md-sys-color-primary);
+}
+
+.admin-room-radio-label {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface);
+}
+
+/* Form Help Text */
+.admin-room-form-help {
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin-top: var(--spacing-sm);
+	margin-bottom: 0;
+}
+
+.admin-room-form-help.admin-room-warning {
+	color: var(--md-sys-color-error);
+	font-weight: 500;
+}
+
+/* Form Actions */
+.admin-room-form-actions {
+	display: flex;
+	justify-content: end;
+	margin-top: var(--spacing-xl);
+}
+
+/* Buttons */
+.admin-room-create-button,
+.admin-room-assign-button {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md) var(--spacing-xl);
+	border: none;
+	border-radius: var(--radius-full);
+	background: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	min-height: 48px;
+	min-width: 160px;
+	justify-content: center;
+}
+
+.admin-room-create-button:hover,
+.admin-room-assign-button:hover {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-room-create-button:disabled,
+.admin-room-assign-button:disabled {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+.admin-room-create-button.admin-room-loading,
+.admin-room-assign-button.admin-room-loading {
+	pointer-events: none;
+}
+
+.admin-room-loading-icon {
+	animation: spin 1s linear infinite;
+}
+
+/* Rooms List Section */
+.admin-room-rooms-list-section {
+	background: var(--md-sys-color-surface-container-low);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-xl);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* Rooms Grid */
+.admin-room-rooms-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+	gap: var(--spacing-lg);
+	align-items: start;
+}
+
+/* Room Cards */
+.admin-room-room-card {
+	background: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-lg);
+	transition: all 0.2s ease;
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	height: 180px;
+	min-height: 180px;
+}
+
+.admin-room-room-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	border-color: var(--md-sys-color-primary);
+}
+
+.admin-room-room-info {
+	flex: 1;
+}
+
+.admin-room-room-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: var(--spacing-md);
+}
+
+.admin-room-room-name {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0;
+	flex: 1;
+}
+
+.admin-room-room-number {
+	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border-radius: var(--radius-sm);
+	font-family: var(--md-sys-typescale-label-small-font);
+	font-size: var(--md-sys-typescale-label-small-size);
+	font-weight: var(--md-sys-typescale-label-small-weight);
+}
+
+.admin-room-room-details {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+}
+
+.admin-room-room-location {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+.admin-room-room-location .material-symbols-outlined {
+	font-size: 16px;
+}
+
+.admin-room-room-status {
+	display: flex;
+	flex-direction: row;
+	gap: var(--spacing-sm);
+	justify-content: space-between;
+	align-items: flex-start;
+}
+
+.admin-room-status-container {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.admin-room-status-badge {
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border-radius: var(--radius-full);
+	font-family: var(--md-sys-typescale-label-small-font);
+	font-size: var(--md-sys-typescale-label-small-size);
+	font-weight: var(--md-sys-typescale-label-small-weight);
+	text-transform: capitalize;
+}
+
+.admin-room-status-available {
+	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.admin-room-status-assigned {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.admin-room-assigned-to {
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+	font-style: italic;
+}
+
+.admin-room-unassign-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xs);
+	border: 1px solid var(--md-sys-color-error);
+	border-radius: var(--radius-sm);
+	background: transparent;
+	color: var(--md-sys-color-error);
+	width: 32px;
+	height: 32px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.admin-room-unassign-button:hover {
+	background: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error);
+}
+
+.admin-room-unassign-button .material-symbols-outlined {
+	font-size: 16px;
+}
+
+/* Animations */
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+
+
+/* Custom Dropdown Styles */
+.admin-room-dropdown {
+	position: relative;
+	width: 100%;
+	margin-bottom: var(--spacing-md);
+}
+
+.admin-room-dropdown-toggle {
+	width: 100%;
+	background-color: var(--md-sys-color-surface-variant);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-md) var(--spacing-lg);
+	cursor: pointer;
+	transition: all 0.2s;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	color: var(--md-sys-color-on-surface-variant);
+	font-size: 1rem;
+	font-weight: 500;
+	text-align: left;
+}
+
+.admin-room-dropdown-toggle:hover {
+	background-color: var(--md-sys-color-surface);
+	border-color: var(--md-sys-color-outline);
+}
+
+.admin-room-dropdown-toggle.admin-room-dropdown-open {
+	border-color: var(--md-sys-color-primary);
+	background-color: var(--md-sys-color-surface);
+}
+
+.admin-room-dropdown-icon {
+	transition: transform 0.2s;
+	font-size: 1.2rem;
+}
+
+.admin-room-dropdown-icon.open {
+	transform: rotate(180deg);
+}
+
+.admin-room-dropdown-menu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	z-index: 1000;
+	margin-top: var(--spacing-xs);
+	overflow-y: auto;
+}
+
+.admin-room-dropdown-item {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
+	background-color: transparent;
+	color: var(--md-sys-color-on-surface);
+	cursor: pointer;
+	transition: background-color 0.2s;
+	text-align: left;
+	font-size: 1rem;
+	font-weight: 500;
+}
+
+.admin-room-dropdown-item:hover {
+	background-color: var(--md-sys-color-surface-variant) !important;
+}
+
+.admin-room-dropdown-item.selected {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.admin-room-dropdown-item.selected:hover {
+	background-color: var(--md-sys-color-primary-container) !important;
+}
+
+@media (max-width: 768px) {
+	.admin-room-room-management-container {
+		padding: var(--spacing-md);
+	}
+
+	.admin-room-header {
+		/* flex-direction: column; */
+		align-items: flex-start;
+		text-align: left;
+	}
+
+	.page-title {
+		font-size: var(--md-sys-typescale-headline-medium-size);
+	}
+
+	.admin-room-form-row {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-md);
+	}
+
+	.admin-room-tab-navigation {
+		gap: 0;
+	}
+
+	.admin-room-tab-button {
+		border-radius: 0;
+		justify-content: center;
+	}
+
+	.admin-room-radio-group {
+		gap: var(--spacing-sm);
+	}
+
+	.admin-room-dropdown-toggle {
+		padding: var(--spacing-sm) var(--spacing-md);
+		font-size: 1rem;
+	}
+
+	.admin-room-dropdown-item {
+		padding: var(--spacing-sm) var(--spacing-md);
+		font-size: 1rem;
+	}
+
+	.admin-room-rooms-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-room-room-header {
+		align-items: flex-start;
+		gap: var(--spacing-xs);
+	}
+}
+
+@media (max-width: 480px) {
+	.admin-room-creation-form-section,
+	.admin-room-assignment-form-section,
+	.admin-room-rooms-list-section {
+		padding: var(--spacing-lg);
+	}
+
+	.admin-room-form-container {
+		max-width: 100%;
+	}
+
+	.admin-room-create-button,
+	.admin-room-assign-button {
+		min-width: 140px;
+		padding: var(--spacing-sm) var(--spacing-lg);
+	}
+}

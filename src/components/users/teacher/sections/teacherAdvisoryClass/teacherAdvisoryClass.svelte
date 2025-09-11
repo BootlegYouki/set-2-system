@@ -247,10 +247,10 @@
 
 <div class="advisory-class-container">
   <!-- Header Section -->
-  <div class="page-header">
+  <div class="advisory-page-header">
     <div class="header-content">
-      <h1 class="page-title">Advisory Class Dashboard</h1>
-      <div class="class-info">
+      <h1 class="advisory-page-title">Advisory Class Dashboard</h1>
+      <div class="advisory-class-info">
         <div class="class-detail">
           <span class="material-symbols-outlined">school</span>
           <span>{advisoryData.sectionName}</span>
@@ -274,19 +274,19 @@
   </div>
 
   <!-- Stats Cards Section -->
-  <div class="stats-section">
-    <div class="stats-grid">
+  <div class="advisory-stats-section">
+    <div class="advisory-stats-grid">
       {#each statsConfig as stat (stat.id)}
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: {stat.color}20; color: {stat.color}">
+        <div class="advisory-stat-card">
+          <div class="advisory-stat-icon" style="background-color: {stat.color}20; color: {stat.color}">
             <span class="material-symbols-outlined">{stat.icon}</span>
           </div>
           <div class="stat-content">
-            <div class="stat-value" style="color: {stat.color}">
+            <div class="advisory-stat-value" style="color: {stat.color}">
               <Odometer value={stat.getValue()} format="d" duration={2000} animation="ease-out" />
               {#if stat.id === 'average'}%{/if}
             </div>
-            <div class="stat-label">{stat.label}</div>
+            <div class="advisory-stat-label">{stat.label}</div>
           </div>
         </div>
       {/each}
@@ -296,7 +296,7 @@
   <!-- Students Section -->
   <div class="students-section">
     <div class="section-header">
-      <h2 class="section-title">Students & Grade Overview</h2>
+      <h2 class="advisory-section-title">Students & Grade Overview</h2>
       <!-- Bulk verification controls -->
       <div class="bulk-controls">
         <button class="verify-all-btn" on:click={verifyAllStudents}>
@@ -309,17 +309,17 @@
         </button>
       </div>
     </div>
-    <div class="students-grid">
+    <div class="advisory-students-grid">
       {#each studentsWithAverages as student (student.id)}
-        <div class="student-card {student.gradesVerified ? 'verified' : 'pending'}" class:selected={selectedStudent?.id === student.id}>
+        <div class="advisory-student-card {student.gradesVerified ? 'verified' : 'pending'}" class:selected={selectedStudent?.id === student.id}>
           <div class="student-header" on:click={() => selectStudent(student)}>
-            <div class="student-info">
-              <div class="student-avatar">
+            <div class="advisory-student-info">
+              <div class="advisory-student-avatar">
                 <span class="material-symbols-outlined">person</span>
               </div>
               <div class="student-details">
-                <h3 class="student-name">{student.name}</h3>
-                <p class="student-number">{student.studentNumber}</p>
+                <h3 class="advisory-student-name">{student.name}</h3>
+                <p class="advisory-student-number">{student.studentNumber}</p>
                 <div class="verification-status">
                   {#if student.gradesVerified}
                     <span class="status-badge verified">✓ Verified</span>

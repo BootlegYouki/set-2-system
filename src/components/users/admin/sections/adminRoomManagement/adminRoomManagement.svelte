@@ -1,0 +1,530 @@
+<script>
+	import './adminRoomManagement.css';
+
+	// Room management state
+	let activeTab = 'create'; // 'create' or 'assign'
+	let isCreating = false;
+	let isAssigning = false;
+
+	// Room creation state
+	let roomName = '';
+	let building = '';
+	let floor = '';
+	let description = '';
+
+	// Room assignment state
+	let selectedRoom = '';
+	let selectedSection = '';
+
+	// Dropdown state
+	let isRoomDropdownOpen = false;
+	let isSectionDropdownOpen = false;
+
+	// Success/error messages
+	let showSuccessMessage = false;
+	let successMessage = '';
+	let showErrorMessage = false;
+	let errorMessage = '';
+
+
+
+	// Mock data for existing rooms
+	let existingRooms = [
+		{
+			id: 1,
+			name: 'Physics Lab A',
+			building: 'Science Building',
+			floor: '1st Floor',
+			status: 'available',
+			assignedTo: null
+		},
+		{
+			id: 2,
+			name: 'Main Auditorium',
+			building: 'Main Building',
+			floor: 'Ground Floor',
+			status: 'assigned',
+			assignedTo: 'Grade 12 - Section A'
+		},
+		{
+			id: 3,
+			name: 'Computer Lab 1',
+			building: 'Technology Building',
+			floor: '2nd Floor',
+			status: 'assigned',
+			assignedTo: 'Mr. Johnson (IT Teacher)'
+		}
+	];
+
+	// Mock data for sections and teachers
+	let sections = [
+		{ id: 'grade10-a', name: 'Grade 10 - Section A' },
+		{ id: 'grade10-b', name: 'Grade 10 - Section B' },
+		{ id: 'grade11-a', name: 'Grade 11 - Section A' },
+		{ id: 'grade11-b', name: 'Grade 11 - Section B' },
+		{ id: 'grade12-a', name: 'Grade 12 - Section A' },
+		{ id: 'grade12-b', name: 'Grade 12 - Section B' }
+	];
+
+	// Teachers data removed - rooms can only be assigned to sections
+
+	// Tab switching
+	function switchTab(tab) {
+		activeTab = tab;
+		clearMessages();
+	}
+
+	// Clear messages
+	function clearMessages() {
+		showSuccessMessage = false;
+		showErrorMessage = false;
+	}
+
+	// Handle room creation
+	async function handleCreateRoom() {
+		if (!roomName || !building || !floor) {
+			showError('Please fill in all required fields.');
+			return;
+		}
+
+		isCreating = true;
+		clearMessages();
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1500));
+
+			// Create new room
+			const newRoom = {
+				id: existingRooms.length + 1,
+				name: roomName,
+				building: building,
+				floor: floor,
+				status: 'available',
+				assignedTo: null,
+				description: description
+			};
+
+			existingRooms = [newRoom, ...existingRooms];
+
+			// Show success message
+			showSuccess(`Room "${roomName}" has been created successfully!`);
+
+			// Reset form
+			resetRoomForm();
+
+		} catch (error) {
+			console.error('Error creating room:', error);
+			showError('Failed to create room. Please try again.');
+		} finally {
+			isCreating = false;
+		}
+	}
+
+	// Handle room assignment
+	async function handleAssignRoom() {
+		if (!selectedRoom || !selectedSection) {
+			showError('Please fill in all required fields.');
+			return;
+		}
+
+		isAssigning = true;
+		clearMessages();
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1000));
+
+			// Find and update the room
+			const roomIndex = existingRooms.findIndex(room => room.id === parseInt(selectedRoom));
+			if (roomIndex !== -1) {
+				const assignedTo = sections.find(s => s.id === selectedSection)?.name;
+
+				existingRooms[roomIndex] = {
+					...existingRooms[roomIndex],
+					status: 'assigned',
+					assignedTo: assignedTo
+				};
+
+				existingRooms = [...existingRooms];
+
+				// Show success message
+				const roomName = existingRooms[roomIndex].name;
+				showSuccess(`Room "${roomName}" has been assigned to ${assignedTo} successfully!`);
+
+				// Reset assignment form
+				resetAssignmentForm();
+			}
+
+		} catch (error) {
+			console.error('Error assigning room:', error);
+			showError('Failed to assign room. Please try again.');
+		} finally {
+			isAssigning = false;
+		}
+	}
+
+	// Unassign room
+	async function unassignRoom(roomId) {
+		try {
+			const roomIndex = existingRooms.findIndex(room => room.id === roomId);
+			if (roomIndex !== -1) {
+				const roomName = existingRooms[roomIndex].name;
+				existingRooms[roomIndex] = {
+					...existingRooms[roomIndex],
+					status: 'available',
+					assignedTo: null
+				};
+				existingRooms = [...existingRooms];
+				showSuccess(`Room "${roomName}" has been unassigned successfully!`);
+			}
+		} catch (error) {
+			console.error('Error unassigning room:', error);
+			showError('Failed to unassign room. Please try again.');
+		}
+	}
+
+	// Reset forms
+	function resetRoomForm() {
+		roomName = '';
+		building = '';
+		floor = '';
+		description = '';
+	}
+
+	function resetAssignmentForm() {
+		selectedRoom = '';
+		selectedSection = '';
+	}
+
+	// Show messages
+	function showSuccess(message) {
+		successMessage = message;
+		showSuccessMessage = true;
+		setTimeout(() => {
+			showSuccessMessage = false;
+		}, 5000);
+	}
+
+	function showError(message) {
+		errorMessage = message;
+		showErrorMessage = true;
+		setTimeout(() => {
+			showErrorMessage = false;
+		}, 5000);
+	}
+
+	// Get available rooms for assignment
+	$: availableRooms = existingRooms.filter(room => room.status === 'available');
+
+	// Get selected room and section names for display
+	$: selectedRoomName = availableRooms.find(room => room.id === parseInt(selectedRoom))?.name || 'Select a room';
+	$: selectedSectionName = sections.find(section => section.id === selectedSection)?.name || 'Select a section';
+
+	// Close dropdowns when clicking outside
+	function handleClickOutside(event) {
+		if (!event.target.closest('.admin-room-dropdown')) {
+			isRoomDropdownOpen = false;
+			isSectionDropdownOpen = false;
+		}
+	}
+
+	// Toggle dropdowns
+	function toggleRoomDropdown() {
+		isRoomDropdownOpen = !isRoomDropdownOpen;
+		isSectionDropdownOpen = false;
+	}
+
+	function toggleSectionDropdown() {
+		isSectionDropdownOpen = !isSectionDropdownOpen;
+		isRoomDropdownOpen = false;
+	}
+
+	// Select options and close dropdowns
+	function selectRoom(roomId) {
+		selectedRoom = roomId;
+		isRoomDropdownOpen = false;
+	}
+
+	function selectSection(sectionId) {
+		selectedSection = sectionId;
+		isSectionDropdownOpen = false;
+	}
+</script>
+
+<div class="admin-room-management-container" on:click={handleClickOutside} on:keydown={handleClickOutside} role="button" tabindex="0">
+	<!-- Header -->
+	<div class="admin-room-header">
+		<div class="header-content">
+			<h1 class="page-title">Room Management</h1>
+			<p class="page-subtitle">Create and manage rooms, assign them to sections</p>
+		</div>
+	</div>
+
+	<!-- Success/Error Messages -->
+	{#if showSuccessMessage}
+		<div class="admin-room-success-message">
+			<span class="material-symbols-outlined admin-room-success-icon">check_circle</span>
+			<span class="admin-room-success-text">{successMessage}</span>
+		</div>
+	{/if}
+
+	{#if showErrorMessage}
+		<div class="admin-room-error-message">
+			<span class="material-symbols-outlined admin-room-error-icon">error</span>
+			<span class="admin-room-error-text">{errorMessage}</span>
+		</div>
+	{/if}
+
+	<!-- Tab Navigation -->
+	<div class="admin-room-tab-navigation">
+		<button 
+			class="admin-room-tab-button" 
+			class:admin-room-active={activeTab === 'create'}
+			on:click={() => switchTab('create')}
+		>
+			<span class="material-symbols-outlined">add_business</span>
+			Create Room
+		</button>
+		<button 
+			class="admin-room-tab-button" 
+			class:admin-room-active={activeTab === 'assign'}
+			on:click={() => switchTab('assign')}
+		>
+			<span class="material-symbols-outlined">assignment</span>
+			Assign Room
+		</button>
+	</div>
+
+	<!-- Tab Content -->
+	<div class="admin-room-tab-content">
+		{#if activeTab === 'create'}
+			<!-- Room Creation Form -->
+			<div class="admin-room-creation-form-section">
+				<div class="admin-room-section-header">
+					<h2 class="admin-room-section-title">Create New Room</h2>
+					<p class="admin-room-section-subtitle">Fill in the details below to create a new room</p>
+				</div>
+
+				<div class="admin-room-form-container">
+					<form on:submit|preventDefault={handleCreateRoom}>
+						<!-- Room Basic Info -->
+						<div class="admin-room-form-row">
+							<div class="admin-room-form-group">
+								<label class="admin-room-form-label" for="room-name">Room Name *</label>
+								<input 
+									type="text" 
+									id="room-name"
+									class="admin-room-form-input" 
+									bind:value={roomName}
+									placeholder="Enter room name"
+									required
+								/>
+							</div>
+						</div>
+
+
+
+						<!-- Location Info -->
+						<div class="admin-room-form-row">
+							<div class="admin-room-form-group">
+								<label class="admin-room-form-label" for="building">Building *</label>
+								<input 
+									type="text" 
+									id="building"
+									class="admin-room-form-input" 
+									bind:value={building}
+									placeholder="Enter building name"
+									required
+								/>
+							</div>
+
+							<div class="admin-room-form-group">
+								<label class="admin-room-form-label" for="floor">Floor *</label>
+								<input 
+									type="text" 
+									id="floor"
+									class="admin-room-form-input" 
+									bind:value={floor}
+									placeholder="e.g., 1st Floor"
+									required
+								/>
+							</div>
+						</div>
+
+						<!-- Description -->
+						<div class="admin-room-form-group">
+							<label class="admin-room-form-label" for="description">Description</label>
+							<textarea 
+								id="description"
+								class="admin-room-form-textarea" 
+								bind:value={description}
+								placeholder="Enter room description (optional)"
+								rows="3"
+							></textarea>
+						</div>
+
+						<!-- Submit Button -->
+						<div class="admin-room-form-actions">
+							<button 
+								type="submit" 
+								class="admin-room-create-button"
+								class:admin-room-loading={isCreating}
+								disabled={isCreating || !roomName || !building || !floor}
+							>
+								{#if isCreating}
+									<span class="material-symbols-outlined admin-room-loading-icon">hourglass_empty</span>
+									Creating Room...
+								{:else}
+									<span class="material-symbols-outlined">add_business</span>
+									Create Room
+								{/if}
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+
+		{:else if activeTab === 'assign'}
+			<!-- Room Assignment Form -->
+			<div class="admin-room-assignment-form-section">
+				<div class="admin-room-section-header">
+					<h2 class="admin-room-section-title">Assign Room</h2>
+					<p class="admin-room-section-subtitle">Assign available rooms to sections</p>
+				</div>
+
+				<div class="admin-room-form-container">
+					<form on:submit|preventDefault={handleAssignRoom}>
+						<!-- Room Selection -->
+						<div class="admin-room-form-group">
+							<label class="admin-room-form-label">Select Room *</label>
+							<div class="admin-room-dropdown">
+								<button 
+									type="button"
+									class="admin-room-dropdown-toggle" 
+									on:click={toggleRoomDropdown}
+									class:admin-room-dropdown-open={isRoomDropdownOpen}
+								>
+									<span>{selectedRoomName}</span>
+									<span class="material-symbols-outlined admin-room-dropdown-icon {isRoomDropdownOpen ? 'open' : ''}">
+										expand_more
+									</span>
+								</button>
+								
+								{#if isRoomDropdownOpen}
+									<div class="admin-room-dropdown-menu">
+										{#each availableRooms as room}
+											<button 
+												type="button"
+												class="admin-room-dropdown-item {room.id === parseInt(selectedRoom) ? 'selected' : ''}"
+												on:click={() => selectRoom(room.id)}
+											>
+												{room.name}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
+							{#if availableRooms.length === 0}
+								<p class="admin-room-form-help admin-room-warning">No available rooms to assign. Create rooms first or unassign existing ones.</p>
+							{/if}
+						</div>
+
+						<!-- Section Selection -->
+						<div class="admin-room-form-group">
+							<label class="admin-room-form-label">Select Section *</label>
+							<div class="admin-room-dropdown">
+								<button 
+									type="button"
+									class="admin-room-dropdown-toggle" 
+									on:click={toggleSectionDropdown}
+									class:admin-room-dropdown-open={isSectionDropdownOpen}
+								>
+									<span>{selectedSectionName}</span>
+									<span class="material-symbols-outlined admin-room-dropdown-icon {isSectionDropdownOpen ? 'open' : ''}">
+										expand_more
+									</span>
+								</button>
+								
+								{#if isSectionDropdownOpen}
+									<div class="admin-room-dropdown-menu">
+										{#each sections as section}
+											<button 
+												type="button"
+												class="admin-room-dropdown-item {section.id === selectedSection ? 'selected' : ''}"
+												on:click={() => selectSection(section.id)}
+											>
+												{section.name}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						</div>
+
+						<!-- Submit Button -->
+						<div class="admin-room-form-actions">
+							<button 
+								type="submit" 
+								class="admin-room-assign-button"
+								class:admin-room-loading={isAssigning}
+								disabled={isAssigning || !selectedRoom || !selectedSection}
+							>
+								{#if isAssigning}
+									<span class="material-symbols-outlined admin-room-loading-icon">hourglass_empty</span>
+									Assigning Room...
+								{:else}
+									<span class="material-symbols-outlined">assignment</span>
+									Assign Room
+								{/if}
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		{/if}
+	</div>
+
+	<!-- Existing Rooms List -->
+	<div class="admin-room-rooms-list-section">
+		<div class="admin-room-section-header">
+			<h2 class="admin-room-section-title">Existing Rooms</h2>
+			<p class="admin-room-section-subtitle">Manage and view all rooms in the system</p>
+		</div>
+
+		<div class="admin-room-rooms-grid">
+			{#each existingRooms as room (room.id)}
+				<div class="admin-room-room-card">
+					<div class="admin-room-room-info">
+					<div class="admin-room-room-header">
+					<h3 class="admin-room-room-name">{room.name}</h3>
+					<div class="admin-room-status-container">
+						<span class="admin-room-status-badge admin-room-status-{room.status}">{room.status}</span>
+						{#if room.assignedTo}
+							<button 
+								class="admin-room-unassign-button"
+								on:click={() => unassignRoom(room.id)}
+								title="Unassign room"
+							>
+								<span class="material-symbols-outlined">remove_circle</span>
+							</button>
+						{/if}
+					</div>
+				</div>
+				<div class="admin-room-room-details">
+					<p class="admin-room-room-location">
+						<span class="material-symbols-outlined">location_on</span>
+						{room.building}, {room.floor}
+					</p>
+				</div>
+			</div>
+				<div class="admin-room-room-status">
+					{#if room.assignedTo}
+						<p class="admin-room-assigned-to">Assigned to: {room.assignedTo}</p>
+					{/if}
+				</div>
+				</div>
+			{/each}
+		</div>
+	</div>
+</div>

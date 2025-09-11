@@ -5,7 +5,7 @@
   // Sample data - in real app this would come from props or API
   let teacherData = {
     name: "Prof. Maria Santos",
-    yearLevels: [7, 8, 9, 10, 11, 12], // Grade 7 to 12
+    yearLevels: [7, 8, 9, 10], // Grade 7 to 10
     totalSections: 8,
     totalStudents: 240,
     averagePerSection: 30
@@ -79,23 +79,6 @@
         { name: "Section A", students: 29, subject: "Advanced Mathematics" },
         { name: "Section B", students: 28, subject: "Chemistry" }
       ]
-    },
-    {
-      yearLevel: 11,
-      gradeName: "Grade 11",
-      sections: [
-        { name: "Section A", students: 26, subject: "Pre-Calculus" },
-        { name: "Section B", students: 24, subject: "Advanced Chemistry" },
-        { name: "Section C", students: 27, subject: "Physics" }
-      ]
-    },
-    {
-      yearLevel: 12,
-      gradeName: "Grade 12",
-      sections: [
-        { name: "Section A", students: 22, subject: "Calculus" },
-        { name: "Section B", students: 20, subject: "Advanced Physics" }
-      ]
     }
   ];
 
@@ -114,26 +97,26 @@
 
 <div class="class-management-container">
   <!-- Header Section -->
-  <div class="page-header">
+  <div class="class-mgmt-page-header">
     <div class="header-content">
-      <h1 class="page-title">Class Management Dashboard</h1>
-      <p class="page-subtitle">Overview of your teaching assignments and student distribution</p>
+      <h1 class="class-mgmt-page-title">Class Management Dashboard</h1>
+      <p class="class-mgmt-page-subtitle">Overview of your teaching assignments and student distribution</p>
     </div>
   </div>
 
   <!-- Stats Cards Section -->
-  <div class="stats-section">
-    <div class="stats-grid">
+  <div class="class-mgmt-stats-section">
+    <div class="class-mgmt-stats-grid">
       {#each statsConfig as stat (stat.id)}
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: {stat.color}20; color: {stat.color}">
+        <div class="class-mgmt-stat-card">
+          <div class="class-mgmt-stat-icon" style="background-color: {stat.color}20; color: {stat.color}">
             <span class="material-symbols-outlined">{stat.icon}</span>
           </div>
           <div class="stat-content">
-            <div class="stat-value" style="color: {stat.color}">
+            <div class="class-mgmt-stat-value" style="color: {stat.color}">
               <Odometer value={stat.getValue()} format="d" duration={2000} animation="ease-out" />
             </div>
-            <div class="stat-label">{stat.label}</div>
+            <div class="class-mgmt-stat-label">{stat.label}</div>
           </div>
         </div>
       {/each}
@@ -142,7 +125,7 @@
 
   <!-- Year Levels and Sections Section -->
   <div class="classes-section">
-    <h2 class="section-title">Year Levels & Sections</h2>
+    <h2 class="class-mgmt-section-title">Year Levels & Sections</h2>
     <div class="year-levels-grid">
       {#each classData as yearData (yearData.yearLevel)}
         <div class="year-level-container">
