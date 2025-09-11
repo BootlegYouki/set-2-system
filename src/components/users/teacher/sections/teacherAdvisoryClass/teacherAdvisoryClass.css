@@ -1,0 +1,632 @@
+/* Teacher Advisory Class Dashboard Styles */
+
+.advisory-class-container {
+  margin: 0 auto;
+  color: var(--md-sys-color-on-surface);
+  padding: var(--spacing-lg);
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for advisory class container */
+.advisory-class-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.advisory-class-container::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-sm);
+}
+
+.advisory-class-container::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+}
+
+.advisory-class-container::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
+}
+
+/* Header Section */
+.page-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.header-content {
+  max-width: 800px;
+}
+
+.page-title {
+  font-size: var(--md-sys-typescale-headline-large-size);
+  font-weight: var(--md-sys-typescale-headline-large-weight);
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.class-info {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.class-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--md-sys-color-surface-container);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.class-detail .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--school-primary);
+}
+
+/* Stats Section */
+.stats-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.stats-grid {
+  display: flex;
+  gap: var(--spacing-lg);
+  justify-content: space-between;
+  align-items: stretch;
+}
+
+.stat-card {
+  background-color: var(--md-sys-color-surface-container);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  transition: all var(--transition-normal);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.stat-card:hover {
+  background-color: var(--md-sys-color-surface-container-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: var(--spacing-md);
+}
+
+.stat-icon .material-symbols-outlined {
+  font-size: 28px;
+}
+
+.stat-content {
+  text-align: center;
+  width: 100%;
+}
+
+.stat-value {
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  font-weight: var(--md-sys-typescale-headline-medium-weight);
+  margin-bottom: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: 500;
+}
+
+/* Students Section */
+.students-section {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.section-title {
+  font-size: var(--md-sys-typescale-headline-small-size);
+  font-weight: var(--md-sys-typescale-headline-small-weight);
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.students-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.student-card {
+  background-color: var(--md-sys-color-surface-container);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.student-card:hover {
+  background-color: var(--md-sys-color-surface-container-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-card.selected {
+  border-color: var(--school-primary);
+  box-shadow: 0 0 0 2px var(--school-primary)20;
+}
+
+
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--md-sys-typescale-label-small-size);
+  font-weight: var(--md-sys-typescale-label-small-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.verified {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.status-badge.pending {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.grade-counts {
+  margin-top: var(--spacing-sm);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+}
+
+
+
+.verify-btn, .unverify-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--md-sys-typescale-body-small-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.verify-btn {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.verify-btn:hover {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.unverify-btn {
+  background: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+}
+
+.unverify-btn:hover {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-header {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-lg);
+  cursor: pointer;
+  transition: background-color var(--transition-normal);
+}
+
+.student-header:hover {
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.student-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background-color: var(--school-primary)20;
+  color: var(--school-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.student-avatar .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.student-details {
+  flex: 1;
+}
+
+.student-name {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.student-number {
+  font-size: var(--md-sys-typescale-body-small-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+.student-average {
+  text-align: right;
+  margin-right: var(--spacing-md);
+}
+
+.average-score {
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+  margin-bottom: var(--spacing-xs);
+}
+
+.average-status {
+  font-size: var(--md-sys-typescale-body-small-size);
+  font-weight: 500;
+}
+
+.expand-icon {
+  color: var(--md-sys-color-on-surface-variant);
+  transition: transform var(--transition-normal);
+}
+
+.expand-icon .material-symbols-outlined {
+  font-size: 24px;
+}
+
+/* Student Grades Section */
+.student-grades {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  padding: var(--spacing-lg);
+  background-color: var(--md-sys-color-surface-container-low);
+}
+
+.grades-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.grades-title {
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-small-size);
+  font-weight: var(--md-sys-typescale-title-small-weight);
+  margin: 0;
+}
+
+.student-verification-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.grades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.grade-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md);
+  background-color: var(--md-sys-color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  transition: all var(--transition-normal);
+  position: relative;
+  gap: var(--spacing-sm);
+}
+
+.grade-item:hover {
+  background-color: var(--md-sys-color-surface-container);
+  box-shadow: var(--shadow-xs);
+}
+
+.grade-item.verified {
+  background: var(--md-sys-color-primary-container);
+}
+
+.grade-item.unverified {
+  background: var(--md-sys-color-surface);
+  opacity: 0.8;
+}
+
+.hidden-grade {
+  color: var(--md-sys-color-outline);
+  font-style: italic;
+}
+
+.grade-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.grade-info {
+  flex: 1;
+}
+
+.grade-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.verify-grade-btn, .unverify-grade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-size: 16px;
+}
+
+
+
+.verify-grade-btn {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.unverify-grade-btn {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.submitted-date {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  margin-top: var(--spacing-xs);
+}
+
+.no-grades {
+  color: var(--md-sys-color-outline);
+  font-style: italic;
+}
+
+.stat-note {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  margin-top: var(--spacing-xs);
+  display: block;
+}
+
+.grade-score-display {
+  font-size: var(--md-sys-typescale-headline-small-size);
+  font-weight: var(--md-sys-typescale-headline-small-weight);
+  text-align: center;
+  padding: var(--spacing-sm) 0;
+}
+
+.subject-name {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface);
+  margin-bottom: var(--spacing-xs);
+}
+
+.subject-teacher {
+  font-size: var(--md-sys-typescale-body-small-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.grade-score {
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
+  margin-left: var(--spacing-md);
+}
+
+/* Verification Controls */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.bulk-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.verify-all-btn, .unverify-all-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.verify-all-btn {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.verify-all-btn:hover {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.unverify-all-btn {
+  background: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+}
+
+.unverify-all-btn:hover {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.verification-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--md-sys-typescale-body-small-size);
+  font-weight: 500;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+}
+
+.verification-status.verified {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.verification-status.unverified {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.verification-status .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.verification-info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-md) 0 0 0;
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, var(--md-sys-color-primary-container) 0%, var(--md-sys-color-surface-variant) 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--shadow-xs);
+}
+
+.verification-info .material-symbols-outlined {
+  color: var(--md-sys-color-primary);
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.verification-text span {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+  line-height: 1.4;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .advisory-class-container {
+    padding: var(--spacing-md);
+  }
+
+  .stats-grid {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .class-info {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .student-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .student-average {
+    align-self: flex-end;
+    margin-right: 0;
+  }
+
+  .grades-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .bulk-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: var(--md-sys-typescale-headline-medium-size);
+  }
+
+  .student-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .grade-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .grade-score {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+}

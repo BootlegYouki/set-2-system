@@ -24,53 +24,53 @@
 
 	const schedule = {
 		Mon: [
-			{ name: 'Algebra II - Period 1', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
-			{ name: 'Algebra II - Period 2', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
-			{ name: 'Geometry - Period 3', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
+			{ name: 'Grade 10 - Section A', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
+			{ name: 'Grade 10 - Section B', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
+			{ name: 'Grade 9 - Section A', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
 			{ name: 'Planning Period', time: '10:30 - 11:15', room: 'Room 142', students: '', color: 'yellow' },
-			{ name: 'Pre-Calculus - Period 5', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
+			{ name: 'Grade 12 - Section A', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
 			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Faculty Lounge', students: '', color: 'gray' },
-			{ name: 'Algebra I - Period 7', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
+			{ name: 'Grade 8 - Section B', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
 			{ name: 'Tutoring/Office Hours', time: '13:30 - 14:15', room: 'Room 142', students: 'Open', color: 'light-purple' }
 		],
 		Tue: [
-			{ name: 'Algebra II - Period 1', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
-			{ name: 'Algebra II - Period 2', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
-			{ name: 'Geometry - Period 3', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
+			{ name: 'Grade 10 - Section A', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
+			{ name: 'Grade 10 - Section B', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
+			{ name: 'Grade 9 - Section A', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
 			{ name: 'Faculty Meeting', time: '10:30 - 11:15', room: 'Conference Room', students: '', color: 'yellow' },
-			{ name: 'Pre-Calculus - Period 5', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
+			{ name: 'Grade 12 - Section A', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
 			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Faculty Lounge', students: '', color: 'gray' },
-			{ name: 'Algebra I - Period 7', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
+			{ name: 'Grade 8 - Section B', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
 			{ name: 'Grading/Prep Time', time: '13:30 - 14:15', room: 'Room 142', students: '', color: 'light-purple' }
 		],
 		Wed: [
-			{ name: 'Algebra II - Period 1', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
-			{ name: 'Algebra II - Period 2', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
-			{ name: 'Geometry - Period 3', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
+			{ name: 'Grade 10 - Section A', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
+			{ name: 'Grade 10 - Section B', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
+			{ name: 'Grade 9 - Section A', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
 			{ name: 'Planning Period', time: '10:30 - 11:15', room: 'Room 142', students: '', color: 'yellow' },
-			{ name: 'Pre-Calculus - Period 5', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
+			{ name: 'Grade 12 - Section A', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
 			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Faculty Lounge', students: '', color: 'gray' },
-			{ name: 'Algebra I - Period 7', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
+			{ name: 'Grade 8 - Section B', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
 			{ name: 'Parent Conferences', time: '13:30 - 14:15', room: 'Room 142', students: 'Scheduled', color: 'light-purple' }
 		],
 		Thu: [
-			{ name: 'Algebra II - Period 1', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
-			{ name: 'Algebra II - Period 2', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
-			{ name: 'Geometry - Period 3', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
+			{ name: 'Grade 10 - Section A', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
+			{ name: 'Grade 10 - Section B', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
+			{ name: 'Grade 9 - Section A', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
 			{ name: 'Department Meeting', time: '10:30 - 11:15', room: 'Math Office', students: '', color: 'yellow' },
-			{ name: 'Pre-Calculus - Period 5', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
+			{ name: 'Grade 12 - Section A', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
 			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Faculty Lounge', students: '', color: 'gray' },
-			{ name: 'Algebra I - Period 7', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
+			{ name: 'Grade 8 - Section B', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
 			{ name: 'Tutoring/Office Hours', time: '13:30 - 14:15', room: 'Room 142', students: 'Open', color: 'light-purple' }
 		],
 		Fri: [
-			{ name: 'Algebra II - Period 1', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
-			{ name: 'Algebra II - Period 2', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
-			{ name: 'Geometry - Period 3', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
+			{ name: 'Grade 10 - Section A', time: '08:00 - 08:45', room: 'Room 142', students: '25 students', color: 'blue' },
+			{ name: 'Grade 10 - Section B', time: '08:50 - 09:35', room: 'Room 142', students: '28 students', color: 'green' },
+			{ name: 'Grade 9 - Section A', time: '09:40 - 10:25', room: 'Room 142', students: '22 students', color: 'purple' },
 			{ name: 'Planning Period', time: '10:30 - 11:15', room: 'Room 142', students: '', color: 'yellow' },
-			{ name: 'Pre-Calculus - Period 5', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
+			{ name: 'Grade 12 - Section A', time: '11:20 - 12:05', room: 'Room 142', students: '18 students', color: 'orange' },
 			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Faculty Lounge', students: '', color: 'gray' },
-			{ name: 'Algebra I - Period 7', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
+			{ name: 'Grade 8 - Section B', time: '12:40 - 13:25', room: 'Room 142', students: '30 students', color: 'pink' },
 			{ name: 'Weekly Planning', time: '13:30 - 14:15', room: 'Room 142', students: '', color: 'light-purple' }
 		]
 	};

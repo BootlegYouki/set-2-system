@@ -14,6 +14,11 @@
 			id: 'students',
 			label: 'Class Management',
 			icon: 'group'
+		},
+		{
+			id: 'advisory',
+			label: 'Advisory Class',
+			icon: 'supervisor_account'
 		}
 	];
 

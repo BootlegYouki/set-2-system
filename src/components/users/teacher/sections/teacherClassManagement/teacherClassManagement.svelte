@@ -5,7 +5,7 @@
   // Sample data - in real app this would come from props or API
   let teacherData = {
     name: "Prof. Maria Santos",
-    yearLevels: [7, 8, 9, 10], // Grade 7 to 10
+    yearLevels: [7, 8, 9, 10, 11, 12], // Grade 7 to 12
     totalSections: 8,
     totalStudents: 240,
     averagePerSection: 30
@@ -78,6 +78,23 @@
       sections: [
         { name: "Section A", students: 29, subject: "Advanced Mathematics" },
         { name: "Section B", students: 28, subject: "Chemistry" }
+      ]
+    },
+    {
+      yearLevel: 11,
+      gradeName: "Grade 11",
+      sections: [
+        { name: "Section A", students: 26, subject: "Pre-Calculus" },
+        { name: "Section B", students: 24, subject: "Advanced Chemistry" },
+        { name: "Section C", students: 27, subject: "Physics" }
+      ]
+    },
+    {
+      yearLevel: 12,
+      gradeName: "Grade 12",
+      sections: [
+        { name: "Section A", students: 22, subject: "Calculus" },
+        { name: "Section B", students: 20, subject: "Advanced Physics" }
       ]
     }
   ];
