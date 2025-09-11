@@ -1,0 +1,515 @@
+<script>
+	import './adminSectionManagement.css';
+
+	// Section creation state
+	let isCreating = false;
+	let sectionName = '';
+	let gradeLevel = '';
+	let schoolYear = '2024-2025';
+	let selectedAdviser = null;
+	let selectedStudents = [];
+	let showSuccessMessage = false;
+	let successMessage = '';
+	let errorMessage = '';
+
+	// Dropdown states
+	let isGradeLevelDropdownOpen = false;
+	let isAdviserDropdownOpen = false;
+	let isStudentDropdownOpen = false;
+
+	// Search states
+	let adviserSearchTerm = '';
+	let studentSearchTerm = '';
+
+	// Grade levels for Philippine high school (Grades 7-10)
+	const gradeLevels = [
+		{ id: '7', name: 'Grade 7', description: 'First Year Junior High School' },
+		{ id: '8', name: 'Grade 8', description: 'Second Year Junior High School' },
+		{ id: '9', name: 'Grade 9', description: 'Third Year Junior High School' },
+		{ id: '10', name: 'Grade 10', description: 'Fourth Year Junior High School' }
+	];
+
+	// Mock data for advisers (teachers without assigned sections)
+	let availableAdvisers = [
+		{ id: 1, name: 'Ms. Maria Santos', employeeId: 'TCH-2024-001', subject: 'Mathematics', hasSection: false },
+		{ id: 2, name: 'Mr. Juan Dela Cruz', employeeId: 'TCH-2024-002', subject: 'English', hasSection: false },
+		{ id: 3, name: 'Mrs. Ana Reyes', employeeId: 'TCH-2024-003', subject: 'Science', hasSection: false },
+		{ id: 4, name: 'Mr. Carlos Garcia', employeeId: 'TCH-2024-004', subject: 'Filipino', hasSection: false },
+		{ id: 5, name: 'Ms. Rosa Mendoza', employeeId: 'TCH-2024-005', subject: 'Social Studies', hasSection: false },
+		{ id: 6, name: 'Mr. Pedro Villanueva', employeeId: 'TCH-2024-006', subject: 'Mathematics', hasSection: true }, // Already has section
+		{ id: 7, name: 'Mrs. Carmen Lopez', employeeId: 'TCH-2024-007', subject: 'English', hasSection: true } // Already has section
+	];
+
+	// Mock data for students (unassigned to sections)
+	let availableStudents = [
+		{ id: 1, name: 'John Michael Santos', studentId: 'STU-2024-001', grade: '7', hasSection: false },
+		{ id: 2, name: 'Maria Clara Reyes', studentId: 'STU-2024-002', grade: '7', hasSection: false },
+		{ id: 3, name: 'Jose Rizal Garcia', studentId: 'STU-2024-003', grade: '7', hasSection: false },
+		{ id: 4, name: 'Anna Luna Mendoza', studentId: 'STU-2024-004', grade: '8', hasSection: false },
+		{ id: 5, name: 'Carlos Aguinaldo Cruz', studentId: 'STU-2024-005', grade: '8', hasSection: false },
+		{ id: 6, name: 'Sofia Bonifacio Torres', studentId: 'STU-2024-006', grade: '9', hasSection: false },
+		{ id: 7, name: 'Miguel Mabini Flores', studentId: 'STU-2024-007', grade: '9', hasSection: false },
+		{ id: 8, name: 'Isabella Del Pilar Ramos', studentId: 'STU-2024-008', grade: '10', hasSection: false },
+		{ id: 9, name: 'Gabriel Jacinto Morales', studentId: 'STU-2024-009', grade: '10', hasSection: false },
+		{ id: 10, name: 'Sophia Malvar Castillo', studentId: 'STU-2024-010', grade: '7', hasSection: true } // Already has section
+	];
+
+	// Recent sections (mock data)
+	let recentSections = [
+		{
+			id: 1,
+			name: 'Mabini',
+			grade: 'Grade 7',
+			adviser: 'Ms. Elena Rodriguez',
+			studentCount: 35,
+			schoolYear: '2024-2025',
+			createdDate: '01/15/2024',
+			status: 'active'
+		},
+		{
+			id: 2,
+			name: 'Rizal',
+			grade: 'Grade 8',
+			adviser: 'Mr. Roberto Fernandez',
+			studentCount: 32,
+			schoolYear: '2024-2025',
+			createdDate: '01/14/2024',
+			status: 'active'
+		}
+	];
+
+	// Close dropdowns when clicking outside
+	function handleClickOutside(event) {
+		if (!event.target.closest('.sectionmgmt-custom-dropdown')) {
+			isGradeLevelDropdownOpen = false;
+			isAdviserDropdownOpen = false;
+			isStudentDropdownOpen = false;
+		}
+	}
+
+	// Toggle dropdown functions
+	function toggleGradeLevelDropdown() {
+		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
+		isAdviserDropdownOpen = false;
+		isStudentDropdownOpen = false;
+	}
+
+	function toggleAdviserDropdown() {
+		isAdviserDropdownOpen = !isAdviserDropdownOpen;
+		isGradeLevelDropdownOpen = false;
+		isStudentDropdownOpen = false;
+	}
+
+	function toggleStudentDropdown() {
+		isStudentDropdownOpen = !isStudentDropdownOpen;
+		isGradeLevelDropdownOpen = false;
+		isAdviserDropdownOpen = false;
+	}
+
+	// Select functions
+	function selectGradeLevel(grade) {
+		gradeLevel = grade.id;
+		isGradeLevelDropdownOpen = false;
+		// Reset selected students when grade level changes
+		selectedStudents = [];
+	}
+
+	function selectAdviser(adviser) {
+		selectedAdviser = adviser;
+		isAdviserDropdownOpen = false;
+		adviserSearchTerm = '';
+	}
+
+	function toggleStudentSelection(student) {
+		const index = selectedStudents.findIndex(s => s.id === student.id);
+		if (index > -1) {
+			selectedStudents = selectedStudents.filter(s => s.id !== student.id);
+		} else {
+			selectedStudents = [...selectedStudents, student];
+		}
+	}
+
+	function removeStudent(studentId) {
+		selectedStudents = selectedStudents.filter(s => s.id !== studentId);
+	}
+
+	// Computed values
+	$: selectedGradeObj = gradeLevels.find(g => g.id === gradeLevel);
+	$: filteredAdvisers = availableAdvisers.filter(adviser => 
+		!adviser.hasSection && 
+		adviser.name.toLowerCase().includes(adviserSearchTerm.toLowerCase())
+	);
+	$: filteredStudents = availableStudents.filter(student => 
+		!student.hasSection && 
+		student.grade === gradeLevel &&
+		student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
+	);
+
+	// Form submission
+	async function handleCreateSection() {
+		if (!sectionName || !gradeLevel || !selectedAdviser || selectedStudents.length === 0) {
+			errorMessage = 'Please fill in all required fields and select at least one student.';
+			setTimeout(() => errorMessage = '', 5000);
+			return;
+		}
+
+		isCreating = true;
+		errorMessage = '';
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 2000));
+
+			// Create new section
+			const newSection = {
+				id: recentSections.length + 1,
+				name: sectionName,
+				grade: selectedGradeObj.name,
+				adviser: selectedAdviser.name,
+				studentCount: selectedStudents.length,
+				schoolYear: schoolYear,
+				createdDate: new Date().toLocaleDateString('en-US'),
+				status: 'active'
+			};
+
+			// Update data
+			recentSections = [newSection, ...recentSections];
+			
+			// Mark adviser as having a section
+			availableAdvisers = availableAdvisers.map(adviser => 
+				adviser.id === selectedAdviser.id ? { ...adviser, hasSection: true } : adviser
+			);
+			
+			// Mark students as having a section
+			availableStudents = availableStudents.map(student => 
+				selectedStudents.some(s => s.id === student.id) ? { ...student, hasSection: true } : student
+			);
+
+			// Show success message
+			successMessage = `Section ${sectionName} (${selectedGradeObj.name}) created successfully with ${selectedStudents.length} students and ${selectedAdviser.name} as adviser!`;
+			showSuccessMessage = true;
+
+			// Reset form
+			sectionName = '';
+			gradeLevel = '';
+			selectedAdviser = null;
+			selectedStudents = [];
+			adviserSearchTerm = '';
+			studentSearchTerm = '';
+
+			// Hide success message after 5 seconds
+			setTimeout(() => {
+				showSuccessMessage = false;
+			}, 5000);
+
+		} catch (error) {
+			console.error('Error creating section:', error);
+			errorMessage = 'Failed to create section. Please try again.';
+			setTimeout(() => errorMessage = '', 5000);
+		} finally {
+			isCreating = false;
+		}
+	}
+</script>
+
+<svelte:window on:click={handleClickOutside} />
+
+<div class="sectionmgmt-container">
+	<!-- Header -->
+	<div class="sectionmgmt-header">
+		<div class="sectionmgmt-header-content">
+			<h1 class="sectionmgmt-page-title">Section Management</h1>
+			<p class="sectionmgmt-page-subtitle">Create and manage class sections, assign students and advisory teachers</p>
+		</div>
+	</div>
+
+	<!-- Success Message -->
+	{#if showSuccessMessage}
+		<div class="sectionmgmt-success-message">
+			<span class="material-symbols-outlined sectionmgmt-success-icon">check_circle</span>
+			<span class="sectionmgmt-success-text">{successMessage}</span>
+		</div>
+	{/if}
+
+	<!-- Error Message -->
+	{#if errorMessage}
+		<div class="sectionmgmt-error-message">
+			<span class="material-symbols-outlined sectionmgmt-error-icon">error</span>
+			<span class="sectionmgmt-error-text">{errorMessage}</span>
+		</div>
+	{/if}
+
+	<!-- Section Creation Form -->
+	<div class="sectionmgmt-creation-form-section">
+		<div class="sectionmgmt-section-header">
+			<h2 class="sectionmgmt-section-title">Create New Section</h2>
+			<p class="sectionmgmt-section-subtitle">Fill in the details below to create a new class section</p>
+		</div>
+
+		<div class="sectionmgmt-form-container">
+			<form on:submit|preventDefault={handleCreateSection}>
+				<!-- Basic Section Info -->
+				<div class="sectionmgmt-basic-info-row">
+					<div class="sectionmgmt-form-group">
+						<label class="sectionmgmt-form-label" for="section-name">Section Name *</label>
+						<input 
+							type="text" 
+							id="section-name"
+							class="sectionmgmt-form-input" 
+							bind:value={sectionName}
+							placeholder="Enter section name (e.g., Mabini, Rizal, Bonifacio)"
+							required
+						/>
+					</div>
+
+					<div class="sectionmgmt-form-group">
+						<label class="sectionmgmt-form-label" for="school-year">School Year</label>
+						<input 
+							type="text" 
+							id="school-year"
+							class="sectionmgmt-form-input" 
+							bind:value={schoolYear}
+							readonly
+						/>
+					</div>
+				</div>
+
+				<!-- Grade Level Selection -->
+				<div class="sectionmgmt-form-group">
+					<label class="sectionmgmt-form-label" for="grade-level">Grade Level *</label>
+					<div class="sectionmgmt-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
+						<button 
+							type="button"
+							class="sectionmgmt-dropdown-trigger" 
+							class:selected={gradeLevel}
+							on:click={toggleGradeLevelDropdown}
+							id="grade-level"
+						>
+							{#if selectedGradeObj}
+								<div class="sectionmgmt-selected-option">
+									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
+									<div class="sectionmgmt-option-content">
+										<span class="sectionmgmt-option-name">{selectedGradeObj.name}</span>
+										<span class="sectionmgmt-option-description">{selectedGradeObj.description}</span>
+									</div>
+								</div>
+							{:else}
+								<span class="sectionmgmt-placeholder">Select grade level</span>
+							{/if}
+							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+						</button>
+						<div class="sectionmgmt-dropdown-menu">
+							{#each gradeLevels as grade (grade.id)}
+								<button 
+									type="button"
+									class="sectionmgmt-dropdown-option" 
+									class:selected={gradeLevel === grade.id}
+									on:click={() => selectGradeLevel(grade)}
+								>
+									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
+									<div class="sectionmgmt-option-content">
+										<span class="sectionmgmt-option-name">{grade.name}</span>
+										<span class="sectionmgmt-option-description">{grade.description}</span>
+									</div>
+								</button>
+							{/each}
+						</div>
+					</div>
+				</div>
+
+				<!-- Adviser Selection -->
+				<div class="sectionmgmt-form-group">
+					<label class="sectionmgmt-form-label" for="adviser">Advisory Teacher *</label>
+					<div class="sectionmgmt-custom-dropdown" class:open={isAdviserDropdownOpen}>
+						<button 
+							type="button"
+							class="sectionmgmt-dropdown-trigger" 
+							class:selected={selectedAdviser}
+							on:click={toggleAdviserDropdown}
+							id="adviser"
+						>
+							{#if selectedAdviser}
+								<div class="sectionmgmt-selected-option">
+									<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
+									<div class="sectionmgmt-option-content">
+										<span class="sectionmgmt-option-name">{selectedAdviser.name}</span>
+										<span class="sectionmgmt-option-description">{selectedAdviser.subject} • {selectedAdviser.employeeId}</span>
+									</div>
+								</div>
+							{:else}
+								<span class="sectionmgmt-placeholder">Select advisory teacher</span>
+							{/if}
+							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+						</button>
+						<div class="sectionmgmt-dropdown-menu">
+							<div class="sectionmgmt-search-container">
+								<input 
+									type="text" 
+									class="sectionmgmt-search-input"
+									placeholder="Search teachers..."
+									bind:value={adviserSearchTerm}
+								/>
+								<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+							</div>
+							{#each filteredAdvisers as adviser (adviser.id)}
+								<button 
+									type="button"
+									class="sectionmgmt-dropdown-option" 
+									class:selected={selectedAdviser?.id === adviser.id}
+									on:click={() => selectAdviser(adviser)}
+								>
+									<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
+									<div class="sectionmgmt-option-content">
+										<span class="sectionmgmt-option-name">{adviser.name}</span>
+										<span class="sectionmgmt-option-description">{adviser.subject} • {adviser.employeeId}</span>
+									</div>
+								</button>
+							{/each}
+							{#if filteredAdvisers.length === 0}
+								<div class="sectionmgmt-no-results">
+									<span class="material-symbols-outlined">person_off</span>
+									<span>No available teachers found</span>
+								</div>
+							{/if}
+						</div>
+					</div>
+					<p class="sectionmgmt-form-help">Only teachers without assigned sections are shown. Each teacher can only advise one section.</p>
+				</div>
+
+				<!-- Student Selection -->
+				<div class="sectionmgmt-form-group">
+					<label class="sectionmgmt-form-label" for="students">Students *</label>
+					
+					<!-- Selected Students Display -->
+					{#if selectedStudents.length > 0}
+						<div class="sectionmgmt-selected-students">
+							<div class="sectionmgmt-selected-students-header">
+								<span class="sectionmgmt-selected-count">{selectedStudents.length} student{selectedStudents.length !== 1 ? 's' : ''} selected</span>
+							</div>
+							<div class="sectionmgmt-selected-students-list">
+								{#each selectedStudents as student (student.id)}
+									<div class="sectionmgmt-selected-student-chip">
+										<span class="sectionmgmt-student-name">{student.name}</span>
+										<span class="sectionmgmt-student-id">{student.studentId}</span>
+										<button 
+											type="button" 
+											class="sectionmgmt-remove-student"
+											on:click={() => removeStudent(student.id)}
+											aria-label="Remove {student.name}"
+										>
+											<span class="material-symbols-outlined">close</span>
+										</button>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
+
+					<!-- Student Selection Dropdown -->
+					<div class="sectionmgmt-custom-dropdown" class:open={isStudentDropdownOpen}>
+						<button 
+							type="button"
+							class="sectionmgmt-dropdown-trigger" 
+							class:selected={selectedStudents.length > 0}
+							on:click={toggleStudentDropdown}
+							id="students"
+							disabled={!gradeLevel}
+						>
+							{#if gradeLevel}
+								<span class="sectionmgmt-placeholder">Add students to section</span>
+							{:else}
+								<span class="sectionmgmt-placeholder">Select grade level first</span>
+							{/if}
+							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+						</button>
+						<div class="sectionmgmt-dropdown-menu">
+						<div class="sectionmgmt-search-container">
+							<input 
+								type="text" 
+								class="sectionmgmt-search-input"
+								placeholder="Search students..."
+								bind:value={studentSearchTerm}
+							/>
+							<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+						</div>
+							{#each filteredStudents as student (student.id)}
+								<button 
+									type="button"
+									class="sectionmgmt-dropdown-option sectionmgmt-student-option" 
+									class:selected={selectedStudents.some(s => s.id === student.id)}
+									on:click={() => toggleStudentSelection(student)}
+								>
+									<div class="sectionmgmt-student-checkbox">
+										<span class="material-symbols-outlined">
+											{selectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
+										</span>
+									</div>
+									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
+									<div class="sectionmgmt-option-content">
+										<span class="sectionmgmt-option-name">{student.name}</span>
+										<span class="sectionmgmt-option-description">Grade {student.grade} • {student.studentId}</span>
+									</div>
+								</button>
+							{/each}
+							{#if filteredStudents.length === 0}
+								<div class="sectionmgmt-no-results">
+									<span class="material-symbols-outlined">school_off</span>
+									<span>No available students found for this grade level</span>
+								</div>
+							{/if}
+						</div>
+					</div>
+					<p class="sectionmgmt-form-help">Only students without assigned sections are shown. Select students for the chosen grade level.</p>
+				</div>
+
+				<!-- Submit Button -->
+				<div class="sectionmgmt-form-actions">
+					<button 
+						type="submit" 
+						class="sectionmgmt-create-button"
+						class:loading={isCreating}
+						disabled={isCreating || !sectionName || !gradeLevel || !selectedAdviser || selectedStudents.length === 0}
+					>
+						{#if isCreating}
+							<span class="material-symbols-outlined sectionmgmt-loading-icon">hourglass_empty</span>
+							Creating Section...
+						{:else}
+							<span class="material-symbols-outlined">groups</span>
+							Create Section
+						{/if}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- Recent Sections -->
+	<div class="sectionmgmt-recent-sections-section">
+		<div class="sectionmgmt-section-header">
+			<h2 class="sectionmgmt-section-title">Recent Sections</h2>
+			<p class="sectionmgmt-section-subtitle">Recently created sections in the system</p>
+		</div>
+
+		<div class="sectionmgmt-sections-grid">
+			{#each recentSections as section (section.id)}
+				<div class="sectionmgmt-section-card">
+					<div class="sectionmgmt-section-info">
+						<div class="sectionmgmt-section-avatar">
+							<span class="material-symbols-outlined sectionmgmt-avatar-icon">groups</span>
+						</div>
+						<div class="sectionmgmt-section-details">
+							<h3 class="sectionmgmt-section-name">{section.name}</h3>
+							<p class="sectionmgmt-section-grade">{section.grade}</p>
+							<p class="sectionmgmt-section-adviser">Adviser: {section.adviser}</p>
+							<p class="sectionmgmt-section-students">{section.studentCount} students</p>
+						</div>
+					</div>
+					<div class="sectionmgmt-section-meta">
+						<span class="sectionmgmt-created-date">Created: {section.createdDate}</span>
+						<span class="sectionmgmt-status-badge sectionmgmt-status-{section.status}">{section.status}</span>
+					</div>
+				</div>
+			{/each}
+		</div>
+	</div>
+</div>

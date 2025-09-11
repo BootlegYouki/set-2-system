@@ -16,6 +16,12 @@
 			label: 'Room Management',
 			icon: 'meeting_room',
 			description: 'Create and manage rooms, assign to sections and teachers'
+		},
+		{
+			id: 'section-management',
+			label: 'Section Management',
+			icon: 'groups',
+			description: 'Create sections, assign students and advisory teachers'
 		}
 	];
 

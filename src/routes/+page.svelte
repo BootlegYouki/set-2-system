@@ -17,6 +17,7 @@
 import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
 import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
 import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
+import AdminSectionManagement from '../components/users/admin/sections/adminSectionCreation/adminSectionManagement.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
@@ -198,6 +199,10 @@ import AdminRoomManagement from '../components/users/admin/sections/adminRoomMan
         {:else if adminActiveSection === 'room-management'}
           <div class="admin-section">
             <AdminRoomManagement />
+          </div>
+        {:else if adminActiveSection === 'section-management'}
+          <div class="admin-section">
+            <AdminSectionManagement />
           </div>
         {/if}
       </main>
