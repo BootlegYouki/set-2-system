@@ -73,9 +73,5 @@
 				</div>
 			</button>
 		{/each}
-
-
-
-
 	</div>
 </nav>

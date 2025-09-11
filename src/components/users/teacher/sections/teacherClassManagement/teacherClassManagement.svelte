@@ -124,7 +124,7 @@
   </div>
 
   <!-- Year Levels and Sections Section -->
-  <div class="classes-section">
+  <div class="classes-section-container">
     <h2 class="class-mgmt-section-title">Year Levels & Sections</h2>
     <div class="year-levels-grid">
       {#each classData as yearData (yearData.yearLevel)}

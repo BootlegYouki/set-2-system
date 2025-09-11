@@ -22,6 +22,14 @@
   position: relative;
 }
 
+.admin-portal {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
 .content-area {
   position: fixed;
   top: 64px; /* Account for fixed navbar height */

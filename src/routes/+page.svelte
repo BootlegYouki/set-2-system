@@ -15,9 +15,11 @@
   import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
 import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
+import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
 import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
 import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
 import AdminSectionManagement from '../components/users/admin/sections/adminSectionCreation/adminSectionManagement.svelte';
+import AdminScheduleAssignment from '../components/users/admin/sections/adminScheduleAssignment/adminScheduleAssignment.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
@@ -168,42 +170,15 @@ import AdminSectionManagement from '../components/users/admin/sections/adminSect
       
       <main class="content-area">
         {#if adminActiveSection === 'dashboard'}
-          <div class="admin-section">
-            <h2>Dashboard</h2>
-            <p>Admin dashboard content will be implemented here.</p>
-          </div>
-        {:else if adminActiveSection === 'users'}
-          <div class="admin-section">
-            <h2>User Management</h2>
-            <p>User management content will be implemented here.</p>
-          </div>
-        {:else if adminActiveSection === 'reports'}
-          <div class="admin-section">
-            <h2>Reports</h2>
-            <p>Reports content will be implemented here.</p>
-          </div>
-        {:else if adminActiveSection === 'settings'}
-          <div class="admin-section">
-            <h2>System Settings</h2>
-            <p>System settings content will be implemented here.</p>
-          </div>
-        {:else if adminActiveSection === 'analytics'}
-          <div class="admin-section">
-            <h2>Analytics</h2>
-            <p>Analytics content will be implemented here.</p>
-          </div>
+          <AdminDashboard />
         {:else if adminActiveSection === 'account-creation'}
-          <div class="admin-section">
-            <AdminAccountCreation />
-          </div>
+          <AdminAccountCreation />
         {:else if adminActiveSection === 'room-management'}
-          <div class="admin-section">
-            <AdminRoomManagement />
-          </div>
+          <AdminRoomManagement />
         {:else if adminActiveSection === 'section-management'}
-          <div class="admin-section">
-            <AdminSectionManagement />
-          </div>
+          <AdminSectionManagement />
+        {:else if adminActiveSection === 'schedule-assignment'}
+          <AdminScheduleAssignment />
         {/if}
       </main>
 

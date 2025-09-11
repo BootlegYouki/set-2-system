@@ -44,7 +44,6 @@
 .page-title {
 	font-family: var(--md-sys-typescale-headline-large-font);
 	font-size: var(--md-sys-typescale-headline-large-size);
-	font-weight: var(--md-sys-typescale-headline-large-weight);
 	color: var(--md-sys-color-on-surface);
 	margin: 0 0 var(--spacing-xs) 0;
 }
