@@ -50,12 +50,10 @@
 
 .content-area > *::-webkit-scrollbar-track {
   background: var(--md-sys-color-surface-variant);
-  border-radius: var(--radius-sm);
 }
 
 .content-area > *::-webkit-scrollbar-thumb {
   background: var(--md-sys-color-outline-variant);
-  border-radius: var(--radius-sm);
   transition: background-color var(--transition-normal);
 }
 

@@ -12,6 +12,7 @@
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
   import TeacherSchedule from '../components/users/teacher/sections/teacherSchedule/teacherSchedule.svelte';
   import TeacherStudentList from '../components/users/teacher/sections/teacherClassManagement/teacherClassManagement.svelte';
+  import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
   import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
   import '../lib/styles/+page.css';
@@ -144,6 +145,8 @@
           <TeacherSchedule />
         {:else if teacherActiveSection === 'students'}
           <TeacherStudentList />
+        {:else if teacherActiveSection === 'advisory'}
+          <TeacherAdvisoryClass />
         {/if}
       </main>
 
