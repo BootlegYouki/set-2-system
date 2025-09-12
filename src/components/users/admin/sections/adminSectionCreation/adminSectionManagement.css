@@ -603,6 +603,13 @@
 
 
 
+/* Action Buttons Container */
+.sectionmgmt-action-buttons {
+	display: flex;
+	gap: var(--spacing-xs);
+	align-items: center;
+}
+
 /* Edit Button */
 .sectionmgmt-edit-button {
 	background-color: var(--md-sys-color-surface);
@@ -634,6 +641,40 @@
 
 .sectionmgmt-edit-button:active {
 	background-color: var(--md-sys-color-surface-container-high);
+	box-shadow: none;
+	transform: scale(0.95);
+}
+
+.sectionmgmt-remove-button {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-error);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.sectionmgmt-remove-button:hover {
+	background-color: var(--md-sys-color-error-container);
+	border-color: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error-container);
+	box-shadow: var(--elevation-1);
+}
+
+.sectionmgmt-remove-button .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+.sectionmgmt-remove-button:active {
+	background-color: var(--md-sys-color-error-container);
 	box-shadow: none;
 	transform: scale(0.95);
 }

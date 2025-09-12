@@ -29,6 +29,11 @@
 			id: 'section-management',
 			label: 'Section Management',
 			icon: 'class'
+		},
+		{
+			id: 'subject-creation',
+			label: 'Subject Creation',
+			icon: 'subject'
 		}
 	];
 

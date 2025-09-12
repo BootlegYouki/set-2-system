@@ -108,6 +108,465 @@
 	}
 }
 
+/* Add Schedule Styles */
+.scheduleassign-add-section {
+	background: var(--surface-color);
+	border-radius: 12px;
+	border: 1px solid var(--border-color);
+	text-align: center;
+}
+
+.scheduleassign-section-title {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 0 0 1.5rem 0;
+}
+
+.scheduleassign-add-schedule-card {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xl);
+	background: var(--md-sys-color-surface-container-low);
+	color: var(--md-sys-color-on-surface);
+	border: 2px dashed var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	font-family: var(--md-sys-typescale-body-large-font);
+	transition: all var(--transition-normal);
+	cursor: pointer;
+	width: 100%;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.scheduleassign-add-schedule-card:hover:not(:disabled) {
+	color: var(--md-sys-color-on-primary-container);
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.scheduleassign-add-schedule-card:active {
+	transform: translateY(0);
+}
+
+.scheduleassign-add-schedule-card:disabled {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+	cursor: not-allowed;
+	opacity: 0.6;
+	transform: none;
+	box-shadow: none;
+}
+
+.scheduleassign-add-schedule-card.cancel-mode {
+	background: var(--md-sys-color-surface-container-low);
+	color: var(--md-sys-color-on-error-container);
+	border-color: var(--md-sys-color-error);
+}
+
+.scheduleassign-add-schedule-card.cancel-mode:hover {
+	border-color: var(--md-sys-color-error);
+}
+
+
+
+.scheduleassign-card-content {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: var(--spacing-xs);
+}
+
+.scheduleassign-card-title {
+	font-family: var(--md-sys-typescale-headline-small-font);
+	font-size: var(--md-sys-typescale-headline-small-size);
+	font-weight: var(--md-sys-typescale-headline-small-weight);
+	margin: 0;
+	color: inherit;
+}
+
+.scheduleassign-card-subtitle {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+	margin: 0;
+	opacity: 0.8;
+	color: inherit;
+}
+
+.scheduleassign-add-form {
+	margin-top: 1rem;
+	padding: 2rem;
+	background-color: var(--md-sys-color-surface);
+	border-radius: 12px;
+	border: 1px solid var(--md-sys-color-outline-variant);
+	box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+.scheduleassign-form-title {
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: var(--text-primary);
+	text-align: center;
+}
+
+.scheduleassign-form-inputs {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+}
+
+.scheduleassign-input-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.scheduleassign-save-schedule-btn,
+.scheduleassign-cancel-schedule-btn {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
+	border-radius: var(--radius-full);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	min-width: 140px;
+	justify-content: center;
+	min-height: 40px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.scheduleassign-save-schedule-btn {
+	background: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+}
+
+.scheduleassign-save-schedule-btn:hover:not(:disabled) {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.scheduleassign-save-schedule-btn:disabled {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.scheduleassign-cancel-schedule-btn {
+	background: var(--md-sys-color-surface-container);
+	color: var(--md-sys-color-on-surface-container);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.scheduleassign-cancel-schedule-btn:hover {
+	background: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+	border-color: var(--md-sys-color-error);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.scheduleassign-save-schedule-btn .material-symbols-outlined,
+.scheduleassign-cancel-schedule-btn .material-symbols-outlined {
+	font-size: 16px;
+}
+
+/* Time Period Management Styles */
+.scheduleassign-timeperiod-section {
+	margin-top: 2rem;
+	padding: 1.5rem;
+	background: var(--surface-color);
+	border-radius: 12px;
+	border: 1px solid var(--border-color);
+}
+
+.scheduleassign-manage-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	background: var(--primary-color);
+	color: white;
+	border: none;
+	border-radius: 8px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.scheduleassign-manage-btn:hover {
+	background: var(--primary-hover-color);
+	transform: translateY(-1px);
+}
+
+.scheduleassign-timeperiod-management {
+	margin-top: 1.5rem;
+}
+
+.scheduleassign-timeperiod-actions {
+	margin-bottom: 1.5rem;
+}
+
+.scheduleassign-add-timeperiod-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	background: var(--success-color);
+	color: white;
+	border: none;
+	border-radius: 8px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.scheduleassign-add-timeperiod-btn:hover:not(:disabled) {
+	background: var(--success-hover-color);
+	transform: translateY(-1px);
+}
+
+.scheduleassign-add-timeperiod-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.scheduleassign-timeperiod-form {
+	padding: 1.5rem;
+	background: var(--background-color);
+	border-radius: 12px;
+	border: 1px solid var(--border-color);
+	margin-bottom: 1.5rem;
+}
+
+.scheduleassign-form-title {
+	margin: 0 0 1rem 0;
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: var(--text-primary-color);
+}
+
+.scheduleassign-timeperiod-inputs {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.scheduleassign-time-input-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.scheduleassign-time-input,
+.scheduleassign-period-input {
+	padding: 0.75rem;
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: 8px;
+	font-size: 0.875rem;
+	background: var(--surface-color);
+	color: var(--text-primary-color);
+	transition: all 0.2s ease;
+	min-height: 52px;
+}
+
+.scheduleassign-time-input:focus,
+.scheduleassign-period-input:focus {
+	outline: none;
+	border-color: var(--primary-color);
+	box-shadow: 0 0 0 3px var(--primary-color-alpha);
+}
+
+.scheduleassign-timeperiod-form-actions {
+	display: flex;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.scheduleassign-save-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	background: var(--primary-color);
+	color: white;
+	border: none;
+	border-radius: 8px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.scheduleassign-save-btn:hover {
+	background: var(--primary-hover-color);
+	transform: translateY(-1px);
+}
+
+.scheduleassign-cancel-btn {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	background: var(--surface-color);
+	color: var(--text-secondary-color);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.scheduleassign-cancel-btn:hover {
+	background: var(--hover-color);
+	border-color: var(--text-secondary-color);
+}
+
+.scheduleassign-timeperiods-list {
+	margin-top: 1.5rem;
+}
+
+.scheduleassign-list-title {
+	margin: 0 0 1rem 0;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--text-primary-color);
+}
+
+.scheduleassign-timeperiods-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 1rem;
+}
+
+.scheduleassign-timeperiod-card {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 1rem;
+	background: var(--surface-color);
+	border: 1px solid var(--border-color);
+	border-radius: 8px;
+	transition: all 0.2s ease;
+}
+
+.scheduleassign-timeperiod-card:hover {
+	border-color: var(--primary-color);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.scheduleassign-timeperiod-info {
+	flex: 1;
+}
+
+.scheduleassign-period-name {
+	margin: 0 0 0.25rem 0;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--text-primary-color);
+}
+
+.scheduleassign-period-time {
+	margin: 0;
+	font-size: 0.75rem;
+	color: var(--text-secondary-color);
+}
+
+.scheduleassign-timeperiod-actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.scheduleassign-edit-btn,
+.scheduleassign-delete-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.scheduleassign-edit-btn {
+	background: var(--warning-color);
+	color: white;
+}
+
+.scheduleassign-edit-btn:hover {
+	background: var(--warning-hover-color);
+	transform: translateY(-1px);
+}
+
+.scheduleassign-delete-btn {
+	background: var(--danger-color);
+	color: white;
+}
+
+.scheduleassign-delete-btn:hover {
+	background: var(--danger-hover-color);
+	transform: translateY(-1px);
+}
+
+.scheduleassign-no-timeperiods {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem;
+	text-align: center;
+	color: var(--text-secondary-color);
+}
+
+.scheduleassign-no-timeperiods .material-symbols-outlined {
+	font-size: 3rem;
+	margin-bottom: 0.5rem;
+	opacity: 0.5;
+}
+
+.scheduleassign-no-timeperiods p {
+	margin: 0;
+	font-size: 0.875rem;
+}
+
+/* Responsive Design for Time Period Management */
+@media (max-width: 768px) {
+	.scheduleassign-timeperiod-inputs {
+		grid-template-columns: 1fr;
+	}
+	
+	.scheduleassign-timeperiods-grid {
+		grid-template-columns: 1fr;
+	}
+	
+	.scheduleassign-timeperiod-form-actions {
+		flex-direction: column;
+	}
+	
+	.scheduleassign-save-btn,
+	.scheduleassign-cancel-btn {
+		justify-content: center;
+	}
+}
+
 /* Form Section */
 .scheduleassign-form-section {
 	background-color: var(--md-sys-color-surface-container);
@@ -191,6 +650,21 @@
 
 .scheduleassign-dropdown-button.selected {
 	border-color: var(--md-sys-color-primary);
+}
+
+.scheduleassign-dropdown-button:disabled,
+.scheduleassign-custom-dropdown.disabled .scheduleassign-dropdown-button {
+	cursor: not-allowed;
+	opacity: 0.6;
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+}
+
+.scheduleassign-dropdown-button:disabled:hover,
+.scheduleassign-custom-dropdown.disabled .scheduleassign-dropdown-button:hover {
+	border-color: var(--md-sys-color-outline-variant);
+	box-shadow: none;
 }
 
 .scheduleassign-selected-option {
@@ -303,7 +777,7 @@
 /* Form Actions */
 .scheduleassign-form-actions {
 	display: flex;
-	justify-content: flex-end;
+	justify-content: center;
 	margin-top: var(--spacing-xl);
 }
 
@@ -374,9 +848,11 @@
 	background: var(--md-sys-color-surface);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
-	padding: var(--spacing-lg);
+	padding: 0;
 	transition: all var(--transition-normal);
-	position: relative;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 
 .scheduleassign-assignment-card:hover {
@@ -385,22 +861,46 @@
 	transform: translateY(-2px);
 }
 
-.scheduleassign-assignment-actions {
-	position: absolute;
-	top: var(--spacing-md);
-	right: var(--spacing-md);
+.scheduleassign-assignment-header {
 	display: flex;
-	gap: var(--spacing-xs);
+	justify-content: space-between;
+	align-items: flex-start;
+	padding: var(--spacing-lg);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
+.scheduleassign-assignment-info {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	flex: 1;
+}
 
+.scheduleassign-assignment-title {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0;
+	line-height: var(--md-sys-typescale-title-medium-line-height);
+}
+
+.scheduleassign-assignment-subtitle {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+	line-height: var(--md-sys-typescale-body-medium-line-height);
+}
 
 .scheduleassign-assignment-actions {
 	display: flex;
 	gap: var(--spacing-xs);
+	flex-shrink: 0;
 }
 
-.scheduleassign-action-button {
+.scheduleassign-edit-button,
+.scheduleassign-delete-button {
 	background-color: var(--md-sys-color-surface);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-md);
@@ -416,36 +916,38 @@
 	transition: all var(--transition-normal);
 }
 
-.scheduleassign-action-button:hover {
-	background-color: var(--md-sys-color-surface-variant);
+.scheduleassign-edit-button:hover {
+	background-color: var(--md-sys-color-neutral-container);
 	border-color: var(--md-sys-color-outline);
-	color: var(--md-sys-color-on-surface);
+	color: var(--md-sys-color-on-neutral-container);
 	box-shadow: var(--elevation-1);
 }
 
-.scheduleassign-action-button:active {
-	background-color: var(--md-sys-color-surface-container-high);
+.scheduleassign-delete-button:hover {
+	background-color: var(--md-sys-color-error-container);
+	border-color: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error-container);
+	box-shadow: var(--elevation-1);
+}
+
+.scheduleassign-edit-button:active,
+.scheduleassign-delete-button:active {
 	box-shadow: none;
 	transform: scale(0.95);
 }
 
-.scheduleassign-edit-button:hover {
-	color: var(--md-sys-color-primary);
-}
-
-.scheduleassign-delete-button:hover {
-	color: var(--md-sys-color-error);
-}
-
-.scheduleassign-action-button .material-symbols-outlined {
+.scheduleassign-edit-button .material-symbols-outlined,
+.scheduleassign-delete-button .material-symbols-outlined {
 	font-size: 18px;
 	transition: inherit;
 }
 
 .scheduleassign-assignment-details {
 	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-sm);
+	flex-wrap: wrap;
+	gap: var(--spacing-md);
+	padding: var(--spacing-lg);
+	margin-bottom: var(--spacing-xs);
 }
 
 .scheduleassign-detail-item {
@@ -455,16 +957,18 @@
 }
 
 .scheduleassign-detail-icon {
-	font-size: var(--md-sys-typescale-body-medium-size);
+	font-size: 0.875rem;
 	color: var(--md-sys-color-on-surface-variant);
-	width: 20px;
+	width: 16px;
 	flex-shrink: 0;
+	opacity: 0.8;
 }
 
 .scheduleassign-detail-text {
 	font-family: var(--md-sys-typescale-body-medium-font);
-	font-size: var(--md-sys-typescale-body-medium-size);
-	color: var(--md-sys-color-on-surface);
+	font-size: 0.875rem;
+	color: var(--md-sys-color-on-surface-variant);
+	opacity: 0.9;
 }
 
 /* Filter Controls */
@@ -761,4 +1265,163 @@
 	font-size: 1rem;
 	color: var(--md-sys-color-on-surface-variant);
 	line-height: 1.5;
+}
+
+/* New Layout Styles */
+.scheduleassign-selection-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--spacing-lg);
+	margin-bottom: var(--spacing-xl);
+}
+
+/* Day Selection Grid */
+.scheduleassign-day-selection {
+	margin-bottom: var(--spacing-xl);
+}
+
+.scheduleassign-day-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: var(--spacing-md);
+	margin-top: var(--spacing-md);
+}
+
+.scheduleassign-day-button {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-lg);
+	background-color: var(--md-sys-color-surface-variant);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	cursor: pointer;
+	transition: all 0.2s;
+	color: var(--md-sys-color-on-surface-variant);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+}
+
+.scheduleassign-day-button:hover {
+	background-color: var(--md-sys-color-surface);
+	border-color: var(--md-sys-color-outline);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.scheduleassign-day-button.selected {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	border-color: var(--md-sys-color-primary-container);
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.scheduleassign-day-button .material-symbols-outlined {
+	font-size: 1.5rem;
+}
+
+.scheduleassign-day-button .day-name {
+	font-weight: 500;
+}
+
+/* Schedule Grid */
+.scheduleassign-schedule-grid {
+	margin-top: var(--spacing-xl);
+}
+
+.scheduleassign-grid-title {
+	font-family: var(--md-sys-typescale-headline-small-font);
+	font-size: var(--md-sys-typescale-headline-small-size);
+	font-weight: var(--md-sys-typescale-headline-small-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-lg) 0;
+}
+
+.scheduleassign-time-slots {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+.scheduleassign-time-slot {
+	display: grid;
+	grid-template-columns: 200px 1fr;
+	gap: var(--spacing-lg);
+	align-items: center;
+	padding: var(--spacing-lg);
+	background-color: var(--md-sys-color-surface-container-low);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+}
+
+.scheduleassign-time-info {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+}
+
+.scheduleassign-time-info .time {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+}
+
+.scheduleassign-time-info .period {
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	font-weight: var(--md-sys-typescale-body-small-weight);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.scheduleassign-subject-assignment {
+	position: relative;
+}
+
+.scheduleassign-subject-button {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md) var(--spacing-lg);
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	border: 1px solid var(--md-sys-color-primary-container);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: all 0.2s;
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+}
+
+.scheduleassign-subject-button:hover {
+	background-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	border-color: var(--md-sys-color-primary);
+	transform: translateY(-1px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.scheduleassign-selection-row {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-md);
+	}
+
+	.scheduleassign-day-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.scheduleassign-time-slot {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-md);
+	}
+
+	.scheduleassign-time-info {
+		text-align: center;
+	}
 }

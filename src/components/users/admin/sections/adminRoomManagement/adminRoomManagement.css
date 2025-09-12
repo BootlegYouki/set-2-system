@@ -346,36 +346,34 @@
 
 /* Rooms Grid */
 .admin-room-rooms-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-	gap: var(--spacing-lg);
-	align-items: start;
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+	.admin-room-rooms-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* Room Cards */
 .admin-room-room-card {
-	background: var(--md-sys-color-surface);
+	background-color: var(--md-sys-color-surface-container);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
 	padding: var(--spacing-lg);
-	transition: all 0.2s ease;
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-md);
-	height: 180px;
-	min-height: 180px;
+	transition: all var(--transition-normal);
+	cursor: pointer;
+	color: var(--md-sys-color-on-surface);
 }
 
 .admin-room-room-card:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-	border-color: var(--md-sys-color-primary);
 }
 
-.admin-room-room-info {
-	flex: 1;
-}
-
+/* Room Header */
 .admin-room-room-header {
 	display: flex;
 	justify-content: space-between;
@@ -383,13 +381,91 @@
 	margin-bottom: var(--spacing-md);
 }
 
+.admin-room-room-title {
+	display: block;
+}
+
 .admin-room-room-name {
-	font-family: var(--md-sys-typescale-title-medium-font);
-	font-size: var(--md-sys-typescale-title-medium-size);
-	font-weight: var(--md-sys-typescale-title-medium-weight);
-	color: var(--md-sys-color-on-surface);
 	margin: 0;
-	flex: 1;
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: var(--md-sys-color-on-surface);
+}
+
+/* Action Buttons Container */
+.admin-room-action-buttons {
+	display: flex;
+	gap: var(--spacing-xs);
+	align-items: center;
+}
+
+/* Edit Button */
+.admin-room-edit-button {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.admin-room-edit-button:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline);
+	color: var(--md-sys-color-on-surface);
+	box-shadow: var(--elevation-1);
+}
+
+.admin-room-edit-button .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+.admin-room-edit-button:active {
+	background-color: var(--md-sys-color-surface-container-high);
+	box-shadow: none;
+	transform: scale(0.95);
+}
+
+.admin-room-remove-button {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-error);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.admin-room-remove-button:hover {
+	background-color: var(--md-sys-color-error-container);
+	border-color: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error-container);
+	box-shadow: var(--elevation-1);
+}
+
+.admin-room-remove-button .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+.admin-room-remove-button:active {
+	background-color: var(--md-sys-color-error-container);
+	box-shadow: none;
+	transform: scale(0.95);
 }
 
 .admin-room-room-number {
@@ -402,89 +478,61 @@
 	font-weight: var(--md-sys-typescale-label-small-weight);
 }
 
+/* Room Details */
 .admin-room-room-details {
 	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-xs);
+	gap: var(--spacing-xl);
+	flex-wrap: wrap;
+	margin-bottom: var(--spacing-md);
 }
 
-.admin-room-room-location {
+.admin-room-room-location,
+.admin-room-room-assignment {
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-xs);
-	font-family: var(--md-sys-typescale-body-small-font);
-	font-size: var(--md-sys-typescale-body-small-size);
+	font-size: 0.875rem;
 	color: var(--md-sys-color-on-surface-variant);
-	margin: 0;
+	opacity: 0.85;
 }
 
-.admin-room-room-location .material-symbols-outlined {
-	font-size: 16px;
-}
-
-.admin-room-room-status {
-	display: flex;
-	flex-direction: row;
-	gap: var(--spacing-sm);
-	justify-content: space-between;
-	align-items: flex-start;
-}
-
-.admin-room-status-container {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-sm);
-}
-
-.admin-room-status-badge {
-	padding: var(--spacing-xs) var(--spacing-sm);
-	border-radius: var(--radius-full);
-	font-family: var(--md-sys-typescale-label-small-font);
-	font-size: var(--md-sys-typescale-label-small-size);
-	font-weight: var(--md-sys-typescale-label-small-weight);
-	text-transform: capitalize;
-}
-
-.admin-room-status-available {
-	background: var(--md-sys-color-secondary-container);
-	color: var(--md-sys-color-on-primary-container);
-}
-
-.admin-room-status-assigned {
-	background: var(--md-sys-color-primary-container);
-	color: var(--md-sys-color-on-primary-container);
-}
-
-.admin-room-assigned-to {
-	font-family: var(--md-sys-typescale-body-small-font);
-	font-size: var(--md-sys-typescale-body-small-size);
-	color: var(--md-sys-color-on-surface-variant);
-	margin: 0;
-	font-style: italic;
+.admin-room-room-location .material-symbols-outlined,
+.admin-room-room-assignment .material-symbols-outlined {
+	font-size: 0.875rem;
 }
 
 .admin-room-unassign-button {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: var(--spacing-xs);
-	border: 1px solid var(--md-sys-color-error);
-	border-radius: 50%;
-	background: transparent;
-	color: var(--md-sys-color-error);
-	width: 32px;
-	height: 32px;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-tertiary);
 	cursor: pointer;
-	transition: all 0.2s ease;
+	transition: all var(--transition-normal);
 }
 
 .admin-room-unassign-button:hover {
-	background: var(--md-sys-color-error);
-	color: var(--md-sys-color-on-error);
+	background-color: var(--md-sys-color-tertiary-container);
+	border-color: var(--md-sys-color-tertiary);
+	color: var(--md-sys-color-on-tertiary-container);
+	box-shadow: var(--elevation-1);
 }
 
 .admin-room-unassign-button .material-symbols-outlined {
-	font-size: 16px;
+	font-size: 18px;
+	transition: inherit;
+}
+
+.admin-room-unassign-button:active {
+	background-color: var(--md-sys-color-tertiary-container);
+	box-shadow: none;
+	transform: scale(0.95);
 }
 
 /* Animations */

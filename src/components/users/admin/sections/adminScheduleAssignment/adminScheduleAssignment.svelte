@@ -3,22 +3,38 @@
 
 	// Schedule assignment state
 	let isAssigning = false;
+	let selectedFormYear = '';
+	let selectedFormSection = '';
+	let selectedFormDay = '';
+	let selectedFormSubject = '';
+	let selectedFormTimeSlot = '';
+	let showSuccessMessage = false;
+	let successMessage = '';
+
+	// Form dropdown states
+	let isFormYearDropdownOpen = false;
+	let isFormSectionDropdownOpen = false;
+	let isFormDayDropdownOpen = false;
+	let isFormSubjectDropdownOpen = false;
+	let isFormTimeSlotDropdownOpen = false;
+
+	// Legacy variables for backward compatibility
 	let selectedSection = '';
 	let selectedTeacher = '';
 	let selectedSubject = '';
 	let selectedTimeSlot = '';
 	let selectedDay = '';
-	let showSuccessMessage = false;
-	let successMessage = '';
 
-	// Dropdown states
+	// Legacy dropdown states
 	let isSectionDropdownOpen = false;
 	let isTeacherDropdownOpen = false;
 	let isSubjectDropdownOpen = false;
 	let isTimeSlotDropdownOpen = false;
 
 	// Filter states for assignments section
+	let selectedFilterYear = '';
 	let selectedFilterSection = '';
+	let isFilterYearDropdownOpen = false;
 	let isFilterSectionDropdownOpen = false;
 	
 	// Day picker states (similar to student schedule)
@@ -65,21 +81,35 @@
 	};
 
 	// Mock data for dropdowns
+	const years = [
+		{ id: '1st-year', name: '1st Year' },
+		{ id: '2nd-year', name: '2nd Year' },
+		{ id: '3rd-year', name: '3rd Year' },
+		{ id: '4th-year', name: '4th Year' }
+	];
+
 	const sections = [
-		{ id: 'grade7-a', name: 'Section A', grade: 'Grade 7' },
-		{ id: 'grade7-b', name: 'Section B', grade: 'Grade 7' },
-		{ id: 'grade8-a', name: 'Section A', grade: 'Grade 8' },
-		{ id: 'grade8-b', name: 'Section B', grade: 'Grade 8' },
-		{ id: 'grade9-a', name: 'Section A', grade: 'Grade 9' },
-		{ id: 'grade10-a', name: 'Section A', grade: 'Grade 10' }
+		{ id: 'grade7-a', name: 'Section A', grade: 'Grade 7', year: '1st-year' },
+		{ id: 'grade7-b', name: 'Section B', grade: 'Grade 7', year: '1st-year' },
+		{ id: 'grade8-a', name: 'Section A', grade: 'Grade 8', year: '2nd-year' },
+		{ id: 'grade8-b', name: 'Section B', grade: 'Grade 8', year: '2nd-year' },
+		{ id: 'grade9-a', name: 'Section A', grade: 'Grade 9', year: '3rd-year' },
+		{ id: 'grade9-b', name: 'Section B', grade: 'Grade 9', year: '3rd-year' },
+		{ id: 'grade10-a', name: 'Section A', grade: 'Grade 10', year: '4th-year' },
+		{ id: 'grade10-b', name: 'Section B', grade: 'Grade 10', year: '4th-year' }
 	];
 
 	const teachers = [
-		{ id: 'teacher1', name: 'Maria Santos', subject: 'Mathematics' },
-		{ id: 'teacher2', name: 'Juan Dela Cruz', subject: 'Science' },
-		{ id: 'teacher3', name: 'Ana Garcia', subject: 'English' },
-		{ id: 'teacher4', name: 'Pedro Rodriguez', subject: 'Filipino' },
-		{ id: 'teacher5', name: 'Carmen Lopez', subject: 'Social Studies' }
+		{ id: 'teacher1', name: 'Ms. Maria Santos' },
+		{ id: 'teacher2', name: 'Mr. Juan Dela Cruz' },
+		{ id: 'teacher3', name: 'Ms. Ana Garcia' },
+		{ id: 'teacher4', name: 'Mr. Pedro Rodriguez' },
+		{ id: 'teacher5', name: 'Ms. Carmen Lopez' },
+		{ id: 'teacher6', name: 'Mr. Jose Reyes' },
+		{ id: 'teacher7', name: 'Ms. Rosa Fernandez' },
+		{ id: 'teacher8', name: 'Mr. Miguel Torres' },
+		{ id: 'teacher9', name: 'Ms. Elena Morales' },
+		{ id: 'teacher10', name: 'Mr. Carlos Mendoza' }
 	];
 
 	const subjects = [
@@ -93,7 +123,8 @@
 		{ id: 'tle', name: 'Technology and Livelihood Education', icon: 'engineering' }
 	];
 
-	const timeSlots = [
+	// Dynamic time slots that can be managed by admin
+	let timeSlots = [
 		{ id: 'slot1', time: '7:30 AM - 8:30 AM', period: '1st Period' },
 		{ id: 'slot2', time: '8:30 AM - 9:30 AM', period: '2nd Period' },
 		{ id: 'slot3', time: '9:30 AM - 10:30 AM', period: '3rd Period' },
@@ -102,6 +133,12 @@
 		{ id: 'slot6', time: '1:30 PM - 2:30 PM', period: '6th Period' },
 		{ id: 'slot7', time: '2:30 PM - 3:30 PM', period: '7th Period' }
 	];
+	
+	// Add Schedule State
+	let isAddingSchedule = false;
+	let newSchedule = { startTime: '', endTime: '' };
+	let isFormTeacherDropdownOpen = false;
+	let selectedFormTeacher = '';
 
 	const days = [
 		{ id: 'monday', name: 'Monday' },
@@ -115,6 +152,7 @@
 	let scheduleAssignments = [
 		{
 			id: 1,
+			year: '1st-year',
 			grade: 'Grade 7',
 			section: 'Section A',
 			teacher: 'Maria Santos',
@@ -125,6 +163,7 @@
 		},
 		{
 			id: 2,
+			year: '1st-year',
 			grade: 'Grade 7',
 			section: 'Section A',
 			teacher: 'Juan Dela Cruz',
@@ -135,6 +174,7 @@
 		},
 		{
 			id: 3,
+			year: '2nd-year',
 			grade: 'Grade 8',
 			section: 'Section A',
 			teacher: 'Ana Garcia',
@@ -142,27 +182,90 @@
 			day: 'Tuesday',
 			timeSlot: '7:30 AM - 8:30 AM',
 			period: '1st Period'
+		},
+		{
+			id: 4,
+			year: '1st-year',
+			grade: 'Grade 7',
+			section: 'Section B',
+			teacher: 'Pedro Rodriguez',
+			subject: 'Filipino',
+			day: 'Wednesday',
+			timeSlot: '9:30 AM - 10:30 AM',
+			period: '3rd Period'
+		},
+		{
+			id: 5,
+			year: '3rd-year',
+			grade: 'Grade 9',
+			section: 'Section A',
+			teacher: 'Carmen Lopez',
+			subject: 'Social Studies',
+			day: 'Thursday',
+			timeSlot: '10:45 AM - 11:45 AM',
+			period: '4th Period'
+		},
+		{
+			id: 6,
+			year: '4th-year',
+			grade: 'Grade 10',
+			section: 'Section A',
+			teacher: 'Ana Garcia',
+			subject: 'English',
+			day: 'Friday',
+			timeSlot: '1:30 PM - 2:30 PM',
+			period: '6th Period'
 		}
 	];
 
+	// Filter sections based on selected year
+	$: filteredSections = selectedFilterYear ? sections.filter(section => section.year === selectedFilterYear) : [];
+
+	// Filter form sections based on selected form year
+	$: filteredFormSections = selectedFormYear ? sections.filter(section => section.year === selectedFormYear) : [];
+
+	// Get selected objects for form display
+	$: selectedFormYearObj = years.find(y => y.id === selectedFormYear);
+	$: selectedFormSectionObj = sections.find(s => s.id === selectedFormSection);
+	$: selectedFormDayObj = days.find(d => d.id === selectedFormDay);
+	$: selectedFormSubjectObj = subjects.find(s => s.id === selectedFormSubject);
+	$: selectedFormTimeSlotObj = timeSlots.find(t => t.id === selectedFormTimeSlot);
+	$: selectedFormTeacherObj = teachers.find(t => t.id === selectedFormTeacher);
+
 	// Filtered assignments based on selected filters
 	$: filteredAssignments = scheduleAssignments.filter(assignment => {
-		const sectionMatch = !selectedFilterSection || 
-			(assignment.grade + ' · ' + assignment.section) === selectedFilterSection;
+		// Require year and section selection - if either is not selected, return empty array
+		if (!selectedFilterYear || !selectedFilterSection) return false;
+		
+		const yearMatch = assignment.year === selectedFilterYear;
+		const sectionMatch = (assignment.grade + ' · ' + assignment.section) === selectedFilterSection;
 		// Use the new day picker for filtering
 		const dayMatch = !selectedAdminDay || assignment.day === dayNameMap[selectedAdminDay];
-		return sectionMatch && dayMatch;
+		return yearMatch && sectionMatch && dayMatch;
 	});
+	
+	// Check if year and section are selected for display logic
+	$: isYearSelected = !!selectedFilterYear;
+	$: isSectionSelected = !!selectedFilterSection;
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
 		if (!event.target.closest('.scheduleassign-custom-dropdown') && !event.target.closest('.admin-mobile-dropdown')) {
+			// Legacy dropdowns
 			isSectionDropdownOpen = false;
 			isTeacherDropdownOpen = false;
 			isSubjectDropdownOpen = false;
 			isTimeSlotDropdownOpen = false;
+			// Filter dropdowns
+			isFilterYearDropdownOpen = false;
 			isFilterSectionDropdownOpen = false;
 			isAdminDayDropdownOpen = false;
+			// New form dropdowns
+			isFormYearDropdownOpen = false;
+			isFormSectionDropdownOpen = false;
+			isFormDayDropdownOpen = false;
+			isFormSubjectDropdownOpen = false;
+			isFormTimeSlotDropdownOpen = false;
 		}
 	}
 
@@ -209,8 +312,25 @@
 	}
 
 	// Filter dropdown toggle functions
+	function toggleFilterYearDropdown() {
+		isFilterYearDropdownOpen = !isFilterYearDropdownOpen;
+	}
+
 	function toggleFilterSectionDropdown() {
 		isFilterSectionDropdownOpen = !isFilterSectionDropdownOpen;
+	}
+
+	// Filter selection functions
+	function selectFilterYear(year) {
+		selectedFilterYear = year ? year.id : null;
+		// Reset section selection when year changes
+		selectedFilterSection = '';
+		isFilterYearDropdownOpen = false;
+	}
+
+	function selectFilterSection(section) {
+		selectedFilterSection = section ? (section.grade + ' · ' + section.name) : null;
+		isFilterSectionDropdownOpen = false;
 	}
 
 	// Day picker functions (similar to student schedule)
@@ -223,16 +343,77 @@
 		isAdminDayDropdownOpen = false;
 	}
 
-	// Filter selection functions
-	function selectFilterSection(section) {
-		selectedFilterSection = section ? (section.grade + ' · ' + section.name) : '';
-		isFilterSectionDropdownOpen = false;
+	// New form dropdown toggle functions
+	function toggleFormYearDropdown() {
+		isFormYearDropdownOpen = !isFormYearDropdownOpen;
 	}
 
-	// Handle form submission
+	function toggleFormSectionDropdown() {
+		if (!selectedFormYear) return; // Disabled if no year selected
+		isFormSectionDropdownOpen = !isFormSectionDropdownOpen;
+	}
+
+	function toggleFormDayDropdown() {
+		if (!selectedFormSection) return; // Disabled if no section selected
+		isFormDayDropdownOpen = !isFormDayDropdownOpen;
+	}
+
+	function toggleFormSubjectDropdown() {
+		if (!selectedFormDay) return; // Disabled if no day selected
+		isFormSubjectDropdownOpen = !isFormSubjectDropdownOpen;
+	}
+
+	function toggleFormTimeSlotDropdown() {
+		if (!selectedFormSubject) return; // Disabled if no subject selected
+		isFormTimeSlotDropdownOpen = !isFormTimeSlotDropdownOpen;
+	}
+
+	// New form selection functions with cascading reset
+	function selectFormYear(year) {
+		selectedFormYear = year ? year.id : '';
+		// Reset all subsequent selections
+		selectedFormSection = '';
+		selectedFormDay = '';
+		selectedFormSubject = '';
+		selectedFormTimeSlot = '';
+		isFormYearDropdownOpen = false;
+	}
+
+	function selectFormSection(section) {
+		selectedFormSection = section ? section.id : '';
+		// Reset all subsequent selections
+		selectedFormDay = '';
+		selectedFormSubject = '';
+		selectedFormTimeSlot = '';
+		isFormSectionDropdownOpen = false;
+	}
+
+	function selectFormDay(day) {
+		selectedFormDay = day ? day.id : '';
+		// Reset all subsequent selections
+		selectedFormSubject = '';
+		selectedFormTimeSlot = '';
+		isFormDayDropdownOpen = false;
+	}
+
+	function selectFormSubject(subject) {
+		selectedFormSubject = subject ? subject.id : '';
+		// Reset subsequent selections
+		selectedFormTimeSlot = '';
+		isFormSubjectDropdownOpen = false;
+	}
+
+	function selectFormTimeSlot(timeSlot) {
+		selectedFormTimeSlot = timeSlot ? timeSlot.id : '';
+		isFormTimeSlotDropdownOpen = false;
+	}
+
+
+
+	// Handle form submission for new card-based approach
 	async function handleAssignSchedule() {
-		if (!selectedSection || !selectedTeacher || !selectedSubject || !selectedTimeSlot || !selectedAdminDay) {
-			alert('Please fill in all required fields.');
+		if (!selectedFormYear || !selectedFormSection || !selectedFormDay || !selectedFormSubject || !selectedFormTimeSlot) {
+			alert('Please select year level, section, day, subject, and time slot');
 			return;
 		}
 
@@ -240,43 +421,39 @@
 
 		try {
 			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
+			await new Promise(resolve => setTimeout(resolve, 1000));
 
-			// Get selected objects
-			const sectionObj = sections.find(s => s.id === selectedSection);
-			const teacherObj = teachers.find(t => t.id === selectedTeacher);
-			const subjectObj = subjects.find(s => s.id === selectedSubject);
-			const timeSlotObj = timeSlots.find(t => t.id === selectedTimeSlot);
-			const dayName = dayNameMap[selectedAdminDay];
-
-			// Add to schedule assignments
+			// Create new assignment
 			const newAssignment = {
 				id: scheduleAssignments.length + 1,
-				section: sectionObj.name,
-				teacher: teacherObj.name,
-				subject: subjectObj.name,
-				day: dayName,
-				timeSlot: timeSlotObj.time,
-				period: timeSlotObj.period
+				year: selectedFormYear,
+				grade: selectedFormSectionObj.grade,
+				section: selectedFormSectionObj.name,
+				teacher: 'TBD', // Will be assigned later
+				subject: selectedFormSubjectObj.name,
+				day: selectedFormDayObj.name,
+				timeSlot: selectedFormTimeSlotObj.time,
+				period: selectedFormTimeSlotObj.period
 			};
 
-			scheduleAssignments = [newAssignment, ...scheduleAssignments];
+			// Add to assignments array
+			scheduleAssignments = [...scheduleAssignments, newAssignment];
 
 			// Show success message
-			successMessage = `Schedule assigned successfully: ${subjectObj.name} for ${sectionObj.name} on ${dayName} at ${timeSlotObj.time}`;
+			successMessage = `Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`;
 			showSuccessMessage = true;
 
-			// Reset form
-			selectedSection = '';
-			selectedTeacher = '';
-			selectedSubject = '';
-			selectedTimeSlot = '';
-			// Keep day picker at current selection
+			// Reset only subject and time slot selections to allow adding more subjects
+			selectedFormSubject = '';
+			selectedFormTimeSlot = '';
+			
+			// Close any open dropdowns
+			isFormSubjectDropdownOpen = false;
 
-			// Hide success message after 5 seconds
+			// Hide success message after 2 seconds
 			setTimeout(() => {
 				showSuccessMessage = false;
-			}, 5000);
+			}, 2000);
 
 		} catch (error) {
 			console.error('Error assigning schedule:', error);
@@ -285,6 +462,109 @@
 			isAssigning = false;
 		}
 	}
+
+	// Reset form function
+	function resetForm() {
+		selectedFormYear = '';
+		selectedFormSection = '';
+		selectedFormDay = '';
+		selectedFormSubject = '';
+		selectedFormTimeSlot = '';
+		
+		// Close all dropdowns
+			isFormYearDropdownOpen = false;
+			isFormSectionDropdownOpen = false;
+			isFormDayDropdownOpen = false;
+			isFormSubjectDropdownOpen = false;
+			isFormTimeSlotDropdownOpen = false;
+			isFormTeacherDropdownOpen = false;
+		
+		// Hide success message
+		showSuccessMessage = false;
+	}
+	
+	// Reset day selection and subsequent selections
+	function resetDaySelection() {
+		selectedFormDay = '';
+		selectedFormSubject = '';
+		selectedFormTimeSlot = '';
+		
+		// Close related dropdowns
+		isFormDayDropdownOpen = false;
+		isFormSubjectDropdownOpen = false;
+		isFormTimeSlotDropdownOpen = false;
+		isFormTeacherDropdownOpen = false;
+	}
+
+	// New form teacher dropdown functions
+	function toggleFormTeacherDropdown() {
+		isFormTeacherDropdownOpen = !isFormTeacherDropdownOpen;
+	}
+
+	function selectFormTeacher(teacher) {
+		selectedFormTeacher = teacher ? teacher.id : '';
+		isFormTeacherDropdownOpen = false;
+	}
+
+	// Add schedule functions
+	function handleAddSchedule() {
+		if (!newSchedule.startTime || !newSchedule.endTime || !selectedFormSubject || !selectedFormTeacher) {
+			alert('Please fill in all required fields');
+			return;
+		}
+
+		isAssigning = true;
+
+		try {
+			// Create new assignment
+			const newAssignment = {
+				id: scheduleAssignments.length + 1,
+				year: selectedFormYear,
+				grade: selectedFormSectionObj.grade,
+				section: selectedFormSectionObj.name,
+				teacher: selectedFormTeacherObj.name,
+				subject: selectedFormSubjectObj.name,
+				day: selectedFormDayObj.name,
+				timeSlot: `${newSchedule.startTime} - ${newSchedule.endTime}`,
+				period: 'Custom Period'
+			};
+
+			// Add to assignments array
+			scheduleAssignments = [...scheduleAssignments, newAssignment];
+
+			// Show success message
+			successMessage = `Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`;
+			showSuccessMessage = true;
+
+			// Reset form
+			newSchedule = { startTime: '', endTime: '' };
+			selectedFormSubject = '';
+			selectedFormTeacher = '';
+			isAddingSchedule = false;
+
+			// Hide success message after 2 seconds
+			setTimeout(() => {
+				showSuccessMessage = false;
+			}, 2000);
+
+		} catch (error) {
+			console.error('Error assigning schedule:', error);
+			alert('Failed to assign schedule. Please try again.');
+		} finally {
+			isAssigning = false;
+		}
+	}
+
+	function cancelAddSchedule() {
+		newSchedule = { startTime: '', endTime: '' };
+		selectedFormSubject = '';
+		selectedFormTeacher = '';
+		isAddingSchedule = false;
+		isFormSubjectDropdownOpen = false;
+		isFormTeacherDropdownOpen = false;
+	}
+	
+
 
 	// Get selected objects for display
 	$: selectedSectionObj = sections.find(s => s.id === selectedSection);
@@ -320,83 +600,88 @@
 		</div>
 
 		<form on:submit|preventDefault={handleAssignSchedule}>
-				<!-- Section and Teacher Row -->
-				<div class="scheduleassign-form-grid">
-					<!-- Section Selection -->
+			<div class="scheduleassign-hierarchical-form">
+				<p class="scheduleassign-form-instruction">Select year level and section, then choose a day to add schedule assignments.</p>
+
+				<!-- Year Level and Section Selection Row -->
+				<div class="scheduleassign-selection-row">
+					<!-- Year Level Selection -->
 					<div class="scheduleassign-form-group">
-						<label class="scheduleassign-form-label" for="section">Section *</label>
-						<div class="scheduleassign-custom-dropdown" class:open={isSectionDropdownOpen}>
+						<label class="scheduleassign-form-label" for="form-year">Year Level *</label>
+						<div class="scheduleassign-custom-dropdown" class:open={isFormYearDropdownOpen}>
 							<button 
 								type="button"
 								class="scheduleassign-dropdown-button" 
-								class:selected={selectedSection}
-								on:click={toggleSectionDropdown}
-								id="section"
+								class:selected={selectedFormYear}
+								on:click={toggleFormYearDropdown}
+								id="form-year"
 							>
-								{#if selectedSectionObj}
-								<div class="scheduleassign-selected-option">
-									<span class="material-symbols-outlined option-icon">school</span>
-									<div class="option-content">
-										<span class="option-name">{selectedSectionObj.grade} · {selectedSectionObj.name}</span>
+								{#if selectedFormYearObj}
+									<div class="scheduleassign-selected-option">
+										<span class="material-symbols-outlined option-icon">school</span>
+										<div class="option-content">
+											<span class="option-name">{selectedFormYearObj.name}</span>
+										</div>
 									</div>
-								</div>
 								{:else}
-									<span class="placeholder">Select section</span>
+									<span class="placeholder">Select year level</span>
 								{/if}
 								<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 							</button>
 							<div class="scheduleassign-dropdown-menu">
-								{#each sections as section (section.id)}
+								{#each years as year (year.id)}
 									<button 
 										type="button"
 										class="scheduleassign-dropdown-item" 
-										class:selected={selectedSection === section.id}
-										on:click={() => selectSection(section)}
+										class:selected={selectedFormYear === year.id}
+										on:click={() => selectFormYear(year)}
 									>
 										<span class="material-symbols-outlined option-icon">school</span>
-									<div class="option-content">
-										<span class="option-name">{section.grade} · {section.name}</span>
-									</div>
+										<div class="option-content">
+											<span class="option-name">{year.name}</span>
+										</div>
 									</button>
 								{/each}
 							</div>
 						</div>
 					</div>
 
-					<!-- Teacher Selection -->
+					<!-- Section Selection -->
 					<div class="scheduleassign-form-group">
-						<label class="scheduleassign-form-label" for="teacher">Teacher *</label>
-						<div class="scheduleassign-custom-dropdown" class:open={isTeacherDropdownOpen}>
+						<label class="scheduleassign-form-label" for="form-section">Section *</label>
+						<div class="scheduleassign-custom-dropdown" class:open={isFormSectionDropdownOpen} class:disabled={!selectedFormYear}>
 							<button 
 								type="button"
 								class="scheduleassign-dropdown-button" 
-								class:selected={selectedTeacher}
-								on:click={toggleTeacherDropdown}
-								id="teacher"
+								class:selected={selectedFormSection}
+								class:disabled={!selectedFormYear}
+								on:click={toggleFormSectionDropdown}
+								id="form-section"
+								disabled={!selectedFormYear}
 							>
-								{#if selectedTeacherObj}
-								<div class="scheduleassign-selected-option">
-									<span class="material-symbols-outlined option-icon">person</span>
-									<div class="option-content">
-										<span class="option-name">{selectedTeacherObj.name} · {selectedTeacherObj.subject}</span>
+								{#if selectedFormSectionObj}
+									<div class="scheduleassign-selected-option">
+										<span class="material-symbols-outlined option-icon">class</span>
+										<div class="option-content">
+											<span class="option-name">{selectedFormSectionObj.grade} · {selectedFormSectionObj.name}</span>
+										</div>
 									</div>
-								</div>
 								{:else}
-									<span class="placeholder">Select teacher</span>
+									<span class="placeholder">{selectedFormYear ? 'Select section' : 'Select year level first'}</span>
 								{/if}
 								<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 							</button>
 							<div class="scheduleassign-dropdown-menu">
-								{#each teachers as teacher (teacher.id)}
+								{#each filteredFormSections as section (section.id)}
 									<button 
 										type="button"
 										class="scheduleassign-dropdown-item" 
-										class:selected={selectedTeacher === teacher.id}
-										on:click={() => selectTeacher(teacher)}
+										class:selected={selectedFormSection === section.id}
+										on:click={() => selectFormSection(section)}
 									>
-										<span class="material-symbols-outlined option-icon">person</span>
-									<div class="option-content">
-										<span class="option-name">{teacher.name} · {teacher.subject}</span>
+										<span class="material-symbols-outlined option-icon">class</span>
+										<div class="option-content">
+											<span class="option-name">{section.grade} · {section.name}</span>
 										</div>
 									</button>
 								{/each}
@@ -405,111 +690,172 @@
 					</div>
 				</div>
 
-				<!-- Subject Selection -->
-				<div class="scheduleassign-form-group">
-					<label class="scheduleassign-form-label" for="subject">Subject *</label>
-					<div class="scheduleassign-custom-dropdown" class:open={isSubjectDropdownOpen}>
-						<button 
-							type="button"
-							class="scheduleassign-dropdown-button" 
-							class:selected={selectedSubject}
-							on:click={toggleSubjectDropdown}
-							id="subject"
-						>
-							{#if selectedSubjectObj}
-								<div class="scheduleassign-selected-option">
-									<span class="material-symbols-outlined option-icon">{selectedSubjectObj.icon}</span>
-									<div class="option-content">
-										<span class="option-name">{selectedSubjectObj.name}</span>
-									</div>
-								</div>
-							{:else}
-								<span class="placeholder">Select subject</span>
-							{/if}
-							<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-						</button>
-						<div class="scheduleassign-dropdown-menu">
-							{#each subjects as subject (subject.id)}
+				<!-- Day Selection Grid -->
+				{#if selectedFormYear && selectedFormSection}
+					<div class="scheduleassign-day-selection">
+						<label class="scheduleassign-form-label">Select Day *</label>
+						<div class="scheduleassign-day-grid">
+							{#each days as day (day.id)}
 								<button 
 									type="button"
-									class="scheduleassign-dropdown-item" 
-									class:selected={selectedSubject === subject.id}
-									on:click={() => selectSubject(subject)}
+									class="scheduleassign-day-button" 
+									class:selected={selectedFormDay === day.id}
+									on:click={() => selectFormDay(day)}
 								>
-									<span class="material-symbols-outlined option-icon">{subject.icon}</span>
-									<div class="option-content">
-										<span class="option-name">{subject.name}</span>
-									</div>
+									<span class="material-symbols-outlined">calendar_today</span>
+									<span class="day-name">{day.name}</span>
 								</button>
 							{/each}
 						</div>
-				</div>
+					</div>
+				{/if}
 			</div>
 
-				<!-- Time Slot Row -->
-			<div class="scheduleassign-day-timeslot-row">
-
-					<!-- Time Slot Selection -->
-					<div class="scheduleassign-form-group">
-						<label class="scheduleassign-form-label" for="time-slot">Time Slot *</label>
-						<div class="scheduleassign-custom-dropdown" class:open={isTimeSlotDropdownOpen}>
-							<button 
-								type="button"
-								class="scheduleassign-dropdown-button" 
-								class:selected={selectedTimeSlot}
-								on:click={toggleTimeSlotDropdown}
-								id="time-slot"
-							>
-								{#if selectedTimeSlotObj}
-									<div class="scheduleassign-selected-option">
-										<span class="material-symbols-outlined option-icon">schedule</span>
-										<div class="option-content">
-											<span class="option-name">{selectedTimeSlotObj.time}</span>
-											<span class="option-description">{selectedTimeSlotObj.period}</span>
-										</div>
-									</div>
-								{:else}
-									<span class="placeholder">Select time slot</span>
-								{/if}
-								<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-							</button>
-							<div class="scheduleassign-dropdown-menu">
-								{#each timeSlots as timeSlot (timeSlot.id)}
+				<!-- Add Schedule Section -->
+				{#if selectedFormYear && selectedFormSection && selectedFormDay}
+					<div class="scheduleassign-add-section">
+						<h3 class="scheduleassign-section-title">
+							Schedule for {selectedFormSectionObj.grade} {selectedFormSectionObj.name} - {selectedFormDayObj.name}
+						</h3>
+						<button 
+							type="button"
+							class="scheduleassign-add-schedule-card"
+							class:cancel-mode={isAddingSchedule}
+							on:click={() => isAddingSchedule ? cancelAddSchedule() : (isAddingSchedule = true)}
+						>
+							<div class="scheduleassign-card-content">
+								<h4 class="scheduleassign-card-title">{isAddingSchedule ? 'Cancel' : 'Add Schedule'}</h4>
+								<p class="scheduleassign-card-subtitle">{isAddingSchedule ? 'Close the form' : 'Create a new class schedule'}</p>
+							</div>
+						</button>
+					</div>
+				{/if}
+				
+				<!-- Add Schedule Form -->
+				{#if isAddingSchedule && selectedFormYear && selectedFormSection && selectedFormDay}
+					<div class="scheduleassign-add-form">
+						<h3 class="scheduleassign-form-title">Add New Schedule</h3>
+						<div class="scheduleassign-form-inputs">
+							<!-- Time Input -->
+							<div class="scheduleassign-input-group">
+								<label class="scheduleassign-form-label">Start Time *</label>
+								<input 
+									type="time" 
+									class="scheduleassign-time-input"
+									bind:value={newSchedule.startTime}
+									required
+								/>
+							</div>
+							<div class="scheduleassign-input-group">
+								<label class="scheduleassign-form-label">End Time *</label>
+								<input 
+									type="time" 
+									class="scheduleassign-time-input"
+									bind:value={newSchedule.endTime}
+									required
+								/>
+							</div>
+							
+							<!-- Subject Selection -->
+							<div class="scheduleassign-input-group">
+								<label class="scheduleassign-form-label">Subject *</label>
+								<div class="scheduleassign-custom-dropdown" class:open={isFormSubjectDropdownOpen}>
 									<button 
 										type="button"
-										class="scheduleassign-dropdown-item" 
-										class:selected={selectedTimeSlot === timeSlot.id}
-										on:click={() => selectTimeSlot(timeSlot)}
+										class="scheduleassign-dropdown-button" 
+										class:selected={selectedFormSubject}
+										on:click={toggleFormSubjectDropdown}
 									>
-										<span class="material-symbols-outlined option-icon">schedule</span>
-										<div class="option-content">
-											<span class="option-name">{timeSlot.time}</span>
-											<span class="option-description">{timeSlot.period}</span>
-										</div>
+										{#if selectedFormSubjectObj}
+											<div class="scheduleassign-selected-option">
+												<span class="material-symbols-outlined option-icon">{selectedFormSubjectObj.icon}</span>
+												<div class="option-content">
+													<span class="option-name">{selectedFormSubjectObj.name}</span>
+												</div>
+											</div>
+										{:else}
+											<span class="placeholder">Select subject</span>
+										{/if}
+										<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 									</button>
-								{/each}
+									<div class="scheduleassign-dropdown-menu">
+										{#each subjects as subject (subject.id)}
+											<button 
+												type="button"
+												class="scheduleassign-dropdown-item" 
+												class:selected={selectedFormSubject === subject.id}
+												on:click={() => selectFormSubject(subject)}
+											>
+												<span class="material-symbols-outlined option-icon">{subject.icon}</span>
+												<div class="option-content">
+													<span class="option-name">{subject.name}</span>
+												</div>
+											</button>
+										{/each}
+									</div>
+								</div>
+							</div>
+							
+							<!-- Teacher Selection -->
+							<div class="scheduleassign-input-group">
+								<label class="scheduleassign-form-label">Teacher *</label>
+								<div class="scheduleassign-custom-dropdown" class:open={isFormTeacherDropdownOpen}>
+									<button 
+										type="button"
+										class="scheduleassign-dropdown-button" 
+										class:selected={selectedFormTeacher}
+										on:click={toggleFormTeacherDropdown}
+									>
+										{#if selectedFormTeacherObj}
+											<div class="scheduleassign-selected-option">
+												<span class="material-symbols-outlined option-icon">person</span>
+												<div class="option-content">
+													<span class="option-name">{selectedFormTeacherObj.name}</span>
+												</div>
+											</div>
+										{:else}
+											<span class="placeholder">Select teacher</span>
+										{/if}
+										<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
+									</button>
+									<div class="scheduleassign-dropdown-menu">
+										{#each teachers as teacher (teacher.id)}
+											<button 
+												type="button"
+												class="scheduleassign-dropdown-item" 
+												class:selected={selectedFormTeacher === teacher.id}
+												on:click={() => selectFormTeacher(teacher)}
+											>
+												<span class="material-symbols-outlined option-icon">person</span>
+												<div class="option-content">
+													<span class="option-name">{teacher.name}</span>
+												</div>
+											</button>
+										{/each}
+									</div>
+								</div>
 							</div>
 						</div>
+						
+						<!-- Form Actions -->
+						<div class="scheduleassign-form-actions">
+							<button 
+								type="button" 
+								class="scheduleassign-save-schedule-btn"
+								on:click={handleAddSchedule}
+								disabled={isAssigning}
+							>
+								{#if isAssigning}
+									<span class="material-symbols-outlined spinning">progress_activity</span>
+									Saving...
+								{:else}
+									<span class="material-symbols-outlined">save</span>
+									Save Schedule
+								{/if}
+							</button>
+						</div>
 					</div>
-				</div>
-
-				<!-- Submit Button -->
-				<div class="scheduleassign-form-actions">
-					<button 
-						type="submit" 
-						class="scheduleassign-assign-button" 
-						class:loading={isAssigning}
-						disabled={isAssigning || !selectedSection || !selectedTeacher || !selectedSubject || !selectedTimeSlot || !selectedDay}
-					>
-						{#if isAssigning}
-							<span class="material-symbols-outlined loading-icon">hourglass_empty</span>
-							Assigning Schedule...
-						{:else}
-							<span class="material-symbols-outlined">event</span>
-							Assign Schedule
-						{/if}
-					</button>
-				</div>
+				{/if}
 		</form>
 	</div>
 
@@ -520,33 +866,73 @@
 			<p class="scheduleassign-section-subtitle">Recently assigned schedules in the system</p>
 		</div>
 
-		<!-- Section Filter -->
+		<!-- Year and Section Filters -->
 		<div class="scheduleassign-filter-controls">
-			<div class="scheduleassign-custom-dropdown" class:open={isFilterSectionDropdownOpen}>
+			<!-- Year Filter -->
+			<div class="scheduleassign-custom-dropdown" class:open={isFilterYearDropdownOpen}>
+				<button 
+					type="button" 
+					class="scheduleassign-dropdown-button" 
+					on:click={toggleFilterYearDropdown}
+				>
+					<div class="scheduleassign-dropdown-content">
+						<span class="scheduleassign-option-name">
+							{selectedFilterYear || 'Select a year'}
+						</span>
+					</div>
+					<span class="material-symbols-outlined scheduleassign-dropdown-icon" class:rotated={isFilterYearDropdownOpen}>
+						expand_more
+					</span>
+				</button>
+				{#if isFilterYearDropdownOpen}
+					<div class="scheduleassign-dropdown-menu">
+						<button 
+							type="button" 
+							class="scheduleassign-dropdown-item" 
+							on:click={() => selectFilterYear(null)}
+						>
+							<span class="scheduleassign-option-name">Select a year</span>
+						</button>
+						{#each years as year (year.id)}
+							<button 
+								type="button" 
+								class="scheduleassign-dropdown-item" 
+								on:click={() => selectFilterYear(year)}
+							>
+								<span class="scheduleassign-option-name">{year.name}</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Section Filter -->
+			<div class="scheduleassign-custom-dropdown" class:open={isFilterSectionDropdownOpen} class:disabled={!isYearSelected}>
 				<button 
 					type="button" 
 					class="scheduleassign-dropdown-button" 
 					on:click={toggleFilterSectionDropdown}
+					disabled={!isYearSelected}
 				>
 					<div class="scheduleassign-dropdown-content">
 						<span class="scheduleassign-option-name">
-							{selectedFilterSection || 'All Sections'}
+							{selectedFilterSection || (isYearSelected ? 'Select a section' : 'Select a year first')}
 						</span>
 					</div>
 					<span class="material-symbols-outlined scheduleassign-dropdown-icon" class:rotated={isFilterSectionDropdownOpen}>
 						expand_more
 					</span>
 				</button>
-				{#if isFilterSectionDropdownOpen}
+				{#if isFilterSectionDropdownOpen && isYearSelected}
 					<div class="scheduleassign-dropdown-menu">
 						<button 
 							type="button" 
 							class="scheduleassign-dropdown-item" 
 							on:click={() => selectFilterSection(null)}
 						>
-							<span class="scheduleassign-option-name">All Sections</span>
+							<span class="scheduleassign-option-name">Select a section</span>
 						</button>
-						{#each sections as section (section.id)}
+						{#each filteredSections as section (section.id)}
 							<button 
 								type="button" 
 								class="scheduleassign-dropdown-item" 
@@ -603,26 +989,48 @@
 		</div>
 
 		<div class="scheduleassign-assignments-grid">
-			{#if filteredAssignments.length > 0}
+			{#if !isYearSelected}
+				<div class="scheduleassign-no-schedule">
+					<div class="scheduleassign-no-schedule-icon">
+						<span class="material-symbols-outlined">calendar_month</span>
+					</div>
+					<div class="scheduleassign-no-schedule-text">
+						<h3>Select a Year</h3>
+						<p>Please select a school year from the filter above to view available sections.</p>
+					</div>
+				</div>
+			{:else if !isSectionSelected}
+				<div class="scheduleassign-no-schedule">
+					<div class="scheduleassign-no-schedule-icon">
+						<span class="material-symbols-outlined">school</span>
+					</div>
+					<div class="scheduleassign-no-schedule-text">
+						<h3>Select a Section</h3>
+						<p>Please select a section from the filter above to view schedule assignments.</p>
+					</div>
+				</div>
+			{:else if filteredAssignments.length > 0}
 				{#each filteredAssignments as assignment (assignment.id)}
 					<div class="scheduleassign-assignment-card">
-						<div class="scheduleassign-assignment-actions">
-							<button class="scheduleassign-action-button scheduleassign-edit-button" title="Edit Assignment">
-								<span class="material-symbols-outlined">edit</span>
-							</button>
-							<button class="scheduleassign-action-button scheduleassign-delete-button" title="Delete Assignment">
-								<span class="material-symbols-outlined">delete</span>
-							</button>
+						<div class="scheduleassign-assignment-header">
+							<div class="scheduleassign-assignment-info">
+								<h3 class="scheduleassign-assignment-title">{assignment.subject}</h3>
+								<p class="scheduleassign-assignment-subtitle">{assignment.grade} - {assignment.section}</p>
+							</div>
+							<div class="scheduleassign-assignment-actions">
+								<button class="scheduleassign-edit-button" title="Edit Assignment">
+									<span class="material-symbols-outlined">edit</span>
+								</button>
+								<button class="scheduleassign-delete-button" title="Delete Assignment">
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
 						</div>
-					<div class="scheduleassign-assignment-details">
-						<div class="scheduleassign-detail-item">
-							<span class="material-symbols-outlined scheduleassign-detail-icon">school</span>
-							<span class="scheduleassign-detail-text">{assignment.grade} · {assignment.section}</span>
-						</div>
-						<div class="scheduleassign-detail-item">
-							<span class="material-symbols-outlined scheduleassign-detail-icon">person</span>
-							<span class="scheduleassign-detail-text">{assignment.teacher} · {assignment.subject}</span>
-						</div>
+						<div class="scheduleassign-assignment-details">
+							<div class="scheduleassign-detail-item">
+								<span class="material-symbols-outlined scheduleassign-detail-icon">person</span>
+								<span class="scheduleassign-detail-text">{assignment.teacher}</span>
+							</div>
 							<div class="scheduleassign-detail-item">
 								<span class="material-symbols-outlined scheduleassign-detail-icon">calendar_today</span>
 								<span class="scheduleassign-detail-text">{assignment.day}</span>
@@ -641,7 +1049,10 @@
 					</div>
 					<div class="scheduleassign-no-schedule-text">
 						<h3>No Schedule Found</h3>
-						<p>There are no schedule assignments for the selected filters.</p>
+						<div class="scheduleassign-empty-state">
+								<span class="material-symbols-outlined scheduleassign-empty-icon">event_busy</span>
+								<p class="scheduleassign-empty-text">There are no schedule assignments for the selected section and filters.</p>
+						</div>
 					</div>
 				</div>
 			{/if}

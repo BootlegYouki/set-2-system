@@ -662,14 +662,23 @@
 					<div class="sectionmgmt-section-title">
 						<h3 class="sectionmgmt-section-name">{section.name} · {section.grade}</h3>
 					</div>
-					<button 
-						type="button"
-						class="sectionmgmt-edit-button"
-						on:click={() => toggleEditForm(section)}
-						title="{editingSectionId === section.id ? 'Cancel Edit' : 'Edit Section'}"
-					>
-						<span class="material-symbols-outlined">{editingSectionId === section.id ? 'close' : 'edit'}</span>
-					</button>
+					<div class="sectionmgmt-action-buttons">
+						<button 
+							type="button"
+							class="sectionmgmt-edit-button"
+							on:click={() => toggleEditForm(section)}
+							title="{editingSectionId === section.id ? 'Cancel Edit' : 'Edit Section'}"
+						>
+							<span class="material-symbols-outlined">{editingSectionId === section.id ? 'close' : 'edit'}</span>
+						</button>
+						<button 
+							type="button"
+							class="sectionmgmt-remove-button"
+							title="Remove Section"
+						>
+							<span class="material-symbols-outlined">delete</span>
+						</button>
+					</div>
 				</div>
 				
 				<div class="sectionmgmt-section-details">

@@ -517,34 +517,55 @@
 		<div class="admin-room-rooms-grid">
 			{#each existingRooms as room (room.id)}
 				<div class="admin-room-room-card">
-					<div class="admin-room-room-info">
 					<div class="admin-room-room-header">
-					<h3 class="admin-room-room-name">{room.name}</h3>
-					<div class="admin-room-status-container">
-						<span class="admin-room-status-badge admin-room-status-{room.status}">{room.status}</span>
+						<div class="admin-room-room-title">
+							<h3 class="admin-room-room-name">{room.name}</h3>
+						</div>
+						<div class="admin-room-action-buttons">
 						{#if room.assignedTo}
 							<button 
+								type="button"
 								class="admin-room-unassign-button"
 								on:click={() => unassignRoom(room.id)}
-								title="Unassign room"
+								title="Unassign Room"
 							>
 								<span class="material-symbols-outlined">remove_circle</span>
 							</button>
 						{/if}
+						<button 
+							type="button"
+							class="admin-room-edit-button"
+							title="Edit Room"
+						>
+							<span class="material-symbols-outlined">edit</span>
+						</button>
+						<button 
+							type="button"
+							class="admin-room-remove-button"
+							title="Remove Room"
+						>
+							<span class="material-symbols-outlined">delete</span>
+						</button>
 					</div>
-				</div>
-				<div class="admin-room-room-details">
-					<p class="admin-room-room-location">
-						<span class="material-symbols-outlined">location_on</span>
-						{room.building}, {room.floor}
-					</p>
-				</div>
-			</div>
-				<div class="admin-room-room-status">
-					{#if room.assignedTo}
-						<p class="admin-room-assigned-to">Assigned to: {room.assignedTo}</p>
-					{/if}
-				</div>
+					</div>
+					
+					<div class="admin-room-room-details">
+						<div class="admin-room-room-location">
+							<span class="material-symbols-outlined">location_on</span>
+							<span>{room.building}, {room.floor}</span>
+						</div>
+						{#if room.assignedTo}
+							<div class="admin-room-room-assignment">
+								<span class="material-symbols-outlined">group</span>
+								<span>Assigned to: {room.assignedTo}</span>
+							</div>
+						{:else}
+							<div class="admin-room-room-assignment">
+								<span class="material-symbols-outlined">check_circle</span>
+								<span>Available</span>
+							</div>
+						{/if}
+					</div>
 				</div>
 			{/each}
 		</div>
