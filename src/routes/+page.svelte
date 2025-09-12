@@ -14,13 +14,13 @@
   import TeacherStudentList from '../components/users/teacher/sections/teacherClassManagement/teacherClassManagement.svelte';
   import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
-import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
-import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
-import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
-import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
-import AdminSectionManagement from '../components/users/admin/sections/adminSectionCreation/adminSectionManagement.svelte';
-import AdminScheduleAssignment from '../components/users/admin/sections/adminScheduleAssignment/adminScheduleAssignment.svelte';
-import AdminSubjectCreation from '../components/users/admin/sections/adminSubjectCreation/adminSubjectCreation.svelte';
+  import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
+  import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
+  import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
+  import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
+  import AdminSectionManagement from '../components/users/admin/sections/adminSectionCreation/adminSectionManagement.svelte';
+  import AdminScheduleAssignment from '../components/users/admin/sections/adminScheduleAssignment/adminScheduleAssignment.svelte';
+  import AdminSubjectCreation from '../components/users/admin/sections/adminSubjectCreation/adminSubjectCreation.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store

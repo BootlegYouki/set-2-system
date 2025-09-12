@@ -1,5 +1,6 @@
 <script>
 	import './adminScheduleAssignment.css';
+	import { toastStore } from '../../../../common/js/toastStore.js';
 
 	// Schedule assignment state
 	let isAssigning = false;
@@ -8,8 +9,7 @@
 	let selectedFormDay = '';
 	let selectedFormSubject = '';
 	let selectedFormTimeSlot = '';
-	let showSuccessMessage = false;
-	let successMessage = '';
+
 
 	// Form dropdown states
 	let isFormYearDropdownOpen = false;
@@ -137,6 +137,8 @@
 	// Add Schedule State
 	let isAddingSchedule = false;
 	let newSchedule = { startTime: '', endTime: '' };
+	// Array to store saved schedules for current selection
+	let savedSchedules = [];
 	let isFormTeacherDropdownOpen = false;
 	let selectedFormTeacher = '';
 
@@ -231,6 +233,11 @@
 	$: selectedFormSubjectObj = subjects.find(s => s.id === selectedFormSubject);
 	$: selectedFormTimeSlotObj = timeSlots.find(t => t.id === selectedFormTimeSlot);
 	$: selectedFormTeacherObj = teachers.find(t => t.id === selectedFormTeacher);
+
+	// Clear saved schedules when selection changes
+	$: if (selectedFormYear || selectedFormSection || selectedFormDay) {
+		savedSchedules = [];
+	}
 
 	// Filtered assignments based on selected filters
 	$: filteredAssignments = scheduleAssignments.filter(assignment => {
@@ -413,7 +420,7 @@
 	// Handle form submission for new card-based approach
 	async function handleAssignSchedule() {
 		if (!selectedFormYear || !selectedFormSection || !selectedFormDay || !selectedFormSubject || !selectedFormTimeSlot) {
-			alert('Please select year level, section, day, subject, and time slot');
+			toastStore.warning('Please select year level, section, day, subject, and time slot');
 			return;
 		}
 
@@ -439,9 +446,8 @@
 			// Add to assignments array
 			scheduleAssignments = [...scheduleAssignments, newAssignment];
 
-			// Show success message
-			successMessage = `Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`;
-			showSuccessMessage = true;
+			// Show success toast
+			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`);
 
 			// Reset only subject and time slot selections to allow adding more subjects
 			selectedFormSubject = '';
@@ -450,14 +456,9 @@
 			// Close any open dropdowns
 			isFormSubjectDropdownOpen = false;
 
-			// Hide success message after 2 seconds
-			setTimeout(() => {
-				showSuccessMessage = false;
-			}, 2000);
-
 		} catch (error) {
 			console.error('Error assigning schedule:', error);
-			alert('Failed to assign schedule. Please try again.');
+			toastStore.error('Failed to assign schedule. Please try again.');
 		} finally {
 			isAssigning = false;
 		}
@@ -509,32 +510,42 @@
 	// Add schedule functions
 	function handleAddSchedule() {
 		if (!newSchedule.startTime || !newSchedule.endTime || !selectedFormSubject || !selectedFormTeacher) {
-			alert('Please fill in all required fields');
+			toastStore.warning('Please fill in all required fields');
 			return;
 		}
 
 		isAssigning = true;
 
 		try {
-			// Create new assignment
-			const newAssignment = {
-				id: scheduleAssignments.length + 1,
-				year: selectedFormYear,
-				grade: selectedFormSectionObj.grade,
-				section: selectedFormSectionObj.name,
-				teacher: selectedFormTeacherObj.name,
-				subject: selectedFormSubjectObj.name,
-				day: selectedFormDayObj.name,
-				timeSlot: `${newSchedule.startTime} - ${newSchedule.endTime}`,
-				period: 'Custom Period'
-			};
+				// Create new assignment
+				const newAssignment = {
+					id: scheduleAssignments.length + 1,
+					year: selectedFormYear,
+					grade: selectedFormSectionObj.grade,
+					section: selectedFormSectionObj.name,
+					teacher: selectedFormTeacherObj.name,
+					subject: selectedFormSubjectObj.name,
+					day: selectedFormDayObj.name,
+					timeSlot: `${newSchedule.startTime} - ${newSchedule.endTime}`,
+					period: 'Custom Period'
+				};
 
-			// Add to assignments array
-			scheduleAssignments = [...scheduleAssignments, newAssignment];
+				// Add to assignments array
+				scheduleAssignments = [...scheduleAssignments, newAssignment];
 
-			// Show success message
-			successMessage = `Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`;
-			showSuccessMessage = true;
+				// Add to saved schedules for current selection
+				const savedSchedule = {
+					id: Date.now(),
+					startTime: newSchedule.startTime,
+					endTime: newSchedule.endTime,
+					subject: selectedFormSubjectObj.name,
+					subjectIcon: selectedFormSubjectObj.icon,
+					teacher: selectedFormTeacherObj.name
+				};
+				savedSchedules = [...savedSchedules, savedSchedule];
+
+			// Show success toast
+			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`);
 
 			// Reset form
 			newSchedule = { startTime: '', endTime: '' };
@@ -542,14 +553,9 @@
 			selectedFormTeacher = '';
 			isAddingSchedule = false;
 
-			// Hide success message after 2 seconds
-			setTimeout(() => {
-				showSuccessMessage = false;
-			}, 2000);
-
 		} catch (error) {
 			console.error('Error assigning schedule:', error);
-			alert('Failed to assign schedule. Please try again.');
+			toastStore.error('Failed to assign schedule. Please try again.');
 		} finally {
 			isAssigning = false;
 		}
@@ -563,6 +569,92 @@
 		isFormSubjectDropdownOpen = false;
 		isFormTeacherDropdownOpen = false;
 	}
+
+	function removeSchedule(scheduleId) {
+		savedSchedules = savedSchedules.filter(schedule => schedule.id !== scheduleId);
+	}
+
+	// Import/Export functions
+	let fileInput;
+
+	function exportSchedules() {
+		if (savedSchedules.length === 0) return;
+		
+		const exportData = {
+			version: '1.0',
+			exportDate: new Date().toISOString(),
+			grade: selectedFormSectionObj.grade,
+			section: selectedFormSectionObj.name,
+			day: selectedFormDayObj.name,
+			schedules: savedSchedules
+		};
+		
+		const dataStr = JSON.stringify(exportData, null, 2);
+		const dataBlob = new Blob([dataStr], { type: 'application/json' });
+		const url = URL.createObjectURL(dataBlob);
+		
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `schedule_${selectedFormSectionObj.grade}_${selectedFormSectionObj.name}_${selectedFormDayObj.name}_${new Date().toISOString().split('T')[0]}.json`;
+		link.click();
+		
+		URL.revokeObjectURL(url);
+		
+		// Show success toast
+		toastStore.success(`Successfully exported ${savedSchedules.length} schedule(s)`);
+	}
+
+	function importSchedules() {
+		fileInput.click();
+	}
+
+	function handleFileImport(event) {
+		const file = event.target.files[0];
+		if (!file) return;
+		
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const importData = JSON.parse(e.target.result);
+				
+				// Validate import data structure
+				if (!importData.schedules || !Array.isArray(importData.schedules)) {
+					toastStore.error('Invalid file format. Please select a valid schedule export file.');
+					return;
+				}
+				
+				// Validate each schedule has required fields
+				const validSchedules = importData.schedules.filter(schedule => 
+					schedule.id && schedule.subject && schedule.teacher && 
+					schedule.startTime && schedule.endTime
+				);
+				
+				if (validSchedules.length === 0) {
+					toastStore.error('No valid schedules found in the imported file.');
+					return;
+				}
+				
+				// Generate new IDs to avoid conflicts
+				const importedSchedules = validSchedules.map(schedule => ({
+					...schedule,
+					id: Date.now() + Math.random()
+				}));
+				
+				// Add to existing schedules
+				savedSchedules = [...savedSchedules, ...importedSchedules];
+				
+				// Show success toast
+				toastStore.success(`Successfully imported ${importedSchedules.length} schedule(s)`);
+				
+			} catch (error) {
+				toastStore.error('Error reading file. Please make sure it\'s a valid JSON file.');
+			}
+		};
+		reader.readAsText(file);
+		
+		// Reset file input
+		event.target.value = '';
+	}
 	
 
 
@@ -575,6 +667,15 @@
 
 <svelte:window on:click={handleClickOutside} />
 
+<!-- Hidden file input for importing schedules -->
+<input 
+	type="file" 
+	accept=".json" 
+	bind:this={fileInput} 
+	on:change={handleFileImport}
+	style="display: none;"
+/>
+
 <div class="scheduleassign-container">
 	<!-- Header -->
 	<div class="scheduleassign-header">
@@ -584,13 +685,7 @@
 		</div>
 	</div>
 
-	<!-- Success Message -->
-	{#if showSuccessMessage}
-		<div class="scheduleassign-success-message">
-			<span class="material-symbols-outlined scheduleassign-success-icon">check_circle</span>
-			<span class="scheduleassign-success-text">{successMessage}</span>
-		</div>
-	{/if}
+
 
 	<!-- Schedule Assignment Form -->
 	<div class="scheduleassign-form-section">
@@ -714,9 +809,73 @@
 				<!-- Add Schedule Section -->
 				{#if selectedFormYear && selectedFormSection && selectedFormDay}
 					<div class="scheduleassign-add-section">
-						<h3 class="scheduleassign-section-title">
-							Schedule for {selectedFormSectionObj.grade} {selectedFormSectionObj.name} - {selectedFormDayObj.name}
-						</h3>
+						<div class="scheduleassign-section-header">
+					<h3 class="scheduleassign-section-title">
+						Schedule for {selectedFormSectionObj.grade} {selectedFormSectionObj.name} - {selectedFormDayObj.name}
+					</h3>
+					<div class="scheduleassign-import-export-actions">
+						<button 
+							type="button" 
+							class="scheduleassign-import-button"
+							on:click={importSchedules}
+							title="Import schedules from file"
+						>
+							<span class="material-symbols-outlined">upload</span>
+							Import
+						</button>
+						<button 
+							type="button" 
+							class="scheduleassign-export-button"
+							on:click={exportSchedules}
+							title="Export schedules to file"
+							disabled={savedSchedules.length === 0}
+						>
+							<span class="material-symbols-outlined">download</span>
+							Export
+						</button>
+					</div>
+				</div>
+
+						<!-- Saved Schedules -->
+						{#if savedSchedules.length > 0}
+							<div class="scheduleassign-saved-schedules">
+								{#each savedSchedules as schedule (schedule.id)}
+								<div class="scheduleassign-assignment-card">
+									<div class="scheduleassign-assignment-header">
+										<div class="scheduleassign-assignment-info">
+											<h3 class="scheduleassign-assignment-title">{schedule.subject}</h3>
+										<p class="scheduleassign-assignment-subtitle">{selectedFormSectionObj.grade} - {selectedFormSectionObj.name}</p>
+										</div>
+										<div class="scheduleassign-assignment-actions">
+											<button 
+												type="button" 
+												class="scheduleassign-delete-button"
+												on:click={() => removeSchedule(schedule.id)}
+												title="Remove schedule"
+											>
+												<span class="material-symbols-outlined">delete</span>
+											</button>
+										</div>
+									</div>
+									<div class="scheduleassign-assignment-details">
+									<div class="scheduleassign-detail-item">
+										<span class="material-symbols-outlined scheduleassign-detail-icon">person</span>
+										<span class="scheduleassign-detail-text">{schedule.teacher}</span>
+									</div>
+									<div class="scheduleassign-detail-item">
+										<span class="material-symbols-outlined scheduleassign-detail-icon">calendar_today</span>
+										<span class="scheduleassign-detail-text">{selectedFormDayObj.name}</span>
+									</div>
+									<div class="scheduleassign-detail-item">
+										<span class="material-symbols-outlined scheduleassign-detail-icon">schedule</span>
+										<span class="scheduleassign-detail-text">{schedule.startTime} - {schedule.endTime}</span>
+									</div>
+								</div>
+								</div>
+								{/each}
+							</div>
+						{/if}
+
 						<button 
 							type="button"
 							class="scheduleassign-add-schedule-card"
@@ -1050,7 +1209,6 @@
 					<div class="scheduleassign-no-schedule-text">
 						<h3>No Schedule Found</h3>
 						<div class="scheduleassign-empty-state">
-								<span class="material-symbols-outlined scheduleassign-empty-icon">event_busy</span>
 								<p class="scheduleassign-empty-text">There are no schedule assignments for the selected section and filters.</p>
 						</div>
 					</div>

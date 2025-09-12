@@ -73,29 +73,7 @@
 }
 
 /* Success Message */
-.scheduleassign-success-message {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-sm);
-	background-color: var(--md-sys-color-primary-container);
-	color: var(--md-sys-color-on-primary-container);
-	padding: var(--spacing-md) var(--spacing-lg);
-	border-radius: var(--radius-lg);
-	margin-bottom: var(--spacing-xl);
-	border: 1px solid var(--md-sys-color-primary);
-	animation: slideIn 0.3s ease-out;
-}
 
-.scheduleassign-success-icon {
-	font-size: 24px;
-	color: var(--md-sys-color-primary);
-}
-
-.scheduleassign-success-text {
-	font-family: var(--md-sys-typescale-body-medium-font);
-	font-size: var(--md-sys-typescale-body-medium-size);
-	font-weight: var(--md-sys-typescale-body-medium-weight);
-}
 
 @keyframes slideIn {
 	from {
@@ -169,14 +147,19 @@
 	border-color: var(--md-sys-color-error);
 }
 
-
-
 .scheduleassign-card-content {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
-	gap: var(--spacing-xs);
+}
+
+/* Saved Schedules */
+.scheduleassign-saved-schedules {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-lg);
 }
 
 .scheduleassign-card-title {
@@ -872,6 +855,7 @@
 .scheduleassign-assignment-info {
 	display: flex;
 	flex-direction: column;
+	align-items: start;
 	gap: var(--spacing-xs);
 	flex: 1;
 }
@@ -1012,9 +996,7 @@
 		gap: var(--spacing-lg);
 	}
 
-	.scheduleassign-success-message {
-		margin: 0 var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
-	}
+
 }
 
 @media (max-width: 480px) {
@@ -1037,10 +1019,7 @@
 		padding: var(--spacing-lg);
 	}
 
-	.scheduleassign-success-message {
-		margin: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
-		padding: var(--spacing-md);
-	}
+
 
 	.scheduleassign-assign-button {
 		width: 100%;
@@ -1423,5 +1402,77 @@
 
 	.scheduleassign-time-info {
 		text-align: center;
+	}
+}
+
+/* Import/Export Styles */
+.scheduleassign-section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--spacing-lg);
+	gap: var(--spacing-md);
+}
+
+.scheduleassign-import-export-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+}
+
+.scheduleassign-import-button,
+.scheduleassign-export-button {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.scheduleassign-import-button:hover,
+.scheduleassign-export-button:hover {
+	background: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-primary);
+}
+
+.scheduleassign-import-button:active,
+.scheduleassign-export-button:active {
+	transform: translateY(1px);
+}
+
+.scheduleassign-export-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.scheduleassign-import-button .material-symbols-outlined,
+.scheduleassign-export-button .material-symbols-outlined {
+	font-size: 18px;
+}
+
+@media (max-width: 768px) {
+	.scheduleassign-section-header {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--spacing-md);
+	}
+	
+	.scheduleassign-import-export-actions {
+		justify-content: center;
+	}
+	
+	.scheduleassign-import-button,
+	.scheduleassign-export-button {
+		flex: 1;
+		justify-content: center;
 	}
 }
