@@ -16,7 +16,7 @@
 	let selectedRoom = '';
 	let selectedSection = '';
 
-	// Dropdown state
+	// Custom dropdown state
 	let isRoomDropdownOpen = false;
 	let isSectionDropdownOpen = false;
 
@@ -239,13 +239,9 @@
 	// Get available rooms for assignment
 	$: availableRooms = existingRooms.filter(room => room.status === 'available');
 
-	// Get selected room and section names for display
-	$: selectedRoomName = availableRooms.find(room => room.id === parseInt(selectedRoom))?.name || 'Select a room';
-	$: selectedSectionName = sections.find(section => section.id === selectedSection)?.name || 'Select a section';
-
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.admin-room-dropdown')) {
+		if (!event.target.closest('.custom-dropdown')) {
 			isRoomDropdownOpen = false;
 			isSectionDropdownOpen = false;
 		}
@@ -263,13 +259,13 @@
 	}
 
 	// Select options and close dropdowns
-	function selectRoom(roomId) {
-		selectedRoom = roomId;
+	function selectRoom(room) {
+		selectedRoom = room.id;
 		isRoomDropdownOpen = false;
 	}
 
-	function selectSection(sectionId) {
-		selectedSection = sectionId;
+	function selectSection(section) {
+		selectedSection = section.id;
 		isSectionDropdownOpen = false;
 	}
 </script>
@@ -417,70 +413,101 @@
 
 				<div class="admin-room-form-container">
 					<form on:submit|preventDefault={handleAssignRoom}>
-						<!-- Room Selection -->
-						<div class="admin-room-form-group">
-							<label class="admin-room-form-label">Select Room *</label>
-							<div class="admin-room-dropdown">
-								<button 
-									type="button"
-									class="admin-room-dropdown-toggle" 
-									on:click={toggleRoomDropdown}
-									class:admin-room-dropdown-open={isRoomDropdownOpen}
-								>
-									<span>{selectedRoomName}</span>
-									<span class="material-symbols-outlined admin-room-dropdown-icon {isRoomDropdownOpen ? 'open' : ''}">
-										expand_more
-									</span>
-								</button>
-								
-								{#if isRoomDropdownOpen}
-									<div class="admin-room-dropdown-menu">
-										{#each availableRooms as room}
+						<!-- Room and Section Selection Row -->
+						<div class="admin-room-assignment-form-row">
+							<!-- Room Selection -->
+							<div class="admin-room-form-group">
+								<label class="admin-room-form-label" for="room-select">Select Room *</label>
+								<div class="custom-dropdown" class:open={isRoomDropdownOpen}>
+									<button 
+										type="button"
+										class="dropdown-trigger" 
+										class:selected={selectedRoom}
+										on:click={toggleRoomDropdown}
+										id="room-select"
+									>
+										{#if selectedRoom}
+											{@const selectedRoomObj = availableRooms.find(room => room.id === parseInt(selectedRoom))}
+											{#if selectedRoomObj}
+												<div class="selected-option">
+													<span class="material-symbols-outlined option-icon">meeting_room</span>
+													<div class="option-content">
+														<span class="option-name">{selectedRoomObj.name}</span>
+														<span class="option-description">{selectedRoomObj.building}, {selectedRoomObj.floor}</span>
+													</div>
+												</div>
+											{/if}
+										{:else}
+											<span class="placeholder">Select a room</span>
+										{/if}
+										<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+									</button>
+									<div class="dropdown-menu">
+										{#each availableRooms as room (room.id)}
 											<button 
 												type="button"
-												class="admin-room-dropdown-item {room.id === parseInt(selectedRoom) ? 'selected' : ''}"
-												on:click={() => selectRoom(room.id)}
+												class="dropdown-option" 
+												class:selected={selectedRoom === room.id.toString()}
+												on:click={() => selectRoom(room)}
 											>
-												{room.name}
+												<span class="material-symbols-outlined option-icon">meeting_room</span>
+												<div class="option-content">
+													<span class="option-name">{room.name}</span>
+													<span class="option-description">{room.building}, {room.floor}</span>
+												</div>
 											</button>
 										{/each}
 									</div>
+								</div>
+								{#if availableRooms.length === 0}
+									<p class="admin-room-form-help admin-room-warning">No available rooms to assign. Create rooms first or unassign existing ones.</p>
 								{/if}
 							</div>
-							{#if availableRooms.length === 0}
-								<p class="admin-room-form-help admin-room-warning">No available rooms to assign. Create rooms first or unassign existing ones.</p>
-							{/if}
-						</div>
 
-						<!-- Section Selection -->
-						<div class="admin-room-form-group">
-							<label class="admin-room-form-label">Select Section *</label>
-							<div class="admin-room-dropdown">
-								<button 
-									type="button"
-									class="admin-room-dropdown-toggle" 
-									on:click={toggleSectionDropdown}
-									class:admin-room-dropdown-open={isSectionDropdownOpen}
-								>
-									<span>{selectedSectionName}</span>
-									<span class="material-symbols-outlined admin-room-dropdown-icon {isSectionDropdownOpen ? 'open' : ''}">
-										expand_more
-									</span>
-								</button>
-								
-								{#if isSectionDropdownOpen}
-									<div class="admin-room-dropdown-menu">
-										{#each sections as section}
+							<!-- Section Selection -->
+							<div class="admin-room-form-group">
+								<label class="admin-room-form-label" for="section-select">Select Section *</label>
+								<div class="custom-dropdown" class:open={isSectionDropdownOpen}>
+									<button 
+										type="button"
+										class="dropdown-trigger" 
+										class:selected={selectedSection}
+										on:click={toggleSectionDropdown}
+										id="section-select"
+									>
+										{#if selectedSection}
+											{@const selectedSectionObj = sections.find(section => section.id === selectedSection)}
+											{#if selectedSectionObj}
+												<div class="selected-option">
+													<span class="material-symbols-outlined option-icon">group</span>
+													<div class="option-content">
+														<span class="option-name">{selectedSectionObj.name}</span>
+														<span class="option-description">Grade {selectedSectionObj.id.charAt(5)} Section</span>
+													</div>
+												</div>
+											{/if}
+										{:else}
+											<span class="placeholder">Select a section</span>
+										{/if}
+										<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+									</button>
+									<div class="dropdown-menu">
+										{#each sections as section (section.id)}
 											<button 
 												type="button"
-												class="admin-room-dropdown-item {section.id === selectedSection ? 'selected' : ''}"
-												on:click={() => selectSection(section.id)}
+												class="dropdown-option" 
+												class:selected={selectedSection === section.id}
+												on:click={() => selectSection(section)}
 											>
-												{section.name}
+												<span class="material-symbols-outlined option-icon">group</span>
+												<div class="option-content">
+													<span class="option-name">{section.name}</span>
+													<span class="option-description">Grade {section.id.charAt(5)} Section</span>
+												</div>
 											</button>
 										{/each}
 									</div>
-								{/if}
+								</div>
 							</div>
 						</div>
 

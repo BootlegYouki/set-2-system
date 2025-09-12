@@ -138,6 +138,31 @@
 	margin-bottom: var(--spacing-lg);
 }
 
+/* Form Row Layout */
+.admin-form-row {
+	display: flex;
+	gap: var(--spacing-md);
+	align-items: flex-start;
+	margin-bottom: var(--spacing-lg);
+}
+
+.admin-form-group-third {
+	flex: 1;
+	margin-bottom: 0;
+}
+
+/* Responsive form row */
+@media (max-width: 768px) {
+	.admin-form-row {
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+	
+	.admin-form-group-third {
+		margin-bottom: var(--spacing-md);
+	}
+}
+
 .admin-form-label {
 	display: block;
 	font-family: var(--md-sys-typescale-body-medium-font);
@@ -159,6 +184,7 @@
 	font-size: var(--md-sys-typescale-body-large-size);
 	transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 	box-sizing: border-box;
+	min-height: 59px;
 }
 
 .admin-form-input:focus,
@@ -174,18 +200,31 @@
 	cursor: not-allowed;
 }
 
+.admin-form-input:disabled {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
 .admin-form-textarea {
 	resize: vertical;
 	min-height: 100px;
 }
 
 /* Custom Dropdown */
-.admin-custom-dropdown {
+
+.adminsubject-custom-dropdown {
+	position: relative;
+	width: 100%;
+}
+
+.adminsubject-custom-dropdown-grade {
 	position: relative;
 	width: 20%;
 }
 
-.admin-dropdown-trigger {
+.adminsubject-dropdown-trigger {
 	width: 100%;
 	padding: var(--spacing-md);
 	border: 1px solid var(--md-sys-color-outline);
@@ -200,76 +239,76 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	min-height: 56px;
+	min-height: 52px;
 	box-sizing: border-box;
 }
 
-.admin-dropdown-trigger:hover {
+.adminsubject-dropdown-trigger:hover {
 	border-color: var(--md-sys-color-outline);
 }
 
-.admin-dropdown-trigger:focus {
+.adminsubject-dropdown-trigger:focus {
 	outline: none;
 	border-color: var(--md-sys-color-primary);
 	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
 }
 
-.admin-dropdown-trigger.selected {
+.adminsubject-dropdown-trigger.selected {
 	border-color: var(--md-sys-color-primary);
 }
 
-.admin-selected-option {
+.adminsubject-selected-option {
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-sm);
 	flex: 1;
 }
 
-.admin-option-icon {
+.adminsubject-option-icon {
 	font-size: 24px;
 	color: var(--md-sys-color-primary);
 }
 
-.admin-option-content {
+.adminsubject-option-content {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 }
 
-.admin-option-name {
+.adminsubject-option-name {
 	font-weight: var(--md-sys-typescale-body-medium-weight);
 	color: var(--md-sys-color-on-surface);
 }
 
-.admin-option-description {
+.adminsubject-option-description {
 	font-size: var(--md-sys-typescale-body-small-size);
 	color: var(--md-sys-color-on-surface-variant);
 }
 
-.admin-placeholder {
+.adminsubject-placeholder {
 	color: var(--md-sys-color-on-surface-variant);
 }
 
-.admin-dropdown-arrow {
+.adminsubject-dropdown-arrow {
 	font-size: 24px;
 	color: var(--md-sys-color-on-surface-variant);
 	transition: transform var(--transition-normal);
 }
 
-.admin-custom-dropdown.open .admin-dropdown-arrow {
+.adminsubject-custom-dropdown.open .adminsubject-dropdown-arrow {
 	transform: rotate(180deg);
 }
 
-.admin-dropdown-menu {
+.adminsubject-dropdown-menu {
 	position: absolute;
-	top: 75%;
+	top: 100%;
 	left: 0;
 	right: 0;
 	background-color: var(--md-sys-color-surface-container);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-sm);
 	box-shadow: var(--shadow-lg);
-	z-index: 1000;
+	z-index: var(--z-dropdown);
 	max-height: 200px;
 	overflow-y: auto;
 	opacity: 0;
@@ -278,13 +317,13 @@
 	transition: all var(--transition-normal);
 }
 
-.admin-custom-dropdown.open .admin-dropdown-menu {
+.adminsubject-custom-dropdown.open .adminsubject-dropdown-menu {
 	opacity: 1;
 	visibility: visible;
 	transform: translateY(0);
 }
 
-.admin-dropdown-option {
+.adminsubject-dropdown-option {
 	width: 100%;
 	padding: var(--spacing-md);
 	border: none;
@@ -297,11 +336,11 @@
 	gap: var(--spacing-sm);
 }
 
-.admin-dropdown-option:hover {
+.adminsubject-dropdown-option:hover {
 	background-color: var(--md-sys-color-surface-variant);
 }
 
-.admin-dropdown-option.selected {
+.adminsubject-dropdown-option.selected {
 	background-color: var(--md-sys-color-primary-container);
 	color: var(--md-sys-color-on-primary-container);
 }
@@ -562,6 +601,7 @@
 	transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 	box-sizing: border-box;
 	min-height: 58px;
+	min-width: 600px;
 }
 
 .adminsubject-search-input:focus {

@@ -6,7 +6,7 @@
 	let selectedGradeLevel = '';
 	let subjectName = '';
 	let subjectCode = '';
-	let subjectDescription = '';
+
 	let showSuccessMessage = false;
 	let successMessage = '';
 
@@ -104,7 +104,6 @@
 			selectedGradeLevel = '';
 			subjectName = '';
 			subjectCode = '';
-			subjectDescription = '';
 
 			// Show success message
 			successMessage = `Subject "${newSubject.name}" created successfully with code ${newSubject.code}`;
@@ -148,7 +147,7 @@
 
 	// Handle click outside to close dropdowns
 	function handleClickOutside(event) {
-		if (!event.target.closest('.admin-custom-dropdown')) {
+		if (!event.target.closest('.adminsubject-custom-dropdown')) {
 			isGradeDropdownOpen = false;
 		}
 		if (!event.target.closest('.adminsubject-grade-filter')) {
@@ -156,11 +155,7 @@
 		}
 	}
 
-	// Generate subject code automatically
-	$: if (subjectName && selectedGradeLevel) {
-		const namePrefix = subjectName.substring(0, 3).toUpperCase();
-		subjectCode = `${namePrefix}-${selectedGradeLevel}`;
-	}
+	// Remove auto-generation of subject code
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -192,90 +187,79 @@
 
 			<div class="admin-form-container">
 				<form on:submit|preventDefault={handleCreateSubject}>
-					<!-- Grade Level Selection -->
-					<div class="admin-form-group">
-						<label class="admin-form-label" for="grade-level">Grade Level *</label>
-						<div class="admin-custom-dropdown" class:open={isGradeDropdownOpen}>
-							<button
-								type="button"
-								class="admin-dropdown-trigger"
-								class:selected={selectedGradeLevel}
-								on:click={toggleGradeDropdown}
-								id="grade-level"
-							>
-								{#if selectedGradeLevelObj}
-									<div class="admin-selected-option">
-										<span class="material-symbols-outlined admin-option-icon">school</span>
-										<div class="admin-option-content">
-											<span class="admin-option-name">{selectedGradeLevelObj.label}</span>
-											<span class="admin-option-description"
-												>{selectedGradeLevelObj.description}</span
-											>
+					<!-- Grade Level, Subject Name, and Subject Code Row -->
+					<div class="admin-form-row">
+						<!-- Grade Level Selection -->
+						<div class="admin-form-group admin-form-group-third">
+							<label class="admin-form-label" for="grade-level">Grade Level *</label>
+							<div class="adminsubject-custom-dropdown" class:open={isGradeDropdownOpen}>
+								<button
+									type="button"
+									class="adminsubject-dropdown-trigger"
+									class:selected={selectedGradeLevel}
+									on:click={toggleGradeDropdown}
+									id="grade-level"
+								>
+									{#if selectedGradeLevelObj}
+										<div class="adminsubject-selected-option">
+											<span class="material-symbols-outlined adminsubject-option-icon">school</span>
+											<div class="adminsubject-option-content">
+												<span class="adminsubject-option-name">{selectedGradeLevelObj.label}</span>
+												<span class="adminsubject-option-description"
+													>{selectedGradeLevelObj.description}</span
+												>
+											</div>
 										</div>
-									</div>
-								{:else}
-									<span class="admin-placeholder">Select grade level</span>
-								{/if}
-								<span class="material-symbols-outlined admin-dropdown-arrow">expand_more</span>
-							</button>
-							<div class="admin-dropdown-menu">
-								{#each gradeLevels as grade (grade.value)}
-									<button
-										type="button"
-										class="admin-dropdown-option"
-										class:selected={selectedGradeLevel === grade.value}
-										on:click={() => selectGradeLevel(grade)}
-									>
-										<span class="material-symbols-outlined admin-option-icon">school</span>
-										<div class="admin-option-content">
-											<span class="admin-option-name">{grade.label}</span>
-											<span class="admin-option-description">{grade.description}</span>
-										</div>
-									</button>
-								{/each}
+									{:else}
+										<span class="adminsubject-placeholder">Select grade level</span>
+									{/if}
+									<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
+								</button>
+								<div class="adminsubject-dropdown-menu">
+									{#each gradeLevels as grade (grade.value)}
+										<button
+											type="button"
+											class="adminsubject-dropdown-option"
+											class:selected={selectedGradeLevel === grade.value}
+											on:click={() => selectGradeLevel(grade)}
+										>
+											<span class="material-symbols-outlined adminsubject-option-icon">school</span>
+											<div class="adminsubject-option-content">
+												<span class="adminsubject-option-name">{grade.label}</span>
+												<span class="adminsubject-option-description">{grade.description}</span>
+											</div>
+										</button>
+									{/each}
+								</div>
 							</div>
 						</div>
-					</div>
 
-					<!-- Subject Name -->
-					<div class="admin-form-group">
-						<label for="subjectName" class="admin-form-label">Subject Name *</label>
-						<input
-							id="subjectName"
-							type="text"
-							class="admin-form-input"
-							bind:value={subjectName}
-							placeholder="e.g., Mathematics, English"
-							required
-						/>
-					</div>
+						<!-- Subject Name -->
+						<div class="admin-form-group admin-form-group-third">
+							<label for="subjectName" class="admin-form-label">Subject Name *</label>
+							<input
+								id="subjectName"
+								type="text"
+								class="admin-form-input"
+								bind:value={subjectName}
+								placeholder="e.g., Mathematics, English"
+								disabled={!selectedGradeLevel}
+								required
+							/>
+						</div>
 
-					<!-- Subject Code -->
-					<div class="admin-form-group">
-						<label for="subjectCode" class="admin-form-label">Subject Code *</label>
-						<input
-							id="subjectCode"
-							type="text"
-							class="admin-form-input"
-							bind:value={subjectCode}
-							placeholder="Auto-generated"
-							readonly
-							required
-						/>
-					</div>
-
-					<!-- Subject Description -->
-					<div class="admin-form-group">
-						<label for="subjectDescription" class="admin-form-label"
-							>Subject Description</label
-						>
-						<textarea
-							id="subjectDescription"
-							class="admin-form-textarea"
-							bind:value={subjectDescription}
-							placeholder="Optional: A brief overview of the subject"
-							rows="4"
-						></textarea>
+						<!-- Subject Code -->
+						<div class="admin-form-group admin-form-group-third">
+							<label for="subjectCode" class="admin-form-label">Subject Code *</label>
+							<input
+								id="subjectCode"
+								type="text"
+								class="admin-form-input"
+								bind:value={subjectCode}
+								placeholder="e.g., MATH-7, ENG-8"
+								required
+							/>
+						</div>
 					</div>
 
 					<!-- Submit Button -->
@@ -319,47 +303,49 @@
 				</div>
 
 				<!-- Grade Level Filter -->
-				<div class="adminsubject-grade-filter admin-custom-dropdown" class:open={isGradeFilterDropdownOpen}>
+				<div class="adminsubject-grade-filter adminsubject-custom-dropdown" class:open={isGradeFilterDropdownOpen}>
 					<button
 						type="button"
-						class="admin-dropdown-trigger"
+						class="adminsubject-dropdown-trigger"
 						class:selected={selectedGradeFilter}
 						on:click={toggleGradeFilterDropdown}
 					>
 						{#if selectedGradeFilterObj}
-							<div class="admin-selected-option">
-								<span class="material-symbols-outlined admin-option-icon">school</span>
-								<div class="admin-option-content">
-									<span class="admin-option-name">{selectedGradeFilterObj.label}</span>
-								</div>
+						<div class="adminsubject-selected-option">
+							<span class="material-symbols-outlined adminsubject-option-icon">school</span>
+							<div class="adminsubject-option-content">
+								<span class="adminsubject-option-name">{selectedGradeFilterObj.label}</span>
+								<span class="adminsubject-option-description">{selectedGradeFilterObj.description}</span>
 							</div>
+						</div>
 						{:else}
-							<span class="admin-placeholder">All Grades</span>
+							<span class="adminsubject-placeholder">All Grades</span>
 						{/if}
-						<span class="material-symbols-outlined admin-dropdown-arrow">expand_more</span>
+						<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
 					</button>
-					<div class="admin-dropdown-menu">
+					<div class="adminsubject-dropdown-menu">
 						<button
 							type="button"
-							class="admin-dropdown-option"
-							class:selected={selectedGradeFilter === ''}
-							on:click={() => selectGradeFilter(null)}
-						>
-							<span class="material-symbols-outlined admin-option-icon">clear_all</span>
-							<div class="admin-option-content">
-								<span class="admin-option-name">All Grades</span>
+							class="adminsubject-dropdown-option"
+						class:selected={selectedGradeFilter === ''}
+						on:click={() => selectGradeFilter(null)}
+					>
+						<span class="material-symbols-outlined adminsubject-option-icon">clear_all</span>
+						<div class="adminsubject-option-content">
+							<span class="adminsubject-option-name">All Grades</span>
 							</div>
 						</button>
 						{#each gradeLevels as grade (grade.value)}
 							<button
 								type="button"
-								class="admin-dropdown-option"
-								class:selected={selectedGradeFilter === grade.value}
-								on:click={() => selectGradeFilter(grade)}
-							>
-								<span class="material-symbols-outlined admin-option-icon">school</span>
-								<div class="admin-option-content">
-									<span class="admin-option-name">{grade.label}</span>
+								class="adminsubject-dropdown-option"
+							class:selected={selectedGradeFilter === grade.value}
+							on:click={() => selectGradeFilter(grade)}
+						>
+							<span class="material-symbols-outlined adminsubject-option-icon">school</span>
+							<div class="adminsubject-option-content">
+								<span class="adminsubject-option-name">{grade.label}</span>
+								<span class="adminsubject-option-description">{grade.description}</span>
 								</div>
 							</button>
 						{/each}

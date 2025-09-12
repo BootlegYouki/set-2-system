@@ -743,9 +743,17 @@
 									on:click={toggleEditAdviserDropdown}
 									id="edit-section-adviser"
 								>
-									<span class="sectionmgmt-placeholder">
-										{editSelectedAdviser ? editSelectedAdviser.name : 'Select section adviser'}
-									</span>
+									{#if editSelectedAdviser}
+										<div class="sectionmgmt-selected-option">
+											<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
+											<div class="sectionmgmt-option-content">
+												<span class="sectionmgmt-option-name">{editSelectedAdviser.name}</span>
+												<span class="sectionmgmt-option-description">{editSelectedAdviser.subject} • {editSelectedAdviser.employeeId}</span>
+											</div>
+										</div>
+									{:else}
+										<span class="sectionmgmt-placeholder">Select section adviser</span>
+									{/if}
 									<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
 								</button>
 								<div class="sectionmgmt-dropdown-menu">
@@ -765,6 +773,7 @@
 											class:selected={editSelectedAdviser?.id === adviser.id}
 											on:click={() => selectEditAdviser(adviser)}
 										>
+											<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
 											<div class="sectionmgmt-option-content">
 												<span class="sectionmgmt-option-name">{adviser.name}</span>
 												<span class="sectionmgmt-option-description">{adviser.subject} • {adviser.employeeId}</span>
