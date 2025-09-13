@@ -4,8 +4,8 @@
 	// Dashboard statistics (mock data)
 	let dashboardStats = [
 		{ id: 'students', label: 'Total Students', value: '1,247', icon: 'school', color: 'primary' },
-		{ id: 'teachers', label: 'Total Teachers', value: '45', icon: 'person', color: 'secondary' },
-		{ id: 'sections', label: 'Total Sections', value: '28', icon: 'class', color: 'tertiary' },
+		{ id: 'teachers', label: 'Total Teachers', value: '45', icon: 'person', color: 'primary' },
+		{ id: 'sections', label: 'Total Sections', value: '28', icon: 'class', color: 'primary' },
 		{ id: 'rooms', label: 'Total Rooms', value: '15', icon: 'meeting_room', color: 'primary' }
 	];
 

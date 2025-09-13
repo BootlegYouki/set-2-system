@@ -387,6 +387,7 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 						{#if isCreating}
 					Creating
 				{:else}
+				<span class="material-symbols-outlined">add_ad</span>
 					Create Room
 				{/if}
 					</button>

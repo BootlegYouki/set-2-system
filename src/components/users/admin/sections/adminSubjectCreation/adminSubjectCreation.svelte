@@ -1,15 +1,13 @@
 <script>
 	import './adminSubjectCreation.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { toastStore } from '../../../../common/js/toastStore.js';
 
 	// Subject creation state
 	let isCreating = false;
 	let selectedGradeLevel = '';
 	let subjectName = '';
 	let subjectCode = '';
-
-	let showSuccessMessage = false;
-	let successMessage = '';
 
 	// Dropdown states
 	let isGradeDropdownOpen = false;
@@ -89,7 +87,7 @@
 	// Handle form submission
 	async function handleCreateSubject() {
 		if (!selectedGradeLevel || !subjectName.trim() || !subjectCode.trim()) {
-			alert('Please fill in all required fields');
+			toastStore.error('Please fill in all required fields');
 			return;
 		}
 
@@ -97,7 +95,7 @@
 
 		try {
 			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
+			await new Promise(resolve => setTimeout(resolve, 500));
 
 			// Add to recent subjects
 			const newSubject = {
@@ -116,18 +114,12 @@
 			subjectName = '';
 			subjectCode = '';
 
-			// Show success message
-			successMessage = `Subject "${newSubject.name}" created successfully with code ${newSubject.code}`;
-			showSuccessMessage = true;
-
-			// Hide success message after 5 seconds
-			setTimeout(() => {
-				showSuccessMessage = false;
-			}, 5000);
+			// Show success toast
+			toastStore.success(`Subject "${newSubject.name}" created successfully with code ${newSubject.code}`);
 
 		} catch (error) {
 			console.error('Error creating subject:', error);
-			alert('Failed to create subject. Please try again.');
+			toastStore.error('Failed to create subject. Please try again.');
 		} finally {
 			isCreating = false;
 		}
@@ -145,14 +137,8 @@
 				// Remove the subject from the array
 				recentSubjects = recentSubjects.filter(s => s.id !== subject.id);
 				
-				// Show success message
-				successMessage = `Subject "${subject.name}" has been removed successfully`;
-				showSuccessMessage = true;
-				
-				// Hide success message after 5 seconds
-				setTimeout(() => {
-					showSuccessMessage = false;
-				}, 5000);
+				// Show success toast
+				toastStore.success(`Subject "${subject.name}" has been removed successfully`);
 			},
 			null, // onCancel - no action needed
 			{ size: 'medium' }
@@ -213,7 +199,7 @@
 
 	async function handleEditSubject() {
 		if (!editSubjectName.trim() || !editSubjectCode.trim() || !editSelectedGradeLevel) {
-			alert('Please fill in all required fields');
+			toastStore.error('Please fill in all required fields');
 			return;
 		}
 
@@ -236,9 +222,8 @@
 				return subject;
 			});
 
-			// Show success message
-			successMessage = `Subject "${editSubjectName}" updated successfully with code ${editSubjectCode}`;
-			showSuccessMessage = true;
+			// Show success toast
+			toastStore.success(`Subject "${editSubjectName}" updated successfully with code ${editSubjectCode}`);
 
 			// Close edit form
 			editingSubjectId = null;
@@ -247,14 +232,9 @@
 			editSelectedGradeLevel = '';
 			isEditGradeDropdownOpen = false;
 
-			// Hide success message after 5 seconds
-			setTimeout(() => {
-				showSuccessMessage = false;
-			}, 5000);
-
 		} catch (error) {
 			console.error('Error updating subject:', error);
-			alert('Failed to update subject. Please try again.');
+			toastStore.error('Failed to update subject. Please try again.');
 		} finally {
 			isUpdating = false;
 		}
@@ -286,14 +266,6 @@
 			<p class="admin-page-subtitle">Create and manage subjects for the curriculum</p>
 		</div>
 	</div>
-
-	<!-- Success Message -->
-	{#if showSuccessMessage}
-		<div class="admin-success-message">
-			<span class="material-symbols-outlined admin-success-icon">check_circle</span>
-			<span class="admin-success-text">{successMessage}</span>
-		</div>
-	{/if}
 
 	<div class="admin-creation-layout">
 		<!-- Left Column: Creation Form -->
@@ -386,7 +358,6 @@
 							disabled={isCreating || !selectedGradeLevel || !subjectName.trim()}
 						>
 							{#if isCreating}
-								<span class="material-symbols-outlined admin-loading-icon">hourglass_empty</span>
 								Creating...
 							{:else}
 								<span class="material-symbols-outlined">add_circle</span>
@@ -597,10 +568,8 @@
 												disabled={isUpdating || !editSubjectName.trim() || !editSubjectCode.trim() || !editSelectedGradeLevel}
 											>
 												{#if isUpdating}
-													<span class="material-symbols-outlined adminsubject-loading-icon">hourglass_empty</span>
 													Updating...
 												{:else}
-													<span class="material-symbols-outlined">save</span>
 													Update Subject
 												{/if}
 											</button>

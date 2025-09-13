@@ -224,7 +224,7 @@
 	transition: all var(--transition-normal);
 	min-width: 140px;
 	justify-content: center;
-	min-height: 40px;
+	min-height: 56px;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -976,7 +976,7 @@
 /* Form Actions */
 .scheduleassign-form-actions {
 	display: flex;
-	justify-content: center;
+	justify-content: end;
 	margin-top: var(--spacing-xl);
 }
 

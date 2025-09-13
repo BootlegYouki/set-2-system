@@ -537,7 +537,7 @@
 	}
 
 	// Add schedule functions
-	function handleAddSchedule() {
+	async function handleAddSchedule() {
 		// Validate required fields first
 		if (!selectedFormSubject || !selectedFormTeacher) {
 			toastStore.warning('Please select both subject and teacher');
@@ -603,7 +603,10 @@
 		isAssigning = true;
 
 		try {
-				// Create new assignment
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 5000));
+
+			// Create new assignment
 				const newAssignment = {
 					id: scheduleAssignments.length + 1,
 					year: selectedFormYear,
@@ -920,7 +923,7 @@
 	}
 
 	// Reactive calculation when inputs change
-	$: {
+	$: if (newSchedule.startHour || newSchedule.startMinute || newSchedule.amPm || newSchedule.duration) {
 		calculateTimeSlot();
 	}
 
@@ -1357,11 +1360,10 @@
 								disabled={isAssigning}
 							>
 								{#if isAssigning}
-									<span class="material-symbols-outlined spinning">progress_activity</span>
-									Saving...
+									Adding...
 								{:else}
 									<span class="material-symbols-outlined">save</span>
-									Save Schedule
+									Add Schedule
 								{/if}
 							</button>
 						</div>
@@ -1696,11 +1698,9 @@
 												disabled={isUpdating || !editAssignmentTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher}
 											>
 												{#if isUpdating}
-													<span class="material-symbols-outlined scheduleassign-loading-icon">hourglass_empty</span>
 													Updating...
 												{:else}
-													<span class="material-symbols-outlined">save</span>
-													Update Assignment
+													Update
 												{/if}
 											</button>
 										</div>
