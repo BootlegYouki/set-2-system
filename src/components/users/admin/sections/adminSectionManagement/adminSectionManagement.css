@@ -828,7 +828,7 @@
 }
 
 .sectionmgmt-edit-form-header {
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }

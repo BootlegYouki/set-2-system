@@ -182,6 +182,7 @@
 .admin-room-form-group {
 	display: flex;
 	flex-direction: column;
+	flex: 1;
 }
 
 /* Assignment Form Row for Dropdowns */
@@ -194,8 +195,7 @@
 
 /* Form Rows */
 .admin-room-form-row {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
+	display: flex;
 	gap: var(--spacing-lg);
 	margin-bottom: var(--spacing-lg);
 }
@@ -764,5 +764,162 @@
 	.admin-room-assign-button {
 		min-width: 140px;
 		padding: var(--spacing-sm) var(--spacing-lg);
+	}
+}
+
+/* Edit Form Styles */
+.admin-room-edit-form-section {
+	margin-top: var(--spacing-md);
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.admin-room-edit-form-container {
+	background-color: var(--md-sys-color-surface-container);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-lg);
+	box-shadow: var(--elevation-1);
+}
+
+.admin-room-edit-form-header {
+	margin-bottom: var(--spacing-xl);
+	padding-bottom: var(--spacing-md);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.admin-room-edit-form-title {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-xs) 0;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.admin-room-edit-form-title::before {
+	content: 'edit';
+	font-family: 'Material Symbols Outlined';
+	font-size: var(--md-sys-typescale-title-medium-size);
+	color: var(--md-sys-color-primary);
+}
+
+.admin-room-edit-form-subtitle {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+.admin-room-edit-form-content {
+	display: flex;
+	flex-direction: column;
+}
+
+.admin-room-edit-info-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-md);
+}
+
+.admin-room-edit-form-actions {
+	display: flex;
+	gap: var(--spacing-md);
+	justify-content: flex-end;
+	padding-top: var(--spacing-lg);
+	border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.admin-room-cancel-button {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-width: 80px;
+  height: 40px;
+}
+
+.admin-room-cancel-button:hover {
+  background-color: var(--md-sys-color-surface-variant);
+  border-color: var(--md-sys-color-outline-variant);
+  box-shadow: var(--elevation-1);
+}
+
+.admin-room-cancel-button:active {
+  background-color: var(--md-sys-color-surface-container-high);
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+/* Submit Button */
+.admin-room-update-button {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border: 1px solid var(--md-sys-color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-width: 120px;
+  height: 40px;
+}
+
+.admin-room-update-button:hover {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: var(--elevation-2);
+}
+
+.admin-room-update-button:active {
+  background-color: var(--md-sys-color-primary-container);
+  transform: scale(0.98);
+  box-shadow: var(--elevation-1);
+}
+
+.admin-room-update-button:disabled {
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  border-color: var(--md-sys-color-outline-variant);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+
+
+@media (max-width: 768px) {
+	.admin-room-edit-info-row {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-room-edit-form-actions {
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.admin-room-cancel-button,
+	.admin-room-update-button {
+		width: 100%;
 	}
 }

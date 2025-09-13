@@ -671,12 +671,11 @@
 						disabled={isCreating || !sectionName || !gradeLevel || !selectedAdviser || selectedStudents.length === 0}
 					>
 						{#if isCreating}
-							<span class="material-symbols-outlined sectionmgmt-loading-icon">hourglass_empty</span>
-							Creating Section...
-						{:else}
-							<span class="material-symbols-outlined">groups</span>
-							Create Section
-						{/if}
+						Creating
+					{:else}
+						<span class="material-symbols-outlined">groups</span>
+						Create Section
+					{/if}
 					</button>
 				</div>
 			</form>
@@ -889,28 +888,19 @@
 									<!-- Selected Students Display -->
 									{#if editSelectedStudents.length > 0}
 										<div class="sectionmgmt-selected-students">
-											<div class="sectionmgmt-selected-header">
-												<span class="sectionmgmt-selected-title">Selected Students ({editSelectedStudents.length})</span>
-												<button 
-													type="button" 
-													class="sectionmgmt-clear-all-button"
-													on:click={clearAllEditSelectedStudents}
-												>
-													Clear All
-												</button>
+											<div class="sectionmgmt-selected-students-header">
+												<span class="sectionmgmt-selected-count">{editSelectedStudents.length} student{editSelectedStudents.length !== 1 ? 's' : ''} selected</span>
 											</div>
-											<div class="sectionmgmt-selected-list">
+											<div class="sectionmgmt-selected-students-list">
 												{#each editSelectedStudents as student (student.id)}
-													<div class="sectionmgmt-selected-student">
-														<div class="sectionmgmt-student-info">
-															<span class="sectionmgmt-student-name">{student.name}</span>
-															<span class="sectionmgmt-student-id">{student.studentId}</span>
-														</div>
+													<div class="sectionmgmt-selected-student-chip">
+														<span class="sectionmgmt-student-name">{student.name}</span>
+														<span class="sectionmgmt-student-id">{student.studentId}</span>
 														<button 
 															type="button" 
-															class="sectionmgmt-remove-student-button"
+															class="sectionmgmt-remove-student"
 															on:click={() => removeEditSelectedStudent(student)}
-															title="Remove student"
+															aria-label="Remove {student.name}"
 														>
 															<span class="material-symbols-outlined">close</span>
 														</button>
@@ -926,9 +916,17 @@
 									<button type="button" class="sectionmgmt-cancel-button" on:click={() => toggleEditForm(section)}>
 										Cancel
 									</button>
-									<button type="submit" class="sectionmgmt-submit-button">
-										Update Section
-									</button>
+									<button 
+						type="submit" 
+						class="sectionmgmt-submit-button"
+						disabled={isUpdating || !editSectionName || !editSelectedAdviser}
+					>
+						{#if isUpdating}
+							Updating
+						{:else}
+							Update
+						{/if}
+					</button>
 								</div>
 							</form>
 						</div>

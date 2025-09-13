@@ -10,7 +10,6 @@
 	let roomName = '';
 	let building = '';
 	let floor = '';
-	let description = '';
 
 	// Room assignment state
 	let selectedRoom = '';
@@ -19,6 +18,13 @@
 	// Custom dropdown state
 	let isRoomDropdownOpen = false;
 	let isSectionDropdownOpen = false;
+
+	// Edit room states
+	let editingRoomId = null;
+	let editRoomName = '';
+	let editBuilding = '';
+	let editFloor = '';
+	let isUpdating = false;
 
 	// Success/error messages
 	let showSuccessMessage = false;
@@ -123,8 +129,7 @@
 				building: building,
 				floor: floor,
 				status: 'available',
-				assignedTo: null,
-				description: description
+				assignedTo: null
 			};
 
 			existingRooms = [newRoom, ...existingRooms];
@@ -211,7 +216,6 @@
 		roomName = '';
 		building = '';
 		floor = '';
-		description = '';
 	}
 
 	function resetAssignmentForm() {
@@ -267,6 +271,66 @@
 	function selectSection(section) {
 		selectedSection = section.id;
 		isSectionDropdownOpen = false;
+	}
+
+	// Edit room functions
+	function toggleEditForm(room) {
+		if (editingRoomId === room.id) {
+			// Close the form
+			editingRoomId = null;
+			editRoomName = '';
+			editBuilding = '';
+			editFloor = '';
+		} else {
+			// Open the form
+			editingRoomId = room.id;
+			editRoomName = room.name;
+			editBuilding = room.building;
+			editFloor = room.floor;
+		}
+	}
+
+	async function handleEditRoom() {
+		if (!editRoomName || !editBuilding || !editFloor) {
+			showError('Please fill in all required fields.');
+			return;
+		}
+
+		isUpdating = true;
+		clearMessages();
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1500));
+
+			// Update room in the array
+			existingRooms = existingRooms.map(room => {
+				if (room.id === editingRoomId) {
+					return {
+						...room,
+						name: editRoomName,
+						building: editBuilding,
+						floor: editFloor
+					};
+				}
+				return room;
+			});
+
+			// Show success message
+			showSuccess(`Room "${editRoomName}" updated successfully!`);
+
+			// Close edit form
+			editingRoomId = null;
+			editRoomName = '';
+			editBuilding = '';
+			editFloor = '';
+
+		} catch (error) {
+			console.error('Error updating room:', error);
+			showError('Failed to update room. Please try again.');
+		} finally {
+			isUpdating = false;
+		}
 	}
 </script>
 
@@ -326,7 +390,7 @@
 
 				<div class="admin-room-form-container">
 					<form on:submit|preventDefault={handleCreateRoom}>
-						<!-- Room Basic Info -->
+						<!-- Room Info -->
 						<div class="admin-room-form-row">
 							<div class="admin-room-form-group">
 								<label class="admin-room-form-label" for="room-name">Room Name *</label>
@@ -339,12 +403,7 @@
 									required
 								/>
 							</div>
-						</div>
 
-
-
-						<!-- Location Info -->
-						<div class="admin-room-form-row">
 							<div class="admin-room-form-group">
 								<label class="admin-room-form-label" for="building">Building *</label>
 								<input 
@@ -370,18 +429,6 @@
 							</div>
 						</div>
 
-						<!-- Description -->
-						<div class="admin-room-form-group">
-							<label class="admin-room-form-label" for="description">Description</label>
-							<textarea 
-								id="description"
-								class="admin-room-form-textarea" 
-								bind:value={description}
-								placeholder="Enter room description (optional)"
-								rows="3"
-							></textarea>
-						</div>
-
 						<!-- Submit Button -->
 						<div class="admin-room-form-actions">
 							<button 
@@ -391,12 +438,11 @@
 								disabled={isCreating || !roomName || !building || !floor}
 							>
 								{#if isCreating}
-									<span class="material-symbols-outlined admin-room-loading-icon">hourglass_empty</span>
-									Creating Room...
-								{:else}
-									<span class="material-symbols-outlined">add_business</span>
-									Create Room
-								{/if}
+							Creating
+						{:else}
+							<span class="material-symbols-outlined">add_business</span>
+							Create Room
+						{/if}
 							</button>
 						</div>
 					</form>
@@ -520,12 +566,11 @@
 								disabled={isAssigning || !selectedRoom || !selectedSection}
 							>
 								{#if isAssigning}
-									<span class="material-symbols-outlined admin-room-loading-icon">hourglass_empty</span>
-									Assigning Room...
-								{:else}
-									<span class="material-symbols-outlined">assignment</span>
-									Assign Room
-								{/if}
+							Assigning
+						{:else}
+							<span class="material-symbols-outlined">assignment</span>
+							Assign Room
+						{/if}
 							</button>
 						</div>
 					</form>
@@ -560,12 +605,13 @@
 							</button>
 						{/if}
 						<button 
-							type="button"
-							class="admin-room-edit-button"
-							title="Edit Room"
-						>
-							<span class="material-symbols-outlined">edit</span>
-						</button>
+					type="button"
+					class="admin-room-edit-button"
+					on:click={() => toggleEditForm(room)}
+					title="{editingRoomId === room.id ? 'Cancel Edit' : 'Edit Room'}"
+				>
+					<span class="material-symbols-outlined">{editingRoomId === room.id ? 'close' : 'edit'}</span>
+				</button>
 						<button 
 							type="button"
 							class="admin-room-remove-button"
@@ -591,10 +637,87 @@
 								<span class="material-symbols-outlined">check_circle</span>
 								<span>Available</span>
 							</div>
-						{/if}
-					</div>
+					{/if}
 				</div>
-			{/each}
+				
+				<!-- Inline Edit Form -->
+				{#if editingRoomId === room.id}
+					<div class="admin-room-edit-form-section">
+						<div class="admin-room-edit-form-container">
+							<div class="admin-room-edit-form-header">
+								<h2 class="admin-room-edit-form-title">Edit Room</h2>
+								<p class="admin-room-edit-form-subtitle">Update room information</p>
+							</div>
+							
+							<form class="admin-room-edit-form-content" on:submit|preventDefault={handleEditRoom}>
+								<!-- Room Info -->
+								<div class="admin-room-edit-info-row">
+									<div class="admin-room-form-group">
+										<label class="admin-room-form-label" for="edit-room-name">
+											Room Name *
+										</label>
+										<input 
+											type="text" 
+											id="edit-room-name"
+											class="admin-room-form-input" 
+											bind:value={editRoomName}
+											placeholder="Enter room name"
+											required
+										/>
+									</div>
+
+									<div class="admin-room-form-group">
+										<label class="admin-room-form-label" for="edit-building">
+											Building *
+										</label>
+										<input 
+											type="text" 
+											id="edit-building"
+											class="admin-room-form-input" 
+											bind:value={editBuilding}
+											placeholder="Enter building name"
+											required
+										/>
+									</div>
+
+									<div class="admin-room-form-group">
+										<label class="admin-room-form-label" for="edit-floor">
+											Floor *
+										</label>
+										<input 
+											type="text" 
+											id="edit-floor"
+											class="admin-room-form-input" 
+											bind:value={editFloor}
+											placeholder="e.g., 1st Floor"
+											required
+										/>
+									</div>
+								</div>
+
+								<!-- Form Actions -->
+								<div class="admin-room-edit-form-actions">
+									<button type="button" class="admin-room-cancel-button" on:click={() => toggleEditForm(room)}>
+										Cancel
+									</button>
+									<button 
+										type="submit" 
+										class="admin-room-update-button"
+										disabled={isUpdating || !editRoomName || !editBuilding || !editFloor}
+									>
+										{#if isUpdating}
+												Updating
+											{:else}
+												Update
+											{/if}
+									</button>
+								</div>
+							</form>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/each}
 		</div>
 	</div>
 </div>
