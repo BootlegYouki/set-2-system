@@ -33,7 +33,9 @@
 
 	// Filter states for assignments section
 	let selectedFilterYear = '';
+	let selectedFilterYearObj = null;
 	let selectedFilterSection = '';
+	let selectedFilterSectionObj = null;
 	let isFilterYearDropdownOpen = false;
 	let isFilterSectionDropdownOpen = false;
 	
@@ -330,13 +332,16 @@
 	// Filter selection functions
 	function selectFilterYear(year) {
 		selectedFilterYear = year ? year.id : null;
+		selectedFilterYearObj = year;
 		// Reset section selection when year changes
 		selectedFilterSection = '';
+		selectedFilterSectionObj = null;
 		isFilterYearDropdownOpen = false;
 	}
 
 	function selectFilterSection(section) {
 		selectedFilterSection = section ? (section.grade + ' · ' + section.name) : null;
+		selectedFilterSectionObj = section;
 		isFilterSectionDropdownOpen = false;
 	}
 
@@ -755,31 +760,32 @@
 								disabled={!selectedFormYear}
 							>
 								{#if selectedFormSectionObj}
-									<div class="scheduleassign-selected-option">
-										<span class="material-symbols-outlined option-icon">class</span>
-										<div class="option-content">
-											<span class="option-name">{selectedFormSectionObj.grade} · {selectedFormSectionObj.name}</span>
-										</div>
-									</div>
-								{:else}
-									<span class="placeholder">{selectedFormYear ? 'Select section' : 'Select year level first'}</span>
-								{/if}
+						<div class="scheduleassign-selected-option">
+							<span class="material-symbols-outlined option-icon">class</span>
+							<div class="option-content">
+								<span class="option-name">{selectedFormSectionObj.grade} · {selectedFormSectionObj.name}</span>
+							</div>
+						</div>
+					{:else}
+						<span class="placeholder">{selectedFormYear ? 'Select section' : 'Select year level first'}</span>
+					{/if}
 								<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 							</button>
 							<div class="scheduleassign-dropdown-menu">
 								{#each filteredFormSections as section (section.id)}
-									<button 
-										type="button"
-										class="scheduleassign-dropdown-item" 
-										class:selected={selectedFormSection === section.id}
-										on:click={() => selectFormSection(section)}
-									>
-										<span class="material-symbols-outlined option-icon">class</span>
-										<div class="option-content">
-											<span class="option-name">{section.grade} · {section.name}</span>
-										</div>
-									</button>
-								{/each}
+							<button 
+								type="button"
+								class="scheduleassign-dropdown-item" 
+								class:selected={selectedFormSection === section.id}
+								on:click={() => selectFormSection(section)}
+							>
+								<span class="material-symbols-outlined option-icon">class</span>
+								<div class="option-content">
+									<span class="option-name">{section.grade} · {section.name}</span>
+									<span class="option-description">{section.grade} Section</span>
+								</div>
+							</button>
+						{/each}
 							</div>
 						</div>
 					</div>
@@ -820,7 +826,7 @@
 							on:click={importSchedules}
 							title="Import schedules from file"
 						>
-							<span class="material-symbols-outlined">upload</span>
+							<span class="material-symbols-outlined">download</span>
 							Import
 						</button>
 						<button 
@@ -830,7 +836,7 @@
 							title="Export schedules to file"
 							disabled={savedSchedules.length === 0}
 						>
-							<span class="material-symbols-outlined">download</span>
+							<span class="material-symbols-outlined">upload</span>
 							Export
 						</button>
 					</div>
@@ -1032,37 +1038,44 @@
 				<button 
 					type="button" 
 					class="scheduleassign-dropdown-button" 
+					class:selected={selectedFilterYear}
 					on:click={toggleFilterYearDropdown}
 				>
-					<div class="scheduleassign-dropdown-content">
-				<span class="scheduleassign-option-name">
-					{selectedFilterYear ? years.find(y => y.id === selectedFilterYear)?.name : 'Select a year'}
-				</span>
-			</div>
-					<span class="material-symbols-outlined scheduleassign-dropdown-icon" class:rotated={isFilterYearDropdownOpen}>
-						expand_more
-					</span>
+					{#if selectedFilterYearObj}
+						<div class="scheduleassign-selected-option">
+							<span class="material-symbols-outlined option-icon">school</span>
+							<div class="option-content">
+								<span class="option-name">{selectedFilterYearObj.name}</span>
+							</div>
+						</div>
+					{:else}
+						<span class="placeholder">Select year level</span>
+					{/if}
+					<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 				</button>
-				{#if isFilterYearDropdownOpen}
-					<div class="scheduleassign-dropdown-menu">
+				<div class="scheduleassign-dropdown-menu">
+					<button 
+						type="button" 
+						class="scheduleassign-dropdown-item" 
+						on:click={() => selectFilterYear(null)}
+					>
+						<span class="placeholder">Select year level</span>
+					</button>
+					{#each years as year (year.id)}
 						<button 
 							type="button" 
 							class="scheduleassign-dropdown-item" 
-							on:click={() => selectFilterYear(null)}
+							class:selected={selectedFilterYear === year.id}
+							on:click={() => selectFilterYear(year)}
 						>
-							<span class="scheduleassign-option-name">Select a year</span>
+							<span class="material-symbols-outlined option-icon">school</span>
+							<div class="option-content">
+								<span class="option-name">{year.name}</span>
+								<span class="option-description">{year.description}</span>
+							</div>
 						</button>
-						{#each years as year (year.id)}
-							<button 
-								type="button" 
-								class="scheduleassign-dropdown-item" 
-								on:click={() => selectFilterYear(year)}
-							>
-								<span class="scheduleassign-option-name">{year.name}</span>
-							</button>
-						{/each}
-					</div>
-				{/if}
+					{/each}
+				</div>
 			</div>
 
 			<!-- Section Filter -->
@@ -1070,38 +1083,46 @@
 				<button 
 					type="button" 
 					class="scheduleassign-dropdown-button" 
+					class:selected={selectedFilterSection}
+					class:disabled={!isYearSelected}
 					on:click={toggleFilterSectionDropdown}
 					disabled={!isYearSelected}
 				>
-					<div class="scheduleassign-dropdown-content">
-						<span class="scheduleassign-option-name">
-							{selectedFilterSection || (isYearSelected ? 'Select a section' : 'Select a year first')}
-						</span>
-					</div>
-					<span class="material-symbols-outlined scheduleassign-dropdown-icon" class:rotated={isFilterSectionDropdownOpen}>
-						expand_more
-					</span>
+					{#if selectedFilterSectionObj}
+						<div class="scheduleassign-selected-option">
+							<span class="material-symbols-outlined option-icon">class</span>
+							<div class="option-content">
+								<span class="option-name">{selectedFilterSectionObj.grade} · {selectedFilterSectionObj.name}</span>
+							</div>
+						</div>
+					{:else}
+						<span class="placeholder">{isYearSelected ? 'Select section' : 'Select year level first'}</span>
+					{/if}
+					<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 				</button>
-				{#if isFilterSectionDropdownOpen && isYearSelected}
-					<div class="scheduleassign-dropdown-menu">
+				<div class="scheduleassign-dropdown-menu">
+					<button 
+						type="button" 
+						class="scheduleassign-dropdown-item" 
+						on:click={() => selectFilterSection(null)}
+					>
+						<span class="placeholder">Select section</span>
+					</button>
+					{#each filteredSections as section (section.id)}
 						<button 
 							type="button" 
 							class="scheduleassign-dropdown-item" 
-							on:click={() => selectFilterSection(null)}
+							class:selected={selectedFilterSection === section.id}
+							on:click={() => selectFilterSection(section)}
 						>
-							<span class="scheduleassign-option-name">Select a section</span>
+							<span class="material-symbols-outlined option-icon">class</span>
+							<div class="option-content">
+								<span class="option-name">{section.grade} · {section.name}</span>
+								<span class="option-description">{section.grade} Section</span>
+							</div>
 						</button>
-						{#each filteredSections as section (section.id)}
-							<button 
-								type="button" 
-								class="scheduleassign-dropdown-item" 
-								on:click={() => selectFilterSection(section)}
-							>
-								<span class="scheduleassign-option-name">{section.grade} · {section.name}</span>
-							</button>
-						{/each}
-					</div>
-				{/if}
+					{/each}
+				</div>
 			</div>
 		</div>
 

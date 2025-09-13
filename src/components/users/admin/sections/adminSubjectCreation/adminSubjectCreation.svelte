@@ -430,7 +430,6 @@
 							<span class="material-symbols-outlined adminsubject-option-icon">school</span>
 							<div class="adminsubject-option-content">
 								<span class="adminsubject-option-name">{selectedGradeFilterObj.label}</span>
-								<span class="adminsubject-option-description">{selectedGradeFilterObj.description}</span>
 							</div>
 						</div>
 						{:else}
