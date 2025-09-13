@@ -1064,7 +1064,6 @@
 									class:selected={selectedFormDay === day.id}
 									on:click={() => selectFormDay(day)}
 								>
-									<span class="material-symbols-outlined">calendar_today</span>
 									<span class="day-name">{day.name}</span>
 								</button>
 							{/each}
