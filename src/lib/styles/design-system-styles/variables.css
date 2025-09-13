@@ -1,7 +1,7 @@
 /* Design System Variables */
 /* CSS Custom Properties for Colors, Typography, Spacing, and Design Tokens */
 
-/* Import Material Symbols font for Material Web Components icons */
+/* Import Material Symbols font for custom component icons */
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 :root {
@@ -42,7 +42,7 @@
   --outline: #79747e;
   --outline-variant: #cac4d0;
   
-  /* Material Web Component Tokens (Default Light Theme) */
+  /* Material Design 3 Tokens (Default Light Theme) */
   --md-sys-color-primary: var(--school-primary);
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #e3f2fd;

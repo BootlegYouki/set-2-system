@@ -1,10 +1,6 @@
 <script>
 
-  import '@material/web/textfield/filled-text-field.js';
-  import '@material/web/checkbox/checkbox.js';
-  import '@material/web/icon/icon.js';
-  import '@material/web/iconbutton/icon-button.js';
-  import '@material/web/progress/circular-progress.js';
+  // Material Web Components removed - using custom components with Material Design styling
   import './loginpage.css';
   import { onMount } from 'svelte';
   import { validateEmail, validatePassword } from './js/validation.js';
