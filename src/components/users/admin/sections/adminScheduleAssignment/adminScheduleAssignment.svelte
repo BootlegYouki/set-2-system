@@ -18,18 +18,7 @@
 	let isFormSubjectDropdownOpen = false;
 	let isFormTimeSlotDropdownOpen = false;
 
-	// Legacy variables for backward compatibility
-	let selectedSection = '';
-	let selectedTeacher = '';
-	let selectedSubject = '';
-	let selectedTimeSlot = '';
-	let selectedDay = '';
 
-	// Legacy dropdown states
-	let isSectionDropdownOpen = false;
-	let isTeacherDropdownOpen = false;
-	let isSubjectDropdownOpen = false;
-	let isTimeSlotDropdownOpen = false;
 
 	// Filter states for assignments section
 	let selectedFilterYear = '';
@@ -276,14 +265,8 @@
 	$: isYearSelected = !!selectedFilterYear;
 	$: isSectionSelected = !!selectedFilterSection;
 
-	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
 		if (!event.target.closest('.scheduleassign-custom-dropdown') && !event.target.closest('.admin-mobile-dropdown') && !event.target.closest('.scheduleassign-period-dropdown')) {
-			// Legacy dropdowns
-			isSectionDropdownOpen = false;
-			isTeacherDropdownOpen = false;
-			isSubjectDropdownOpen = false;
-			isTimeSlotDropdownOpen = false;
 			// Filter dropdowns
 			isFilterYearDropdownOpen = false;
 			isFilterSectionDropdownOpen = false;
@@ -304,45 +287,7 @@
 
 
 
-	// Selection functions
-	function selectSection(section) {
-		selectedSection = section.id;
-		isSectionDropdownOpen = false;
-	}
 
-	function selectTeacher(teacher) {
-		selectedTeacher = teacher.id;
-		isTeacherDropdownOpen = false;
-	}
-
-	function selectSubject(subject) {
-		selectedSubject = subject.id;
-		isSubjectDropdownOpen = false;
-	}
-
-	function selectTimeSlot(timeSlot) {
-		selectedTimeSlot = timeSlot.id;
-		isTimeSlotDropdownOpen = false;
-	}
-
-
-
-	// Form dropdown toggle functions
-	function toggleSectionDropdown() {
-		isSectionDropdownOpen = !isSectionDropdownOpen;
-	}
-
-	function toggleTeacherDropdown() {
-		isTeacherDropdownOpen = !isTeacherDropdownOpen;
-	}
-
-	function toggleSubjectDropdown() {
-		isSubjectDropdownOpen = !isSubjectDropdownOpen;
-	}
-
-	function toggleTimeSlotDropdown() {
-		isTimeSlotDropdownOpen = !isTimeSlotDropdownOpen;
-	}
 
 	// Filter dropdown toggle functions
 	function toggleFilterYearDropdown() {
@@ -493,38 +438,7 @@
 		}
 	}
 
-	// Reset form function
-	function resetForm() {
-		selectedFormYear = '';
-		selectedFormSection = '';
-		selectedFormDay = '';
-		selectedFormSubject = '';
-		selectedFormTimeSlot = '';
-		
-		// Close all dropdowns
-			isFormYearDropdownOpen = false;
-			isFormSectionDropdownOpen = false;
-			isFormDayDropdownOpen = false;
-			isFormSubjectDropdownOpen = false;
-			isFormTimeSlotDropdownOpen = false;
-			isFormTeacherDropdownOpen = false;
-		
-		// Hide success message
-		showSuccessMessage = false;
-	}
-	
-	// Reset day selection and subsequent selections
-	function resetDaySelection() {
-		selectedFormDay = '';
-		selectedFormSubject = '';
-		selectedFormTimeSlot = '';
-		
-		// Close related dropdowns
-		isFormDayDropdownOpen = false;
-		isFormSubjectDropdownOpen = false;
-		isFormTimeSlotDropdownOpen = false;
-		isFormTeacherDropdownOpen = false;
-	}
+
 
 	// New form teacher dropdown functions
 	function toggleFormTeacherDropdown() {
@@ -604,7 +518,7 @@
 
 		try {
 			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 5000));
+			await new Promise(resolve => setTimeout(resolve, 1000));
 
 			// Create new assignment
 				const newAssignment = {
@@ -926,12 +840,6 @@
 	$: if (newSchedule.startHour || newSchedule.startMinute || newSchedule.amPm || newSchedule.duration) {
 		calculateTimeSlot();
 	}
-
-	// Get selected objects for display
-	$: selectedSectionObj = sections.find(s => s.id === selectedSection);
-	$: selectedTeacherObj = teachers.find(t => t.id === selectedTeacher);
-	$: selectedSubjectObj = subjects.find(s => s.id === selectedSubject);
-	$: selectedTimeSlotObj = timeSlots.find(t => t.id === selectedTimeSlot);
 </script>
 
 <svelte:window on:click={handleClickOutside} />
