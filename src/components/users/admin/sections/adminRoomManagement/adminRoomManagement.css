@@ -297,8 +297,7 @@
 }
 
 /* Buttons */
-.admin-room-create-button,
-.admin-room-assign-button {
+.admin-room-create-button{
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-sm);
@@ -421,6 +420,41 @@
 	color: var(--md-sys-color-on-surface-variant);
 	cursor: pointer;
 	transition: all var(--transition-normal);
+}
+
+/* Assign Button */
+.admin-room-assign-button {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-primary);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.admin-room-assign-button:hover {
+	background-color: var(--md-sys-color-primary-container);
+	border-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary-container);
+	box-shadow: var(--elevation-1);
+}
+
+.admin-room-assign-button .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+.admin-room-assign-button:active {
+	background-color: var(--md-sys-color-primary-container);
+	box-shadow: none;
+	transform: scale(0.95);
 }
 
 .admin-room-edit-button:hover {
@@ -908,18 +942,136 @@
 
 
 
+/* Assign Form Styles */
+.admin-room-assign-form-section {
+	margin-top: var(--spacing-lg);
+	padding: var(--spacing-lg);
+	background-color: var(--md-sys-color-surface-container-low);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	animation: slideIn 0.3s ease-out;
+}
+
+.admin-room-assign-form-container {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-lg);
+}
+
+.admin-room-assign-form-header {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	padding-bottom: var(--spacing-md);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.admin-room-assign-form-title {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-xs) 0;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.admin-room-assign-form-title::before {
+	content: 'assignment';
+	font-family: 'Material Symbols Outlined';
+	font-size: var(--md-sys-typescale-title-medium-size);
+	color: var(--md-sys-color-primary);
+}
+
+.admin-room-assign-form-subtitle {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+.admin-room-assign-form-content {
+	display: flex;
+	flex-direction: column;
+}
+
+.admin-room-assign-info-row {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-md);
+}
+
+.admin-room-assign-form-actions {
+	display: flex;
+	gap: var(--spacing-md);
+	justify-content: flex-end;
+	padding-top: var(--spacing-lg);
+	border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.admin-room-assign-submit-button {
+	background-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	border: 1px solid var(--md-sys-color-primary);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm) var(--spacing-lg);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	min-width: 120px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-xs);
+}
+
+.admin-room-assign-submit-button:hover {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	box-shadow: var(--elevation-2);
+}
+
+.admin-room-assign-submit-button:active {
+	background-color: var(--md-sys-color-primary-container);
+	transform: scale(0.98);
+	box-shadow: var(--elevation-1);
+}
+
+.admin-room-assign-submit-button:disabled {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.admin-room-assign-submit-button .material-symbols-outlined {
+	font-size: 18px;
+}
+
 @media (max-width: 768px) {
 	.admin-room-edit-info-row {
 		grid-template-columns: 1fr;
 	}
 
-	.admin-room-edit-form-actions {
+	.admin-room-edit-form-actions,
+	.admin-room-assign-form-actions {
 		flex-direction: column;
 		gap: var(--spacing-sm);
 	}
 
 	.admin-room-cancel-button,
-	.admin-room-update-button {
+	.admin-room-update-button,
+	.admin-room-assign-submit-button {
 		width: 100%;
+	}
+
+	.admin-room-assign-info-row {
+		grid-template-columns: 1fr;
 	}
 }

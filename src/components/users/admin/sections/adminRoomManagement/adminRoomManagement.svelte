@@ -26,6 +26,12 @@
 	let editFloor = '';
 	let isUpdating = false;
 
+	// Assign room states (for inline assignment)
+	let assigningRoomId = null;
+	let assignSelectedSection = '';
+	let isAssigningInline = false;
+	let isAssignSectionDropdownOpen = false;
+
 	// Success/error messages
 	let showSuccessMessage = false;
 	let successMessage = '';
@@ -248,6 +254,7 @@
 		if (!event.target.closest('.custom-dropdown')) {
 			isRoomDropdownOpen = false;
 			isSectionDropdownOpen = false;
+			isAssignSectionDropdownOpen = false;
 		}
 	}
 
@@ -330,6 +337,75 @@
 			showError('Failed to update room. Please try again.');
 		} finally {
 			isUpdating = false;
+		}
+	}
+
+	// Inline assign room functions
+	function toggleAssignForm(room) {
+		if (assigningRoomId === room.id) {
+			// Close the form
+			assigningRoomId = null;
+			assignSelectedSection = '';
+			isAssignSectionDropdownOpen = false;
+		} else {
+			// Open the form
+			assigningRoomId = room.id;
+			assignSelectedSection = '';
+			isAssignSectionDropdownOpen = false;
+			// Close edit form if open
+			editingRoomId = null;
+		}
+	}
+
+	function toggleAssignSectionDropdown() {
+		isAssignSectionDropdownOpen = !isAssignSectionDropdownOpen;
+	}
+
+	function selectAssignSection(section) {
+		assignSelectedSection = section.id;
+		isAssignSectionDropdownOpen = false;
+	}
+
+	async function handleInlineAssignRoom() {
+		if (!assignSelectedSection) {
+			showError('Please select a section.');
+			return;
+		}
+
+		isAssigningInline = true;
+		clearMessages();
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1000));
+
+			// Find and update the room
+			const roomIndex = existingRooms.findIndex(room => room.id === assigningRoomId);
+			if (roomIndex !== -1) {
+				const assignedTo = sections.find(s => s.id === assignSelectedSection)?.name;
+
+				existingRooms[roomIndex] = {
+					...existingRooms[roomIndex],
+					status: 'assigned',
+					assignedTo: assignedTo
+				};
+
+				existingRooms = [...existingRooms];
+
+				// Show success message
+				const roomName = existingRooms[roomIndex].name;
+				showSuccess(`Room "${roomName}" has been assigned to ${assignedTo} successfully!`);
+
+				// Close assign form
+				assigningRoomId = null;
+				assignSelectedSection = '';
+			}
+
+		} catch (error) {
+			console.error('Error assigning room:', error);
+			showError('Failed to assign room. Please try again.');
+		} finally {
+			isAssigningInline = false;
 		}
 	}
 </script>
@@ -594,32 +670,41 @@
 							<h3 class="admin-room-room-name">{room.name}</h3>
 						</div>
 						<div class="admin-room-action-buttons">
-						{#if room.assignedTo}
-							<button 
-								type="button"
-								class="admin-room-unassign-button"
-								on:click={() => unassignRoom(room.id)}
-								title="Unassign Room"
-							>
-								<span class="material-symbols-outlined">remove_circle</span>
-							</button>
-						{/if}
-						<button 
-					type="button"
-					class="admin-room-edit-button"
-					on:click={() => toggleEditForm(room)}
-					title="{editingRoomId === room.id ? 'Cancel Edit' : 'Edit Room'}"
-				>
-					<span class="material-symbols-outlined">{editingRoomId === room.id ? 'close' : 'edit'}</span>
-				</button>
+					{#if room.assignedTo}
 						<button 
 							type="button"
-							class="admin-room-remove-button"
-							title="Remove Room"
+							class="admin-room-unassign-button"
+							on:click={() => unassignRoom(room.id)}
+							title="Unassign Room"
 						>
-							<span class="material-symbols-outlined">delete</span>
+							<span class="material-symbols-outlined">remove_circle</span>
 						</button>
-					</div>
+					{:else}
+						<button 
+							type="button"
+							class="admin-room-assign-button"
+							on:click={() => toggleAssignForm(room)}
+							title="{assigningRoomId === room.id ? 'Cancel Assign' : 'Assign Room'}"
+						>
+							<span class="material-symbols-outlined">{assigningRoomId === room.id ? 'close' : 'add_circle'}</span>
+						</button>
+					{/if}
+					<button 
+				type="button"
+				class="admin-room-edit-button"
+				on:click={() => toggleEditForm(room)}
+				title="{editingRoomId === room.id ? 'Cancel Edit' : 'Edit Room'}"
+			>
+				<span class="material-symbols-outlined">{editingRoomId === room.id ? 'close' : 'edit'}</span>
+			</button>
+					<button 
+						type="button"
+						class="admin-room-remove-button"
+						title="Remove Room"
+					>
+						<span class="material-symbols-outlined">delete</span>
+					</button>
+				</div>
 					</div>
 					
 					<div class="admin-room-room-details">
@@ -709,6 +794,87 @@
 												Updating
 											{:else}
 												Update
+											{/if}
+									</button>
+								</div>
+							</form>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Inline Assign Form -->
+				{#if assigningRoomId === room.id}
+					<div class="admin-room-assign-form-section">
+						<div class="admin-room-assign-form-container">
+							<div class="admin-room-assign-form-header">
+								<h2 class="admin-room-assign-form-title">Assign Room</h2>
+								<p class="admin-room-assign-form-subtitle">Select a section to assign this room to</p>
+							</div>
+							
+							<form class="admin-room-assign-form-content" on:submit|preventDefault={handleInlineAssignRoom}>
+								<!-- Section Selection -->
+								<div class="admin-room-assign-info-row">
+									<div class="admin-room-form-group">
+										<label class="admin-room-form-label" for="assign-section-select">Select Section *</label>
+										<div class="custom-dropdown" class:open={isAssignSectionDropdownOpen}>
+											<button 
+												type="button"
+												class="dropdown-trigger" 
+												class:selected={assignSelectedSection}
+												on:click={toggleAssignSectionDropdown}
+												id="assign-section-select"
+											>
+												{#if assignSelectedSection}
+													{@const selectedSectionObj = sections.find(section => section.id === assignSelectedSection)}
+													{#if selectedSectionObj}
+														<div class="selected-option">
+															<span class="material-symbols-outlined option-icon">group</span>
+															<div class="option-content">
+																<span class="option-name">{selectedSectionObj.name}</span>
+																<span class="option-description">Grade {selectedSectionObj.id.charAt(5)} Section</span>
+															</div>
+														</div>
+													{/if}
+												{:else}
+													<span class="placeholder">Select a section</span>
+												{/if}
+												<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+											</button>
+											<div class="dropdown-menu">
+												{#each sections as section (section.id)}
+													<button 
+														type="button"
+														class="dropdown-option" 
+														class:selected={assignSelectedSection === section.id}
+														on:click={() => selectAssignSection(section)}
+													>
+														<span class="material-symbols-outlined option-icon">group</span>
+														<div class="option-content">
+															<span class="option-name">{section.name}</span>
+															<span class="option-description">Grade {section.id.charAt(5)} Section</span>
+														</div>
+													</button>
+												{/each}
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<!-- Form Actions -->
+								<div class="admin-room-assign-form-actions">
+									<button type="button" class="admin-room-cancel-button" on:click={() => toggleAssignForm(room)}>
+										Cancel
+									</button>
+									<button 
+										type="submit" 
+										class="admin-room-assign-submit-button"
+										disabled={isAssigningInline || !assignSelectedSection}
+									>
+										{#if isAssigningInline}
+												Assigning
+											{:else}
+												<span class="material-symbols-outlined">assignment</span>
+												Assign
 											{/if}
 									</button>
 								</div>
