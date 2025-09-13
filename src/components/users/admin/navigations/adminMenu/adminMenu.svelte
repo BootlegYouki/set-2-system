@@ -34,6 +34,11 @@
 			id: 'subject-creation',
 			label: 'Subject Creation',
 			icon: 'subject'
+		},
+		{
+			id: 'document-requests',
+			label: 'Document Requests',
+			icon: 'description'
 		}
 	];
 

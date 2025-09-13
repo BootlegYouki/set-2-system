@@ -124,7 +124,6 @@
 }
 
 .admin-room-tab-button.admin-room-active {
-	color: var(--md-sys-color-primary);
 	background: var(--md-sys-color-primary-container);
 }
 

@@ -21,6 +21,7 @@
   import AdminSectionManagement from '../components/users/admin/sections/adminSectionCreation/adminSectionManagement.svelte';
   import AdminScheduleAssignment from '../components/users/admin/sections/adminScheduleAssignment/adminScheduleAssignment.svelte';
   import AdminSubjectCreation from '../components/users/admin/sections/adminSubjectCreation/adminSubjectCreation.svelte';
+  import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store
@@ -182,6 +183,8 @@
           <AdminScheduleAssignment />
         {:else if adminActiveSection === 'subject-creation'}
           <AdminSubjectCreation />
+        {:else if adminActiveSection === 'document-requests'}
+          <AdminDocumentRequests />
         {/if}
       </main>
 
