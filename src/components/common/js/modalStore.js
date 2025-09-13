@@ -43,14 +43,26 @@ function createModalStore() {
       update(() => []);
     },
     // Convenience methods for different modal types
-    confirm: (title, message, onConfirm, onCancel) => {
+    confirm: (title, message, onConfirm, onCancel, options = {}) => {
       return modalStore.open('ConfirmModal', {
         title,
         message,
         onConfirm,
         onCancel
       }, {
-        size: 'small',
+        size: options.size || 'small',
+        closable: false
+      });
+    },
+    // Large confirm modal for complex content
+    confirmLarge: (title, message, onConfirm, onCancel) => {
+      return modalStore.open('ConfirmModal', {
+        title,
+        message,
+        onConfirm,
+        onCancel
+      }, {
+        size: 'large',
         closable: false
       });
     },

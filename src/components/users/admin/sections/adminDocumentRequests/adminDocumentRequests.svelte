@@ -299,7 +299,6 @@
 							<span class="material-symbols-outlined admindocreq-option-icon">filter_list</span>
 							<div class="admindocreq-option-content">
 								<span class="admindocreq-option-name">{selectedStatusFilterObj.name}</span>
-								<span class="admindocreq-option-description">{selectedStatusFilterObj.description}</span>
 							</div>
 						</div>
 					{:else}
@@ -349,7 +348,6 @@
 							<span class="material-symbols-outlined admindocreq-option-icon">description</span>
 							<div class="admindocreq-option-content">
 								<span class="admindocreq-option-name">{selectedDocumentTypeFilterObj.name}</span>
-								<span class="admindocreq-option-description">{selectedDocumentTypeFilterObj.description}</span>
 							</div>
 						</div>
 					{:else}
@@ -399,7 +397,6 @@
 							<span class="material-symbols-outlined admindocreq-option-icon">school</span>
 							<div class="admindocreq-option-content">
 								<span class="admindocreq-option-name">{selectedGradeFilterObj.label}</span>
-								<span class="admindocreq-option-description">{selectedGradeFilterObj.description}</span>
 							</div>
 						</div>
 					{:else}

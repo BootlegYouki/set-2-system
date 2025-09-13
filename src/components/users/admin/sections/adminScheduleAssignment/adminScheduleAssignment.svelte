@@ -80,23 +80,23 @@
 		'Fri': 'Friday'
 	};
 
-	// Mock data for dropdowns
+	// Grade levels for Philippines DepEd (Grades 7-10)
 	const years = [
-		{ id: '1st-year', name: '1st Year' },
-		{ id: '2nd-year', name: '2nd Year' },
-		{ id: '3rd-year', name: '3rd Year' },
-		{ id: '4th-year', name: '4th Year' }
+		{ id: 'grade-7', name: 'Grade 7', description: 'Junior High School - First Year' },
+		{ id: 'grade-8', name: 'Grade 8', description: 'Junior High School - Second Year' },
+		{ id: 'grade-9', name: 'Grade 9', description: 'Junior High School - Third Year' },
+		{ id: 'grade-10', name: 'Grade 10', description: 'Junior High School - Fourth Year' }
 	];
 
 	const sections = [
-		{ id: 'grade7-a', name: 'Section A', grade: 'Grade 7', year: '1st-year' },
-		{ id: 'grade7-b', name: 'Section B', grade: 'Grade 7', year: '1st-year' },
-		{ id: 'grade8-a', name: 'Section A', grade: 'Grade 8', year: '2nd-year' },
-		{ id: 'grade8-b', name: 'Section B', grade: 'Grade 8', year: '2nd-year' },
-		{ id: 'grade9-a', name: 'Section A', grade: 'Grade 9', year: '3rd-year' },
-		{ id: 'grade9-b', name: 'Section B', grade: 'Grade 9', year: '3rd-year' },
-		{ id: 'grade10-a', name: 'Section A', grade: 'Grade 10', year: '4th-year' },
-		{ id: 'grade10-b', name: 'Section B', grade: 'Grade 10', year: '4th-year' }
+		{ id: 'grade7-a', name: 'Section A', grade: 'Grade 7', year: 'grade-7' },
+		{ id: 'grade7-b', name: 'Section B', grade: 'Grade 7', year: 'grade-7' },
+		{ id: 'grade8-a', name: 'Section A', grade: 'Grade 8', year: 'grade-8' },
+		{ id: 'grade8-b', name: 'Section B', grade: 'Grade 8', year: 'grade-8' },
+		{ id: 'grade9-a', name: 'Section A', grade: 'Grade 9', year: 'grade-9' },
+		{ id: 'grade9-b', name: 'Section B', grade: 'Grade 9', year: 'grade-9' },
+		{ id: 'grade10-a', name: 'Section A', grade: 'Grade 10', year: 'grade-10' },
+		{ id: 'grade10-b', name: 'Section B', grade: 'Grade 10', year: 'grade-10' }
 	];
 
 	const teachers = [
@@ -154,7 +154,7 @@
 	let scheduleAssignments = [
 		{
 			id: 1,
-			year: '1st-year',
+			year: 'grade-7',
 			grade: 'Grade 7',
 			section: 'Section A',
 			teacher: 'Maria Santos',
@@ -165,7 +165,7 @@
 		},
 		{
 			id: 2,
-			year: '1st-year',
+			year: 'grade-7',
 			grade: 'Grade 7',
 			section: 'Section A',
 			teacher: 'Juan Dela Cruz',
@@ -176,7 +176,7 @@
 		},
 		{
 			id: 3,
-			year: '2nd-year',
+			year: 'grade-8',
 			grade: 'Grade 8',
 			section: 'Section A',
 			teacher: 'Ana Garcia',
@@ -187,7 +187,7 @@
 		},
 		{
 			id: 4,
-			year: '1st-year',
+			year: 'grade-7',
 			grade: 'Grade 7',
 			section: 'Section B',
 			teacher: 'Pedro Rodriguez',
@@ -198,7 +198,7 @@
 		},
 		{
 			id: 5,
-			year: '3rd-year',
+			year: 'grade-9',
 			grade: 'Grade 9',
 			section: 'Section A',
 			teacher: 'Carmen Lopez',
@@ -209,7 +209,7 @@
 		},
 		{
 			id: 6,
-			year: '4th-year',
+			year: 'grade-10',
 			grade: 'Grade 10',
 			section: 'Section A',
 			teacher: 'Ana Garcia',
@@ -691,12 +691,11 @@
 	<div class="scheduleassign-form-section">
 		<div class="scheduleassign-section-header">
 			<h2 class="scheduleassign-section-title">Create Schedule Assignment</h2>
-			<p class="scheduleassign-section-subtitle">Select section, teacher, subject, day, and time slot</p>
+			<p class="scheduleassign-form-instruction">Select year level and section, then choose a day to add schedule assignments.</p>
 		</div>
 
 		<form on:submit|preventDefault={handleAssignSchedule}>
 			<div class="scheduleassign-hierarchical-form">
-				<p class="scheduleassign-form-instruction">Select year level and section, then choose a day to add schedule assignments.</p>
 
 				<!-- Year Level and Section Selection Row -->
 				<div class="scheduleassign-selection-row">
@@ -712,31 +711,32 @@
 								id="form-year"
 							>
 								{#if selectedFormYearObj}
-									<div class="scheduleassign-selected-option">
-										<span class="material-symbols-outlined option-icon">school</span>
-										<div class="option-content">
-											<span class="option-name">{selectedFormYearObj.name}</span>
-										</div>
-									</div>
-								{:else}
-									<span class="placeholder">Select year level</span>
-								{/if}
+						<div class="scheduleassign-selected-option">
+							<span class="material-symbols-outlined option-icon">school</span>
+							<div class="option-content">
+								<span class="option-name">{selectedFormYearObj.name}</span>
+							</div>
+						</div>
+					{:else}
+						<span class="placeholder">Select year level</span>
+					{/if}
 								<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 							</button>
 							<div class="scheduleassign-dropdown-menu">
 								{#each years as year (year.id)}
-									<button 
-										type="button"
-										class="scheduleassign-dropdown-item" 
-										class:selected={selectedFormYear === year.id}
-										on:click={() => selectFormYear(year)}
-									>
-										<span class="material-symbols-outlined option-icon">school</span>
-										<div class="option-content">
-											<span class="option-name">{year.name}</span>
-										</div>
-									</button>
-								{/each}
+							<button 
+								type="button"
+								class="scheduleassign-dropdown-item" 
+								class:selected={selectedFormYear === year.id}
+								on:click={() => selectFormYear(year)}
+							>
+								<span class="material-symbols-outlined option-icon">school</span>
+								<div class="option-content">
+									<span class="option-name">{year.name}</span>
+									<span class="option-description">{year.description}</span>
+								</div>
+							</button>
+						{/each}
 							</div>
 						</div>
 					</div>
@@ -809,7 +809,7 @@
 				<!-- Add Schedule Section -->
 				{#if selectedFormYear && selectedFormSection && selectedFormDay}
 					<div class="scheduleassign-add-section">
-						<div class="scheduleassign-section-header">
+						<div class="scheduleassign-section-header-day">
 					<h3 class="scheduleassign-section-title">
 						Schedule for {selectedFormSectionObj.grade} {selectedFormSectionObj.name} - {selectedFormDayObj.name}
 					</h3>
@@ -1035,10 +1035,10 @@
 					on:click={toggleFilterYearDropdown}
 				>
 					<div class="scheduleassign-dropdown-content">
-						<span class="scheduleassign-option-name">
-							{selectedFilterYear || 'Select a year'}
-						</span>
-					</div>
+				<span class="scheduleassign-option-name">
+					{selectedFilterYear ? years.find(y => y.id === selectedFilterYear)?.name : 'Select a year'}
+				</span>
+			</div>
 					<span class="material-symbols-outlined scheduleassign-dropdown-icon" class:rotated={isFilterYearDropdownOpen}>
 						expand_more
 					</span>

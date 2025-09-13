@@ -46,7 +46,7 @@
       <!-- Handle string-based component names -->
       {#if modal.component === 'ConfirmModal'}
         <div class="modal-confirm-content">
-          <p class="modal-message">{modal.props.message}</p>
+          <div class="modal-message">{@html modal.props.message}</div>
           <div class="modal-actions">
             <button 
               class="modal-btn modal-btn-secondary" 
@@ -142,7 +142,26 @@
     font-family: var(--md-sys-typescale-body-large-font);
     font-size: var(--md-sys-typescale-body-large-size);
     color: var(--md-sys-color-on-surface);
-    line-height: 1.5;
+    line-height: 1.6;
+    max-width: none;
+    word-wrap: break-word;
+  }
+
+  /* Enhanced styling for HTML content in messages */
+  .modal-message :global(p) {
+    margin: 0 0 12px 0;
+  }
+
+  .modal-message :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .modal-message :global(strong) {
+    font-weight: 600;
+  }
+
+  .modal-message :global(div) {
+    margin: 8px 0;
   }
 
   .modal-input {
@@ -183,6 +202,7 @@
   .modal-btn-primary {
     background-color: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary);
+    border: 1px solid var(--md-sys-color-primary);
   }
 
   .modal-btn-primary:hover {

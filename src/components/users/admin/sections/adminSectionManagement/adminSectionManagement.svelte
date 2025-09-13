@@ -394,7 +394,10 @@
 	function handleRemoveSection(section) {
 		modalStore.confirm(
 			'Remove Section',
-			`Are you sure you want to remove section "${section.name}" (${section.grade})? This action cannot be undone and will unassign all students and the adviser from this section.`,
+			`<p>Are you sure you want to remove section <strong>"${section.name}"</strong> (${section.grade})?</p>
+			 <div style="margin-top: 12px; padding: 12px; background-color: var(--md-sys-color-error-container); border-radius: 8px; color: var(--md-sys-color-on-error-container);">
+			   <strong>Warning:</strong> This action cannot be undone and will unassign all students and the adviser from this section.
+			 </div>`,
 			() => {
 				// Remove section from the list
 				recentSections = recentSections.filter(s => s.id !== section.id);
@@ -412,7 +415,8 @@
 			},
 			() => {
 				// Do nothing on cancel
-			}
+			},
+			{ size: 'medium' }
 		);
 	}
 

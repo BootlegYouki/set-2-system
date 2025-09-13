@@ -62,15 +62,9 @@
 	font-size: var(--md-sys-typescale-title-large-size);
 	font-weight: var(--md-sys-typescale-title-large-weight);
 	color: var(--md-sys-color-on-surface);
-	margin: 0 0 var(--spacing-sm) 0;
+	margin: 0;
 }
 
-.scheduleassign-section-subtitle {
-	font-family: var(--md-sys-typescale-body-large-font);
-	font-size: var(--md-sys-typescale-body-large-size);
-	color: var(--md-sys-color-on-surface-variant);
-	margin: 0 0 var(--spacing-lg) 0;
-}
 
 /* Success Message */
 
@@ -98,7 +92,6 @@
 	font-size: 1.25rem;
 	font-weight: 600;
 	color: var(--text-primary);
-	margin: 0 0 1.5rem 0;
 }
 
 .scheduleassign-add-schedule-card {
@@ -197,7 +190,7 @@
 
 .scheduleassign-form-inputs {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	grid-template-columns: 1fr 1fr;
 	gap: 1.5rem;
 	margin-bottom: 2rem;
 }
@@ -364,7 +357,7 @@
 	background: var(--surface-color);
 	color: var(--text-primary-color);
 	transition: all 0.2s ease;
-	min-height: 52px;
+	min-height: 58px;
 }
 
 .scheduleassign-time-input:focus,
@@ -559,12 +552,6 @@
 	border: 1px solid var(--md-sys-color-outline-variant);
 	margin-bottom: var(--spacing-xl);
 }
-
-.scheduleassign-section-header {
-	margin-bottom: var(--spacing-lg);
-}
-
-
 
 /* Form Groups */
 .scheduleassign-form-group {
@@ -1251,7 +1238,7 @@
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: var(--spacing-lg);
-	margin-bottom: var(--spacing-xl);
+	margin-bottom: var(--spacing-md);
 }
 
 /* Day Selection Grid */
@@ -1408,10 +1395,15 @@
 /* Import/Export Styles */
 .scheduleassign-section-header {
 	display: flex;
+	flex-direction: column;
+	margin-bottom: var(--spacing-md);
+}
+
+.scheduleassign-section-header-day{
+	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: var(--spacing-lg);
-	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-md);
 }
 
 .scheduleassign-import-export-actions {

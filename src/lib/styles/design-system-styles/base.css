@@ -27,6 +27,10 @@ body {
   transition: color var(--transition-normal), background-color var(--transition-normal);
 }
 
+p {
+  margin: 0;
+}
+
 /* Global transition for theme changes */
 *,
 *::before,

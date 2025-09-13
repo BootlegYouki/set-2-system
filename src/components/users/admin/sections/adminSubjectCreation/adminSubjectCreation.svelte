@@ -1,5 +1,6 @@
 <script>
 	import './adminSubjectCreation.css';
+	import { modalStore } from '../../../../common/js/modalStore.js';
 
 	// Subject creation state
 	let isCreating = false;
@@ -17,6 +18,16 @@
 	// Search and filter state
 	let searchTerm = '';
 	let selectedGradeFilter = ''; // All grade levels
+
+	// Edit subject states
+	let editingSubjectId = null;
+	let editSubjectName = '';
+	let editSubjectCode = '';
+	let editSelectedGradeLevel = '';
+	let isUpdating = false;
+
+	// Edit dropdown states
+	let isEditGradeDropdownOpen = false;
 
 	// Grade levels for Philippines DepEd (Grades 7-10)
 	const gradeLevels = [
@@ -122,6 +133,32 @@
 		}
 	}
 
+	// Handle subject removal
+	function handleRemoveSubject(subject) {
+		modalStore.confirm(
+			'Remove Subject',
+			`<p>Are you sure you want to remove the subject <strong>"${subject.name}"</strong>?</p>
+			 <div style="margin-top: 12px; padding: 12px; background-color: var(--md-sys-color-error-container); border-radius: 8px; color: var(--md-sys-color-on-error-container);">
+			   <strong>Warning:</strong> This action cannot be undone. All associated data will be permanently deleted.
+			 </div>`,
+			() => {
+				// Remove the subject from the array
+				recentSubjects = recentSubjects.filter(s => s.id !== subject.id);
+				
+				// Show success message
+				successMessage = `Subject "${subject.name}" has been removed successfully`;
+				showSuccessMessage = true;
+				
+				// Hide success message after 5 seconds
+				setTimeout(() => {
+					showSuccessMessage = false;
+				}, 5000);
+			},
+			null, // onCancel - no action needed
+			{ size: 'medium' }
+		);
+	}
+
 	// Functions
 	function toggleGradeDropdown() {
 		isGradeDropdownOpen = !isGradeDropdownOpen;
@@ -149,11 +186,92 @@
 	function handleClickOutside(event) {
 		if (!event.target.closest('.adminsubject-custom-dropdown')) {
 			isGradeDropdownOpen = false;
+			isEditGradeDropdownOpen = false;
 		}
 		if (!event.target.closest('.adminsubject-grade-filter')) {
 			isGradeFilterDropdownOpen = false;
 		}
 	}
+
+	// Edit subject functions
+	function toggleEditForm(subject) {
+		if (editingSubjectId === subject.id) {
+			// Close the form
+			editingSubjectId = null;
+			editSubjectName = '';
+			editSubjectCode = '';
+			editSelectedGradeLevel = '';
+			isEditGradeDropdownOpen = false;
+		} else {
+			// Open the form
+			editingSubjectId = subject.id;
+			editSubjectName = subject.name;
+			editSubjectCode = subject.code;
+			editSelectedGradeLevel = parseInt(subject.gradeLevel.replace('Grade ', ''));
+		}
+	}
+
+	async function handleEditSubject() {
+		if (!editSubjectName.trim() || !editSubjectCode.trim() || !editSelectedGradeLevel) {
+			alert('Please fill in all required fields');
+			return;
+		}
+
+		isUpdating = true;
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1500));
+
+			// Update subject in the array
+			recentSubjects = recentSubjects.map(subject => {
+				if (subject.id === editingSubjectId) {
+					return {
+						...subject,
+						name: editSubjectName,
+						code: editSubjectCode,
+						gradeLevel: `Grade ${editSelectedGradeLevel}`
+					};
+				}
+				return subject;
+			});
+
+			// Show success message
+			successMessage = `Subject "${editSubjectName}" updated successfully with code ${editSubjectCode}`;
+			showSuccessMessage = true;
+
+			// Close edit form
+			editingSubjectId = null;
+			editSubjectName = '';
+			editSubjectCode = '';
+			editSelectedGradeLevel = '';
+			isEditGradeDropdownOpen = false;
+
+			// Hide success message after 5 seconds
+			setTimeout(() => {
+				showSuccessMessage = false;
+			}, 5000);
+
+		} catch (error) {
+			console.error('Error updating subject:', error);
+			alert('Failed to update subject. Please try again.');
+		} finally {
+			isUpdating = false;
+		}
+	}
+
+	// Edit dropdown functions
+	function toggleEditGradeDropdown() {
+		isEditGradeDropdownOpen = !isEditGradeDropdownOpen;
+	}
+
+	function selectEditGradeLevel(grade) {
+		editSelectedGradeLevel = grade.value;
+		isEditGradeDropdownOpen = false;
+	}
+
+	// Computed properties for edit form
+	$: editSelectedGradeLevelObj = gradeLevels.find(grade => grade.value === editSelectedGradeLevel);
 
 	// Remove auto-generation of subject code
 </script>
@@ -205,9 +323,6 @@
 											<span class="material-symbols-outlined adminsubject-option-icon">school</span>
 											<div class="adminsubject-option-content">
 												<span class="adminsubject-option-name">{selectedGradeLevelObj.label}</span>
-												<span class="adminsubject-option-description"
-													>{selectedGradeLevelObj.description}</span
-												>
 											</div>
 										</div>
 									{:else}
@@ -361,10 +476,20 @@
 								<h3 class="adminsubject-subject-name">{subject.name} · {subject.gradeLevel}</h3>
 							</div>
 							<div class="adminsubject-action-buttons">
-								<button type="button" class="adminsubject-edit-button" title="Edit Subject">
-									<span class="material-symbols-outlined">edit</span>
+								<button 
+									type="button" 
+									class="adminsubject-edit-button" 
+									on:click={() => toggleEditForm(subject)}
+									title="{editingSubjectId === subject.id ? 'Cancel Edit' : 'Edit Subject'}"
+								>
+									<span class="material-symbols-outlined">{editingSubjectId === subject.id ? 'close' : 'edit'}</span>
 								</button>
-								<button type="button" class="adminsubject-remove-button" title="Remove Subject">
+								<button 
+									type="button" 
+									class="adminsubject-remove-button" 
+									title="Remove Subject"
+									on:click={() => handleRemoveSubject(subject)}
+								>
 									<span class="material-symbols-outlined">delete</span>
 								</button>
 							</div>
@@ -380,6 +505,111 @@
 								<span>Created: {subject.createdDate}</span>
 							</div>
 						</div>
+
+						<!-- Inline Edit Form -->
+						{#if editingSubjectId === subject.id}
+							<div class="adminsubject-edit-form-section">
+								<div class="adminsubject-edit-form-container">
+									<div class="adminsubject-edit-form-header">
+										<h2 class="adminsubject-edit-form-title">Edit Subject</h2>
+										<p class="adminsubject-edit-form-subtitle">Update subject information</p>
+									</div>
+									
+									<form class="adminsubject-edit-form-content" on:submit|preventDefault={handleEditSubject}>
+										<!-- Grade Level, Subject Name, and Subject Code Row -->
+										<div class="adminsubject-edit-form-row">
+											<!-- Grade Level Selection -->
+											<div class="adminsubject-form-group adminsubject-form-group-third">
+												<label class="adminsubject-form-label" for="edit-grade-level">Grade Level *</label>
+												<div class="adminsubject-custom-dropdown" class:open={isEditGradeDropdownOpen}>
+													<button
+														type="button"
+														class="adminsubject-dropdown-trigger"
+														class:selected={editSelectedGradeLevel}
+														on:click={toggleEditGradeDropdown}
+														id="edit-grade-level"
+													>
+														{#if editSelectedGradeLevelObj}
+															<div class="adminsubject-selected-option">
+																<span class="material-symbols-outlined adminsubject-option-icon">school</span>
+																<div class="adminsubject-option-content">
+																	<span class="adminsubject-option-name">{editSelectedGradeLevelObj.label}</span>
+																</div>
+															</div>
+														{:else}
+															<span class="adminsubject-placeholder">Select grade level</span>
+														{/if}
+														<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
+													</button>
+													<div class="adminsubject-dropdown-menu">
+														{#each gradeLevels as grade (grade.value)}
+															<button
+																type="button"
+																class="adminsubject-dropdown-option"
+																class:selected={editSelectedGradeLevel === grade.value}
+																on:click={() => selectEditGradeLevel(grade)}
+															>
+																<span class="material-symbols-outlined adminsubject-option-icon">school</span>
+																<div class="adminsubject-option-content">
+																	<span class="adminsubject-option-name">{grade.label}</span>
+																	<span class="adminsubject-option-description">{grade.description}</span>
+																</div>
+															</button>
+														{/each}
+													</div>
+												</div>
+											</div>
+
+											<!-- Subject Name -->
+											<div class="adminsubject-form-group adminsubject-form-group-third">
+												<label for="editSubjectName" class="adminsubject-form-label">Subject Name *</label>
+												<input
+													id="editSubjectName"
+													type="text"
+													class="adminsubject-form-input"
+													bind:value={editSubjectName}
+													placeholder="e.g., Mathematics, English"
+													required
+												/>
+											</div>
+
+											<!-- Subject Code -->
+											<div class="adminsubject-form-group adminsubject-form-group-third">
+												<label for="editSubjectCode" class="adminsubject-form-label">Subject Code *</label>
+												<input
+													id="editSubjectCode"
+													type="text"
+													class="adminsubject-form-input"
+													bind:value={editSubjectCode}
+													placeholder="e.g., MATH-7, ENG-8"
+													required
+												/>
+											</div>
+										</div>
+
+										<!-- Form Actions -->
+										<div class="adminsubject-edit-form-actions">
+											<button type="button" class="adminsubject-cancel-button" on:click={() => toggleEditForm(subject)}>
+												Cancel
+											</button>
+											<button 
+												type="submit" 
+												class="adminsubject-submit-button"
+												disabled={isUpdating || !editSubjectName.trim() || !editSubjectCode.trim() || !editSelectedGradeLevel}
+											>
+												{#if isUpdating}
+													<span class="material-symbols-outlined adminsubject-loading-icon">hourglass_empty</span>
+													Updating...
+												{:else}
+													<span class="material-symbols-outlined">save</span>
+													Update Subject
+												{/if}
+											</button>
+										</div>
+									</form>
+								</div>
+							</div>
+						{/if}
 					</div>
 				{:else}
 					<div class="adminsubject-no-results">
