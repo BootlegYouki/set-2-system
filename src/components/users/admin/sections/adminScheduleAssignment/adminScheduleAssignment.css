@@ -189,10 +189,18 @@
 }
 
 .scheduleassign-form-inputs {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-lg);
+	margin-bottom: 2rem;
+}
+
+/* Subject and Teacher Row */
+.scheduleassign-subject-teacher-row {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: 1.5rem;
-	margin-bottom: 2rem;
+	gap: var(--spacing-lg);
+	align-items: end;
 }
 
 .scheduleassign-input-group {
@@ -265,6 +273,225 @@
 	background: var(--surface-color);
 	border-radius: 12px;
 	border: 1px solid var(--border-color);
+}
+
+/* New Time Input Styles */
+.scheduleassign-time-section {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-lg);
+	padding: var(--spacing-lg);
+	background: var(--md-sys-color-surface-container-lowest);
+	border-radius: var(--radius-lg);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.scheduleassign-time-row {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--spacing-md);
+	align-items: start;
+}
+
+.scheduleassign-input-group{
+	flex: 1;
+}
+
+.scheduleassign-time-input,
+.scheduleassign-period-input {
+	padding: var(--spacing-sm) var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all var(--transition-normal);
+	height: 48px;
+	box-sizing: border-box;
+	text-align: center;
+}
+
+.scheduleassign-time-input:focus,
+.scheduleassign-period-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+/* Custom Period Dropdown Styles (matching Year level dropdown) */
+.scheduleassign-period-dropdown {
+	position: relative;
+	width: 100%;
+}
+
+.scheduleassign-period-dropdown-button {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-size: var(--md-sys-typescale-body-large-size);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-md);
+	min-height: 58px;
+	text-align: center;
+}
+
+.scheduleassign-period-dropdown-button:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.scheduleassign-period-dropdown-button.selected {
+	border: 1px solid var(--md-sys-color-outline);
+}
+
+.scheduleassign-period-selected-option {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+	flex: 1;
+	justify-content: center;
+}
+
+.scheduleassign-period-selected-option .option-icon {
+	font-size: var(--md-sys-typescale-title-medium-size);
+	color: var(--md-sys-color-primary);
+	flex-shrink: 0;
+}
+
+.scheduleassign-period-selected-option .option-name {
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+	color: var(--md-sys-color-on-surface);
+}
+
+.scheduleassign-period-dropdown-arrow {
+	font-size: var(--md-sys-typescale-title-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	transition: transform var(--transition-normal);
+	flex-shrink: 0;
+}
+
+.scheduleassign-period-dropdown.open .scheduleassign-period-dropdown-arrow {
+	transform: rotate(180deg);
+}
+
+.scheduleassign-period-dropdown-menu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	box-shadow: var(--elevation-2);
+	z-index: 1000;
+	max-height: 200px;
+	overflow-y: auto;
+	margin-top: var(--spacing-xs);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-8px);
+	transition: all var(--transition-normal);
+}
+
+.scheduleassign-period-dropdown.open .scheduleassign-period-dropdown-menu {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+}
+
+.scheduleassign-period-dropdown-item {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
+	background: transparent;
+	color: var(--md-sys-color-on-surface);
+	font-size: var(--md-sys-typescale-body-large-size);
+	cursor: pointer;
+	transition: background-color var(--transition-normal);
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+	text-align: left;
+	justify-content: center;
+}
+
+.scheduleassign-period-dropdown-item:hover {
+	background: var(--md-sys-color-surface-variant);
+}
+
+.scheduleassign-period-dropdown-item.selected {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.scheduleassign-period-dropdown-item.selected .option-icon {
+	color: var(--md-sys-color-primary);
+}
+
+.scheduleassign-calculated-time {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md);
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	border-radius: var(--radius-md);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	justify-content: center;
+	margin-top: var(--spacing-xs);
+}
+
+.scheduleassign-calculated-time .material-symbols-outlined {
+	font-size: 18px;
+}
+
+.scheduleassign-calculated-time .time-display {
+	font-family: monospace;
+	letter-spacing: 0.5px;
+}
+
+/* Responsive Design for Time Inputs */
+@media (max-width: 768px) {
+	.scheduleassign-time-row {
+		grid-template-columns: 1fr 1fr;
+		gap: var(--spacing-sm);
+	}
+	
+	.scheduleassign-time-input {
+		font-size: var(--md-sys-typescale-body-medium-size);
+	}
+	
+	.scheduleassign-subject-teacher-row {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-md);
+	}
+}
+
+@media (max-width: 480px) {
+	.scheduleassign-time-row {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-sm);
+	}
+	
+	.scheduleassign-time-section {
+		padding: var(--spacing-md);
+	}
+	
+	.scheduleassign-subject-teacher-row {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-sm);
+	}
 }
 
 .scheduleassign-manage-btn {
@@ -345,26 +572,28 @@
 .scheduleassign-time-input-group {
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
+	gap: var(--spacing-xs);
 }
 
 .scheduleassign-time-input,
 .scheduleassign-period-input {
-	padding: 0.75rem;
-	border: 1px solid var(--md-sys-color-outline-variant);
-	border-radius: 8px;
-	font-size: 0.875rem;
-	background: var(--surface-color);
-	color: var(--text-primary-color);
-	transition: all 0.2s ease;
-	min-height: 58px;
+	padding: var(--spacing-sm) var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all var(--transition-normal);
+	height: 58px;
+	box-sizing: border-box;
 }
 
 .scheduleassign-time-input:focus,
 .scheduleassign-period-input:focus {
 	outline: none;
-	border-color: var(--primary-color);
-	box-shadow: 0 0 0 3px var(--primary-color-alpha);
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
 }
 
 .scheduleassign-timeperiod-form-actions {
@@ -815,10 +1044,10 @@
 }
 
 .scheduleassign-assignment-card {
-	background: var(--md-sys-color-surface);
+	background: var(--md-sys-color-surface-container);
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
-	padding: 0;
+	padding: var(--spacing-lg);
 	transition: all var(--transition-normal);
 	display: flex;
 	flex-direction: column;
@@ -835,8 +1064,7 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-start;
-	padding: var(--spacing-lg);
-	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+	margin-bottom: var(--spacing-md);
 }
 
 .scheduleassign-assignment-info {
@@ -917,7 +1145,6 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--spacing-md);
-	padding: var(--spacing-lg);
 	margin-bottom: var(--spacing-xs);
 }
 
@@ -1451,6 +1678,196 @@
 	font-size: 18px;
 }
 
+/* Edit Form Styles */
+.scheduleassign-edit-form-section {
+	margin-top: var(--spacing-md);
+	animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.scheduleassign-edit-form-container {
+	background-color: var(--md-sys-color-surface-container);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-lg);
+	box-shadow: var(--elevation-1);
+}
+
+.scheduleassign-edit-form-header {
+	margin-bottom: var(--spacing-md);
+	padding-bottom: var(--spacing-md);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.scheduleassign-edit-form-title {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-xs) 0;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.scheduleassign-edit-form-title::before {
+	content: 'edit';
+	font-family: 'Material Symbols Outlined';
+	font-size: var(--md-sys-typescale-title-medium-size);
+	color: var(--md-sys-color-primary);
+}
+
+.scheduleassign-edit-form-subtitle {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+.scheduleassign-edit-form-content {
+	display: flex;
+	flex-direction: column;
+}
+
+.scheduleassign-edit-form-row {
+	display: flex;
+	gap: var(--spacing-lg);
+	margin-bottom: var(--spacing-lg);
+}
+
+.scheduleassign-form-group-third {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+}
+
+.scheduleassign-form-label {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin-bottom: var(--spacing-xs);
+}
+
+.scheduleassign-form-input {
+	padding: var(--spacing-sm) var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all var(--transition-normal);
+	height: 58px;
+	box-sizing: border-box;
+}
+
+.scheduleassign-form-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.scheduleassign-edit-form-actions {
+	display: flex;
+	gap: var(--spacing-md);
+	justify-content: flex-end;
+	margin-top: var(--spacing-xl);
+	padding-top: var(--spacing-lg);
+	border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* Cancel Button */
+.scheduleassign-cancel-button {
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm) var(--spacing-lg);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	min-width: 80px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.scheduleassign-cancel-button:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+	box-shadow: var(--elevation-1);
+}
+
+.scheduleassign-cancel-button:active {
+	background-color: var(--md-sys-color-surface-container-high);
+	transform: scale(0.98);
+	box-shadow: none;
+}
+
+/* Submit Button */
+.scheduleassign-submit-button {
+	background-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	border: 1px solid var(--md-sys-color-primary);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm) var(--spacing-lg);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	min-width: 120px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-xs);
+}
+
+.scheduleassign-submit-button:hover:not(:disabled) {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	box-shadow: var(--elevation-2);
+}
+
+.scheduleassign-submit-button:active:not(:disabled) {
+	background-color: var(--md-sys-color-primary-container);
+	transform: scale(0.98);
+	box-shadow: var(--elevation-1);
+}
+
+.scheduleassign-submit-button:disabled {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.scheduleassign-loading-icon {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
 	.scheduleassign-section-header {
 		flex-direction: column;
@@ -1465,6 +1882,26 @@
 	.scheduleassign-import-button,
 	.scheduleassign-export-button {
 		flex: 1;
+		justify-content: center;
+	}
+	
+	.scheduleassign-edit-form-row {
+		flex-direction: column;
+		gap: var(--spacing-md);
+	}
+	
+	.scheduleassign-form-group-third {
+		flex: none;
+		margin-bottom: 0;
+	}
+	
+	.scheduleassign-edit-form-actions {
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+	
+	.scheduleassign-cancel-button,
+	.scheduleassign-submit-button {
 		justify-content: center;
 	}
 }
