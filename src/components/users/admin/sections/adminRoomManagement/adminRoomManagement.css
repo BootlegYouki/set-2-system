@@ -57,98 +57,17 @@
 
 
 
-/* Success and Error Messages */
-.admin-room-success-message,
-.admin-room-error-message {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-sm);
-	padding: var(--spacing-md);
-	border-radius: var(--radius-md);
-	margin-bottom: var(--spacing-lg);
-	animation: slideIn 0.3s ease-out;
-}
 
-.admin-room-success-message {
-	background: var(--md-sys-color-primary-container);
-	color: var(--md-sys-color-on-primary-container);
-	border: 1px solid var(--md-sys-color-primary);
-}
 
-.admin-room-error-message {
-	background: var(--md-sys-color-error-container);
-	color: var(--md-sys-color-on-error-container);
-	border: 1px solid var(--md-sys-color-error);
-}
 
-.admin-room-success-icon,
-.admin-room-error-icon {
-	font-size: 20px;
-}
-
-.admin-room-success-text,
-.admin-room-error-text {
-	font-family: var(--md-sys-typescale-body-medium-font);
-	font-size: var(--md-sys-typescale-body-medium-size);
-	font-weight: 500;
-}
-
-/* Tab Navigation */
-.admin-room-tab-navigation {
-	display: flex;
-	gap: var(--spacing-xs);
-	margin-bottom: var(--spacing-xl);
-	border-bottom: 1px solid var(--md-sys-color-outline-variant);
-}
-
-.admin-room-tab-button {
-	display: flex;
-	align-items: center;
-	gap: var(--spacing-sm);
-	padding: var(--spacing-md) var(--spacing-lg);
-	border: none;
-	background: transparent;
-	color: var(--md-sys-color-on-surface-variant);
-	font-family: var(--md-sys-typescale-label-large-font);
-	font-size: var(--md-sys-typescale-label-large-size);
-	font-weight: var(--md-sys-typescale-label-large-weight);
-	border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-	cursor: pointer;
-	transition: all 0.2s ease;
-	position: relative;
-}
-
-.admin-room-tab-button:hover {
-	background: var(--md-sys-color-surface-variant);
-	color: var(--md-sys-color-on-surface);
-}
-
-.admin-room-tab-button.admin-room-active {
-	background: var(--md-sys-color-primary-container);
-}
-
-.admin-room-tab-button.admin-room-active::after {
-	content: '';
-	position: absolute;
-	bottom: -1px;
-	left: 0;
-	right: 0;
-	height: 2px;
-	background: var(--md-sys-color-primary);
-}
-
-/* Tab Content */
-.admin-room-tab-content {
-	margin-bottom: var(--spacing-xl);
-}
 
 /* Form Sections */
-.admin-room-creation-form-section,
-.admin-room-assignment-form-section {
+.admin-room-creation-form-section {
 	background: var(--md-sys-color-surface-container-low);
 	border-radius: var(--radius-lg);
 	padding: var(--spacing-xl);
 	border: 1px solid var(--md-sys-color-outline-variant);
+	margin-bottom: var(--spacing-xl);
 }
 
 .admin-room-section-header {
@@ -185,13 +104,7 @@
 	flex: 1;
 }
 
-/* Assignment Form Row for Dropdowns */
-.admin-room-assignment-form-row {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: var(--spacing-lg);
-	margin-bottom: var(--spacing-lg);
-}
+
 
 /* Form Rows */
 .admin-room-form-row {
@@ -316,16 +229,14 @@
 	justify-content: center;
 }
 
-.admin-room-create-button:hover,
-.admin-room-assign-button:hover {
+.admin-room-create-button:hover {
 	background: var(--md-sys-color-primary-container);
 	color: var(--md-sys-color-on-primary-container);
 	transform: translateY(-1px);
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.admin-room-create-button:disabled,
-.admin-room-assign-button:disabled {
+.admin-room-create-button:disabled {
 	background: var(--md-sys-color-surface-variant);
 	color: var(--md-sys-color-on-surface-variant);
 	cursor: not-allowed;
@@ -333,8 +244,7 @@
 	box-shadow: none;
 }
 
-.admin-room-create-button.admin-room-loading,
-.admin-room-assign-button.admin-room-loading {
+.admin-room-create-button.admin-room-loading {
 	pointer-events: none;
 }
 
@@ -745,19 +655,9 @@
 		font-size: var(--md-sys-typescale-headline-medium-size);
 	}
 
-	.admin-room-form-row,
-	.admin-room-assignment-form-row {
+	.admin-room-form-row {
 		grid-template-columns: 1fr;
 		gap: var(--spacing-md);
-	}
-
-	.admin-room-tab-navigation {
-		gap: 0;
-	}
-
-	.admin-room-tab-button {
-		border-radius: 0;
-		justify-content: center;
 	}
 
 	.admin-room-radio-group {
@@ -787,15 +687,13 @@
 
 @media (max-width: 480px) {
 	.admin-room-creation-form-section,
-	.admin-room-assignment-form-section,
 	.admin-room-rooms-list-section {
 		padding: var(--spacing-lg);
 	}
 
 
 
-	.admin-room-create-button,
-	.admin-room-assign-button {
+	.admin-room-create-button {
 		min-width: 140px;
 		padding: var(--spacing-sm) var(--spacing-lg);
 	}

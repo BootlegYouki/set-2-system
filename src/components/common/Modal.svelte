@@ -48,7 +48,7 @@
       document.body.style.overflow = '';
       if (onClose) onClose();
       dispatch('close');
-    }, 200); // Match the fadeOut animation duration
+    }, 300); // Match the fadeOut animation duration
   }
 
   // Handle backdrop click
@@ -134,7 +134,7 @@
     justify-content: center;
     z-index: 10000;
     opacity: 0;
-    transition: opacity 0.2s ease-out;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     padding: var(--spacing-lg);
   }
 
@@ -148,22 +148,26 @@
 
   .modal-content {
     background-color: var(--md-sys-color-surface-container-high);
+    border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     max-height: 90vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transform: scale(0.9) translateY(20px);
-    transition: transform 0.2s ease-out;
+    transform: scale(0.8) translateY(30px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-out;
+    opacity: 0;
   }
 
   .modal-visible .modal-content {
     transform: scale(1) translateY(0);
+    opacity: 1;
   }
 
   .modal-closing .modal-content {
-    transform: scale(0.9) translateY(20px);
+    transform: scale(0.8) translateY(30px);
+    opacity: 0;
   }
 
   /* Modal sizes */

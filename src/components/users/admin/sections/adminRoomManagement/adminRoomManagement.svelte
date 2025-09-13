@@ -1,23 +1,15 @@
 <script>
 	import './adminRoomManagement.css';
+	import { toastStore } from '../../../../common/js/toastStore.js';
+import { modalStore } from '../../../../common/js/modalStore.js';
 
 	// Room management state
-	let activeTab = 'create'; // 'create' or 'assign'
 	let isCreating = false;
-	let isAssigning = false;
 
 	// Room creation state
 	let roomName = '';
 	let building = '';
 	let floor = '';
-
-	// Room assignment state
-	let selectedRoom = '';
-	let selectedSection = '';
-
-	// Custom dropdown state
-	let isRoomDropdownOpen = false;
-	let isSectionDropdownOpen = false;
 
 	// Edit room states
 	let editingRoomId = null;
@@ -32,11 +24,7 @@
 	let isAssigningInline = false;
 	let isAssignSectionDropdownOpen = false;
 
-	// Success/error messages
-	let showSuccessMessage = false;
-	let successMessage = '';
-	let showErrorMessage = false;
-	let errorMessage = '';
+
 
 
 
@@ -102,27 +90,33 @@
 
 	// Teachers data removed - rooms can only be assigned to sections
 
-	// Tab switching
-	function switchTab(tab) {
-		activeTab = tab;
-		clearMessages();
-	}
 
-	// Clear messages
-	function clearMessages() {
-		showSuccessMessage = false;
-		showErrorMessage = false;
-	}
+
+	// Handle room removal with confirmation
+	const handleRemoveRoom = (room) => {
+		modalStore.confirm(
+			'Remove Room',
+			`Are you sure you want to remove room ${room.name}? This action cannot be undone.`,
+			() => {
+				// Remove room from the list
+				existingRooms = existingRooms.filter(r => r.id !== room.id);
+				toastStore.success(`Room ${room.name} has been removed successfully.`);
+			},
+			() => {
+				// User cancelled - do nothing
+			}
+		);
+	};
 
 	// Handle room creation
 	async function handleCreateRoom() {
 		if (!roomName || !building || !floor) {
-			showError('Please fill in all required fields.');
+			toastStore.warning('Please fill in all required fields.');
 			return;
 		}
 
 		isCreating = true;
-		clearMessages();
+
 
 		try {
 			// Simulate API call
@@ -140,62 +134,21 @@
 
 			existingRooms = [newRoom, ...existingRooms];
 
-			// Show success message
-			showSuccess(`Room "${roomName}" has been created successfully!`);
+			// Show success toast
+			toastStore.success(`Room "${roomName}" has been created successfully!`);
 
 			// Reset form
 			resetRoomForm();
 
 		} catch (error) {
 			console.error('Error creating room:', error);
-			showError('Failed to create room. Please try again.');
+			toastStore.error('Failed to create room. Please try again.');
 		} finally {
 			isCreating = false;
 		}
 	}
 
-	// Handle room assignment
-	async function handleAssignRoom() {
-		if (!selectedRoom || !selectedSection) {
-			showError('Please fill in all required fields.');
-			return;
-		}
 
-		isAssigning = true;
-		clearMessages();
-
-		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
-
-			// Find and update the room
-			const roomIndex = existingRooms.findIndex(room => room.id === parseInt(selectedRoom));
-			if (roomIndex !== -1) {
-				const assignedTo = sections.find(s => s.id === selectedSection)?.name;
-
-				existingRooms[roomIndex] = {
-					...existingRooms[roomIndex],
-					status: 'assigned',
-					assignedTo: assignedTo
-				};
-
-				existingRooms = [...existingRooms];
-
-				// Show success message
-				const roomName = existingRooms[roomIndex].name;
-				showSuccess(`Room "${roomName}" has been assigned to ${assignedTo} successfully!`);
-
-				// Reset assignment form
-				resetAssignmentForm();
-			}
-
-		} catch (error) {
-			console.error('Error assigning room:', error);
-			showError('Failed to assign room. Please try again.');
-		} finally {
-			isAssigning = false;
-		}
-	}
 
 	// Unassign room
 	async function unassignRoom(roomId) {
@@ -209,11 +162,11 @@
 					assignedTo: null
 				};
 				existingRooms = [...existingRooms];
-				showSuccess(`Room "${roomName}" has been unassigned successfully!`);
+				toastStore.success(`Room "${roomName}" has been unassigned successfully!`);
 			}
 		} catch (error) {
 			console.error('Error unassigning room:', error);
-			showError('Failed to unassign room. Please try again.');
+			toastStore.error('Failed to unassign room. Please try again.');
 		}
 	}
 
@@ -224,60 +177,17 @@
 		floor = '';
 	}
 
-	function resetAssignmentForm() {
-		selectedRoom = '';
-		selectedSection = '';
-	}
 
-	// Show messages
-	function showSuccess(message) {
-		successMessage = message;
-		showSuccessMessage = true;
-		setTimeout(() => {
-			showSuccessMessage = false;
-		}, 5000);
-	}
 
-	function showError(message) {
-		errorMessage = message;
-		showErrorMessage = true;
-		setTimeout(() => {
-			showErrorMessage = false;
-		}, 5000);
-	}
 
-	// Get available rooms for assignment
-	$: availableRooms = existingRooms.filter(room => room.status === 'available');
+
+
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
 		if (!event.target.closest('.custom-dropdown')) {
-			isRoomDropdownOpen = false;
-			isSectionDropdownOpen = false;
 			isAssignSectionDropdownOpen = false;
 		}
-	}
-
-	// Toggle dropdowns
-	function toggleRoomDropdown() {
-		isRoomDropdownOpen = !isRoomDropdownOpen;
-		isSectionDropdownOpen = false;
-	}
-
-	function toggleSectionDropdown() {
-		isSectionDropdownOpen = !isSectionDropdownOpen;
-		isRoomDropdownOpen = false;
-	}
-
-	// Select options and close dropdowns
-	function selectRoom(room) {
-		selectedRoom = room.id;
-		isRoomDropdownOpen = false;
-	}
-
-	function selectSection(section) {
-		selectedSection = section.id;
-		isSectionDropdownOpen = false;
 	}
 
 	// Edit room functions
@@ -299,12 +209,11 @@
 
 	async function handleEditRoom() {
 		if (!editRoomName || !editBuilding || !editFloor) {
-			showError('Please fill in all required fields.');
+			toastStore.warning('Please fill in all required fields.');
 			return;
 		}
 
 		isUpdating = true;
-		clearMessages();
 
 		try {
 			// Simulate API call
@@ -323,8 +232,8 @@
 				return room;
 			});
 
-			// Show success message
-			showSuccess(`Room "${editRoomName}" updated successfully!`);
+			// Show success toast
+			toastStore.success(`Room "${editRoomName}" updated successfully!`);
 
 			// Close edit form
 			editingRoomId = null;
@@ -334,7 +243,7 @@
 
 		} catch (error) {
 			console.error('Error updating room:', error);
-			showError('Failed to update room. Please try again.');
+			toastStore.error('Failed to update room. Please try again.');
 		} finally {
 			isUpdating = false;
 		}
@@ -368,12 +277,11 @@
 
 	async function handleInlineAssignRoom() {
 		if (!assignSelectedSection) {
-			showError('Please select a section.');
+			toastStore.warning('Please select a section.');
 			return;
 		}
 
 		isAssigningInline = true;
-		clearMessages();
 
 		try {
 			// Simulate API call
@@ -392,9 +300,9 @@
 
 				existingRooms = [...existingRooms];
 
-				// Show success message
+				// Show success toast
 				const roomName = existingRooms[roomIndex].name;
-				showSuccess(`Room "${roomName}" has been assigned to ${assignedTo} successfully!`);
+				toastStore.success(`Room "${roomName}" has been assigned to ${assignedTo} successfully!`);
 
 				// Close assign form
 				assigningRoomId = null;
@@ -403,7 +311,7 @@
 
 		} catch (error) {
 			console.error('Error assigning room:', error);
-			showError('Failed to assign room. Please try again.');
+			toastStore.error('Failed to assign room. Please try again.');
 		} finally {
 			isAssigningInline = false;
 		}
@@ -416,243 +324,75 @@
 		<div class="header-content">
 			<h1 class="page-title">Room Management</h1>
 			<p class="page-subtitle">Create and manage rooms, assign them to sections</p>
-		</div>
 	</div>
 
-	<!-- Success/Error Messages -->
-	{#if showSuccessMessage}
-		<div class="admin-room-success-message">
-			<span class="material-symbols-outlined admin-room-success-icon">check_circle</span>
-			<span class="admin-room-success-text">{successMessage}</span>
-		</div>
-	{/if}
 
-	{#if showErrorMessage}
-		<div class="admin-room-error-message">
-			<span class="material-symbols-outlined admin-room-error-icon">error</span>
-			<span class="admin-room-error-text">{errorMessage}</span>
-		</div>
-	{/if}
-
-	<!-- Tab Navigation -->
-	<div class="admin-room-tab-navigation">
-		<button 
-			class="admin-room-tab-button" 
-			class:admin-room-active={activeTab === 'create'}
-			on:click={() => switchTab('create')}
-		>
-			<span class="material-symbols-outlined">add_business</span>
-			Create Room
-		</button>
-		<button 
-			class="admin-room-tab-button" 
-			class:admin-room-active={activeTab === 'assign'}
-			on:click={() => switchTab('assign')}
-		>
-			<span class="material-symbols-outlined">assignment</span>
-			Assign Room
-		</button>
 	</div>
+	<!-- Room Creation Form -->
+	<div class="admin-room-creation-form-section">
+		<div class="admin-room-section-header">
+			<h2 class="admin-room-section-title">Create New Room</h2>
+			<p class="admin-room-section-subtitle">Fill in the details below to create a new room</p>
+		</div>
 
-	<!-- Tab Content -->
-	<div class="admin-room-tab-content">
-		{#if activeTab === 'create'}
-			<!-- Room Creation Form -->
-			<div class="admin-room-creation-form-section">
-				<div class="admin-room-section-header">
-					<h2 class="admin-room-section-title">Create New Room</h2>
-					<p class="admin-room-section-subtitle">Fill in the details below to create a new room</p>
+		<div class="admin-room-form-container">
+			<form on:submit|preventDefault={handleCreateRoom}>
+				<!-- Room Info -->
+				<div class="admin-room-form-row">
+					<div class="admin-room-form-group">
+						<label class="admin-room-form-label" for="room-name">Room Name *</label>
+						<input 
+							type="text" 
+							id="room-name"
+							class="admin-room-form-input" 
+							bind:value={roomName}
+							placeholder="Enter room name"
+							required
+						/>
+					</div>
+
+					<div class="admin-room-form-group">
+						<label class="admin-room-form-label" for="building">Building *</label>
+						<input 
+							type="text" 
+							id="building"
+							class="admin-room-form-input" 
+							bind:value={building}
+							placeholder="Enter building name"
+							required
+						/>
+					</div>
+
+					<div class="admin-room-form-group">
+						<label class="admin-room-form-label" for="floor">Floor *</label>
+						<input 
+							type="text" 
+							id="floor"
+							class="admin-room-form-input" 
+							bind:value={floor}
+							placeholder="e.g., 1st Floor"
+							required
+						/>
+					</div>
 				</div>
 
-				<div class="admin-room-form-container">
-					<form on:submit|preventDefault={handleCreateRoom}>
-						<!-- Room Info -->
-						<div class="admin-room-form-row">
-							<div class="admin-room-form-group">
-								<label class="admin-room-form-label" for="room-name">Room Name *</label>
-								<input 
-									type="text" 
-									id="room-name"
-									class="admin-room-form-input" 
-									bind:value={roomName}
-									placeholder="Enter room name"
-									required
-								/>
-							</div>
-
-							<div class="admin-room-form-group">
-								<label class="admin-room-form-label" for="building">Building *</label>
-								<input 
-									type="text" 
-									id="building"
-									class="admin-room-form-input" 
-									bind:value={building}
-									placeholder="Enter building name"
-									required
-								/>
-							</div>
-
-							<div class="admin-room-form-group">
-								<label class="admin-room-form-label" for="floor">Floor *</label>
-								<input 
-									type="text" 
-									id="floor"
-									class="admin-room-form-input" 
-									bind:value={floor}
-									placeholder="e.g., 1st Floor"
-									required
-								/>
-							</div>
-						</div>
-
-						<!-- Submit Button -->
-						<div class="admin-room-form-actions">
-							<button 
-								type="submit" 
-								class="admin-room-create-button"
-								class:admin-room-loading={isCreating}
-								disabled={isCreating || !roomName || !building || !floor}
-							>
-								{#if isCreating}
-							Creating
-						{:else}
-							<span class="material-symbols-outlined">add_business</span>
-							Create Room
-						{/if}
-							</button>
-						</div>
-					</form>
+				<!-- Submit Button -->
+				<div class="admin-room-form-actions">
+					<button 
+						type="submit" 
+						class="admin-room-create-button"
+						class:admin-room-loading={isCreating}
+						disabled={isCreating || !roomName || !building || !floor}
+					>
+						{#if isCreating}
+					Creating
+				{:else}
+					Create Room
+				{/if}
+					</button>
 				</div>
-			</div>
-
-		{:else if activeTab === 'assign'}
-			<!-- Room Assignment Form -->
-			<div class="admin-room-assignment-form-section">
-				<div class="admin-room-section-header">
-					<h2 class="admin-room-section-title">Assign Room</h2>
-					<p class="admin-room-section-subtitle">Assign available rooms to sections</p>
-				</div>
-
-				<div class="admin-room-form-container">
-					<form on:submit|preventDefault={handleAssignRoom}>
-						<!-- Room and Section Selection Row -->
-						<div class="admin-room-assignment-form-row">
-							<!-- Room Selection -->
-							<div class="admin-room-form-group">
-								<label class="admin-room-form-label" for="room-select">Select Room *</label>
-								<div class="custom-dropdown" class:open={isRoomDropdownOpen}>
-									<button 
-										type="button"
-										class="dropdown-trigger" 
-										class:selected={selectedRoom}
-										on:click={toggleRoomDropdown}
-										id="room-select"
-									>
-										{#if selectedRoom}
-											{@const selectedRoomObj = availableRooms.find(room => room.id === parseInt(selectedRoom))}
-											{#if selectedRoomObj}
-												<div class="selected-option">
-													<span class="material-symbols-outlined option-icon">meeting_room</span>
-													<div class="option-content">
-														<span class="option-name">{selectedRoomObj.name}</span>
-														<span class="option-description">{selectedRoomObj.building}, {selectedRoomObj.floor}</span>
-													</div>
-												</div>
-											{/if}
-										{:else}
-											<span class="placeholder">Select a room</span>
-										{/if}
-										<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-									</button>
-									<div class="dropdown-menu">
-										{#each availableRooms as room (room.id)}
-											<button 
-												type="button"
-												class="dropdown-option" 
-												class:selected={selectedRoom === room.id.toString()}
-												on:click={() => selectRoom(room)}
-											>
-												<span class="material-symbols-outlined option-icon">meeting_room</span>
-												<div class="option-content">
-													<span class="option-name">{room.name}</span>
-													<span class="option-description">{room.building}, {room.floor}</span>
-												</div>
-											</button>
-										{/each}
-									</div>
-								</div>
-								{#if availableRooms.length === 0}
-									<p class="admin-room-form-help admin-room-warning">No available rooms to assign. Create rooms first or unassign existing ones.</p>
-								{/if}
-							</div>
-
-							<!-- Section Selection -->
-							<div class="admin-room-form-group">
-								<label class="admin-room-form-label" for="section-select">Select Section *</label>
-								<div class="custom-dropdown" class:open={isSectionDropdownOpen}>
-									<button 
-										type="button"
-										class="dropdown-trigger" 
-										class:selected={selectedSection}
-										on:click={toggleSectionDropdown}
-										id="section-select"
-									>
-										{#if selectedSection}
-											{@const selectedSectionObj = sections.find(section => section.id === selectedSection)}
-											{#if selectedSectionObj}
-												<div class="selected-option">
-													<span class="material-symbols-outlined option-icon">group</span>
-													<div class="option-content">
-														<span class="option-name">{selectedSectionObj.name}</span>
-														<span class="option-description">Grade {selectedSectionObj.id.charAt(5)} Section</span>
-													</div>
-												</div>
-											{/if}
-										{:else}
-											<span class="placeholder">Select a section</span>
-										{/if}
-										<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-									</button>
-									<div class="dropdown-menu">
-										{#each sections as section (section.id)}
-											<button 
-												type="button"
-												class="dropdown-option" 
-												class:selected={selectedSection === section.id}
-												on:click={() => selectSection(section)}
-											>
-												<span class="material-symbols-outlined option-icon">group</span>
-												<div class="option-content">
-													<span class="option-name">{section.name}</span>
-													<span class="option-description">Grade {section.id.charAt(5)} Section</span>
-												</div>
-											</button>
-										{/each}
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Submit Button -->
-						<div class="admin-room-form-actions">
-							<button 
-								type="submit" 
-								class="admin-room-assign-button"
-								class:admin-room-loading={isAssigning}
-								disabled={isAssigning || !selectedRoom || !selectedSection}
-							>
-								{#if isAssigning}
-							Assigning
-						{:else}
-							<span class="material-symbols-outlined">assignment</span>
-							Assign Room
-						{/if}
-							</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		{/if}
+			</form>
+		</div>
 	</div>
 
 	<!-- Existing Rooms List -->
@@ -700,6 +440,7 @@
 					<button 
 						type="button"
 						class="admin-room-remove-button"
+						on:click={() => handleRemoveRoom(room)}
 						title="Remove Room"
 					>
 						<span class="material-symbols-outlined">delete</span>
@@ -873,7 +614,6 @@
 										{#if isAssigningInline}
 												Assigning
 											{:else}
-												<span class="material-symbols-outlined">assignment</span>
 												Assign
 											{/if}
 									</button>

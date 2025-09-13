@@ -1,5 +1,7 @@
 <script>
 	import './adminSectionManagement.css';
+	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { toastStore } from '../../../../common/js/toastStore.js';
 
 	// Section creation state
 	let isCreating = false;
@@ -388,6 +390,32 @@
 		editAdviserSearchTerm = '';
 	}
 
+	// Handle section removal with modal confirmation
+	function handleRemoveSection(section) {
+		modalStore.confirm(
+			'Remove Section',
+			`Are you sure you want to remove section "${section.name}" (${section.grade})? This action cannot be undone and will unassign all students and the adviser from this section.`,
+			() => {
+				// Remove section from the list
+				recentSections = recentSections.filter(s => s.id !== section.id);
+				
+				// Mark adviser as available again
+				availableAdvisers = availableAdvisers.map(adviser => 
+					adviser.name === section.adviser ? { ...adviser, hasSection: false } : adviser
+				);
+				
+				// Mark students as available again (if we had student data)
+				// This would need to be implemented based on actual student tracking
+				
+				// Show success toast
+				toastStore.success(`Section "${section.name}" has been removed successfully.`);
+			},
+			() => {
+				// Do nothing on cancel
+			}
+		);
+	}
+
 	// Edit filtered data
 	$: editFilteredAdvisers = availableAdvisers.filter(adviser => 
 		!adviser.hasSection && 
@@ -706,12 +734,13 @@
 							<span class="material-symbols-outlined">{editingSectionId === section.id ? 'close' : 'edit'}</span>
 						</button>
 						<button 
-							type="button"
-							class="sectionmgmt-remove-button"
-							title="Remove Section"
-						>
-							<span class="material-symbols-outlined">delete</span>
-						</button>
+						type="button"
+						class="sectionmgmt-remove-button"
+						title="Remove Section"
+						on:click={() => handleRemoveSection(section)}
+					>
+						<span class="material-symbols-outlined">delete</span>
+					</button>
 					</div>
 				</div>
 				
