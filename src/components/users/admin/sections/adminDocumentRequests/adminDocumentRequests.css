@@ -1,7 +1,6 @@
 /* Admin Document Requests Page Styles */
 
 .admin-document-requests-container {
-	padding: var(--spacing-xl);
 	color: var(--md-sys-color-on-surface);
 	box-sizing: border-box;
 	overflow-y: auto;
@@ -202,10 +201,6 @@
 	box-sizing: border-box;
 }
 
-.admindocreq-dropdown-trigger:hover {
-	border-color: var(--md-sys-color-outline);
-}
-
 .admindocreq-dropdown-trigger:focus {
 	outline: none;
 	border-color: var(--md-sys-color-primary);
@@ -295,10 +290,6 @@
 	gap: var(--spacing-sm);
 }
 
-.admindocreq-dropdown-option:hover {
-	background-color: var(--md-sys-color-surface-variant);
-}
-
 .admindocreq-dropdown-option.selected {
 	background-color: var(--md-sys-color-primary-container);
 	color: var(--md-sys-color-on-primary-container);
@@ -327,11 +318,6 @@
 	transition: all var(--transition-normal);
 	cursor: pointer;
 	color: var(--md-sys-color-on-surface);
-}
-
-.admindocreq-request-card:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Request Header */
@@ -385,29 +371,34 @@
 	font-size: 18px;
 }
 
-.status-pending {
-	background-color: var(--md-sys-color-secondary-container);
-	color: var(--md-sys-color-on-secondary-container);
+.admindocreq-status-pending {
+	background-color: var(--status-pending-bg);
+	color: var(--status-pending-text);
+	border: 1px solid var(--status-pending-border);
 }
 
-.status-processing {
-	background-color: var(--md-sys-color-primary-container);
-	color: var(--md-sys-color-on-primary-container);
+.admindocreq-status-processing {
+	background-color: var(--status-processing-bg);
+	color: var(--status-processing-text);
+	border: 1px solid var(--status-processing-border);
 }
 
-.status-completed {
-	background-color: var(--grade-excellent);
-	color: white;
+.admindocreq-status-completed {
+	background-color: var(--status-completed-bg);
+	color: var(--status-completed-text);
+	border: 1px solid var(--status-completed-border);
 }
 
-.status-rejected {
-	background-color: var(--md-sys-color-error-container);
-	color: var(--md-sys-color-on-error-container);
+.admindocreq-status-rejected {
+	background-color: var(--status-rejected-bg);
+	color: var(--status-rejected-text);
+	border: 1px solid var(--status-rejected-border);
 }
 
-.status-cancelled {
-	background-color: var(--md-sys-color-surface-variant);
-	color: var(--md-sys-color-on-surface-variant);
+.admindocreq-status-cancelled {
+	background-color: var(--status-cancelled-bg);
+	color: var(--status-cancelled-text);
+	border: 1px solid var(--status-cancelled-border);
 }
 
 /* Request Details */
@@ -475,14 +466,7 @@
 	cursor: pointer;
 	transition: all var(--transition-normal);
 	padding: var(--spacing-sm) var(--spacing-md);
-	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-md);
-}
-
-.admindocreq-approve-button:hover {
-	background-color: var(--grade-good);
-	transform: translateY(-1px);
-	box-shadow: var(--shadow-sm);
 }
 
 .admindocreq-reject-button {
@@ -498,13 +482,6 @@
 	font-weight: 500;
 	cursor: pointer;
 	transition: all var(--transition-normal);
-}
-
-.admindocreq-reject-button:hover {
-	background-color: var(--md-sys-color-error-container);
-	color: var(--md-sys-color-on-error-container);
-	transform: translateY(-1px);
-	box-shadow: var(--shadow-sm);
 }
 
 .admindocreq-approve-button .material-symbols-outlined,
@@ -556,13 +533,6 @@
 	font-weight: 500;
 	cursor: pointer;
 	transition: all var(--transition-normal);
-}
-
-.admindocreq-complete-button:hover {
-	background-color: var(--md-sys-color-primary-container);
-	color: var(--md-sys-color-on-primary-container);
-	transform: translateY(-1px);
-	box-shadow: var(--shadow-sm);
 }
 
 .admindocreq-complete-button .material-symbols-outlined {

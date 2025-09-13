@@ -273,7 +273,7 @@
 									<h3 class="request-title">{request.type}</h3>
 									<p class="request-date">Requested on {request.requestedDate}</p>
 								</div>
-								<div class="status-badge status-{request.status}">
+								<div class="student-status-badge status-{request.status}">
 									{request.status === 'completed' ? 'Completed' : 
 									 request.status === 'processing' ? 'Processing' : 
 									 request.status === 'pending' ? 'Pending' : 
@@ -289,10 +289,6 @@
 					{#if request.status === 'completed'}
 						<div class="request-footer completed-footer">
 							<span class="footer-info">Completed on {request.completedDate}</span>
-							<button class="download-button">
-								<span class="material-symbols-outlined">download</span>
-								Download
-							</button>
 						</div>
 					{:else if request.status === 'processing'}
 						<div class="request-footer processing-footer">

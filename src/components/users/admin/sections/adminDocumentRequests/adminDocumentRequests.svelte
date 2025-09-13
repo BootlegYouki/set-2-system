@@ -456,7 +456,7 @@
 						</div>
 						<div class="admindocreq-action-buttons">
 							
-							<div class="admindocreq-status-badge status-{request.status}">
+							<div class="admindocreq-status-badge admindocreq-status-{request.status}">
 								<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
 								{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
 							</div>

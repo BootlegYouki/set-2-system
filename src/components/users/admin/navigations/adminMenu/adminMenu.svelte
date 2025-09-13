@@ -11,19 +11,9 @@
 			icon: 'dashboard'
 		},
 		{
-			id: 'account-creation',
-			label: 'Account Creation',
-			icon: 'person_add'
-		},
-		{
 			id: 'room-management',
 			label: 'Room Management',
 			icon: 'meeting_room'
-		},
-		{
-			id: 'schedule-assignment',
-			label: 'Schedule Assignment',
-			icon: 'schedule'
 		},
 		{
 			id: 'section-management',
@@ -36,9 +26,24 @@
 			icon: 'subject'
 		},
 		{
+			id: 'schedule-assignment',
+			label: 'Schedule Assignment',
+			icon: 'schedule'
+		},
+		{
 			id: 'document-requests',
 			label: 'Document Requests',
 			icon: 'description'
+		},
+		{
+			id: 'account-creation',
+			label: 'Account Creation',
+			icon: 'person_add'
+		},
+		{
+			id: 'settings',
+			label: 'Settings',
+			icon: 'settings'
 		}
 	];
 
