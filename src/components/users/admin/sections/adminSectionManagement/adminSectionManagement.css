@@ -140,19 +140,31 @@
 }
 
 /* Form Groups */
-.sectionmgmt-form-group {
-  margin-bottom: var(--spacing-lg);
-}
 
 .sectionmgmt-basic-info-row {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionmgmt-edit-info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionmgmt-create-info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
 }
 
 @media (max-width: 768px) {
-  .sectionmgmt-basic-info-row {
+  .sectionmgmt-basic-info-row,
+  .sectionmgmt-edit-info-row,
+  .sectionmgmt-create-info-row {
     grid-template-columns: 1fr;
   }
 }
@@ -208,7 +220,7 @@
   width: 100%;
   padding: var(--spacing-md);
   border: 1px solid var(--md-sys-color-outline);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background-color: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
   font-family: var(--md-sys-typescale-body-large-font);
@@ -299,12 +311,13 @@
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-sm);
   box-shadow: var(--elevation-2);
-  z-index: 1000;
+  z-index: 1010;
   overflow-y: auto;
   margin-top: 4px;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
+  max-height: 200px;
   transition: opacity var(--transition-normal), visibility var(--transition-normal), transform var(--transition-normal);
 }
 
@@ -347,11 +360,51 @@
   position: relative;
   padding: var(--spacing-sm);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--md-sys-color-surface-container);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.sectionmgmt-select-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--md-sys-color-primary-container);
+  border: 1px solid var(--md-sys-color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--md-sys-color-on-primary-container);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  flex-shrink: 0;
+}
+
+.sectionmgmt-select-all-btn:hover {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  box-shadow: var(--elevation-1);
+}
+
+.sectionmgmt-select-all-btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.sectionmgmt-select-all-btn .material-symbols-outlined {
+  font-size: 18px;
 }
 
 .sectionmgmt-search-input {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 40px;
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 30px;
   border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--radius-md);
   background-color: var(--md-sys-color-surface);
@@ -371,6 +424,26 @@
 .sectionmgmt-search-icon {
   position: absolute;
   left: calc(var(--spacing-sm) + var(--spacing-sm));
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--md-sys-color-on-surface-variant);
+  pointer-events: none;
+}
+
+.sectionmgmt-search-icon-create {
+  position: absolute;
+  left: calc(var(--spacing-lg) + var(--spacing-lg) + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--md-sys-color-on-surface-variant);
+  pointer-events: none;
+}
+
+.sectionmgmt-search-icon-edit {
+  position: absolute;
+  left: calc(var(--spacing-lg) + var(--spacing-lg) + 10px);
   top: 50%;
   transform: translateY(-50%);
   font-size: 18px;
@@ -399,7 +472,7 @@
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-sm);
   padding: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
+  margin-top: var(--spacing-md);
 }
 
 .sectionmgmt-selected-students-header {
@@ -462,7 +535,7 @@
 }
 
 .sectionmgmt-student-option {
-  padding-left: var(--spacing-sm);
+  padding-left: var(--spacing-md);
 }
 
 .sectionmgmt-student-checkbox {
@@ -478,7 +551,7 @@
 .sectionmgmt-form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: var(--spacing-xl);
+  margin-top: var(--spacing-sm);
 }
 
 .sectionmgmt-create-button {
@@ -732,7 +805,6 @@
 /* Inline Edit Form Styles */
 .sectionmgmt-edit-form-section {
   margin-top: var(--spacing-md);
-  padding: 0 var(--spacing-md) var(--spacing-md);
   animation: slideDown 0.3s ease-out;
 }
 
@@ -751,7 +823,7 @@
   background-color: var(--md-sys-color-surface-container);
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   box-shadow: var(--elevation-1);
 }
 
@@ -789,7 +861,6 @@
 .sectionmgmt-edit-form-content {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
 }
 
 .sectionmgmt-edit-form-actions {

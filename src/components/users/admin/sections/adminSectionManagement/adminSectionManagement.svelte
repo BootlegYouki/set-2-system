@@ -59,6 +59,17 @@
 		editSelectedStudents = [];
 	}
 
+	function toggleSelectAllEditStudents() {
+		if (editSelectedStudents.length === editFilteredStudents.length && editFilteredStudents.every(student => editSelectedStudents.some(s => s.id === student.id))) {
+			// All filtered students are selected, so unselect all
+			editSelectedStudents = editSelectedStudents.filter(selected => !editFilteredStudents.some(filtered => filtered.id === selected.id));
+		} else {
+			// Not all filtered students are selected, so select all
+			const newSelections = editFilteredStudents.filter(student => !editSelectedStudents.some(s => s.id === student.id));
+			editSelectedStudents = [...editSelectedStudents, ...newSelections];
+		}
+	}
+
 	// Grade levels for Philippine high school (Grades 7-10)
 	const gradeLevels = [
 		{ id: '7', name: 'Grade 7', description: 'First Year Junior High School' },
@@ -193,6 +204,17 @@
 
 	function removeStudent(studentId) {
 		selectedStudents = selectedStudents.filter(s => s.id !== studentId);
+	}
+
+	function toggleSelectAllStudents() {
+		if (selectedStudents.length === filteredStudents.length && filteredStudents.every(student => selectedStudents.some(s => s.id === student.id))) {
+			// All filtered students are selected, so unselect all
+			selectedStudents = selectedStudents.filter(selected => !filteredStudents.some(filtered => filtered.id === selected.id));
+		} else {
+			// Not all filtered students are selected, so select all
+			const newSelections = filteredStudents.filter(student => !selectedStudents.some(s => s.id === student.id));
+			selectedStudents = [...selectedStudents, ...newSelections];
+		}
 	}
 
 	// Computed values
@@ -439,51 +461,52 @@
 					</div>
 				</div>
 
-				<!-- Grade Level Selection -->
-				<div class="sectionmgmt-form-group">
-					<label class="sectionmgmt-form-label" for="grade-level">Grade Level *</label>
-					<div class="sectionmgmt-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
-						<button 
-							type="button"
-							class="sectionmgmt-dropdown-trigger" 
-							class:selected={gradeLevel}
-							on:click={toggleGradeLevelDropdown}
-							id="grade-level"
-						>
-							{#if selectedGradeObj}
-								<div class="sectionmgmt-selected-option">
-									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
-									<div class="sectionmgmt-option-content">
-										<span class="sectionmgmt-option-name">{selectedGradeObj.name}</span>
-										<span class="sectionmgmt-option-description">{selectedGradeObj.description}</span>
+				<!-- Grade Level and Adviser Row -->
+				<div class="sectionmgmt-create-info-row">
+					<!-- Grade Level Selection -->
+					<div class="sectionmgmt-form-group">
+						<label class="sectionmgmt-form-label" for="grade-level">Grade Level *</label>
+						<div class="sectionmgmt-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
+							<button 
+								type="button"
+								class="sectionmgmt-dropdown-trigger" 
+								class:selected={gradeLevel}
+								on:click={toggleGradeLevelDropdown}
+								id="grade-level"
+							>
+								{#if selectedGradeObj}
+									<div class="sectionmgmt-selected-option">
+										<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
+										<div class="sectionmgmt-option-content">
+											<span class="sectionmgmt-option-name">{selectedGradeObj.name}</span>
+										</div>
 									</div>
-								</div>
-							{:else}
-								<span class="sectionmgmt-placeholder">Select grade level</span>
-							{/if}
-							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
-						</button>
-						<div class="sectionmgmt-dropdown-menu">
-							{#each gradeLevels as grade (grade.id)}
-								<button 
-									type="button"
-									class="sectionmgmt-dropdown-option" 
-									class:selected={gradeLevel === grade.id}
-									on:click={() => selectGradeLevel(grade)}
-								>
-									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
-									<div class="sectionmgmt-option-content">
-										<span class="sectionmgmt-option-name">{grade.name}</span>
-										<span class="sectionmgmt-option-description">{grade.description}</span>
-									</div>
-								</button>
-							{/each}
+								{:else}
+									<span class="sectionmgmt-placeholder">Select grade level</span>
+								{/if}
+								<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+							</button>
+							<div class="sectionmgmt-dropdown-menu">
+								{#each gradeLevels as grade (grade.id)}
+									<button 
+										type="button"
+										class="sectionmgmt-dropdown-option" 
+										class:selected={gradeLevel === grade.id}
+										on:click={() => selectGradeLevel(grade)}
+									>
+										<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
+										<div class="sectionmgmt-option-content">
+											<span class="sectionmgmt-option-name">{grade.name}</span>
+											<span class="sectionmgmt-option-description">{grade.description}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
 						</div>
 					</div>
-				</div>
 
-				<!-- Adviser Selection -->
-				<div class="sectionmgmt-form-group">
+					<!-- Adviser Selection -->
+					<div class="sectionmgmt-form-group">
 					<label class="sectionmgmt-form-label" for="adviser">Advisory Teacher *</label>
 					<div class="sectionmgmt-custom-dropdown" class:open={isAdviserDropdownOpen}>
 						<button 
@@ -494,13 +517,12 @@
 							id="adviser"
 						>
 							{#if selectedAdviser}
-								<div class="sectionmgmt-selected-option">
-									<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
-									<div class="sectionmgmt-option-content">
-										<span class="sectionmgmt-option-name">{selectedAdviser.name}</span>
-										<span class="sectionmgmt-option-description">{selectedAdviser.subject} • {selectedAdviser.employeeId}</span>
-									</div>
+							<div class="sectionmgmt-selected-option">
+								<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
+								<div class="sectionmgmt-option-content">
+									<span class="sectionmgmt-option-name">{selectedAdviser.name}</span>
 								</div>
+							</div>
 							{:else}
 								<span class="sectionmgmt-placeholder">Select advisory teacher</span>
 							{/if}
@@ -538,13 +560,82 @@
 							{/if}
 						</div>
 					</div>
-					<p class="sectionmgmt-form-help">Only teachers without assigned sections are shown. Each teacher can only advise one section.</p>
+						<p class="sectionmgmt-form-help">Only teachers without assigned sections are shown. Each teacher can only advise one section.</p>
+					</div>
 				</div>
 
 				<!-- Student Selection -->
 				<div class="sectionmgmt-form-group">
 					<label class="sectionmgmt-form-label" for="students">Students *</label>
 					
+
+
+					<!-- Student Selection Dropdown -->
+					<div class="sectionmgmt-custom-dropdown" class:open={isStudentDropdownOpen}>
+						<button 
+							type="button"
+							class="sectionmgmt-dropdown-trigger" 
+							class:selected={selectedStudents.length > 0}
+							on:click={toggleStudentDropdown}
+							id="students"
+							disabled={!gradeLevel}
+						>
+							{#if gradeLevel}
+								<span class="sectionmgmt-placeholder">Add students to section</span>
+							{:else}
+								<span class="sectionmgmt-placeholder">Select grade level first</span>
+							{/if}
+							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+						</button>
+						<div class="sectionmgmt-dropdown-menu">
+						<div class="sectionmgmt-search-container">
+							{#if filteredStudents.length > 0}
+								{@const allFilteredSelected = filteredStudents.every(student => selectedStudents.some(s => s.id === student.id))}
+								<button 
+									type="button"
+									class="sectionmgmt-select-all-btn"
+									on:click={toggleSelectAllStudents}
+									title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredStudents.length})"
+								>
+									<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+								</button>
+							{/if}
+							<input 
+								type="text" 
+								class="sectionmgmt-search-input"
+								placeholder="Search students..."
+								bind:value={studentSearchTerm}
+							/>
+							<span class="material-symbols-outlined sectionmgmt-search-icon-create">search</span>
+						</div>
+							{#each filteredStudents as student (student.id)}
+								<button 
+									type="button"
+									class="sectionmgmt-dropdown-option sectionmgmt-student-option" 
+									class:selected={selectedStudents.some(s => s.id === student.id)}
+									on:click={() => toggleStudentSelection(student)}
+								>
+									<div class="sectionmgmt-student-checkbox">
+										<span class="material-symbols-outlined">
+											{selectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
+										</span>
+									</div>
+									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
+									<div class="sectionmgmt-option-content">
+										<span class="sectionmgmt-option-name">{student.name}</span>
+										<span class="sectionmgmt-option-description">Grade {student.grade} • {student.studentId}</span>
+									</div>
+								</button>
+							{/each}
+							{#if filteredStudents.length === 0}
+								<div class="sectionmgmt-no-results">
+									<span class="material-symbols-outlined">person_off</span>
+									<span>No available students found for this grade level</span>
+								</div>
+							{/if}
+						</div>
+					</div>
+					<p class="sectionmgmt-form-help">Only students without assigned sections are shown. Select students for the chosen grade level.</p>
 					<!-- Selected Students Display -->
 					{#if selectedStudents.length > 0}
 						<div class="sectionmgmt-selected-students">
@@ -569,62 +660,6 @@
 							</div>
 						</div>
 					{/if}
-
-					<!-- Student Selection Dropdown -->
-					<div class="sectionmgmt-custom-dropdown" class:open={isStudentDropdownOpen}>
-						<button 
-							type="button"
-							class="sectionmgmt-dropdown-trigger" 
-							class:selected={selectedStudents.length > 0}
-							on:click={toggleStudentDropdown}
-							id="students"
-							disabled={!gradeLevel}
-						>
-							{#if gradeLevel}
-								<span class="sectionmgmt-placeholder">Add students to section</span>
-							{:else}
-								<span class="sectionmgmt-placeholder">Select grade level first</span>
-							{/if}
-							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
-						</button>
-						<div class="sectionmgmt-dropdown-menu">
-						<div class="sectionmgmt-search-container">
-							<input 
-								type="text" 
-								class="sectionmgmt-search-input"
-								placeholder="Search students..."
-								bind:value={studentSearchTerm}
-							/>
-							<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
-						</div>
-							{#each filteredStudents as student (student.id)}
-								<button 
-									type="button"
-									class="sectionmgmt-dropdown-option sectionmgmt-student-option" 
-									class:selected={selectedStudents.some(s => s.id === student.id)}
-									on:click={() => toggleStudentSelection(student)}
-								>
-									<div class="sectionmgmt-student-checkbox">
-										<span class="material-symbols-outlined">
-											{selectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
-										</span>
-									</div>
-									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
-									<div class="sectionmgmt-option-content">
-										<span class="sectionmgmt-option-name">{student.name}</span>
-										<span class="sectionmgmt-option-description">Grade {student.grade} • {student.studentId}</span>
-									</div>
-								</button>
-							{/each}
-							{#if filteredStudents.length === 0}
-								<div class="sectionmgmt-no-results">
-									<span class="material-symbols-outlined">school_off</span>
-									<span>No available students found for this grade level</span>
-								</div>
-							{/if}
-						</div>
-					</div>
-					<p class="sectionmgmt-form-help">Only students without assigned sections are shown. Select students for the chosen grade level.</p>
 				</div>
 
 				<!-- Submit Button -->
@@ -699,201 +734,207 @@
 						<span>Created: {section.createdDate}</span>
 					</div>
 				</div>
-		</div>
+				
+				<!-- Inline Edit Form -->
+				{#if editingSectionId === section.id}
+					<div class="sectionmgmt-edit-form-section">
+						<div class="sectionmgmt-edit-form-container">
+							<div class="sectionmgmt-edit-form-header">
+								<h2 class="sectionmgmt-edit-form-title">Edit Section</h2>
+								<p class="sectionmgmt-edit-form-subtitle">Update section information and manage students</p>
+							</div>
+							
+							<form class="sectionmgmt-edit-form-content" on:submit|preventDefault={handleEditSection}>
+								<!-- Section Name and Adviser Row -->
+								<div class="sectionmgmt-edit-info-row">
+									<!-- Section Name -->
+									<div class="sectionmgmt-form-group">
+										<label class="sectionmgmt-form-label" for="edit-section-name">
+											Section Name
+										</label>
+										<input 
+											type="text" 
+											id="edit-section-name"
+											class="sectionmgmt-form-input" 
+											bind:value={editSectionName}
+											placeholder="Enter section name (e.g., Mabini, Rizal, Bonifacio)"
+											required
+										/>
+									</div>
 
-		<!-- Inline Edit Form -->
-		{#if editingSectionId === section.id}
-			<div class="sectionmgmt-edit-form-section">
-				<div class="sectionmgmt-edit-form-container">
-					<div class="sectionmgmt-edit-form-header">
-						<h2 class="sectionmgmt-edit-form-title">Edit Section</h2>
-						<p class="sectionmgmt-edit-form-subtitle">Update section information and manage students</p>
-					</div>
-					
-					<form class="sectionmgmt-edit-form-content" on:submit|preventDefault={handleEditSection}>
-						<!-- Section Name -->
-						<div class="sectionmgmt-form-group">
-							<label class="sectionmgmt-form-label" for="edit-section-name">
-								<span class="material-symbols-outlined sectionmgmt-form-icon">school</span>
-								Section Name
-							</label>
-							<input 
-								type="text" 
-								id="edit-section-name"
-								class="sectionmgmt-form-input" 
-								bind:value={editSectionName}
-								placeholder="Enter section name (e.g., Mabini, Rizal, Bonifacio)"
-								required
-							/>
-						</div>
-
-
-
-						<!-- Section Adviser -->
-						<div class="sectionmgmt-form-group">
-							<label class="sectionmgmt-form-label" for="edit-section-adviser">
-								<span class="material-symbols-outlined sectionmgmt-form-icon">person</span>
-								Section Adviser
-							</label>
-							<div class="sectionmgmt-custom-dropdown" class:open={isEditAdviserDropdownOpen}>
-								<button 
-									type="button"
-									class="sectionmgmt-dropdown-trigger" 
-									class:selected={editSelectedAdviser}
-									on:click={toggleEditAdviserDropdown}
-									id="edit-section-adviser"
-								>
-									{#if editSelectedAdviser}
+									<!-- Section Adviser -->
+									<div class="sectionmgmt-form-group">
+									<label class="sectionmgmt-form-label" for="edit-section-adviser">
+										Section Adviser
+									</label>
+									<div class="sectionmgmt-custom-dropdown" class:open={isEditAdviserDropdownOpen}>
+										<button 
+											type="button"
+											class="sectionmgmt-dropdown-trigger" 
+											class:selected={editSelectedAdviser}
+											on:click={toggleEditAdviserDropdown}
+											id="edit-section-adviser"
+										>
+											{#if editSelectedAdviser}
 										<div class="sectionmgmt-selected-option">
 											<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
 											<div class="sectionmgmt-option-content">
 												<span class="sectionmgmt-option-name">{editSelectedAdviser.name}</span>
-												<span class="sectionmgmt-option-description">{editSelectedAdviser.subject} • {editSelectedAdviser.employeeId}</span>
 											</div>
 										</div>
-									{:else}
-										<span class="sectionmgmt-placeholder">Select section adviser</span>
-									{/if}
-									<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
-								</button>
-								<div class="sectionmgmt-dropdown-menu">
-									<div class="sectionmgmt-search-container">
-										<input 
-											type="text" 
-											class="sectionmgmt-search-input"
-											placeholder="Search advisers..."
-											bind:value={editAdviserSearchTerm}
-										/>
-										<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+											{:else}
+												<span class="sectionmgmt-placeholder">Select section adviser</span>
+											{/if}
+											<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+										</button>
+										<div class="sectionmgmt-dropdown-menu">
+											<div class="sectionmgmt-search-container">
+												<input 
+													type="text" 
+													class="sectionmgmt-search-input"
+													placeholder="Search advisers..."
+													bind:value={editAdviserSearchTerm}
+												/>
+												<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+											</div>
+											{#each editFilteredAdvisers as adviser (adviser.id)}
+												<button 
+													type="button"
+													class="sectionmgmt-dropdown-option" 
+													class:selected={editSelectedAdviser?.id === adviser.id}
+													on:click={() => selectEditAdviser(adviser)}
+												>
+													<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
+													<div class="sectionmgmt-option-content">
+														<span class="sectionmgmt-option-name">{adviser.name}</span>
+														<span class="sectionmgmt-option-description">{adviser.subject} • {adviser.employeeId}</span>
+													</div>
+												</button>
+											{/each}
+											{#if editFilteredAdvisers.length === 0}
+												<div class="sectionmgmt-no-results">
+													<span class="material-symbols-outlined">person_off</span>
+													<span>No available advisers found</span>
+												</div>
+											{/if}
+										</div>
 									</div>
-									{#each editFilteredAdvisers as adviser (adviser.id)}
+									</div>
+								</div>
+
+								<!-- Student Selection -->
+								<div class="sectionmgmt-form-group">
+									<label class="sectionmgmt-form-label" for="edit-students">
+										Students ({editSelectedStudents.length} selected)
+									</label>
+									<div class="sectionmgmt-custom-dropdown" class:open={isEditStudentDropdownOpen}>
 										<button 
 											type="button"
-											class="sectionmgmt-dropdown-option" 
-											class:selected={editSelectedAdviser?.id === adviser.id}
-											on:click={() => selectEditAdviser(adviser)}
+											class="sectionmgmt-dropdown-trigger" 
+											class:selected={editSelectedStudents.length > 0}
+											on:click={toggleEditStudentDropdown}
+											id="edit-students"
 										>
-											<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
-											<div class="sectionmgmt-option-content">
-												<span class="sectionmgmt-option-name">{adviser.name}</span>
-												<span class="sectionmgmt-option-description">{adviser.subject} • {adviser.employeeId}</span>
-											</div>
+											<span class="sectionmgmt-placeholder">
+												{editSelectedStudents.length > 0 ? `${editSelectedStudents.length} students selected` : 'Select students'}
+											</span>
+											<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
 										</button>
-									{/each}
-									{#if editFilteredAdvisers.length === 0}
-										<div class="sectionmgmt-no-results">
-											<span class="material-symbols-outlined">person_off</span>
-											<span>No available advisers found</span>
-										</div>
-									{/if}
-								</div>
-							</div>
-						</div>
-
-
-
-						<!-- Student Selection -->
-						<div class="sectionmgmt-form-group">
-							<label class="sectionmgmt-form-label" for="edit-students">
-								<span class="material-symbols-outlined sectionmgmt-form-icon">groups</span>
-								Students ({editSelectedStudents.length} selected)
-							</label>
-							<div class="sectionmgmt-custom-dropdown" class:open={isEditStudentDropdownOpen}>
-								<button 
-									type="button"
-									class="sectionmgmt-dropdown-trigger" 
-									class:selected={editSelectedStudents.length > 0}
-									on:click={toggleEditStudentDropdown}
-									id="edit-students"
-								>
-									<span class="sectionmgmt-placeholder">
-										{editSelectedStudents.length > 0 ? `${editSelectedStudents.length} students selected` : 'Select students'}
-									</span>
-									<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
-								</button>
-								<div class="sectionmgmt-dropdown-menu">
-									<div class="sectionmgmt-search-container">
+										<div class="sectionmgmt-dropdown-menu">
+											<div class="sectionmgmt-search-container">
+										{#if editFilteredStudents.length > 0}
+											{@const allEditFilteredSelected = editFilteredStudents.every(student => editSelectedStudents.some(s => s.id === student.id))}
+											<button 
+												type="button"
+												class="sectionmgmt-select-all-btn"
+												on:click={toggleSelectAllEditStudents}
+												title="{allEditFilteredSelected ? 'Unselect All' : 'Select All'} ({editFilteredStudents.length})"
+											>
+												<span class="material-symbols-outlined">{allEditFilteredSelected ? 'deselect' : 'select_all'}</span>
+											</button>
+										{/if}
 										<input 
 											type="text" 
 											class="sectionmgmt-search-input"
 											placeholder="Search students..."
 											bind:value={editStudentSearchTerm}
 										/>
-										<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+										<span class="material-symbols-outlined sectionmgmt-search-icon-edit">search</span>
 									</div>
-									{#each editFilteredStudents as student (student.id)}
-										<button 
-											type="button"
-											class="sectionmgmt-dropdown-option" 
-											class:selected={editSelectedStudents.some(s => s.id === student.id)}
-											on:click={() => toggleEditStudentSelection(student)}
-										>
-											<span class="material-symbols-outlined sectionmgmt-option-icon">
-												{editSelectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
-											</span>
-											<div class="sectionmgmt-option-content">
-												<span class="sectionmgmt-option-name">{student.name}</span>
-												<span class="sectionmgmt-option-description">{student.studentId} • Grade {student.grade}</span>
+											{#each editFilteredStudents as student (student.id)}
+												<button 
+													type="button"
+													class="sectionmgmt-dropdown-option" 
+													class:selected={editSelectedStudents.some(s => s.id === student.id)}
+													on:click={() => toggleEditStudentSelection(student)}
+												>
+													<span class="material-symbols-outlined sectionmgmt-option-icon">
+														{editSelectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
+													</span>
+													<div class="sectionmgmt-option-content">
+														<span class="sectionmgmt-option-name">{student.name}</span>
+														<span class="sectionmgmt-option-description">{student.studentId} • Grade {student.grade}</span>
+													</div>
+												</button>
+											{/each}
+											{#if editFilteredStudents.length === 0}
+												<div class="sectionmgmt-no-results">
+													<span class="material-symbols-outlined">person_off</span>
+													<span>No available students found</span>
+												</div>
+											{/if}
+										</div>
+									</div>
+
+									<!-- Selected Students Display -->
+									{#if editSelectedStudents.length > 0}
+										<div class="sectionmgmt-selected-students">
+											<div class="sectionmgmt-selected-header">
+												<span class="sectionmgmt-selected-title">Selected Students ({editSelectedStudents.length})</span>
+												<button 
+													type="button" 
+													class="sectionmgmt-clear-all-button"
+													on:click={clearAllEditSelectedStudents}
+												>
+													Clear All
+												</button>
 											</div>
-										</button>
-									{/each}
-									{#if editFilteredStudents.length === 0}
-										<div class="sectionmgmt-no-results">
-											<span class="material-symbols-outlined">person_off</span>
-											<span>No available students found</span>
+											<div class="sectionmgmt-selected-list">
+												{#each editSelectedStudents as student (student.id)}
+													<div class="sectionmgmt-selected-student">
+														<div class="sectionmgmt-student-info">
+															<span class="sectionmgmt-student-name">{student.name}</span>
+															<span class="sectionmgmt-student-id">{student.studentId}</span>
+														</div>
+														<button 
+															type="button" 
+															class="sectionmgmt-remove-student-button"
+															on:click={() => removeEditSelectedStudent(student)}
+															title="Remove student"
+														>
+															<span class="material-symbols-outlined">close</span>
+														</button>
+													</div>
+												{/each}
+											</div>
 										</div>
 									{/if}
 								</div>
-							</div>
 
-							<!-- Selected Students Display -->
-							{#if editSelectedStudents.length > 0}
-								<div class="sectionmgmt-selected-students">
-									<div class="sectionmgmt-selected-header">
-										<span class="sectionmgmt-selected-title">Selected Students ({editSelectedStudents.length})</span>
-										<button 
-											type="button" 
-											class="sectionmgmt-clear-all-button"
-											on:click={clearAllEditSelectedStudents}
-										>
-											Clear All
-										</button>
-									</div>
-									<div class="sectionmgmt-selected-list">
-										{#each editSelectedStudents as student (student.id)}
-											<div class="sectionmgmt-selected-student">
-												<div class="sectionmgmt-student-info">
-													<span class="sectionmgmt-student-name">{student.name}</span>
-													<span class="sectionmgmt-student-id">{student.studentId}</span>
-												</div>
-												<button 
-													type="button" 
-													class="sectionmgmt-remove-student-button"
-													on:click={() => removeEditSelectedStudent(student)}
-													title="Remove student"
-												>
-													<span class="material-symbols-outlined">close</span>
-												</button>
-											</div>
-										{/each}
-									</div>
+								<!-- Form Actions -->
+								<div class="sectionmgmt-edit-form-actions">
+									<button type="button" class="sectionmgmt-cancel-button" on:click={() => toggleEditForm(section)}>
+										Cancel
+									</button>
+									<button type="submit" class="sectionmgmt-submit-button">
+										Update Section
+									</button>
 								</div>
-							{/if}
+							</form>
 						</div>
-
-						<!-- Form Actions -->
-						<div class="sectionmgmt-edit-form-actions">
-							<button type="button" class="sectionmgmt-cancel-button" on:click={() => toggleEditForm(section)}>
-								Cancel
-							</button>
-							<button type="submit" class="sectionmgmt-submit-button">
-								Update Section
-							</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		{/if}
+					</div>
+				{/if}
+		</div>
 	{/each}
 		</div>
 	</div>

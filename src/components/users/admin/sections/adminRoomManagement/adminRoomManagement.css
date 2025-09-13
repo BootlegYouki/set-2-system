@@ -604,6 +604,10 @@
 	border-color: var(--md-sys-color-primary);
 }
 
+.dropdown-trigger.selected .option-description {
+	display: none;
+}
+
 .selected-option {
 	display: flex;
 	align-items: center;
