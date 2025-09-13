@@ -3,7 +3,7 @@
   import Login from '../components/login/loginpage.svelte';
   import StudentNavbar from '../components/users/student/navigations/studentNavbar/studentNavbar.svelte';
   import StudentMenu from '../components/users/student/navigations/studentMenu/studentMenu.svelte';
-  import StudentGrade from '../components/users/student/sections/studentGrades/studentGrade.svelte';
+  import StudentGrade from '../components/users/student/sections/studentGrade/studentGrade.svelte';
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
   import Notification from '../components/users/student/sections/studentNotification/notification.svelte';
