@@ -1,6 +1,7 @@
 <script>
 	import './adminScheduleAssignment.css';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { modalStore } from '../../../../common/js/modalStore.js';
 
 	// Schedule assignment state
 	let isAssigning = false;
@@ -747,6 +748,35 @@
 		}
 	}
 
+	// Delete assignment function
+	function handleDeleteAssignment(assignment) {
+		modalStore.confirm(
+			'Delete Assignment',
+			`<p>Are you sure you want to delete this schedule assignment?</p>`,
+			() => {
+				// Remove assignment from the array
+				scheduleAssignments = scheduleAssignments.filter(a => a.id !== assignment.id);
+				
+				// Show success message
+				toastStore.success(`Assignment for ${assignment.subject} has been deleted successfully`);
+				
+				// Close edit form if it was open for this assignment
+				if (editingAssignmentId === assignment.id) {
+					editingAssignmentId = null;
+					editAssignmentTime = '';
+					editAssignmentSubject = '';
+					editSelectedTeacher = null;
+					isEditSubjectDropdownOpen = false;
+					isEditTeacherDropdownOpen = false;
+				}
+			},
+			() => {
+				// Cancel callback (optional)
+				console.log('Delete cancelled');
+			}
+		);
+	}
+
 	// Edit dropdown functions
 	function toggleEditSubjectDropdown() {
 		isEditSubjectDropdownOpen = !isEditSubjectDropdownOpen;
@@ -1461,7 +1491,12 @@
 								>
 									<span class="material-symbols-outlined">{editingAssignmentId === assignment.id ? 'close' : 'edit'}</span>
 								</button>
-								<button class="scheduleassign-delete-button" title="Delete Assignment">
+								<button 
+									type="button" 
+									class="scheduleassign-delete-button" 
+									on:click={() => handleDeleteAssignment(assignment)}
+									title="Delete Assignment"
+								>
 									<span class="material-symbols-outlined">delete</span>
 								</button>
 							</div>
