@@ -517,7 +517,6 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: var(--spacing-md);
 	margin-top: var(--spacing-md);
 	border-radius: var(--radius-md);
 	font-size: 0.875rem;
