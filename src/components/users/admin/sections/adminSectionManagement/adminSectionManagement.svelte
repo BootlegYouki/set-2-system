@@ -10,9 +10,6 @@
 	let schoolYear = '2024-2025';
 	let selectedAdviser = null;
 	let selectedStudents = [];
-	let showSuccessMessage = false;
-	let successMessage = '';
-	let errorMessage = '';
 
 	// Dropdown states
 	let isGradeLevelDropdownOpen = false;
@@ -234,13 +231,11 @@
 	// Form submission
 	async function handleCreateSection() {
 		if (!sectionName || !gradeLevel || !selectedAdviser || selectedStudents.length === 0) {
-			errorMessage = 'Please fill in all required fields and select at least one student.';
-			setTimeout(() => errorMessage = '', 5000);
+			toastStore.error('Please fill in all required fields and select at least one student.');
 			return;
 		}
 
 		isCreating = true;
-		errorMessage = '';
 
 		try {
 			// Simulate API call
@@ -271,9 +266,8 @@
 				selectedStudents.some(s => s.id === student.id) ? { ...student, hasSection: true } : student
 			);
 
-			// Show success message
-			successMessage = `Section ${sectionName} (${selectedGradeObj.name}) created successfully with ${selectedStudents.length} students and ${selectedAdviser.name} as adviser!`;
-			showSuccessMessage = true;
+			// Show success toast
+			toastStore.success(`Section ${sectionName} (${selectedGradeObj.name}) created successfully with ${selectedStudents.length} students and ${selectedAdviser.name} as adviser!`);
 
 			// Reset form
 			sectionName = '';
@@ -283,15 +277,9 @@
 			adviserSearchTerm = '';
 			studentSearchTerm = '';
 
-			// Hide success message after 5 seconds
-			setTimeout(() => {
-				showSuccessMessage = false;
-			}, 5000);
-
 		} catch (error) {
 			console.error('Error creating section:', error);
-			errorMessage = 'Failed to create section. Please try again.';
-			setTimeout(() => errorMessage = '', 5000);
+			toastStore.error('Failed to create section. Please try again.');
 		} finally {
 			isCreating = false;
 		}
@@ -324,13 +312,11 @@
 
 	async function handleEditSection() {
 		if (!editSectionName || !editSelectedAdviser) {
-			errorMessage = 'Please fill in all required fields.';
-			setTimeout(() => errorMessage = '', 5000);
+			toastStore.error('Please fill in all required fields.');
 			return;
 		}
 
 		isUpdating = true;
-		errorMessage = '';
 
 		try {
 			// Simulate API call
@@ -350,9 +336,8 @@
 					return section;
 				});
 
-			// Show success message
-			successMessage = `Section ${editSectionName} updated successfully!`;
-			showSuccessMessage = true;
+			// Show success toast
+			toastStore.success(`Section ${editSectionName} updated successfully!`);
 
 			// Close edit form
 			editingSectionId = null;
@@ -364,15 +349,9 @@
 			isEditAdviserDropdownOpen = false;
 			isEditStudentDropdownOpen = false;
 
-			// Hide success message after 5 seconds
-			setTimeout(() => {
-				showSuccessMessage = false;
-			}, 5000);
-
 		} catch (error) {
 			console.error('Error updating section:', error);
-			errorMessage = 'Failed to update section. Please try again.';
-			setTimeout(() => errorMessage = '', 5000);
+			toastStore.error('Failed to update section. Please try again.');
 		} finally {
 			isUpdating = false;
 		}
@@ -394,10 +373,7 @@
 	function handleRemoveSection(section) {
 		modalStore.confirm(
 			'Remove Section',
-			`<p>Are you sure you want to remove section <strong>"${section.name}"</strong> (${section.grade})?</p>
-			 <div style="margin-top: 12px; padding: 12px; background-color: var(--md-sys-color-error-container); border-radius: 8px; color: var(--md-sys-color-on-error-container);">
-			   <strong>Warning:</strong> This action cannot be undone and will unassign all students and the adviser from this section.
-			 </div>`,
+			`<p>Are you sure you want to remove section <strong>"${section.name}"</strong> (${section.grade})?</p>`,
 			() => {
 				// Remove section from the list
 				recentSections = recentSections.filter(s => s.id !== section.id);
@@ -416,7 +392,7 @@
 			() => {
 				// Do nothing on cancel
 			},
-			{ size: 'medium' }
+			{ size: 'small' }
 		);
 	}
 
@@ -441,22 +417,6 @@
 			<p class="sectionmgmt-page-subtitle">Create and manage class sections, assign students and advisory teachers</p>
 		</div>
 	</div>
-
-	<!-- Success Message -->
-	{#if showSuccessMessage}
-		<div class="sectionmgmt-success-message">
-			<span class="material-symbols-outlined sectionmgmt-success-icon">check_circle</span>
-			<span class="sectionmgmt-success-text">{successMessage}</span>
-		</div>
-	{/if}
-
-	<!-- Error Message -->
-	{#if errorMessage}
-		<div class="sectionmgmt-error-message">
-			<span class="material-symbols-outlined sectionmgmt-error-icon">error</span>
-			<span class="sectionmgmt-error-text">{errorMessage}</span>
-		</div>
-	{/if}
 
 	<!-- Section Creation Form -->
 	<div class="sectionmgmt-creation-form-section">

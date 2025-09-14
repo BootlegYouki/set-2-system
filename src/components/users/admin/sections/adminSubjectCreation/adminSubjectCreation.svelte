@@ -129,10 +129,7 @@
 	function handleRemoveSubject(subject) {
 		modalStore.confirm(
 			'Remove Subject',
-			`<p>Are you sure you want to remove the subject <strong>"${subject.name}"</strong>?</p>
-			 <div style="margin-top: 12px; padding: 12px; background-color: var(--md-sys-color-error-container); border-radius: 8px; color: var(--md-sys-color-on-error-container);">
-			   <strong>Warning:</strong> This action cannot be undone. All associated data will be permanently deleted.
-			 </div>`,
+			`<p>Are you sure you want to remove the subject <strong>"${subject.name}"</strong>?</p>`,
 			() => {
 				// Remove the subject from the array
 				recentSubjects = recentSubjects.filter(s => s.id !== subject.id);
@@ -141,7 +138,7 @@
 				toastStore.success(`Subject "${subject.name}" has been removed successfully`);
 			},
 			null, // onCancel - no action needed
-			{ size: 'medium' }
+			{ size: 'small' }
 		);
 	}
 

@@ -1,5 +1,7 @@
 <script>
 	import './adminAccountCreation.css';
+	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { toastStore } from '../../../../common/js/toastStore.js';
 
 	// Account creation state
 	let isCreating = false;
@@ -9,13 +11,18 @@
 	let firstName = '';
 	let lastName = '';
 	let middleInitial = '';
-	let showSuccessMessage = false;
-	let successMessage = '';
 
 	// Custom dropdown state
 	let isDropdownOpen = false;
 	let isGenderDropdownOpen = false;
 	let isSubjectDropdownOpen = false;
+
+	// Edit account state
+	let editingAccountId = null;
+	let editFirstName = '';
+	let editLastName = '';
+	let editMiddleInitial = '';
+	let isUpdating = false;
 
 	// Account types
 	const accountTypes = [
@@ -78,6 +85,96 @@
 		}
 	}
 
+	// Handle account removal with modal confirmation
+	function handleRemoveAccount(account) {
+		modalStore.confirm(
+			'Remove Account',
+			`<p>Are you sure you want to remove the account for <strong>"${account.name}"</strong>?</p>`,
+			() => {
+				// Remove the account from the array
+				recentAccounts = recentAccounts.filter(a => a.id !== account.id);
+				
+				// Show success toast
+				toastStore.success(`Account for "${account.name}" has been removed successfully`);
+			},
+			() => {
+				// Do nothing on cancel
+			},
+			{ size: 'small' }
+		);
+	}
+
+	// Edit account functions
+	function toggleEditForm(account) {
+		if (editingAccountId === account.id) {
+			// Close the form
+			editingAccountId = null;
+			editFirstName = '';
+			editLastName = '';
+			editMiddleInitial = '';
+		} else {
+			// Open the form and populate with current values
+			editingAccountId = account.id;
+			// Parse the name (assuming format: "LastName, FirstName M.I." or "LastName, FirstName")
+			const nameParts = account.name.split(', ');
+			if (nameParts.length >= 2) {
+				editLastName = nameParts[0];
+				const firstNamePart = nameParts[1];
+				// Check if there's a middle initial
+				const firstNameParts = firstNamePart.split(' ');
+				editFirstName = firstNameParts[0];
+				if (firstNameParts.length > 1 && firstNameParts[1].endsWith('.')) {
+					editMiddleInitial = firstNameParts[1].replace('.', '');
+				} else {
+					editMiddleInitial = '';
+				}
+			}
+		}
+	}
+
+	async function handleEditAccount() {
+		if (!editFirstName || !editLastName) {
+			alert('Please fill in all required fields.');
+			return;
+		}
+
+		isUpdating = true;
+
+		try {
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1500));
+
+			// Construct full name
+			const fullName = `${editLastName}, ${editFirstName}${editMiddleInitial ? ' ' + editMiddleInitial + '.' : ''}`;
+
+			// Update account in the array
+			recentAccounts = recentAccounts.map(account => {
+				if (account.id === editingAccountId) {
+					return {
+						...account,
+						name: fullName
+					};
+				}
+				return account;
+			});
+
+			// Show success toast
+			toastStore.success(`Account updated successfully for ${fullName}!`);
+
+			// Close edit form
+			editingAccountId = null;
+			editFirstName = '';
+			editLastName = '';
+			editMiddleInitial = '';
+
+		} catch (error) {
+			console.error('Error updating account:', error);
+			toastStore.error('Failed to update account. Please try again.');
+		} finally {
+			isUpdating = false;
+		}
+	}
+
 	// Toggle dropdown
 	function toggleDropdown() {
 		isDropdownOpen = !isDropdownOpen;
@@ -118,13 +215,13 @@
 	// Handle form submission
 	async function handleCreateAccount() {
 		if (!selectedAccountType || !selectedGender || !firstName || !lastName) {
-			alert('Please fill in all required fields.');
+			toastStore.error('Please fill in all required fields.');
 			return;
 		}
 
 		// Check if teacher account requires subject selection
 		if (selectedAccountType === 'teacher' && !selectedSubject) {
-			alert('Please select a subject for the teacher account.');
+			toastStore.error('Please select a subject for the teacher account.');
 			return;
 		}
 
@@ -152,9 +249,8 @@
 
 			recentAccounts = [newAccount, ...recentAccounts];
 
-			// Show success message
-			successMessage = `${selectedAccountType === 'student' ? 'Student' : 'Teacher'} account created successfully for ${fullName}!`;
-			showSuccessMessage = true;
+			// Show success toast
+			toastStore.success(`${selectedAccountType === 'student' ? 'Student' : 'Teacher'} account created successfully for ${fullName}!`);
 
 			// Reset form
 			selectedAccountType = '';
@@ -164,14 +260,9 @@
 			lastName = '';
 			middleInitial = '';
 
-			// Hide success message after 5 seconds
-			setTimeout(() => {
-				showSuccessMessage = false;
-			}, 5000);
-
 		} catch (error) {
 			console.error('Error creating account:', error);
-			alert('Failed to create account. Please try again.');
+			toastStore.error('Failed to create account. Please try again.');
 		} finally {
 			isCreating = false;
 		}
@@ -218,14 +309,6 @@
 			<p class="page-subtitle">Create new student and teacher accounts for the system</p>
 		</div>
 	</div>
-
-	<!-- Success Message -->
-	{#if showSuccessMessage}
-		<div class="success-message">
-			<span class="material-symbols-outlined success-icon">check_circle</span>
-			<span class="success-text">{successMessage}</span>
-		</div>
-	{/if}
 
 	<!-- Account Creation Form -->
 	<div class="creation-form-section">
@@ -431,7 +514,6 @@
 						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || (selectedAccountType === 'teacher' && !selectedSubject)}
 					>
 						{#if isCreating}
-							<span class="material-symbols-outlined loading-icon">hourglass_empty</span>
 							Creating Account...
 						{:else}
 							<span class="material-symbols-outlined">person_add</span>
@@ -462,6 +544,7 @@
 								type="button"
 								class="account-edit-button"
 								title="Edit Account"
+								on:click={() => toggleEditForm(account)}
 							>
 								<span class="material-symbols-outlined">edit</span>
 							</button>
@@ -469,6 +552,7 @@
 								type="button"
 								class="account-remove-button"
 								title="Remove Account"
+								on:click={() => handleRemoveAccount(account)}
 							>
 								<span class="material-symbols-outlined">delete</span>
 							</button>
@@ -489,6 +573,85 @@
 							<span>Created: {account.createdDate}</span>
 						</div>
 					</div>
+
+					<!-- Edit Form (conditionally shown) -->
+					{#if editingAccountId === account.id}
+						<div class="edit-form-section">
+							<div class="edit-form-container">
+								<div class="edit-form-header">
+									<h4 class="edit-form-title">Edit Account Name</h4>
+									<p class="edit-form-subtitle">Update the name information for this account</p>
+								</div>
+
+								<div class="edit-form-content">
+									<form on:submit|preventDefault={handleEditAccount}>
+										<!-- Name Fields -->
+										<div class="edit-name-fields-row">
+											<div class="form-group">
+												<label class="form-label" for="edit-last-name">Last Name *</label>
+												<input 
+													type="text" 
+													id="edit-last-name"
+													class="form-input" 
+													bind:value={editLastName}
+													placeholder="Enter last name"
+													required
+												/>
+											</div>
+
+											<div class="form-group">
+												<label class="form-label" for="edit-first-name">First Name *</label>
+												<input 
+													type="text" 
+													id="edit-first-name"
+													class="form-input" 
+													bind:value={editFirstName}
+													placeholder="Enter first name"
+													required
+												/>
+											</div>
+
+											<div class="form-group">
+												<label class="form-label" for="edit-middle-initial">M.I.</label>
+												<input 
+													type="text" 
+													id="edit-middle-initial"
+													class="form-input" 
+													bind:value={editMiddleInitial}
+													placeholder="M"
+													maxlength="1"
+													style="text-transform: uppercase;"
+												/>
+											</div>
+										</div>
+
+										<!-- Form Actions -->
+										<div class="edit-form-actions">
+											<button 
+												type="button" 
+												class="account-cancel-button"
+												on:click={() => toggleEditForm(account)}
+											>
+												Cancel
+											</button>
+											<button 
+												type="submit" 
+												class="account-submit-button"
+												class:loading={isUpdating}
+												disabled={isUpdating || !editFirstName || !editLastName}
+											>
+												{#if isUpdating}
+													Updating...
+												{:else}
+													Save Changes
+												{/if}
+											</button>
+										</div>
+									</form>
+								</div>
+							</div>
+						</div>
+					{/if}
 				</div>
 			{/each}
 		</div>

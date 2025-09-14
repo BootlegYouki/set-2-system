@@ -681,3 +681,152 @@
     font-size: var(--md-sys-typescale-title-medium-size);
   }
 }
+
+/* Inline Edit Form Styles */
+.edit-form-section {
+  margin-top: var(--spacing-md);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.edit-form-container {
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--elevation-1);
+}
+
+.edit-form-header {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.edit-form-title {
+  font-family: var(--md-sys-typescale-title-medium-font);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
+  color: var(--md-sys-color-on-surface);
+  margin: 0 0 var(--spacing-xs) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.edit-form-title::before {
+  content: 'edit';
+  font-family: 'Material Symbols Outlined';
+  font-size: var(--md-sys-typescale-title-medium-size);
+  color: var(--md-sys-color-primary);
+}
+
+.edit-form-subtitle {
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+.edit-form-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-name-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 100px;
+  gap: var(--spacing-md);
+  align-items: end;
+  margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .edit-name-fields-row {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+}
+
+.edit-form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* Cancel Button */
+.account-cancel-button {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-width: 80px;
+  height: 40px;
+}
+
+.cancel-button:hover {
+  background-color: var(--md-sys-color-surface-variant);
+  border-color: var(--md-sys-color-outline-variant);
+  box-shadow: var(--elevation-1);
+}
+
+.cancel-button:active {
+  background-color: var(--md-sys-color-surface-container-high);
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+/* Submit Button */
+.account-submit-button {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border: 1px solid var(--md-sys-color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-width: 120px;
+  min-height: 40px;
+}
+
+.account-submit-button:hover {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: var(--elevation-2);
+}
+
+.account-submit-button:active {
+  background-color: var(--md-sys-color-primary-container);
+  transform: scale(0.98);
+  box-shadow: var(--elevation-1);
+}
+
+.account-submit-button:disabled {
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  border-color: var(--md-sys-color-outline-variant);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
