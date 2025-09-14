@@ -445,7 +445,7 @@
 
 	<!-- Recent Account Creations -->
 	<div class="recent-accounts-section">
-		<div class="section-header">
+		<div class="account-section-header">
 			<h2 class="section-title">Recent Account Creations</h2>
 			<p class="section-subtitle">Recently created accounts in the system</p>
 		</div>
