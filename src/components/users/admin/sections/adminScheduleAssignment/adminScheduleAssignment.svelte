@@ -897,7 +897,7 @@
 	<!-- Schedule Assignment Form -->
 	<div class="scheduleassign-form-section">
 		<div class="scheduleassign-section-header">
-			<h2 class="scheduleassign-section-title">Create Schedule Assignment</h2>
+			<h2 class="admin-section-title">Create Schedule Assignment</h2>
 			<p class="scheduleassign-form-instruction">Select year level and section, then choose a day to add schedule assignments.</p>
 		</div>
 
@@ -1017,7 +1017,7 @@
 				{#if selectedFormYear && selectedFormSection && selectedFormDay}
 					<div class="scheduleassign-add-section">
 						<div class="scheduleassign-section-header-day">
-					<h3 class="scheduleassign-section-title">
+					<h3 class="admin-section-title">
 						Schedule for {selectedFormSectionObj.grade} {selectedFormSectionObj.name} - {selectedFormDayObj.name}
 					</h3>
 					<div class="scheduleassign-import-export-actions">
@@ -1313,7 +1313,7 @@
 	<!-- Current Schedule Assignments -->
 	<div class="scheduleassign-assignments-section">
 		<div class="scheduleassign-section-header">
-			<h2 class="scheduleassign-section-title">Current Schedule Assignments</h2>
+			<h2 class="admin-section-title">Current Schedule Assignments</h2>
 			<p class="scheduleassign-section-subtitle">Recently assigned schedules in the system</p>
 		</div>
 

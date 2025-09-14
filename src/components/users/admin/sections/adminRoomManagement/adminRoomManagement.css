@@ -71,15 +71,16 @@
 }
 
 .admin-room-section-header {
-	display: flex;
+	/* display: flex; */
 	justify-content: space-between;
 	align-items: flex-start;
 	margin-bottom: var(--spacing-md);
 }
 
 .admin-room-section-title {
-	font-family: var(--md-sys-typescale-headline-medium-font);
-	font-weight: var(--md-sys-typescale-headline-medium-weight);
+	font-family: var(--md-sys-typescale-title-large-font);
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: var(--md-sys-typescale-title-large-weight);
 	color: var(--md-sys-color-on-surface);
 	margin: 0 0 var(--spacing-sm) 0;
 }

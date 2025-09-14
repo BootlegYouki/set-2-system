@@ -724,7 +724,7 @@
 		<div class="sectionmgmt-sections-grid">
 			{#each recentSections as section (section.id)}
 			<div class="sectionmgmt-section-card">
-				<div class="sectionmgmt-section-header">
+				<div class="sectionmgmt-section-header-card">
 					<div class="sectionmgmt-section-title">
 						<h3 class="sectionmgmt-section-name">{section.name} · {section.grade}</h3>
 					</div>

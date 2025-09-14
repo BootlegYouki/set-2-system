@@ -1,9 +1,4 @@
-
 /* Theme toggle button */
-*{
-  transition: background var(--transition-normal);
-}
-
 .login-container .theme-toggle-btn {
   position: fixed;
   top: var(--spacing-lg);
@@ -41,50 +36,42 @@
 .login-container {
   height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-md);
+  align-items: stretch;
+  justify-content: stretch;
   background-color: var(--surface-container);
   position: relative;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 920px; 
-  display: flex;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  box-shadow: var(--shadow-xl);
-  border: 1px solid var(--md-sys-color-outline-variant);
   padding: 0;
 }
 
 .left-side {
-  flex: 1 1 50%;
-  min-width: 260px;
+  flex: 0 0 35%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;;
+  background: var(--md-sys-color-surface);
+  padding: var(--spacing-2xl);
+}
+
+.left-side h1{
+  color: var(--md-sys-color-on-surface);
+}
+
+.right-side {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-2xl);
   background: white;
   color: var(--md-sys-color-on-primary-container);
 }
 
-.left-side h1{
+.right-side h1{
   color: black;
 }
 
-.right-side {
-  flex: 1 1 50%;
-  padding: var(--spacing-2xl);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background: var(--md-sys-color-surface);
-}
-
 .login-header {
-  text-align: center;
+  width: 100%;
   margin-bottom: var(--spacing-xl);
 }
 
@@ -131,6 +118,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  width: 100%;
 }
 
 .form-field {
@@ -261,16 +249,25 @@
   flex: 1;
   border: none;
   outline: none;
-  background: transparent;
+  background: var(--md-sys-color-surface-container-highest);
   font-size: 16px;
   line-height: 24px;
   color: var(--md-sys-color-on-surface);
   padding: 16px 0 0 0;
   font-family: var(--md-sys-typescale-body-large-font);
+  transition: background-color var(--transition-normal), box-shadow 200ms, color var(--transition-slow);
 }
 
-.text-input::placeholder {
-  color: transparent;
+/* Autofill styles to prevent white background */
+.text-input:-webkit-autofill,
+.text-input:-webkit-autofill:hover,
+.text-input:-webkit-autofill:focus,
+.text-input:-webkit-autofill:active,
+.text-input:-internal-autofill-selected,
+.text-input:-internal-autofill-previewed {
+    -webkit-box-shadow: 0 0 0px 1000px var(--md-sys-color-surface-container-highest) inset !important;
+    background-color: var(--md-sys-color-surface-container-highest);
+    -webkit-text-fill-color: var(--md-sys-color-on-surface);
 }
 
 .text-label {
@@ -363,12 +360,6 @@
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
 }
 
-.custom-filled-button:focus-visible {
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-primary) 12%);
-  outline: 2px solid var(--md-sys-color-primary);
-  outline-offset: 2px;
-}
-
 .custom-filled-button:active {
   background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-primary) 12%);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
@@ -435,7 +426,6 @@
 
 .custom-text-button:focus-visible {
   background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
-  outline: 2px solid var(--md-sys-color-primary);
   outline-offset: 2px;
 }
 
@@ -463,31 +453,19 @@
 /* Mobile Optimizations */
 @media (max-width: 768px) {
   .login-container {
-    padding: 0;
-    height: 90vh;
-    align-items: flex-start;
-  }
-
-  .login-card {
     flex-direction: column;
-    max-width: none;
-    width: 100%;
-    height: 90vh;
-    border-radius: 0;
-    box-shadow: none;
-    border: none;
-    gap: 0;
-    overflow: hidden;
+    height: 100vh;
   }
 
   .left-side {
-    height: 120px;
-    padding: var(--spacing-sm);
+    flex: 1;
+    max-width: none;
+    justify-content: center;
   }
 
   .right-side {
-    justify-content: center;
-    padding: var(--spacing-lg);
+    flex: 0 0 120px;
+    padding: var(--spacing-sm);
   }
   
   .login-title {

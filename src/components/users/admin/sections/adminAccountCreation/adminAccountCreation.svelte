@@ -189,7 +189,7 @@
 
 	<!-- Account Creation Form -->
 	<div class="creation-form-section">
-		<div class="section-header">
+		<div class="account-section-header">
 			<h2 class="section-title">Create New Account</h2>
 			<p class="section-subtitle">Fill in the details below to create a new account</p>
 		</div>

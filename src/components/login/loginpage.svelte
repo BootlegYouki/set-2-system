@@ -93,17 +93,15 @@
     </span>
   </button>
   
-  <div class="login-card">
-    <div class="left-side">
-      <h1>dito lalagay image</h1>
+  <!-- Login Form Side (Left) -->
+  <div class="left-side">
+    <!-- High School Header -->
+    <div class="login-header">
+      <h1 class="login-title">Integrated Admin System</h1>
+      <h2 class="login-subtitle">Enter your account details</h2>
     </div>
-    <div class="right-side">
-      <!-- High School Header -->
-      <div class="login-header">
-        <h1 class="login-title">Integrated Admin System</h1>
-      </div>
-      <!-- Login Form -->
-      <form class="login-form" onsubmit={handleSubmit} novalidate>
+    <!-- Login Form -->
+    <form class="login-form" onsubmit={handleSubmit} novalidate>
         <!-- Email Field -->
         <div class="form-field">
           <div class="custom-text-field {errors.email ? 'error' : ''}">
@@ -203,8 +201,11 @@
         <button type="button" id="forgot-password-btn" class="custom-text-button forgot-password" aria-label="forgot-password">
           Forgot Password?
         </button>
-
-      </form>
+    </form>
     </div>
+  
+  <!-- Image Side (Right) -->
+  <div class="right-side">
+    <h1>dito lalagay image</h1>
   </div>
 </div>

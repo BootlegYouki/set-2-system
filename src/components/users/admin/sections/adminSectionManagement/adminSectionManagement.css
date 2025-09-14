@@ -628,9 +628,12 @@
 
 /* Section Header */
 .sectionmgmt-section-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.sectionmgmt-section-header-card {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
   margin-bottom: var(--spacing-md);
 }
 
