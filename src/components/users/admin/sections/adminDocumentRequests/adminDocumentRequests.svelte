@@ -71,7 +71,6 @@
 			documentType: 'Grade Report',
 			purpose: 'Transfer to another school',
 			requestDate: '01/13/2024',
-			estimatedCompletion: '01/20/2024',
 			status: 'processing'
 		},
 		{
@@ -164,8 +163,7 @@
 			if (request.id === requestId && request.status === 'pending') {
 				return {
 					...request,
-					status: 'processing',
-					estimatedCompletion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US')
+					status: 'processing'
 				};
 			}
 			return request;
@@ -486,23 +484,22 @@
 							</button>
 						</div>
 					{:else if request.status === 'processing'}
-						<div class="admindocreq-request-footer processing-footer">
-							<span class="admindocreq-footer-info">Estimated completion: {request.estimatedCompletion}</span>
+						<div class="admindocreq-request-actions processing-footer">
 							<button class="admindocreq-complete-button" on:click={() => handleCompleteRequest(request.id)}>
 								<span class="material-symbols-outlined">task_alt</span>
 								Mark Complete
 							</button>
 						</div>
 					{:else if request.status === 'completed'}
-						<div class="admindocreq-request-footer completed-footer">
+						<div class="admindocreq-request-actions completed-footer">
 				<span class="admindocreq-footer-info">Completed on {request.completedDate}</span>
 			</div>
 					{:else if request.status === 'rejected'}
-						<div class="admindocreq-request-footer rejected-footer">
+						<div class="admindocreq-request-actions rejected-footer">
 							<span class="admindocreq-footer-info">Reason: {request.rejectionReason}</span>
 						</div>
 					{:else if request.status === 'cancelled'}
-						<div class="admindocreq-request-footer cancelled-footer">
+						<div class="admindocreq-request-actions cancelled-footer">
 							<span class="admindocreq-footer-info">Cancelled on {request.cancelledDate}</span>
 						</div>
 					{/if}
