@@ -138,7 +138,7 @@
 	font-size: var(--md-sys-typescale-body-large-size);
 	transition: all var(--transition-normal);
 	box-sizing: border-box;
-	min-height: 56px;
+	min-height: 58px;
 	margin-bottom: var(--spacing-md);
 }
 

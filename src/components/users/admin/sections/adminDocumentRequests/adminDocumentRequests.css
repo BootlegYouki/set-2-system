@@ -59,7 +59,7 @@
 
 /* Section Styles */
 .admin-section-header {
-	margin-bottom: var(--spacing-lg);
+	margin-bottom: var(--spacing-md);
 }
 
 .admin-section-title {

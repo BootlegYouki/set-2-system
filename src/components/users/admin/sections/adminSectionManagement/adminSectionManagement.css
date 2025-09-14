@@ -69,7 +69,6 @@
   font-family: var(--md-sys-typescale-body-large-font);
   font-size: var(--md-sys-typescale-body-large-size);
   color: var(--md-sys-color-on-surface-variant);
-  margin: 0 0 var(--spacing-lg) 0;
 }
 
 /* Success Message */
@@ -173,7 +172,6 @@
   display: block;
   font-family: var(--md-sys-typescale-body-medium-font);
   font-size: var(--md-sys-typescale-body-medium-size);
-  font-weight: 500;
   color: var(--md-sys-color-on-surface);
   margin-bottom: var(--spacing-sm);
 }
@@ -189,6 +187,7 @@
   font-size: var(--md-sys-typescale-body-large-size);
   transition: all var(--transition-normal);
   box-sizing: border-box;
+  height: 58px;
 }
 
 .sectionmgmt-form-input:focus {
@@ -233,6 +232,7 @@
   justify-content: space-between;
   gap: var(--spacing-sm);
   box-sizing: border-box;
+  height: 58px;
 }
 
 .sectionmgmt-dropdown-trigger:hover {
