@@ -1,5 +1,7 @@
 <script>
 	import './adminDocumentRequests.css';
+	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { toastStore } from '../../../../common/js/toastStore.js';
 
 	// Document requests state
 	let searchTerm = '';
@@ -11,10 +13,6 @@
 	let isStatusFilterDropdownOpen = false;
 	let isDocumentTypeFilterDropdownOpen = false;
 	let isGradeFilterDropdownOpen = false;
-
-	// Success message state
-	let showSuccessMessage = false;
-	let successMessage = '';
 
 	// Grade levels for Philippines DepEd (Grades 7-10)
 	const gradeLevels = [
@@ -172,28 +170,34 @@
 			}
 			return request;
 		});
-		showSuccessMessage = true;
-		successMessage = 'Request approved and moved to processing';
-		setTimeout(() => { showSuccessMessage = false; }, 5000);
+		toastStore.success('Request approved and moved to processing');
 	}
 
 	function handleRejectRequest(requestId) {
-		const reason = prompt('Please provide a reason for rejection:');
-		if (reason) {
-			documentRequests = documentRequests.map(request => {
-				if (request.id === requestId && request.status === 'pending') {
-					return {
-						...request,
-						status: 'rejected',
-						rejectionReason: reason
-					};
+		modalStore.prompt(
+			'Reject Document Request',
+			'Please provide a reason for rejecting this document request:',
+			'Enter rejection reason...',
+			(reason) => {
+				if (reason && reason.trim()) {
+					documentRequests = documentRequests.map(request => {
+						if (request.id === requestId && request.status === 'pending') {
+							return {
+								...request,
+								status: 'rejected',
+								rejectionReason: reason.trim()
+							};
+						}
+						return request;
+					});
+					toastStore.success('Request rejected successfully');
 				}
-				return request;
-			});
-			showSuccessMessage = true;
-			successMessage = 'Request rejected successfully';
-			setTimeout(() => { showSuccessMessage = false; }, 5000);
-		}
+			},
+			() => {
+				// Do nothing on cancel
+			},
+			{ size: 'medium' }
+		);
 	}
 
 	function handleCompleteRequest(requestId) {
@@ -207,9 +211,7 @@
 			}
 			return request;
 		});
-		showSuccessMessage = true;
-		successMessage = 'Request marked as completed';
-		setTimeout(() => { showSuccessMessage = false; }, 5000);
+		toastStore.success('Request marked as completed');
 	}
 
 	// Handle click outside to close dropdowns
@@ -258,14 +260,6 @@
 			<p class="admin-page-subtitle">Manage and process student document requests</p>
 		</div>
 	</div>
-
-	<!-- Success Message -->
-	{#if showSuccessMessage}
-		<div class="admin-success-message">
-			<span class="material-symbols-outlined admin-success-icon">check_circle</span>
-			<span class="admin-success-text">{successMessage}</span>
-		</div>
-	{/if}
 
 	<!-- Filters and Search Section -->
 	<div class="admin-docreq-filters-section">

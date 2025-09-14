@@ -75,12 +75,13 @@ function createModalStore() {
         size: 'small'
       });
     },
-    prompt: (title, message, defaultValue = '', onSubmit, onCancel) => {
+    prompt: (title, message, placeholder = '', onSubmit, onCancel) => {
       return modalStore.open('PromptModal', {
         title,
         message,
-        defaultValue,
-        inputValue: defaultValue,
+        placeholder,
+        defaultValue: '',
+        inputValue: '',
         onSubmit,
         onCancel
       }, {

@@ -89,7 +89,7 @@
           <input 
             type="text" 
             class="modal-input" 
-            placeholder="Enter value..."
+            placeholder={modal.props.placeholder || "Enter value..."}
             bind:value={modal.props.inputValue}
           />
           <div class="modal-actions">
