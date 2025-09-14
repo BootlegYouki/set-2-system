@@ -5,6 +5,7 @@
 	let isCreating = false;
 	let selectedAccountType = '';
 	let selectedGender = '';
+	let selectedSubject = '';
 	let firstName = '';
 	let lastName = '';
 	let middleInitial = '';
@@ -14,6 +15,7 @@
 	// Custom dropdown state
 	let isDropdownOpen = false;
 	let isGenderDropdownOpen = false;
+	let isSubjectDropdownOpen = false;
 
 	// Account types
 	const accountTypes = [
@@ -25,6 +27,18 @@
 	const genderOptions = [
 		{ id: 'male', name: 'Male', icon: 'male' },
 		{ id: 'female', name: 'Female', icon: 'female' }
+	];
+
+	// Subject options for teachers
+	const subjectOptions = [
+		{ id: 'mathematics', name: 'Mathematics', icon: 'calculate' },
+		{ id: 'english', name: 'English', icon: 'book' },
+		{ id: 'science', name: 'Science', icon: 'science' },
+		{ id: 'history', name: 'History', icon: 'history_edu' },
+		{ id: 'physical_education', name: 'Physical Education', icon: 'sports' },
+		{ id: 'art', name: 'Art', icon: 'palette' },
+		{ id: 'music', name: 'Music', icon: 'music_note' },
+		{ id: 'computer_science', name: 'Computer Science', icon: 'computer' }
 	];
 
 	// Recent account creations (mock data)
@@ -60,6 +74,7 @@
 		if (!event.target.closest('.custom-dropdown')) {
 			isDropdownOpen = false;
 			isGenderDropdownOpen = false;
+			isSubjectDropdownOpen = false;
 		}
 	}
 
@@ -72,6 +87,10 @@
 	function selectAccountType(type) {
 		selectedAccountType = type.id;
 		isDropdownOpen = false;
+		// Clear subject selection when switching account types
+		if (type.id !== 'teacher') {
+			selectedSubject = '';
+		}
 	}
 
 	// Toggle gender dropdown
@@ -85,10 +104,27 @@
 		isGenderDropdownOpen = false;
 	}
 
+	// Toggle subject dropdown
+	function toggleSubjectDropdown() {
+		isSubjectDropdownOpen = !isSubjectDropdownOpen;
+	}
+
+	// Select subject and close dropdown
+	function selectSubject(subject) {
+		selectedSubject = subject.id;
+		isSubjectDropdownOpen = false;
+	}
+
 	// Handle form submission
 	async function handleCreateAccount() {
 		if (!selectedAccountType || !selectedGender || !firstName || !lastName) {
 			alert('Please fill in all required fields.');
+			return;
+		}
+
+		// Check if teacher account requires subject selection
+		if (selectedAccountType === 'teacher' && !selectedSubject) {
+			alert('Please select a subject for the teacher account.');
 			return;
 		}
 
@@ -123,6 +159,7 @@
 			// Reset form
 			selectedAccountType = '';
 			selectedGender = '';
+			selectedSubject = '';
 			firstName = '';
 			lastName = '';
 			middleInitial = '';
@@ -145,6 +182,9 @@
 
 	// Get selected gender object
 	$: selectedGenderObj = genderOptions.find(gender => gender.id === selectedGender);
+
+	// Get selected subject object
+	$: selectedSubjectObj = subjectOptions.find(subject => subject.id === selectedSubject);
 
 	// Generate next account number for the selected type
 	function getNextAccountNumber(accountType) {
@@ -281,6 +321,49 @@
 							</div>
 						</div>
 					</div>
+
+					<!-- Subject Selection (only for teachers) -->
+					{#if selectedAccountType === 'teacher'}
+						<div class="form-group">
+							<label class="form-label" for="subject">Subject *</label>
+							<div class="custom-dropdown" class:open={isSubjectDropdownOpen}>
+								<button 
+									type="button"
+									class="dropdown-trigger" 
+									class:selected={selectedSubject}
+									on:click={toggleSubjectDropdown}
+									id="subject"
+								>
+									{#if selectedSubjectObj}
+										<div class="selected-option">
+											<span class="material-symbols-outlined option-icon">{selectedSubjectObj.icon}</span>
+											<div class="option-content">
+												<span class="option-name">{selectedSubjectObj.name}</span>
+											</div>
+										</div>
+									{:else}
+										<span class="placeholder">Select subject</span>
+									{/if}
+									<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+								</button>
+								<div class="dropdown-menu">
+									{#each subjectOptions as subject (subject.id)}
+										<button 
+											type="button"
+											class="dropdown-option" 
+											class:selected={selectedSubject === subject.id}
+											on:click={() => selectSubject(subject)}
+										>
+											<span class="material-symbols-outlined option-icon">{subject.icon}</span>
+											<div class="option-content">
+												<span class="option-name">{subject.name}</span>
+											</div>
+										</button>
+									{/each}
+								</div>
+							</div>
+						</div>
+					{/if}
 				</div>
 
 				<!-- Name Fields -->
@@ -325,9 +408,9 @@
 
 				<!-- Account Number Info -->
 				<div class="form-group">
-					<label class="form-label">
+					<div class="form-label">
 						{selectedAccountType === 'student' ? 'Student Number' : selectedAccountType === 'teacher' ? 'Teacher Number' : 'Account Number'}
-					</label>
+					</div>
 					<div class="number-display">
 						{#if selectedAccountType}
 							<span class="auto-number">{getNextAccountNumber(selectedAccountType)}</span>
@@ -345,7 +428,7 @@
 						type="submit" 
 						class="create-button"
 						class:loading={isCreating}
-						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName}
+						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || (selectedAccountType === 'teacher' && !selectedSubject)}
 					>
 						{#if isCreating}
 							<span class="material-symbols-outlined loading-icon">hourglass_empty</span>
@@ -370,21 +453,41 @@
 		<div class="accounts-grid">
 			{#each recentAccounts as account (account.id)}
 				<div class="account-card">
-					<div class="account-info">
-						<div class="account-avatar">
-							<span class="material-symbols-outlined avatar-icon">
-								{account.type === 'Student' ? 'school' : 'person'}
-							</span>
+					<div class="account-card-header">
+						<div class="account-title">
+							<h3 class="account-name">{account.name} · {account.type}</h3>
 						</div>
-						<div class="account-details">
-							<h3 class="account-name">{account.name}</h3>
-							<p class="account-type">{account.type}</p>
-							<p class="account-number">{account.number}</p>
+						<div class="account-action-buttons">
+							<button 
+								type="button"
+								class="account-edit-button"
+								title="Edit Account"
+							>
+								<span class="material-symbols-outlined">edit</span>
+							</button>
+							<button 
+								type="button"
+								class="account-remove-button"
+								title="Remove Account"
+							>
+								<span class="material-symbols-outlined">delete</span>
+							</button>
 						</div>
 					</div>
-					<div class="account-meta">
-						<span class="created-date">Created: {account.createdDate}</span>
-						<span class="status-badge status-{account.status}">{account.status}</span>
+					
+					<div class="account-details">
+						<div class="account-detail-item">
+							<span class="material-symbols-outlined">{account.type === 'Student' ? 'school' : 'person'}</span>
+							<span>{account.number}</span>
+						</div>
+						<div class="account-detail-item">
+							<span class="material-symbols-outlined">badge</span>
+							<span>{account.type} Account</span>
+						</div>
+						<div class="account-detail-item">
+							<span class="material-symbols-outlined">calendar_today</span>
+							<span>Created: {account.createdDate}</span>
+						</div>
 					</div>
 				</div>
 			{/each}
