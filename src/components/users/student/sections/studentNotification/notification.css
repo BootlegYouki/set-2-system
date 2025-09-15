@@ -105,6 +105,7 @@
   align-items: center;
   justify-content: space-between;
   transition: all var(--transition-normal);
+  height: 50px;
 }
 
 .filter-toggle:hover {
@@ -224,6 +225,7 @@
   transition: all var(--transition-normal);
   white-space: nowrap;
   width: fit-content;
+  height: 50px;
 }
 
 .action-btn .material-symbols-outlined {

@@ -106,7 +106,6 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-bottom: var(--spacing-md);
 }
 
 .stat-icon .material-symbols-outlined {
@@ -206,33 +205,34 @@
   padding: var(--spacing-sm) var(--spacing-md);
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--md-sys-typescale-body-small-size);
+  font-size: 12;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-normal);
+  box-sizing: border-box;
 }
 
 .verify-btn {
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
+  border: 1px solid var(--md-sys-color-primary);
 }
 
 .verify-btn:hover {
   background: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
 .unverify-btn {
   background: var(--md-sys-color-error);
   color: var(--md-sys-color-on-error);
+  border: 1px solid var(--md-sys-color-error);
 }
 
 .unverify-btn:hover {
   background: var(--md-sys-color-error-container);
   color: var(--md-sys-color-on-error-container);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
@@ -249,6 +249,9 @@
   background-color: var(--md-sys-color-surface-container-hover);
 }
 
+.student-header:hover .average-score{
+  background-color: var(--md-sys-color-surface-container-hover);
+}
 
 
 .student-header-content {
@@ -322,16 +325,14 @@
 }
 
 .expand-icon {
+  position: relative;
+  top: 13px;
   color: var(--md-sys-color-on-surface-variant);
   transition: transform var(--transition-normal);
 }
 
 .expand-icon .material-symbols-outlined {
   font-size: 24px;
-}
-
-.advisory-student-card.selected .expand-icon {
-  transform: rotate(180deg);
 }
 
 /* Student Grades Section */
@@ -425,7 +426,7 @@
 .grade-controls {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
 }
 
 .verify-grade-btn, .unverify-grade-btn {
@@ -438,13 +439,13 @@
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all var(--transition-normal);
-  font-size: 16px;
+  font-size: 10px;
 }
 
 
 
 .verify-grade-btn {
-  background: var(--md-sys-color-primary-container);
+  background: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-primary-container);
 }
 
@@ -516,7 +517,6 @@
   padding: var(--spacing-sm) var(--spacing-md);
   border: none;
   border-radius: var(--radius-md);
-  font-size: var(--md-sys-typescale-body-medium-size);
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-normal);
@@ -525,24 +525,25 @@
 .verify-all-btn {
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
+  border: 1px solid var(--md-sys-color-primary);
 }
 
 .verify-all-btn:hover {
   background: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--md-sys-color-primary);
 }
 
 .unverify-all-btn {
   background: var(--md-sys-color-error);
   color: var(--md-sys-color-on-error);
+  border: 1px solid var(--md-sys-color-error);
 }
 
 .unverify-all-btn:hover {
   background: var(--md-sys-color-error-container);
   color: var(--md-sys-color-on-error-container);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
@@ -599,21 +600,10 @@
     padding: var(--spacing-lg);
   }
 
-  .advisory-stats-grid {
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
   .advisory-class-info {
     /* flex-direction: column; */
     justify-content: stretch;
     gap: var(--spacing-sm);
-  }
-
-  .student-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
   }
 
   .student-average {

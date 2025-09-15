@@ -3,6 +3,7 @@
   import Login from '../components/login/loginpage.svelte';
   import StudentNavbar from '../components/users/student/navigations/studentNavbar/studentNavbar.svelte';
   import StudentMenu from '../components/users/student/navigations/studentMenu/studentMenu.svelte';
+  import StudentProfile from '../components/users/student/sections/studentProfile/studentProfile.svelte';
   import StudentGrade from '../components/users/student/sections/studentGrade/studentGrade.svelte';
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
@@ -50,7 +51,12 @@
 
   // Handle navigation from student menu
   function handleNavigation(event) {
-    activeSection = event.detail.section;
+    // Handle both event objects (from menu) and direct strings (from navbar)
+    if (typeof event === 'string') {
+      activeSection = event;
+    } else {
+      activeSection = event.detail.section;
+    }
   }
   
   // Handle navigation from teacher menu
@@ -118,10 +124,13 @@
         profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleToggleNavRail}
+        onnavigate={handleNavigation}
       />
       
       <main class="content-area">
-        {#if activeSection === 'grades'}
+        {#if activeSection === 'profile'}
+          <StudentProfile />
+        {:else if activeSection === 'grades'}
           <StudentGrade />
         {:else if activeSection === 'schedule'}
           <StudentSchedule />

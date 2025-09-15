@@ -113,6 +113,10 @@
             </button>
           </div>
         </div>
+      {:else if modal.component === 'CustomModal'}
+        <div class="modal-custom-content">
+          {@html modal.props.content}
+        </div>
       {:else}
         <!-- Fallback for unknown string components -->
         <div class="modal-generic-content">
@@ -131,6 +135,7 @@
   .modal-confirm-content,
   .modal-alert-content,
   .modal-prompt-content,
+  .modal-custom-content,
   .modal-generic-content {
     display: flex;
     flex-direction: column;

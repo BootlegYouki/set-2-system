@@ -6,7 +6,6 @@
   let advisoryData = {
     sectionName: "Grade 9 - Section A",
     roomName: "Room 201",
-    adviser: "Prof. Maria Santos",
     totalStudents: 32,
     averageGrade: 87.5,
     subjectsCount: 8
@@ -258,10 +257,6 @@
         <div class="class-detail">
           <span class="material-symbols-outlined">meeting_room</span>
           <span>{advisoryData.roomName}</span>
-        </div>
-        <div class="class-detail">
-          <span class="material-symbols-outlined">person</span>
-          <span>{advisoryData.adviser}</span>
         </div>
       </div>
       <div class="verification-info">
