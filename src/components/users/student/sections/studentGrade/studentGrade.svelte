@@ -147,7 +147,9 @@
 				</div>
 				<div class="subjects-section-card">
 					<div class="subjects-value">
-						{totalSubjects}
+						<div>
+							<Odometer value={totalSubjects} format="d" duration={3000} animation="ease-out" />
+						</div>
 					</div>
 					<div class="subjects-label">Total Subjects</div>
 				</div>

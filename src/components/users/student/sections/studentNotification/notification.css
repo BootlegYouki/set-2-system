@@ -93,7 +93,6 @@
 
 .filter-toggle {
   width: 100%;
-  max-width: 280px;
   padding: var(--spacing-sm);
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-lg);
@@ -487,6 +486,7 @@
 
   .filter-actions-section {
     gap: var(--spacing-md);
+    align-items: start;
   }
 
   .filter-toggle {

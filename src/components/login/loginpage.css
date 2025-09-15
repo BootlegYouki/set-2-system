@@ -1,4 +1,7 @@
 /* Theme toggle button */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+
 .login-container .theme-toggle-btn {
   position: fixed;
   top: var(--spacing-lg);
@@ -38,9 +41,23 @@
   display: flex;
   align-items: stretch;
   justify-content: stretch;
-  background-color: var(--surface-container);
+  background-image: url('../../lib/assets/images/login-bg.svg');
+  background-position: center;
+  background-repeat: no-repeat;
   position: relative;
   padding: 0;
+  transition: background-image 0.3s ease;
+}
+
+/* Use dark background image when dark mode is active */
+[data-theme="dark"] .login-container {
+  background-image: url('../../lib/assets/images/login-bg-dark.svg');
+}
+
+/* Make left side darker in dark mode */
+[data-theme="dark"] .left-side {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px) brightness(0.7);
 }
 
 .left-side {
@@ -48,13 +65,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;;
-  background: var(--md-sys-color-surface);
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   padding: var(--spacing-2xl);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
 .left-side h1{
-  color: var(--md-sys-color-on-surface);
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .right-side {
@@ -62,8 +83,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: transparent;
   color: var(--md-sys-color-on-primary-container);
+}
+
+.login-bg {
+  background-repeat: no-repeat;
+  background-size: cover;        /* or contain / specific px */
+  background-position: right center;
 }
 
 .right-side h1{
@@ -94,16 +121,21 @@
 }
 
 .login-title {
-  font-size: var(--md-sys-typescale-headline-large-size);
-  font-weight: var(--md-sys-typescale-headline-large-weight);
-  color: var(--md-sys-color-on-surface);
-  margin: var(--spacing-md) 0 var(--spacing-sm) 0;
+  font-family: poppins;
+  font-size: 60px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  margin-bottom: var(--spacing-lg);
   line-height: 1.2;
 }
 
 .login-subtitle {
+  font-family: poppins;
+  font-weight: 500;
   font-size: var(--md-sys-typescale-body-large-size);
-  color: var(--md-sys-color-on-surface-variant);
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   margin: 0;
 }
 
@@ -150,7 +182,8 @@
   align-items: center;
   gap: var(--spacing-sm);
   font-size: var(--md-sys-typescale-body-large-size);
-  color: var(--md-sys-color-on-surface);
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   user-select: none;
 }
@@ -189,8 +222,8 @@
   content: "";
   position: absolute;
   display: none;
-  left: 5px;
-  top: 1px;
+  left: 8px;
+  top: 4px;
   width: 4px;
   height: 8px;
   border: solid var(--md-sys-color-on-primary);
@@ -207,10 +240,13 @@
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 56px;
-  background-color: var(--md-sys-color-surface-container-highest);
+  min-height: 60px;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 4px 4px 0 0;
-  border-bottom: 1px solid var(--md-sys-color-outline);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.2s ease;
   padding: 0 16px;
   box-sizing: border-box;
@@ -231,14 +267,14 @@
 }
 
 .leading-icon {
-  color: var(--md-sys-color-on-surface-variant);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 24px;
   margin-right: 12px;
   flex-shrink: 0;
 }
 
 .custom-text-field:focus-within .leading-icon {
-  color: var(--md-sys-color-primary);
+  color: rgba(255, 255, 255, 1);
 }
 
 .custom-text-field.error .leading-icon {
@@ -249,25 +285,17 @@
   flex: 1;
   border: none;
   outline: none;
-  background: var(--md-sys-color-surface-container-highest);
+  background: transparent;
   font-size: 16px;
   line-height: 24px;
-  color: var(--md-sys-color-on-surface);
+  color: #ffffff;
   padding: 16px 0 0 0;
   font-family: var(--md-sys-typescale-body-large-font);
   transition: background-color var(--transition-normal), box-shadow 200ms, color var(--transition-slow);
 }
 
-/* Autofill styles to prevent white background */
-.text-input:-webkit-autofill,
-.text-input:-webkit-autofill:hover,
-.text-input:-webkit-autofill:focus,
-.text-input:-webkit-autofill:active,
-.text-input:-internal-autofill-selected,
-.text-input:-internal-autofill-previewed {
-    -webkit-box-shadow: 0 0 0px 1000px var(--md-sys-color-surface-container-highest) inset !important;
-    background-color: var(--md-sys-color-surface-container-highest);
-    -webkit-text-fill-color: var(--md-sys-color-on-surface);
+.text-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .text-label {
@@ -276,7 +304,7 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 16px;
-  color: var(--md-sys-color-on-surface-variant);
+  color: rgba(255, 255, 255, 0.7);
   pointer-events: none;
   transition: all 0.1s ease;
   font-family: var(--md-sys-typescale-body-large-font);
@@ -286,7 +314,7 @@
 .text-input:not(:placeholder-shown) + .text-label {
   top: 12px;
   font-size: 12px;
-  color: var(--md-sys-color-primary);
+  color: rgba(255, 255, 255, 0.9);
   transform: translateY(-6px);
 }
 
@@ -302,7 +330,7 @@
   margin-left: 8px;
   border-radius: 50%;
   cursor: pointer;
-  color: var(--md-sys-color-on-surface-variant);
+  color: rgba(255, 255, 255, 0.8);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -450,26 +478,53 @@
   margin-top: var(--spacing-md);
 }
 
-/* Mobile Optimizations */
+
+@media (min-width: 768px) {
+  .login-container {
+  background-size: cover;
+  }
+}
+
+/* Mobile responsive - remove background images */
 @media (max-width: 768px) {
+/* Mobile Optimizations */
   .login-container {
     flex-direction: column;
     height: 100vh;
   }
 
   .left-side {
-    flex: 1;
+    padding-top: 6rem;
+    padding-bottom: 9rem;
     max-width: none;
     justify-content: center;
+    height: 100%;
+  }
+
+  .left-side h1{
+    font-size: 50px;
+  }
+
+  .remember-me-label .checkbox-checkmark{
+    height: 25px;
+    width: 25px;
+  }
+  .remember-me-label span {
+    font-size: 18px;
+  }
+
+  .login-submit {
+    height: 58px;
+    font-size: 20px;
+  }
+
+  .custom-text-button{
+    font-size: 15px;
   }
 
   .right-side {
     flex: 0 0 120px;
     padding: var(--spacing-sm);
-  }
-  
-  .login-title {
-    font-size: 24px;
   }
 
   .user-type-selector {

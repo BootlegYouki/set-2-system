@@ -92,7 +92,7 @@
 	
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.mobile-dropdown')) {
+		if (!event.target.closest('.schedule-mobile-dropdown')) {
 			isDropdownOpen = false;
 		}
 	}
@@ -133,19 +133,19 @@
 		</div>
 		
 		<!-- Mobile Dropdown -->
-		<div class="mobile-dropdown">
-			<button class="dropdown-toggle-date" on:click={toggleDropdown}>
+		<div class="schedule-mobile-dropdown">
+			<button class="schedule-dropdown-toggle-date" on:click={toggleDropdown}>
 				<span>{dayNameMap[selectedDay] || 'Select Day'}</span>
-				<span class="material-symbols-outlined dropdown-icon {isDropdownOpen ? 'open' : ''}">
+				<span class="material-symbols-outlined schedule-dropdown-icon {isDropdownOpen ? 'open' : ''}">
 					expand_more
 				</span>
 			</button>
 			
 			{#if isDropdownOpen}
-				<div class="dropdown-menu">
+				<div class="schedule-dropdown-menu">
 					{#each weekDays as { day }}
 						<button 
-							class="dropdown-item {day === selectedDay ? 'selected' : ''}"
+							class="schedule-dropdown-item {day === selectedDay ? 'selected' : ''}"
 							on:click={() => selectDay(day)}
 						>
 							{dayNameMap[day]}

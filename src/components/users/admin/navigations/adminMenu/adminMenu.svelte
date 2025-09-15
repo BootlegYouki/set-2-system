@@ -26,8 +26,8 @@
 			icon: 'subject'
 		},
 		{
-			id: 'schedule-assignment',
-			label: 'Schedule Assignment',
+			id: 'schedule-management',
+			label: 'Schedule Management',
 			icon: 'schedule'
 		},
 		{

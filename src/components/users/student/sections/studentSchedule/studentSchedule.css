@@ -351,12 +351,12 @@
 }
 
 /* Mobile Dropdown Styles */
-.mobile-dropdown {
+.schedule-mobile-dropdown {
 	display: none;
 	position: relative;
 }
 
-.dropdown-toggle-date {
+.schedule-dropdown-toggle-date {
 	width: 100%;
 	background-color: var(--md-sys-color-surface-variant);
 	border: 1px solid var(--md-sys-color-outline-variant);
@@ -372,21 +372,21 @@
 	font-weight: 500;
 }
 
-.dropdown-toggle:hover {
+.schedule-dropdown-toggle-date:hover {
 	background-color: var(--md-sys-color-surface);
 	border-color: var(--md-sys-color-outline);
 }
 
-.dropdown-icon {
+.schedule-dropdown-icon {
 	transition: transform 0.2s;
 	font-size: 1.2rem;
 }
 
-.dropdown-icon.open {
+.schedule-dropdown-icon.open {
 	transform: rotate(180deg);
 }
 
-.dropdown-menu {
+.schedule-dropdown-menu {
 	position: absolute;
 	top: 100%;
 	left: 0;
@@ -399,7 +399,7 @@
 	margin-top: var(--spacing-xs);
 }
 
-.dropdown-item {
+.schedule-dropdown-item {
 	width: 100%;
 	padding: var(--spacing-md) var(--spacing-lg);
 	border: none;
@@ -412,16 +412,16 @@
 	font-weight: 500;
 }
 
-.dropdown-item:hover {
+.schedule-dropdown-item:hover {
 	background-color: var(--md-sys-color-surface-variant) !important;
 }
 
-.dropdown-item.selected {
+.schedule-dropdown-item.selected {
 	background-color: var(--md-sys-color-primary-container);
 	color: var(--md-sys-color-on-primary-container);
 }
 
-.dropdown-item.selected:hover {
+.schedule-dropdown-item.selected:hover {
 	background-color: var(--md-sys-color-primary-container) !important;
 }
 
@@ -477,7 +477,7 @@
 		display: none;
 	}
 
-	.mobile-dropdown {
+	.schedule-mobile-dropdown {
 		display: block;
 	}
 

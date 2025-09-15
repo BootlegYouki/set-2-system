@@ -1,5 +1,5 @@
 <script>
-	import './adminScheduleAssignment.css';
+	import './adminScheduleManagement.css';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 
@@ -887,7 +887,7 @@
 	<!-- Header -->
 	<div class="scheduleassign-header">
 		<div class="scheduleassign-header-content">
-			<h1 class="scheduleassign-page-title">Schedule Assignment</h1>
+			<h1 class="scheduleassign-page-title">Schedule Management</h1>
 			<p class="scheduleassign-page-subtitle">Assign subjects and teachers to sections with specific time slots</p>
 		</div>
 	</div>
@@ -897,7 +897,7 @@
 	<!-- Schedule Assignment Form -->
 	<div class="scheduleassign-form-section">
 		<div class="scheduleassign-section-header">
-			<h2 class="admin-section-title">Create Schedule Assignment</h2>
+			<h2 class="admin-section-title">Add Schedule Assignment</h2>
 			<p class="scheduleassign-form-instruction">Select year level and section, then choose a day to add schedule assignments.</p>
 		</div>
 

@@ -160,6 +160,11 @@
   transition: all var(--transition-normal);
 }
 
+.advisory-student-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
 .advisory-student-card.selected {
   border-color: var(--school-primary);
   box-shadow: 0 0 0 2px var(--school-primary)20;
@@ -237,7 +242,11 @@
   justify-content: space-between;
   padding: var(--spacing-lg);
   cursor: pointer;
-  transition: background-color var(--transition-normal);
+  transition: all var(--transition-normal);
+}
+
+.student-header:hover {
+  background-color: var(--md-sys-color-surface-container-hover);
 }
 
 
@@ -321,11 +330,30 @@
   font-size: 24px;
 }
 
+.advisory-student-card.selected .expand-icon {
+  transform: rotate(180deg);
+}
+
 /* Student Grades Section */
 .student-grades {
   border-top: 1px solid var(--md-sys-color-outline-variant);
   padding: var(--spacing-lg);
   background-color: var(--md-sys-color-surface-container-low);
+  animation: slideDown 0.3s ease-out;
+  transform-origin: top;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 1000px;
+  }
 }
 
 .grades-header {

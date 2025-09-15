@@ -97,11 +97,11 @@
   <div class="left-side">
     <!-- High School Header -->
     <div class="login-header">
-      <h1 class="login-title">Integrated Admin System</h1>
+      <h1 class="login-title">Login</h1>
       <h2 class="login-subtitle">Enter your account details</h2>
     </div>
     <!-- Login Form -->
-    <form class="login-form" onsubmit={handleSubmit} novalidate>
+    <form class="login-form" onsubmit={handleSubmit} novalidate autocomplete="off">
         <!-- Email Field -->
         <div class="form-field">
           <div class="custom-text-field {errors.email ? 'error' : ''}">
@@ -111,9 +111,10 @@
                  value={email}
                  oninput={handleEmailChange}
                  onkeydown={handleKeyDown}
-                 autocomplete="email"
+                 autocomplete="off"
                  class="text-input"
                  placeholder=" "
+                 
                />
             <label class="text-label" for="email-input">Email Address</label>
           </div>
@@ -131,7 +132,7 @@
                  value={password}
                  oninput={handlePasswordChange}
                  onkeydown={handleKeyDown}
-                 autocomplete="current-password"
+                 autocomplete="new-password"
                  class="text-input"
                  placeholder=" "
                />
@@ -193,7 +194,7 @@
           {#if isLoading}
             <div class="loading-spinner"></div>
           {:else}
-            <span>Sign in</span>
+            <span>Login</span>
           {/if}
         </button>
 
@@ -206,6 +207,6 @@
   
   <!-- Image Side (Right) -->
   <div class="right-side">
-    <h1>dito lalagay image</h1>
+    <!-- Background image is now applied to the entire container -->
   </div>
 </div>
