@@ -447,7 +447,7 @@
 									type="button" 
 									class="adminsubject-edit-button" 
 									on:click={() => toggleEditForm(subject)}
-									title={editingSubjectId === subject.id ? 'Cancel Edit' : 'Edit Subject'}
+									title="{editingSubjectId === subject.id ? 'Cancel Edit' : 'Edit Subject'}"
 								>
 									<span class="material-symbols-outlined">
 										{editingSubjectId === subject.id ? 'close' : 'edit'}
