@@ -207,6 +207,11 @@
   
   <!-- Image Side (Right) -->
   <div class="right-side">
+    <!-- Welcome text -->
+    <div class="welcome-text">
+      <h1 class="welcome-title">Welcome</h1>
+      <p class="welcome-subtitle">Login to access your account</p>
+    </div>
     <!-- Background image is now applied to the entire container -->
   </div>
 </div>

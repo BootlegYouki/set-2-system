@@ -60,6 +60,51 @@
   backdrop-filter: blur(10px) brightness(0.7);
 }
 
+/* Dark mode input field styling */
+[data-theme="dark"] .custom-text-field {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode checkbox */
+[data-theme="dark"] .checkbox-checkmark {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Dark mode forgot password button */
+[data-theme="dark"] .custom-text-button {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .custom-text-button:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .custom-text-button:focus-visible {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .custom-text-button:active {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Dark mode login button */
+[data-theme="dark"] .custom-filled-button {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #1a1a1a;
+}
+
+[data-theme="dark"] .custom-filled-button:hover {
+  background-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.3), 0 1px 3px 1px rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .custom-filled-button:active {
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.3), 0 1px 3px 1px rgba(255, 255, 255, 0.15);
+  transform: scale(0.98);
+}
+
 .left-side {
   flex: 0 0 35%;
   display: flex;
@@ -67,34 +112,19 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px) brightness(0.6);
   -webkit-backdrop-filter: blur(20px);
   padding: var(--spacing-2xl);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-}
-
-.left-side h1{
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.right-side {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--md-sys-color-on-primary-container);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  position: relative;
+  z-index: 1;
+  transition: backdrop-filter var(--transition-normal);
 }
 
 .login-bg {
   background-repeat: no-repeat;
   background-size: cover;        /* or contain / specific px */
   background-position: right center;
-}
-
-.right-side h1{
-  color: black;
 }
 
 .login-header {
@@ -124,8 +154,7 @@
   font-family: poppins;
   font-size: 60px;
   font-weight: 700;
-  color: #ffffff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  color: #fff;
   margin-bottom: var(--spacing-lg);
   line-height: 1.2;
 }
@@ -134,7 +163,7 @@
   font-family: poppins;
   font-weight: 500;
   font-size: var(--md-sys-typescale-body-large-size);
-  color: rgba(255, 255, 255, 0.9);
+  color: #fff;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   margin: 0;
 }
@@ -206,7 +235,7 @@
   display: inline-block;
   height: 18px;
   width: 18px;
-  border: 2px solid var(--md-sys-color-outline);
+  border: 2px solid rgba(26, 26, 26, 0.6);
   border-radius: 2px;
   background-color: transparent;
   transition: all 0.2s ease;
@@ -222,8 +251,8 @@
   content: "";
   position: absolute;
   display: none;
-  left: 8px;
-  top: 4px;
+  left: 5px;
+  top: 0;
   width: 4px;
   height: 8px;
   border: solid var(--md-sys-color-on-primary);
@@ -241,7 +270,7 @@
   align-items: center;
   width: 100%;
   min-height: 60px;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 4px 4px 0 0;
@@ -368,8 +397,8 @@
   padding: 10px 24px;
   border: none;
   border-radius: 20px;
-  background-color: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
+  background-color: rgba(26, 26, 26, 0.9);
+  color: #ffffff;
   font-family: var(--md-sys-typescale-label-large-font);
   font-size: var(--md-sys-typescale-label-large-size);
   font-weight: var(--md-sys-typescale-label-large-weight);
@@ -384,12 +413,12 @@
 }
 
 .custom-filled-button:hover {
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 92%, var(--md-sys-color-on-primary) 8%);
+  background-color: rgba(26, 26, 26, 1);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
 }
 
 .custom-filled-button:active {
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-primary) 12%);
+  background-color: rgba(26, 26, 26, 0.8);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
   transform: scale(0.98);
 }
@@ -434,7 +463,7 @@
   border: none;
   border-radius: 20px;
   background-color: transparent;
-  color: var(--md-sys-color-primary);
+  color: rgba(26, 26, 26, 0.8);
   font-family: var(--md-sys-typescale-label-large-font);
   font-size: var(--md-sys-typescale-label-large-size);
   font-weight: var(--md-sys-typescale-label-large-weight);
@@ -449,16 +478,17 @@
 }
 
 .custom-text-button:hover {
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+  background-color: rgba(26, 26, 26, 0.08);
+  color: rgba(26, 26, 26, 0.9);
 }
 
 .custom-text-button:focus-visible {
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  background-color: rgba(26, 26, 26, 0.12);
   outline-offset: 2px;
 }
 
 .custom-text-button:active {
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  background-color: rgba(26, 26, 26, 0.12);
   transform: scale(0.98);
 }
 
@@ -478,6 +508,37 @@
   margin-top: var(--spacing-md);
 }
 
+.right-side {
+  display: flex;
+  align-items: start;
+  padding-top: 7rem;
+  flex: 1;
+  padding-left: 15rem;
+}
+
+.welcome-text {
+  z-index: 2;
+}
+
+.welcome-title {
+  display: flex;
+  color: #ffffff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 6rem;
+  font-weight: 700;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.welcome-subtitle {
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: #ffffff;
+  margin-top: -12px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
 
 @media (min-width: 768px) {
   .login-container {
@@ -491,6 +552,11 @@
   .login-container {
     flex-direction: column;
     height: 100vh;
+  }
+
+  .checkbox-checkmark::after{
+    top: 4px;
+    left: 8px;
   }
 
   .left-side {
