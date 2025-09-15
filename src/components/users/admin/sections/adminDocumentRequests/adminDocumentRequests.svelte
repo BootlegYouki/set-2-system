@@ -71,6 +71,7 @@
 			documentType: 'Grade Report',
 			purpose: 'Transfer to another school',
 			requestDate: '01/13/2024',
+			approvalNote: 'Approved for transfer - all requirements met',
 			status: 'processing'
 		},
 		{
@@ -159,16 +160,28 @@
 
 	// Handle request actions
 	function handleApproveRequest(requestId) {
-		documentRequests = documentRequests.map(request => {
-			if (request.id === requestId && request.status === 'pending') {
-				return {
-					...request,
-					status: 'processing'
-				};
-			}
-			return request;
-		});
-		toastStore.success('Request approved and moved to processing');
+		modalStore.prompt(
+			'Approve Document Request',
+			'Please provide an approval note (optional):',
+			'Enter approval note...',
+			(note) => {
+				documentRequests = documentRequests.map(request => {
+					if (request.id === requestId && request.status === 'pending') {
+						return {
+							...request,
+							status: 'processing',
+							approvalNote: note && note.trim() ? note.trim() : 'Approved without additional notes'
+						};
+					}
+					return request;
+				});
+				toastStore.success('Request approved and moved to processing');
+			},
+			() => {
+				// Do nothing on cancel
+			},
+			{ size: 'medium', allowEmpty: true }
+		);
 	}
 
 	function handleRejectRequest(requestId) {
@@ -485,6 +498,9 @@
 						</div>
 					{:else if request.status === 'processing'}
 						<div class="admindocreq-request-actions processing-footer">
+							{#if request.approvalNote}
+								<span class="admindocreq-footer-info">Note: {request.approvalNote}</span>
+							{/if}
 							<button class="admindocreq-complete-button" on:click={() => handleCompleteRequest(request.id)}>
 								<span class="material-symbols-outlined">task_alt</span>
 								Mark Complete
