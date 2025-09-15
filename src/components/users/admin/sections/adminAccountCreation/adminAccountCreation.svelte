@@ -543,10 +543,10 @@
 							<button 
 								type="button"
 								class="account-edit-button"
-								title="Edit Account"
+								title="{editingAccountId === account.id ? 'Cancel Edit' : 'Edit Account'}"
 								on:click={() => toggleEditForm(account)}
 							>
-								<span class="material-symbols-outlined">edit</span>
+								<span class="material-symbols-outlined">{editingAccountId === account.id ? 'close' : 'edit'}</span>
 							</button>
 							<button 
 								type="button"
