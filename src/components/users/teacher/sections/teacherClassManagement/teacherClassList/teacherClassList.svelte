@@ -315,4 +315,6 @@
 </div>
 
 <!-- Toast Notification -->
-<Toast bind:show={showToast} message={toastMessage} type={toastType} />
+{#if showToast}
+  <Toast message={toastMessage} type={toastType} onClose={() => showToast = false} />
+{/if}
