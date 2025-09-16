@@ -57,7 +57,7 @@
 /* Make left side darker in dark mode */
 [data-theme="dark"] .left-side {
   background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px) brightness(0.7);
+  backdrop-filter: blur(10px) brightness(1);
 }
 
 /* Dark mode input field styling */
@@ -513,7 +513,7 @@
   align-items: start;
   padding-top: 7rem;
   flex: 1;
-  padding-left: 15rem;
+  padding: 4rem 12rem;
 }
 
 .welcome-text {

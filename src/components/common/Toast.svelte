@@ -160,8 +160,8 @@
   }
 
   .toast-warning {
-    background-color: var(--md-sys-color-tertiary-container);
-    color: var(--md-sys-color-on-tertiary-container);
+    background-color: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
   }
 
   .toast-info {

@@ -1,0 +1,519 @@
+/* Teacher Class List Grading Sheet Styles */
+
+.class-management-container {
+  margin: 0 auto;
+  color: var(--md-sys-color-on-surface);
+  padding: var(--spacing-lg);
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for class management container */
+.class-management-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.class-management-container::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+  border-radius: var(--radius-sm);
+}
+
+.class-management-container::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+}
+
+.class-management-container::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
+}
+
+/* Header Section */
+.classlist-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-xl);
+  gap: var(--spacing-lg);
+}
+
+.header-content {
+  flex: 1;
+}
+
+/* Header Navigation */
+.header-navigation {
+  margin-bottom: var(--spacing-md);
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  font-weight: var(--md-sys-typescale-body-medium-weight);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.back-button:hover {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-1);
+}
+
+.back-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.back-button .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.classlist-page-title {
+  font-size: var(--md-sys-typescale-headline-large-size);
+  font-weight: var(--md-sys-typescale-headline-large-weight);
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.classlist-page-subtitle {
+  font-size: var(--md-sys-typescale-body-large-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.classlist-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--md-sys-color-surface-container);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface);
+}
+
+.stat-item .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--md-sys-color-primary);
+}
+
+/* Grading Configuration Section */
+.grading-config-section {
+  margin-bottom: var(--spacing-2xl);
+  background-color: var(--md-sys-color-surface-container);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.config-title {
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: var(--md-sys-typescale-title-large-weight);
+  margin: 0 0 var(--spacing-lg) 0;
+  color: var(--md-sys-color-on-surface);
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.config-label {
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  color: var(--md-sys-color-on-surface);
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Column Control Styles */
+.classlist-column-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: var(--md-sys-color-surface);
+  border: 2px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-md);
+  gap: var(--spacing-md);
+}
+
+.classlist-column-count {
+  flex: 1;
+}
+
+.classlist-column-text {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface);
+  font-weight: var(--md-sys-typescale-body-medium-weight);
+}
+
+.classlist-action-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.classlist-add-column-button,
+.classlist-remove-column-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-size: 18px;
+}
+
+.classlist-add-column-button {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.classlist-add-column-button:hover:not(:disabled) {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-1);
+}
+
+.classlist-remove-column-button {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.classlist-remove-column-button:hover:not(:disabled) {
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-1);
+}
+
+.classlist-add-column-button:disabled,
+.classlist-remove-column-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.classlist-add-column-button:active:not(:disabled),
+.classlist-remove-column-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Grading Table Section */
+.grading-table-section {
+  background-color: var(--md-sys-color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  overflow: hidden;
+}
+
+.table-container {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--md-sys-color-surface-variant);
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-sm);
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
+}
+
+/* Excel-like Table Styles */
+.grading-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--md-sys-typescale-body-small-size);
+  background-color: var(--md-sys-color-surface);
+  min-width: 1200px; /* Ensure horizontal scroll when needed */
+}
+
+.grading-table th,
+.grading-table td {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  text-align: center;
+  vertical-align: middle;
+  position: relative;
+}
+
+/* Header Styles */
+.grading-table thead th {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  padding: var(--spacing-md);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.student-id-header {
+  min-width: 100px;
+  background-color: var(--md-sys-color-primary-container) !important;
+  color: var(--md-sys-color-on-primary-container) !important;
+  left: 0;
+  z-index: 11 !important;
+}
+
+.student-name-header {
+  min-width: 150px;
+  background-color: var(--md-sys-color-primary-container) !important;
+  color: var(--md-sys-color-on-primary-container) !important;
+  left: 100px;
+  z-index: 11 !important;
+}
+
+.category-header {
+  background-color: var(--md-sys-color-secondary-container) !important;
+  color: var(--md-sys-color-on-secondary-container) !important;
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: 600;
+}
+
+.score-header {
+  min-width: 80px;
+  font-size: var(--md-sys-typescale-label-small-size);
+}
+
+.average-header {
+  min-width: 80px;
+  background-color: var(--md-sys-color-primary-container) !important;
+    color: var(--md-sys-color-on-primary-container) !important;
+  font-weight: 600;
+}
+
+.final-grade-header {
+  min-width: 100px;
+  background-color: var(--md-sys-color-primary-container) !important;
+  color: var(--md-sys-color-on-primary-container) !important;
+  font-weight: 600;
+}
+
+/* Body Styles */
+.student-row {
+  transition: background-color var(--transition-normal);
+}
+
+.student-row:hover {
+  background-color: var(--md-sys-color-surface-container-hover);
+}
+
+.student-row:nth-child(even) {
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.student-row:nth-child(even):hover {
+  background-color: var(--md-sys-color-surface-container-hover);
+}
+
+/* Student ID Cell */
+.student-id-cell {
+  text-align: center !important;
+  padding: var(--spacing-md);
+  background-color: var(--md-sys-color-surface-container-low);
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  min-width: 100px;
+}
+
+.student-id-text {
+  font-size: var(--md-sys-typescale-label-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  font-weight: 500;
+}
+
+/* Student Name Cell */
+.student-name-cell {
+  text-align: left !important;
+  padding: var(--spacing-md);
+  background-color: var(--md-sys-color-surface-container-low);
+  position: sticky;
+  left: 100px;
+  z-index: 5;
+  min-width: 150px;
+}
+
+.student-name-text {
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface);
+  font-weight: 500;
+}
+
+/* Score Input Cells */
+.score-cell {
+  padding: var(--spacing-xs);
+  background-color: var(--md-sys-color-surface);
+}
+
+.grade-input {
+  width: 100%;
+  max-width: 60px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  text-align: center;
+  font-size: var(--md-sys-typescale-body-small-size);
+  color: var(--md-sys-color-on-surface);
+  transition: all var(--transition-normal);
+}
+
+.grade-input:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-surface);
+  box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.grade-input:hover {
+  background-color: var(--md-sys-color-surface-container-hover);
+}
+
+/* Average Cells */
+.average-cell {
+  padding: var(--spacing-sm);
+  background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+  font-weight: 600;
+  font-size: var(--md-sys-typescale-body-medium-size);
+}
+
+/* Final Grade Cell */
+.final-grade-cell {
+  padding: var(--spacing-sm);
+  background-color: var(--md-sys-color-primary-container);
+}
+
+.final-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--md-sys-typescale-body-medium-size);
+  min-width: 50px;
+}
+
+/* Grade Status Colors */
+.final-grade.excellent {
+  background-color: var(--grade-excellent);
+  color: white;
+}
+
+.final-grade.good {
+  background-color: var(--grade-good);
+  color: white;
+}
+
+.final-grade.satisfactory {
+  background-color: var(--grade-satisfactory);
+  color: white;
+}
+
+.final-grade.needs-improvement {
+  background-color: var(--grade-needs-improvement);
+  color: white;
+}
+
+.final-grade.no-grade {
+  background-color: var(--grade-no-grade);
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .class-management-container {
+    padding: var(--spacing-md);
+  }
+  
+  .classlist-page-header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .grading-table {
+    font-size: var(--md-sys-typescale-body-small-size);
+  }
+  
+  .student-info-header,
+  .student-info {
+    min-width: 150px;
+  }
+  
+  .score-header,
+  .average-header {
+    min-width: 60px;
+  }
+  
+  .grade-input {
+    max-width: 50px;
+    font-size: var(--md-sys-typescale-label-small-size);
+  }
+}
+
+@media (max-width: 480px) {
+  .grading-config-section {
+    padding: var(--spacing-lg);
+  }
+  
+  .config-title {
+    font-size: var(--md-sys-typescale-title-medium-size);
+  }
+  
+  .classlist-page-title {
+    font-size: var(--md-sys-typescale-headline-medium-size);
+  }
+  
+  .stat-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--md-sys-typescale-body-small-size);
+  }
+}

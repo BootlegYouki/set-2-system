@@ -1109,13 +1109,11 @@
 									<div class="scheduleassign-input-group">
 										<label class="scheduleassign-form-label" for="start-hour">Hour *</label>
 										<input 
-											type="number" 
+											type="text" 
 											id="start-hour"
 											class="scheduleassign-time-input"
 											bind:value={newSchedule.startHour}
-											min="1"
-											max="12"
-											placeholder="12"
+											placeholder="1-12"
 											required
 										/>
 									</div>
@@ -1124,13 +1122,11 @@
 									<div class="scheduleassign-input-group">
 										<label class="scheduleassign-form-label" for="start-minute">Minute *</label>
 										<input 
-											type="number" 
+											type="text" 
 											id="start-minute"
 											class="scheduleassign-time-input"
 											bind:value={newSchedule.startMinute}
-											min="0"
-											max="59"
-											placeholder="00"
+											placeholder="0-59"
 											required
 										/>
 									</div>
@@ -1179,14 +1175,11 @@
 									<div class="scheduleassign-input-group">
 										<label class="scheduleassign-form-label" for="duration">Duration (minutes) *</label>
 										<input 
-											type="number" 
+											type="text" 
 											id="duration"
 											class="scheduleassign-time-input"
 											bind:value={newSchedule.duration}
-											min="15"
-											max="480"
-											step="15"
-											placeholder="60"
+											placeholder="Duration in minutes"
 											required
 										/>
 									</div>

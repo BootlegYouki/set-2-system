@@ -1,6 +1,9 @@
 <script>
-  import './teacherClassManagement.css';
-  import Odometer from '../../../../common/Odometer.svelte';
+  import './teacherClassSelection.css';
+  import Odometer from '../../../../../common/Odometer.svelte';
+  
+  // Props for navigation
+  let { onNavigateToClassList } = $props();
   
   // Sample data - in real app this would come from props or API
   let teacherData = {
@@ -10,6 +13,13 @@
     totalStudents: 240,
     averagePerSection: 30
   };
+
+  // Function to handle section card click
+  function handleSectionClick(yearLevel, sectionName) {
+    if (onNavigateToClassList) {
+      onNavigateToClassList({ detail: { yearLevel, sectionName } });
+    }
+  }
 
   // Dynamic stats configuration
   let statsConfig = [
@@ -82,15 +92,15 @@
     }
   ];
 
-  // Calculate statistics
-  $: {
+  // Calculate statistics using Svelte 5 runes
+  $effect(() => {
     teacherData.totalSections = classData.reduce((sum, year) => sum + year.sections.length, 0);
     teacherData.totalStudents = classData.reduce((sum, year) => 
       sum + year.sections.reduce((sectionSum, section) => sectionSum + section.students, 0), 0);
     teacherData.averagePerSection = teacherData.totalSections > 0 
       ? Math.round(teacherData.totalStudents / teacherData.totalSections) 
       : 0;
-  }
+  });
 
 
 </script>
@@ -145,12 +155,16 @@
           <!-- Sections Grid -->
           <div class="sections-grid">
             {#each yearData.sections as section (section.name)}
-              <div class="section-card">
+              <button 
+                class="section-card" 
+                onclick={() => handleSectionClick(yearData.yearLevel, section.name)}
+                aria-label="View class list for {section.name}"
+              >
                 <div class="section-name">{section.name}</div>
                 <div class="section-students">
                   {section.students} students
                 </div>
-              </div>
+              </button>
             {/each}
           </div>
         </div>

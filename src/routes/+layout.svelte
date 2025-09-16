@@ -2,7 +2,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import '../lib/styles/design-system.css';
 	import ToastContainer from '../components/common/ToastContainer.svelte';
-import ModalContainer from '../components/common/ModalContainer.svelte';
+	import ModalContainer from '../components/common/ModalContainer.svelte';
 	let { children } = $props();
 </script>
 

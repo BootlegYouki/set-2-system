@@ -4,14 +4,14 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-  "dev": "vite dev",
-  "build": "vite build",
-  "preview": "vite preview",
-  "prepare": "svelte-kit sync || echo ''",
-  "format": "prettier --write .",
-  "lint": "prettier --check . && eslint .",
-  "start": "node build"
-},
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"format": "prettier --write .",
+		"lint": "prettier --check . && eslint .",
+		"start": "node build"
+	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
 		"@eslint/js": "^9.18.0",
@@ -29,6 +29,7 @@
 		"vite": "^7.0.4"
 	},
 	"dependencies": {
-		"odometer": "^0.4.8"
+		"odometer": "^0.4.8",
+		"xlsx": "^0.18.5"
 	}
 }

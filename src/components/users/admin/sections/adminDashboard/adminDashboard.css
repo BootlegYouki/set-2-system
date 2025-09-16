@@ -120,9 +120,9 @@
 	color: var(--md-sys-color-on-secondary-container);
 }
 
-.stat-card.stat-tertiary .stat-icon {
-	background-color: var(--md-sys-color-tertiary-container);
-	color: var(--md-sys-color-on-tertiary-container);
+.stat-card.stat-primary .stat-icon {
+    background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
 }
 
 .stat-card.stat-error .stat-icon {

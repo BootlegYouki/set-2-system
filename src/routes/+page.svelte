@@ -12,7 +12,8 @@
   import TeacherNavbar from '../components/users/teacher/navigations/teacherNavbar/teacherNavbar.svelte';
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
   import TeacherSchedule from '../components/users/teacher/sections/teacherSchedule/teacherSchedule.svelte';
-  import TeacherStudentList from '../components/users/teacher/sections/teacherClassManagement/teacherClassManagement.svelte';
+  import TeacherClassSelection from '../components/users/teacher/sections/teacherClassManagement/teacherClassSelection/teacherClassSelection.svelte';
+  import TeacherClassList from '../components/users/teacher/sections/teacherClassManagement/teacherClassList/teacherClassList.svelte';
   import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
   import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
@@ -25,10 +26,15 @@
   import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
   import '../lib/styles/+page.css';
 
-  // Subscribe to auth store
+  // Subscribe to auth store using Svelte 5 runes
   let authState = $state();
-  authStore.subscribe(state => {
-    authState = state;
+  
+  // Subscribe to auth store changes
+  $effect(() => {
+    const unsubscribe = authStore.subscribe(value => {
+      authState = value;
+    });
+    return unsubscribe;
   });
 
   // Current active section for student portal
@@ -62,7 +68,28 @@
   // Handle navigation from teacher menu
   function handleTeacherNavigation(event) {
     teacherActiveSection = event.detail.section;
+    // Reset selected class when navigating away from class list
+    if (event.detail.section !== 'class-list') {
+      selectedClass = null;
+    }
   }
+  
+  // Handle navigation to class list from class selection
+  function handleNavigateToClassList(event) {
+    const { yearLevel, sectionName } = event.detail;
+    // Store the selected class information for the class list component
+    selectedClass = { yearLevel, sectionName };
+    teacherActiveSection = 'class-list';
+  }
+  
+  // Handle back navigation from class list to class management
+  function handleBackToClassManagement() {
+    selectedClass = null;
+    teacherActiveSection = 'students';
+  }
+  
+  // Store selected class information
+  let selectedClass = $state(null);
   
   // Handle navigation from admin menu
   function handleAdminNavigation(event) {
@@ -160,9 +187,14 @@
         {#if teacherActiveSection === 'schedule'}
           <TeacherSchedule />
         {:else if teacherActiveSection === 'students'}
-          <TeacherStudentList />
+          <TeacherClassSelection onNavigateToClassList={handleNavigateToClassList} />
+        {:else if teacherActiveSection === 'class-list' && selectedClass}
+          <TeacherClassList {selectedClass} onBackToClassManagement={handleBackToClassManagement} />
         {:else if teacherActiveSection === 'advisory'}
           <TeacherAdvisoryClass />
+        {:else}
+          <!-- Default to class management if no valid section or class list without selection -->
+          <TeacherClassSelection onNavigateToClassList={handleNavigateToClassList} />
         {/if}
       </main>
 

@@ -220,12 +220,27 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
 }
 
 .section-card:hover {
   background-color: var(--md-sys-color-surface-container-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+}
+
+.section-card:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.section-card:active {
+  transform: translateY(0);
+  background-color: var(--md-sys-color-surface-container);
 }
 
 .section-name {

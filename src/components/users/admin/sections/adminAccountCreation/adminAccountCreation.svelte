@@ -27,7 +27,8 @@
 	// Account types
 	const accountTypes = [
 		{ id: 'student', name: 'Student Account', description: 'Create a new student account', icon: 'school' },
-		{ id: 'teacher', name: 'Teacher Account', description: 'Create a new teacher account', icon: 'person' }
+		{ id: 'teacher', name: 'Teacher Account', description: 'Create a new teacher account', icon: 'person' },
+		{ id: 'admin', name: 'Admin Account', description: 'Create a new admin account', icon: 'admin_panel_settings' }
 	];
 
 	// Gender options
@@ -241,7 +242,7 @@
 			const newAccount = {
 				id: recentAccounts.length + 1,
 				name: fullName,
-				type: selectedAccountType === 'student' ? 'Student' : 'Teacher',
+				type: selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin',
 				number: fullAccountNumber,
 				createdDate: new Date().toLocaleDateString('en-US'),
 				status: 'active'
@@ -250,7 +251,8 @@
 			recentAccounts = [newAccount, ...recentAccounts];
 
 			// Show success toast
-			toastStore.success(`${selectedAccountType === 'student' ? 'Student' : 'Teacher'} account created successfully for ${fullName}!`);
+			const accountTypeLabel = selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin';
+			toastStore.success(`${accountTypeLabel} account created successfully for ${fullName}!`);
 
 			// Reset form
 			selectedAccountType = '';
@@ -279,7 +281,7 @@
 
 	// Generate next account number for the selected type
 	function getNextAccountNumber(accountType) {
-		const prefix = accountType === 'student' ? 'STU' : 'TCH';
+		const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
 		const filteredAccounts = recentAccounts.filter(account => 
 			account.number.startsWith(prefix)
 		);
@@ -306,7 +308,7 @@
 	<div class="account-header">
 		<div class="header-content">
 			<h1 class="page-title">Account Creation</h1>
-			<p class="page-subtitle">Create new student and teacher accounts for the system</p>
+			<p class="page-subtitle">Create new student, teacher, and admin accounts for the system</p>
 		</div>
 	</div>
 
@@ -492,7 +494,7 @@
 				<!-- Account Number Info -->
 				<div class="form-group">
 					<div class="form-label">
-						{selectedAccountType === 'student' ? 'Student Number' : selectedAccountType === 'teacher' ? 'Teacher Number' : 'Account Number'}
+						{selectedAccountType === 'student' ? 'Student Number' : selectedAccountType === 'teacher' ? 'Teacher Number' : selectedAccountType === 'admin' ? 'Admin Number' : 'Account Number'}
 					</div>
 					<div class="number-display">
 						{#if selectedAccountType}
@@ -561,7 +563,7 @@
 					
 					<div class="account-details">
 						<div class="account-detail-item">
-							<span class="material-symbols-outlined">{account.type === 'Student' ? 'school' : 'person'}</span>
+							<span class="material-symbols-outlined">{account.type === 'Student' ? 'school' : account.type === 'Teacher' ? 'person' : 'admin_panel_settings'}</span>
 							<span>{account.number}</span>
 						</div>
 						<div class="account-detail-item">

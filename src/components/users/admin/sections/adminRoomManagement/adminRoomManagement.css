@@ -464,15 +464,15 @@
 	width: 36px;
 	height: 36px;
 	flex-shrink: 0;
-	color: var(--md-sys-color-tertiary);
+	color: var(--md-sys-color-primary);
 	cursor: pointer;
 	transition: all var(--transition-normal);
 }
 
 .admin-room-unassign-button:hover {
-	background-color: var(--md-sys-color-tertiary-container);
-	border-color: var(--md-sys-color-tertiary);
-	color: var(--md-sys-color-on-tertiary-container);
+	background-color: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary-container);
 	box-shadow: var(--elevation-1);
 }
 
@@ -482,7 +482,7 @@
 }
 
 .admin-room-unassign-button:active {
-	background-color: var(--md-sys-color-tertiary-container);
+	background-color: var(--md-sys-color-primary-container);
 	box-shadow: none;
 	transform: scale(0.95);
 }
