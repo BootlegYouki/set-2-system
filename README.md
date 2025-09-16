@@ -2,6 +2,26 @@
 
 A comprehensive student information system built with SvelteKit, designed specifically for Philippine high school students (Grades 7-10) following the DepEd curriculum.
 
+## 🆕 Recent Updates & Features
+
+### ✅ Completed Features
+- **Complete Authentication System** with role-based access control (Student, Teacher, Admin)
+- **Student Portal** with 6 main sections: Profile, Grades, Schedule, Documents, Notifications, and Todo List
+- **Teacher Portal** with Schedule, Class Management, and Advisory Class features
+- **Admin Portal** with Dashboard, Account Creation, Room/Section Management, Schedule Management, Subject Creation, and Document Request Management
+- **Global Modal System** with backdrop click and ESC key support
+- **Toast Notification System** with auto-dismiss functionality
+- **Comprehensive Design System** with Material Design 3 principles
+- **Todo List Management** with categories, due dates, and completion tracking
+- **Document Request System** with approval workflow and status tracking
+- **Responsive Navigation** with collapsible rail navigation for all user roles
+
+### 🎯 Key Implementations
+- **Svelte 5 Runes**: Modern reactive state management using `$state()` and `$derived()`
+- **Component-Scoped Styling**: Each component has unique CSS prefixes to prevent conflicts
+- **Material Design Integration**: Custom components built with MD3 design tokens
+- **Philippine DepEd Curriculum**: Subject management aligned with local educational standards
+
 ## 🏗️ Project Architecture
 
 ### File Structure Overview
@@ -138,25 +158,27 @@ Each component follows a consistent structure:
 ### User Roles & Features
 
 #### 👨‍💼 Admin Features
-- Dashboard with system overview
-- Room Management
-- Section Management
-- Subject Creation (DepEd curriculum-aligned)
-- Schedule Assignment
-- Document Request Management
-- Account Creation
+- **Dashboard** with system overview and statistics using animated Odometer counters
+- **Room Management** with CRUD operations for classroom management
+- **Section Management** for organizing student groups by grade level
+- **Subject Creation** (DepEd curriculum-aligned) with grade level assignments
+- **Schedule Assignment** with time slot management and conflict detection
+- **Document Request Management** with approval workflow and status tracking
+- **Account Creation** for students, teachers, and administrators
 
 #### 👨‍🎓 Student Features
-- Grade Viewing
-- Class Schedule
-- Document Requests
-- Notifications
-- Todo List Management
+- **Profile Management** with personal information display
+- **Grade Viewing** with performance tracking and academic status
+- **Class Schedule** with daily and weekly views
+- **Document Requests** with status tracking and submission history
+- **Notifications** with filtering by type (grades, schedule, documents, todo)
+- **Todo List Management** with categories, due dates, completion tracking, and priority levels
 
 #### 👨‍🏫 Teacher Features
-- Class Schedule
-- Student Management
-- Advisory Class Management
+- **Class Schedule** with teaching assignments and time management
+- **Student Management** through class selection and student lists
+- **Advisory Class Management** with comprehensive student oversight
+- **Class List Views** with detailed student information and grading capabilities
 
 ## 🔄 Application Flow & Rendering
 
@@ -284,27 +306,39 @@ npm run preview
 
 ## 📁 Key Files & Their Purposes
 
-- **`+layout.svelte`**: Global layout, imports design system, manages fonts and meta tags
-- **`+page.svelte`**: Main application controller, handles authentication and role-based rendering
+- **`+layout.svelte`**: Global layout, imports design system, manages fonts and meta tags, includes global toast and modal containers
+- **`+page.svelte`**: Main application controller, handles authentication and role-based rendering with Svelte 5 runes
 - **`design-system.css`**: Central import point for all design system modules
-- **`auth.js`**: Authentication state management
-- **Menu components**: Handle navigation state and section switching
-- **Section components**: Individual feature implementations
+- **`auth.js`**: Authentication state management with role detection and session handling
+- **Menu components**: Handle navigation state and section switching for each user role
+- **Section components**: Individual feature implementations with component-scoped styling
+- **Modal/Toast Systems**: Global state management for notifications and modal dialogs
+- **TEST_ACCOUNTS.md**: Predefined test accounts for development and testing
 
 ## 🔧 Customization & Extension
 
 ### Adding New Features
 
-1. Create component in appropriate role section
+1. Create component in appropriate role section (`src/components/users/[role]/sections/`)
 2. Add navigation item to corresponding menu component
-3. Update main page component to include new section
+3. Update main page component (`+page.svelte`) to include new section
 4. Follow existing naming conventions and styling patterns
+5. Use unique CSS class prefixes to prevent style conflicts
 
 ### Styling Guidelines
 
-- Use CSS custom properties from the design system
-- Maintain component-scoped styles with unique prefixes
-- Follow Material Design principles
+- Use CSS custom properties from the design system (`src/lib/styles/design-system-styles/variables.css`)
+- Maintain component-scoped styles with unique prefixes (e.g., `studentgrade-`, `adminroom-`)
+- Follow Material Design 3 principles and design tokens
 - Ensure responsive design across devices
+- Reference existing components for consistent dropdown implementations
 
-This system provides a scalable, maintainable foundation for managing high school student information with a focus on the Philippine educational context.
+### Development Best Practices
+
+- **State Management**: Use Svelte 5 runes (`$state()`, `$derived()`) for reactive state
+- **Component Organization**: Follow role-based directory structure
+- **Global Systems**: Utilize toast notifications and modal dialogs for user feedback
+- **Authentication**: Leverage role-based access control for feature gating
+- **Design Consistency**: Reference design system variables and existing component patterns
+
+This system provides a scalable, maintainable foundation for managing high school student information with a focus on the Philippine educational context and modern web development practices.
