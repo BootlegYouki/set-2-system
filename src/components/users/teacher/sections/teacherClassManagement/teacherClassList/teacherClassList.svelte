@@ -73,18 +73,10 @@
   // Dropdown toggle functions - no longer needed
   // Removed dropdown functions since we're using buttons now
 
-  // Add/Remove column functions
+  // Add column functions
   function addColumn(category) {
     if (gradingConfig[category].count < 10) {
       gradingConfig[category].count += 1;
-      adjustStudentData();
-    }
-  }
-
-  function removeColumn(category) {
-    if (gradingConfig[category].count > 1) {
-      gradingConfig[category].count -= 1;
-      adjustStudentData();
     }
   }
 
@@ -227,15 +219,6 @@
             >
               <span class="material-symbols-outlined">add</span>
             </button>
-            <button 
-              type="button"
-              class="classlist-remove-column-button"
-              onclick={() => removeColumn('writtenWork')}
-              disabled={gradingConfig.writtenWork.count <= 1}
-              title="Remove Column"
-            >
-              <span class="material-symbols-outlined">remove</span>
-            </button>
           </div>
         </div>
       </div>
@@ -257,15 +240,6 @@
             >
               <span class="material-symbols-outlined">add</span>
             </button>
-            <button 
-              type="button"
-              class="classlist-remove-column-button"
-              onclick={() => removeColumn('performanceTasks')}
-              disabled={gradingConfig.performanceTasks.count <= 1}
-              title="Remove Column"
-            >
-              <span class="material-symbols-outlined">remove</span>
-            </button>
           </div>
         </div>
       </div>
@@ -286,15 +260,6 @@
               title="Add Column"
             >
               <span class="material-symbols-outlined">add</span>
-            </button>
-            <button 
-              type="button"
-              class="classlist-remove-column-button"
-              onclick={() => removeColumn('quarterlyAssessment')}
-              disabled={gradingConfig.quarterlyAssessment.count <= 1}
-              title="Remove Column"
-            >
-              <span class="material-symbols-outlined">remove</span>
             </button>
           </div>
         </div>

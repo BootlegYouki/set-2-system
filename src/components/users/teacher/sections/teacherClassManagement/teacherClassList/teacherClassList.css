@@ -179,8 +179,7 @@
   gap: var(--spacing-xs);
 }
 
-.classlist-add-column-button,
-.classlist-remove-column-button {
+.classlist-add-column-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -191,9 +190,6 @@
   cursor: pointer;
   transition: all var(--transition-normal);
   font-size: 18px;
-}
-
-.classlist-add-column-button {
   background-color: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
 }
@@ -205,28 +201,14 @@
   box-shadow: var(--elevation-1);
 }
 
-.classlist-remove-column-button {
-  background-color: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
-}
-
-.classlist-remove-column-button:hover:not(:disabled) {
-  background-color: var(--md-sys-color-error);
-  color: var(--md-sys-color-on-error);
-  transform: translateY(-1px);
-  box-shadow: var(--elevation-1);
-}
-
-.classlist-add-column-button:disabled,
-.classlist-remove-column-button:disabled {
+.classlist-add-column-button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-.classlist-add-column-button:active:not(:disabled),
-.classlist-remove-column-button:active:not(:disabled) {
+.classlist-add-column-button:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: none;
 }
