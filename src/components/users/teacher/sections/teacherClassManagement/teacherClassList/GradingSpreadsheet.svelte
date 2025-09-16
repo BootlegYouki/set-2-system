@@ -527,19 +527,19 @@
             maxScore = gradingConfig.quarterlyAssessment.totals?.[columnIndex];
           }
           
-          // Validate input: convert to 0 if invalid, negative, or exceeds maximum
+          // Validate input: leave blank if invalid, negative, or exceeds maximum
           if (isNaN(parsed) || parsed < 0 || (maxScore && parsed > maxScore)) {
-            value = '0';
-            editValue = '0'; // Update the input field as well
+            value = '';
+            editValue = ''; // Update the input field as well
             wasInvalid = true;
             
             // Show appropriate toast message based on the type of invalid input
             if (isNaN(parsed)) {
               toastStore.error('Invalid input detected. Only numbers are allowed in grade cells.');
             } else if (parsed < 0) {
-              toastStore.error('Negative values are not allowed. Score has been set to 0.');
+              toastStore.error('Negative values are not allowed. Score has been cleared.');
             } else if (maxScore && parsed > maxScore) {
-              toastStore.error(`Score cannot exceed the maximum of ${maxScore}. Value has been set to 0.`);
+              toastStore.error(`Score cannot exceed the maximum of ${maxScore}. Value has been cleared.`);
             }
           }
         }
