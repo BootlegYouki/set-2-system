@@ -282,9 +282,7 @@
 
   // Check if column is an assessment column (clickable for total scores)
   function isAssessmentColumn(colIndex) {
-    const headers = spreadsheetData[0];
-    const header = headers[colIndex];
-    return (header?.startsWith('WW') || header?.startsWith('PT') || header?.startsWith('QA')) && !header.includes('Avg');
+    return getColumnMapping(colIndex) !== null;
   }
 
   function getColumnType(colIndex) {
@@ -305,20 +303,46 @@
     event.preventDefault();
     event.stopPropagation();
     
-    const headers = spreadsheetData[0];
-    const header = headers[colIndex];
-    
-    // Only handle assessment columns (not averages or final grade)
-    if (header?.startsWith('WW') && !header.includes('Avg')) {
-      const columnIndex = parseInt(header.replace('WW', '')) - 1; // Convert WW1 to index 0
-      openTotalScoreModal('writtenWork', columnIndex, header);
-    } else if (header?.startsWith('PT') && !header.includes('Avg')) {
-      const columnIndex = parseInt(header.replace('PT', '')) - 1; // Convert PT1 to index 0
-      openTotalScoreModal('performanceTasks', columnIndex, header);
-    } else if (header?.startsWith('QA') && !header.includes('Avg')) {
-      const columnIndex = parseInt(header.replace('QA', '')) - 1; // Convert QA1 to index 0
-      openTotalScoreModal('quarterlyAssessment', columnIndex, header);
+    // Map column index to assessment type and column index
+    const columnMapping = getColumnMapping(colIndex);
+    if (columnMapping) {
+      const { assessmentType, columnIndex } = columnMapping;
+      const columnName = getColumnName(assessmentType, columnIndex);
+      openTotalScoreModal(assessmentType, columnIndex, columnName);
     }
+  }
+
+  // Get assessment type and column index from spreadsheet column index
+  function getColumnMapping(colIndex) {
+    let currentIndex = 2; // Start after Student ID and Student Name
+    
+    // Check Written Work columns
+    for (let i = 0; i < gradingConfig.writtenWork.count; i++) {
+      if (currentIndex === colIndex) {
+        return { assessmentType: 'writtenWork', columnIndex: i };
+      }
+      currentIndex++;
+    }
+    currentIndex++; // Skip WW Avg
+    
+    // Check Performance Tasks columns
+    for (let i = 0; i < gradingConfig.performanceTasks.count; i++) {
+      if (currentIndex === colIndex) {
+        return { assessmentType: 'performanceTasks', columnIndex: i };
+      }
+      currentIndex++;
+    }
+    currentIndex++; // Skip PT Avg
+    
+    // Check Quarterly Assessment columns
+    for (let i = 0; i < gradingConfig.quarterlyAssessment.count; i++) {
+      if (currentIndex === colIndex) {
+        return { assessmentType: 'quarterlyAssessment', columnIndex: i };
+      }
+      currentIndex++;
+    }
+    
+    return null; // Not an assessment column
   }
 
   // State for custom modal
