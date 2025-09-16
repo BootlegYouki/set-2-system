@@ -11,12 +11,22 @@
 
   const dispatch = createEventDispatcher();
 
-  let newTotal = currentTotal;
+  let newTotal = '';
   let error = '';
   let modalElement;
+  let userHasModified = false;
 
-  // Update newTotal when currentTotal changes
-  $: newTotal = currentTotal;
+  // Update newTotal when currentTotal changes, but only if user hasn't modified it
+  $: if (currentTotal !== undefined && currentTotal !== null && !userHasModified) {
+    newTotal = currentTotal;
+  }
+
+  // Reset when modal becomes visible
+  $: if (visible) {
+    newTotal = currentTotal || '';
+    userHasModified = false;
+    error = '';
+  }
 
   onMount(() => {
     if (visible && modalElement) {
@@ -135,6 +145,7 @@
             class:error={error}
             placeholder="Enter total score"
             autofocus
+            oninput={() => { userHasModified = true; error = ''; }}
           />
           {#if error}
             <span class="error-message">{error}</span>
