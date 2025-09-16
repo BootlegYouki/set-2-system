@@ -302,6 +302,14 @@
     </div>
   </div>
 
+  <!-- Submit Section -->
+  <div class="classlist-submit-section">
+    <button class="classlist-submit-button" type="button">
+      <span class="material-symbols-outlined">send</span>
+      <span>Submit to Section Adviser</span>
+    </button>
+  </div>
+
   <!-- Grading Spreadsheet Section -->
   <GradingSpreadsheet bind:students {gradingConfig} />
 </div>
