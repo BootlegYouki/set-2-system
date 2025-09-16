@@ -2,6 +2,7 @@
 	import './adminAccountCreation.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { onMount } from 'svelte';
 
 	// Account creation state
 	let isCreating = false;
@@ -11,6 +12,7 @@
 	let firstName = '';
 	let lastName = '';
 	let middleInitial = '';
+	let email = '';
 
 	// Custom dropdown state
 	let isDropdownOpen = false;
@@ -37,45 +39,13 @@
 		{ id: 'female', name: 'Female', icon: 'female' }
 	];
 
-	// Subject options for teachers
-	const subjectOptions = [
-		{ id: 'mathematics', name: 'Mathematics', icon: 'calculate' },
-		{ id: 'english', name: 'English', icon: 'book' },
-		{ id: 'science', name: 'Science', icon: 'science' },
-		{ id: 'history', name: 'History', icon: 'history_edu' },
-		{ id: 'physical_education', name: 'Physical Education', icon: 'sports' },
-		{ id: 'art', name: 'Art', icon: 'palette' },
-		{ id: 'music', name: 'Music', icon: 'music_note' },
-		{ id: 'computer_science', name: 'Computer Science', icon: 'computer' }
-	];
+	// Subject options for teachers (loaded from database)
+	let subjectOptions = [];
+	let isLoadingSubjects = false;
 
-	// Recent account creations (mock data)
-	let recentAccounts = [
-		{
-			id: 1,
-			name: 'John Doe',
-			type: 'Student',
-			number: 'STU-2024-001',
-			createdDate: '01/15/2024',
-			status: 'active'
-		},
-		{
-			id: 2,
-			name: 'Jane Smith',
-			type: 'Teacher',
-			number: 'TCH-2024-001',
-			createdDate: '01/14/2024',
-			status: 'active'
-		},
-		{
-			id: 3,
-			name: 'Mike Johnson',
-			type: 'Student',
-			number: 'STU-2024-002',
-			createdDate: '01/13/2024',
-			status: 'active'
-		}
-	];
+	// Recent account creations (loaded from database)
+	let recentAccounts = [];
+	let isLoadingAccounts = false;
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
@@ -87,16 +57,35 @@
 	}
 
 	// Handle account removal with modal confirmation
-	function handleRemoveAccount(account) {
+	async function handleRemoveAccount(account) {
 		modalStore.confirm(
 			'Remove Account',
 			`<p>Are you sure you want to remove the account for <strong>"${account.name}"</strong>?</p>`,
-			() => {
-				// Remove the account from the array
-				recentAccounts = recentAccounts.filter(a => a.id !== account.id);
-				
-				// Show success toast
-				toastStore.success(`Account for "${account.name}" has been removed successfully`);
+			async () => {
+				try {
+					// Call the DELETE API endpoint
+					const response = await fetch('/api/accounts', {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({ id: account.id })
+					});
+
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(errorData.error || 'Failed to delete account');
+					}
+
+					// Remove the account from the array
+					recentAccounts = recentAccounts.filter(a => a.id !== account.id);
+					
+					// Show success toast
+					toastStore.success(`Account for "${account.name}" has been removed successfully`);
+				} catch (error) {
+					console.error('Error deleting account:', error);
+					toastStore.error(`Failed to delete account: ${error.message}`);
+				}
 			},
 			() => {
 				// Do nothing on cancel
@@ -116,18 +105,25 @@
 		} else {
 			// Open the form and populate with current values
 			editingAccountId = account.id;
-			// Parse the name (assuming format: "LastName, FirstName M.I." or "LastName, FirstName")
-			const nameParts = account.name.split(', ');
-			if (nameParts.length >= 2) {
-				editLastName = nameParts[0];
-				const firstNamePart = nameParts[1];
-				// Check if there's a middle initial
-				const firstNameParts = firstNamePart.split(' ');
-				editFirstName = firstNameParts[0];
-				if (firstNameParts.length > 1 && firstNameParts[1].endsWith('.')) {
-					editMiddleInitial = firstNameParts[1].replace('.', '');
-				} else {
-					editMiddleInitial = '';
+			// Use the individual fields from the API response if available
+			if (account.firstName && account.lastName) {
+				editFirstName = account.firstName;
+				editLastName = account.lastName;
+				editMiddleInitial = account.middleInitial || '';
+			} else {
+				// Fallback: Parse the name (assuming format: "LastName, FirstName M.I." or "LastName, FirstName")
+				const nameParts = account.name.split(', ');
+				if (nameParts.length >= 2) {
+					editLastName = nameParts[0];
+					const firstNamePart = nameParts[1];
+					// Check if there's a middle initial
+					const firstNameParts = firstNamePart.split(' ');
+					editFirstName = firstNameParts[0];
+					if (firstNameParts.length > 1 && firstNameParts[1].endsWith('.')) {
+						editMiddleInitial = firstNameParts[1].replace('.', '');
+					} else {
+						editMiddleInitial = '';
+					}
 				}
 			}
 		}
@@ -135,38 +131,48 @@
 
 	async function handleEditAccount() {
 		if (!editFirstName || !editLastName) {
-			alert('Please fill in all required fields.');
+			toastStore.error('Please fill in all required fields.');
 			return;
 		}
 
 		isUpdating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
-
-			// Construct full name
-			const fullName = `${editLastName}, ${editFirstName}${editMiddleInitial ? ' ' + editMiddleInitial + '.' : ''}`;
-
-			// Update account in the array
-			recentAccounts = recentAccounts.map(account => {
-				if (account.id === editingAccountId) {
-					return {
-						...account,
-						name: fullName
-					};
-				}
-				return account;
+			const response = await fetch('/api/accounts', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					id: editingAccountId,
+					firstName: editFirstName.trim(),
+					lastName: editLastName.trim(),
+					middleInitial: editMiddleInitial ? editMiddleInitial.trim() : null
+				})
 			});
 
-			// Show success toast
-			toastStore.success(`Account updated successfully for ${fullName}!`);
+			const result = await response.json();
 
-			// Close edit form
-			editingAccountId = null;
-			editFirstName = '';
-			editLastName = '';
-			editMiddleInitial = '';
+			if (result.success) {
+				// Update account in the array with the response data
+				recentAccounts = recentAccounts.map(account => {
+					if (account.id === editingAccountId) {
+						return result.account;
+					}
+					return account;
+				});
+
+				// Show success toast
+				toastStore.success(result.message);
+
+				// Close edit form
+				editingAccountId = null;
+				editFirstName = '';
+				editLastName = '';
+				editMiddleInitial = '';
+			} else {
+				toastStore.error(result.error || 'Failed to update account');
+			}
 
 		} catch (error) {
 			console.error('Error updating account:', error);
@@ -220,6 +226,12 @@
 			return;
 		}
 
+		// Check if student or teacher account requires email
+		if ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email) {
+			toastStore.error('Please enter an email address.');
+			return;
+		}
+
 		// Check if teacher account requires subject selection
 		if (selectedAccountType === 'teacher' && !selectedSubject) {
 			toastStore.error('Please select a subject for the teacher account.');
@@ -229,30 +241,35 @@
 		isCreating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
+			// Call API to create account
+			const response = await fetch('/api/accounts', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					accountType: selectedAccountType,
+					gender: selectedGender,
+					subjectId: selectedSubject,
+					firstName,
+					lastName,
+					middleInitial,
+					email
+				})
+			});
 
-			// Generate incremental account number
-			const fullAccountNumber = getNextAccountNumber(selectedAccountType);
+			const data = await response.json();
 
-			// Construct full name
-			const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
+			if (!response.ok) {
+				throw new Error(data.error || 'Failed to create account');
+			}
 
 			// Add to recent accounts
-			const newAccount = {
-				id: recentAccounts.length + 1,
-				name: fullName,
-				type: selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin',
-				number: fullAccountNumber,
-				createdDate: new Date().toLocaleDateString('en-US'),
-				status: 'active'
-			};
-
-			recentAccounts = [newAccount, ...recentAccounts];
+			recentAccounts = [data.account, ...recentAccounts];
 
 			// Show success toast
 			const accountTypeLabel = selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin';
-			toastStore.success(`${accountTypeLabel} account created successfully for ${fullName}!`);
+			toastStore.success(`${accountTypeLabel} account created successfully for ${data.account.full_name}! Password is the same as account number: ${data.account.account_number}`);
 
 			// Reset form
 			selectedAccountType = '';
@@ -261,10 +278,11 @@
 			firstName = '';
 			lastName = '';
 			middleInitial = '';
+			email = '';
 
 		} catch (error) {
 			console.error('Error creating account:', error);
-			toastStore.error('Failed to create account. Please try again.');
+			toastStore.error(error.message || 'Failed to create account. Please try again.');
 		} finally {
 			isCreating = false;
 		}
@@ -283,7 +301,7 @@
 	function getNextAccountNumber(accountType) {
 		const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
 		const filteredAccounts = recentAccounts.filter(account => 
-			account.number.startsWith(prefix)
+			account.number && account.number.startsWith(prefix)
 		);
 		
 		if (filteredAccounts.length === 0) {
@@ -299,6 +317,58 @@
 		const nextNumber = Math.max(...numbers) + 1;
 		return `${prefix}-2024-${nextNumber.toString().padStart(3, '0')}`;
 	}
+
+	// Load subjects from database
+	async function loadSubjects() {
+		isLoadingSubjects = true;
+		try {
+			const response = await fetch('/api/subjects');
+			if (!response.ok) {
+				throw new Error('Failed to load subjects');
+			}
+			const data = await response.json();
+			
+			// Format subjects for the dropdown (include year level and code)
+			subjectOptions = data.data.map(subject => ({
+				id: subject.id,
+				name: subject.name,
+				code: subject.code,
+				gradeLevel: subject.gradeLevel,
+				displayName: `${subject.name} (${subject.code}) - ${subject.gradeLevel}`
+			}));
+		} catch (error) {
+			console.error('Error loading subjects:', error);
+			toastStore.error('Failed to load subjects');
+		} finally {
+			isLoadingSubjects = false;
+		}
+	}
+
+	// Load existing accounts from database
+	async function loadAccounts() {
+		isLoadingAccounts = true;
+		try {
+			const response = await fetch('/api/accounts');
+			if (!response.ok) {
+				throw new Error('Failed to load accounts');
+			}
+			const data = await response.json();
+			
+			// API already returns data in the correct format
+			recentAccounts = data.accounts;
+		} catch (error) {
+			console.error('Error loading accounts:', error);
+			toastStore.error('Failed to load existing accounts');
+		} finally {
+			isLoadingAccounts = false;
+		}
+	}
+
+	// Load accounts and subjects when component mounts
+	onMount(() => {
+		loadAccounts();
+		loadSubjects();
+	});
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -421,9 +491,8 @@
 								>
 									{#if selectedSubjectObj}
 										<div class="selected-option">
-											<span class="material-symbols-outlined option-icon">{selectedSubjectObj.icon}</span>
 											<div class="option-content">
-												<span class="option-name">{selectedSubjectObj.name}</span>
+												<span class="option-name">{selectedSubjectObj.displayName}</span>
 											</div>
 										</div>
 									{:else}
@@ -439,9 +508,8 @@
 											class:selected={selectedSubject === subject.id}
 											on:click={() => selectSubject(subject)}
 										>
-											<span class="material-symbols-outlined option-icon">{subject.icon}</span>
 											<div class="option-content">
-												<span class="option-name">{subject.name}</span>
+												<span class="option-name">{subject.displayName}</span>
 											</div>
 										</button>
 									{/each}
@@ -491,6 +559,21 @@
 					</div>
 				</div>
 
+				<!-- Email Field (for students and teachers only) -->
+				{#if selectedAccountType === 'student' || selectedAccountType === 'teacher'}
+					<div class="form-group">
+						<label class="form-label" for="email">Email Address *</label>
+						<input 
+							type="email" 
+							id="email"
+							class="form-input" 
+							bind:value={email}
+							placeholder="Enter email address"
+							required
+						/>
+					</div>
+				{/if}
+
 				<!-- Account Number Info -->
 				<div class="form-group">
 					<div class="form-label">
@@ -504,7 +587,7 @@
 							<span class="placeholder-number">Select account type first</span>
 						{/if}
 					</div>
-					<p class="form-help">Account number will be automatically assigned. Default password will be set to "password123"</p>
+					<p class="form-help">Account number will be automatically assigned. Password will be set to the same as the account number.</p>
 				</div>
 
 				<!-- Submit Button -->
@@ -513,7 +596,7 @@
 						type="submit" 
 						class="create-button"
 						class:loading={isCreating}
-						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || (selectedAccountType === 'teacher' && !selectedSubject)}
+						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || (selectedAccountType === 'teacher' && !selectedSubject) || ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email)}
 					>
 						{#if isCreating}
 							Creating Account...
@@ -536,126 +619,135 @@
 
 		<div class="accounts-grid">
 			{#each recentAccounts as account (account.id)}
-				<div class="account-card">
-					<div class="account-card-header">
-						<div class="account-title">
-							<h3 class="account-name">{account.name} · {account.type}</h3>
-						</div>
-						<div class="account-action-buttons">
-							<button 
-								type="button"
-								class="account-edit-button"
-								title="{editingAccountId === account.id ? 'Cancel Edit' : 'Edit Account'}"
-								on:click={() => toggleEditForm(account)}
-							>
-								<span class="material-symbols-outlined">{editingAccountId === account.id ? 'close' : 'edit'}</span>
-							</button>
-							<button 
-								type="button"
-								class="account-remove-button"
-								title="Remove Account"
-								on:click={() => handleRemoveAccount(account)}
-							>
-								<span class="material-symbols-outlined">delete</span>
-							</button>
-						</div>
+			<div class="account-card">
+				<div class="account-card-header">
+					<div class="account-title">
+						<h3 class="account-name">{account.name} · {account.type}</h3>
 					</div>
-					
-					<div class="account-details">
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">{account.type === 'Student' ? 'school' : account.type === 'Teacher' ? 'person' : 'admin_panel_settings'}</span>
-							<span>{account.number}</span>
-						</div>
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">badge</span>
-							<span>{account.type} Account</span>
-						</div>
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">calendar_today</span>
-							<span>Created: {account.createdDate}</span>
-						</div>
+					<div class="account-action-buttons">
+						<button 
+							type="button"
+							class="account-edit-button"
+							title="{editingAccountId === account.id ? 'Cancel Edit' : 'Edit Account'}"
+							on:click={() => toggleEditForm(account)}
+						>
+							<span class="material-symbols-outlined">{editingAccountId === account.id ? 'close' : 'edit'}</span>
+						</button>
+						<button 
+							type="button"
+							class="account-remove-button"
+							title="Remove Account"
+							on:click={() => handleRemoveAccount(account)}
+						>
+							<span class="material-symbols-outlined">delete</span>
+						</button>
 					</div>
+				</div>
+				
+				<div class="account-details">
+					<div class="account-detail-item">
+						<span class="material-symbols-outlined">{account.type === 'Student' ? 'school' : account.type === 'Teacher' ? 'person' : 'admin_panel_settings'}</span>
+						<span>{account.number}</span>
+					</div>
+					<div class="account-detail-item">
+						<span class="material-symbols-outlined">badge</span>
+						<span>{account.type} Account</span>
+					</div>
+					<div class="account-detail-item">
+						<span class="material-symbols-outlined">calendar_today</span>
+						<span>Created: {account.createdDate}</span>
+					</div>
+					<div class="account-detail-item">
+						<span class="material-symbols-outlined">update</span>
+						<span>Updated: {account.updatedDate}</span>
+					</div>
+				</div>
 
-					<!-- Edit Form (conditionally shown) -->
-					{#if editingAccountId === account.id}
-						<div class="edit-form-section">
-							<div class="edit-form-container">
-								<div class="edit-form-header">
-									<h4 class="edit-form-title">Edit Account Name</h4>
-									<p class="edit-form-subtitle">Update the name information for this account</p>
-								</div>
+				<!-- Edit Form (conditionally shown) -->
+				{#if editingAccountId === account.id}
+					<div class="edit-form-section">
+						<div class="edit-form-container">
+							<div class="edit-form-header">
+								<h4 class="edit-form-title">Edit Account Name</h4>
+								<p class="edit-form-subtitle">Update the name information for this account</p>
+							</div>
 
-								<div class="edit-form-content">
-									<form on:submit|preventDefault={handleEditAccount}>
-										<!-- Name Fields -->
-										<div class="edit-name-fields-row">
-											<div class="form-group">
-												<label class="form-label" for="edit-last-name">Last Name *</label>
-												<input 
-													type="text" 
-													id="edit-last-name"
-													class="form-input" 
-													bind:value={editLastName}
-													placeholder="Enter last name"
-													required
-												/>
-											</div>
-
-											<div class="form-group">
-												<label class="form-label" for="edit-first-name">First Name *</label>
-												<input 
-													type="text" 
-													id="edit-first-name"
-													class="form-input" 
-													bind:value={editFirstName}
-													placeholder="Enter first name"
-													required
-												/>
-											</div>
-
-											<div class="form-group">
-												<label class="form-label" for="edit-middle-initial">M.I.</label>
-												<input 
-													type="text" 
-													id="edit-middle-initial"
-													class="form-input" 
-													bind:value={editMiddleInitial}
-													placeholder="M"
-													maxlength="1"
-													style="text-transform: uppercase;"
-												/>
-											</div>
+							<div class="edit-form-content">
+								<form on:submit|preventDefault={handleEditAccount}>
+									<!-- Name Fields -->
+									<div class="edit-name-fields-row">
+										<div class="form-group">
+											<label class="form-label" for="edit-last-name">Last Name *</label>
+											<input 
+												type="text" 
+												id="edit-last-name"
+												class="form-input" 
+												bind:value={editLastName}
+												placeholder="Enter last name"
+												required
+											/>
 										</div>
 
-										<!-- Form Actions -->
-										<div class="edit-form-actions">
-											<button 
-												type="button" 
-												class="account-cancel-button"
-												on:click={() => toggleEditForm(account)}
-											>
-												Cancel
-											</button>
-											<button 
-												type="submit" 
-												class="account-submit-button"
-												class:loading={isUpdating}
-												disabled={isUpdating || !editFirstName || !editLastName}
-											>
-												{#if isUpdating}
-													Updating...
-												{:else}
-													Save Changes
-												{/if}
-											</button>
+										<div class="form-group">
+											<label class="form-label" for="edit-first-name">First Name *</label>
+											<input 
+												type="text" 
+												id="edit-first-name"
+												class="form-input" 
+												bind:value={editFirstName}
+												placeholder="Enter first name"
+												required
+											/>
 										</div>
-									</form>
-								</div>
+
+										<div class="form-group">
+											<label class="form-label" for="edit-middle-initial">M.I.</label>
+											<input 
+												type="text" 
+												id="edit-middle-initial"
+												class="form-input" 
+												bind:value={editMiddleInitial}
+												placeholder="M"
+												maxlength="1"
+												style="text-transform: uppercase;"
+											/>
+										</div>
+									</div>
+
+									<!-- Form Actions -->
+									<div class="edit-form-actions">
+										<button 
+											type="button" 
+											class="account-cancel-button"
+											on:click={() => toggleEditForm(account)}
+										>
+											Cancel
+										</button>
+										<button 
+											type="submit" 
+											class="account-submit-button"
+											class:loading={isUpdating}
+											disabled={isUpdating || !editFirstName || !editLastName}
+										>
+											{#if isUpdating}
+												Updating...
+											{:else}
+												Save Changes
+											{/if}
+										</button>
+									</div>
+								</form>
 							</div>
 						</div>
-					{/if}
-				</div>
-			{/each}
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="no-results">
+				<span class="material-symbols-outlined no-results-icon">person_off</span>
+				<p>No accounts found. Create your first account above.</p>
+			</div>
+		{/each}
 		</div>
 	</div>
 </div>

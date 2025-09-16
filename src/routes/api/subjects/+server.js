@@ -47,7 +47,8 @@ export async function GET({ url }) {
       name: subject.name,
       code: subject.code,
       gradeLevel: `Grade ${subject.grade_level}`,
-      createdDate: new Date(subject.created_at).toLocaleDateString('en-US')
+      createdDate: new Date(subject.created_at).toLocaleDateString('en-US'),
+      updatedDate: new Date(subject.updated_at).toLocaleDateString('en-US')
     }));
     
     return json({
@@ -95,7 +96,7 @@ export async function POST({ request }) {
     const result = await query(
       `INSERT INTO subjects (name, code, grade_level) 
        VALUES ($1, $2, $3) 
-       RETURNING id, name, code, grade_level, created_at`,
+       RETURNING id, name, code, grade_level, created_at, updated_at`,
       [name, code, parseInt(gradeLevel)]
     );
     
@@ -107,7 +108,8 @@ export async function POST({ request }) {
       name: newSubject.name,
       code: newSubject.code,
       gradeLevel: `Grade ${newSubject.grade_level}`,
-      createdDate: new Date(newSubject.created_at).toLocaleDateString('en-US')
+      createdDate: new Date(newSubject.created_at).toLocaleDateString('en-US'),
+      updatedDate: new Date(newSubject.updated_at).toLocaleDateString('en-US')
     };
     
     return json({
@@ -182,7 +184,8 @@ export async function PUT({ request }) {
       name: updatedSubject.name,
       code: updatedSubject.code,
       gradeLevel: `Grade ${updatedSubject.grade_level}`,
-      createdDate: new Date(updatedSubject.created_at).toLocaleDateString('en-US')
+      createdDate: new Date(updatedSubject.created_at).toLocaleDateString('en-US'),
+      updatedDate: new Date(updatedSubject.updated_at).toLocaleDateString('en-US')
     };
     
     return json({

@@ -16,9 +16,29 @@ CREATE TABLE IF NOT EXISTS subjects (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create index for faster queries
+-- Users table for storing account information
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    account_number VARCHAR(20) NOT NULL UNIQUE,
+    account_type VARCHAR(20) NOT NULL CHECK (account_type IN ('student', 'teacher', 'admin')),
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    middle_initial VARCHAR(1),
+    full_name VARCHAR(255) NOT NULL,
+    gender VARCHAR(10) NOT NULL CHECK (gender IN ('male', 'female')),
+    email VARCHAR(255),
+    subject_id INTEGER REFERENCES subjects(id),
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for faster queries
 CREATE INDEX IF NOT EXISTS idx_subjects_grade_level ON subjects(grade_level);
 CREATE INDEX IF NOT EXISTS idx_subjects_code ON subjects(code);
+CREATE INDEX IF NOT EXISTS idx_users_account_number ON users(account_number);
+CREATE INDEX IF NOT EXISTS idx_users_account_type ON users(account_type);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- Insert sample data (updated to match new schema without status field)
 INSERT INTO subjects (name, code, grade_level) VALUES
@@ -37,8 +57,16 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Trigger to automatically update updated_at
+-- Trigger to automatically update updated_at for subjects
+DROP TRIGGER IF EXISTS update_subjects_updated_at ON subjects;
 CREATE TRIGGER update_subjects_updated_at 
     BEFORE UPDATE ON subjects 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger to automatically update updated_at for users
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at 
+    BEFORE UPDATE ON users 
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();

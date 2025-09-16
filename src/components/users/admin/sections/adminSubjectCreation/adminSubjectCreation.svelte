@@ -513,6 +513,10 @@
 								<span class="material-symbols-outlined">calendar_today</span>
 								<span>Created: {subject.createdDate}</span>
 							</div>
+							<div class="adminsubject-subject-item-detail">
+								<span class="material-symbols-outlined">update</span>
+								<span>Updated: {subject.updatedDate}</span>
+							</div>
 						</div>
 
 						<!-- Inline Edit Form -->
