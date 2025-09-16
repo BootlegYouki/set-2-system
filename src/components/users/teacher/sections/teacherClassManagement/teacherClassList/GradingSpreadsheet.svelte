@@ -339,6 +339,12 @@
 
   // Update total scores and recalculate
   function updateTotalScores(assessmentType, columnIndex, newTotal) {
+    // Check if gradingConfig and assessmentType exist
+    if (!gradingConfig || !gradingConfig[assessmentType]) {
+      console.error('Invalid gradingConfig or assessmentType:', assessmentType);
+      return;
+    }
+    
     // Initialize totals array if it doesn't exist
     if (!gradingConfig[assessmentType].totals) {
       gradingConfig[assessmentType].totals = [];
@@ -356,6 +362,13 @@
 
   // Handle column rename
   function handleColumnRename(assessmentType, columnIndex, newName) {
+    // Check if gradingConfig and assessmentType exist
+    if (!gradingConfig || !gradingConfig[assessmentType]) {
+      console.error('Invalid gradingConfig or assessmentType:', assessmentType);
+      toastStore.error('Cannot rename column. Invalid configuration.');
+      return;
+    }
+    
     // Initialize column names array if it doesn't exist
     if (!gradingConfig[assessmentType].columnNames) {
       gradingConfig[assessmentType].columnNames = [];
@@ -375,6 +388,13 @@
 
   // Handle column removal
   function handleColumnRemove(assessmentType, columnIndex) {
+    // Check if gradingConfig and assessmentType exist
+    if (!gradingConfig || !gradingConfig[assessmentType]) {
+      console.error('Invalid gradingConfig or assessmentType:', assessmentType);
+      toastStore.error('Cannot remove column. Invalid configuration.');
+      return;
+    }
+    
     // Check if we can remove (must have at least 1 column)
     if (gradingConfig[assessmentType].count <= 1) {
       toastStore.error('Cannot remove column. At least one column is required.');
@@ -414,6 +434,12 @@
 
   // Get existing column names for validation
   function getExistingColumnNames(assessmentType) {
+    // Check if gradingConfig and assessmentType exist
+    if (!gradingConfig || !gradingConfig[assessmentType]) {
+      console.error('Invalid gradingConfig or assessmentType:', assessmentType);
+      return [];
+    }
+    
     const names = [];
     
     // Add default column names
@@ -450,11 +476,20 @@
 
   // Check if column can be removed
   function canRemoveColumn(assessmentType) {
+    // Check if gradingConfig and assessmentType exist
+    if (!gradingConfig || !gradingConfig[assessmentType]) {
+      return false;
+    }
     return gradingConfig[assessmentType].count > 1;
   }
 
   // Helper function to get current total for a specific column
   function getTotalForColumn(assessmentType, columnIndex) {
+    // Check if gradingConfig and assessmentType exist
+    if (!gradingConfig || !gradingConfig[assessmentType]) {
+      return '';
+    }
+    
     if (!gradingConfig[assessmentType].totals) {
       return '';
     }
@@ -1025,6 +1060,10 @@
   columnIndex={modalColumnIndex}
   columnName={modalColumnName}
   currentTotal={modalCurrentTotal}
+  canRemove={canRemoveColumn(modalAssessmentType)}
+  existingColumnNames={getExistingColumnNames(modalAssessmentType)}
   onSave={updateTotalScores}
+  onRename={handleColumnRename}
+  onRemove={handleColumnRemove}
   onClose={closeModal}
 />

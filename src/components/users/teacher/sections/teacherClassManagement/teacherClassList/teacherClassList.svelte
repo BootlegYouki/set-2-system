@@ -311,7 +311,7 @@
   </div>
 
   <!-- Grading Spreadsheet Section -->
-  <GradingSpreadsheet bind:students {gradingConfig} />
+  <GradingSpreadsheet bind:students bind:gradingConfig />
 </div>
 
 <!-- Toast Notification -->
