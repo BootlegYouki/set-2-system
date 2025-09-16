@@ -25,6 +25,7 @@
   let editValue = '';
   let justStartedEditing = false;
   let copiedData = null;
+  let invalidCells = new Set(); // Track cells with invalid input that were converted to 0
 
   // Initialize spreadsheet data
   let spreadsheetData = [];
@@ -431,15 +432,37 @@
     const headers = spreadsheetData[0];
     const header = headers[colIndex];
     
+    // Helper function to parse value and return 0 for invalid input
+    const parseValueOrZero = (val) => {
+      if (!val || val.trim() === '') return null;
+      const parsed = parseFloat(val);
+      
+      // Get the maximum score for this column
+      let maxScore = null;
+      if (header?.startsWith('WW')) {
+        const columnIndex = parseInt(header.replace('WW', '')) - 1;
+        maxScore = gradingConfig.writtenWork.totals?.[columnIndex];
+      } else if (header?.startsWith('PT')) {
+        const columnIndex = parseInt(header.replace('PT', '')) - 1;
+        maxScore = gradingConfig.performanceTasks.totals?.[columnIndex];
+      } else if (header?.startsWith('QA')) {
+        const columnIndex = parseInt(header.replace('QA', '')) - 1;
+        maxScore = gradingConfig.quarterlyAssessment.totals?.[columnIndex];
+      }
+      
+      // Validate input: return 0 if invalid, negative, or exceeds maximum
+      return isNaN(parsed) || parsed < 0 || (maxScore && parsed > maxScore) ? 0 : parsed;
+    };
+    
     if (header?.startsWith('WW') && !header.includes('Avg')) {
       const wwIndex = parseInt(header.replace('WW', '')) - 1;
-      students[studentIndex].writtenWork[wwIndex] = value ? parseFloat(value) : null;
+      students[studentIndex].writtenWork[wwIndex] = parseValueOrZero(value);
     } else if (header?.startsWith('PT') && !header.includes('Avg')) {
       const ptIndex = parseInt(header.replace('PT', '')) - 1;
-      students[studentIndex].performanceTasks[ptIndex] = value ? parseFloat(value) : null;
+      students[studentIndex].performanceTasks[ptIndex] = parseValueOrZero(value);
     } else if (header?.startsWith('QA') && !header.includes('Avg')) {
       const qaIndex = parseInt(header.replace('QA', '')) - 1;
-      students[studentIndex].quarterlyAssessment[qaIndex] = value ? parseFloat(value) : null;
+      students[studentIndex].quarterlyAssessment[qaIndex] = parseValueOrZero(value);
     }
   }
 
@@ -479,7 +502,48 @@
     
     const rowIndex = selectedCell.row;
     const colIndex = selectedCell.col;
-    const value = editValue;
+    let value = editValue;
+    let wasInvalid = false;
+    
+    // Validate and convert invalid input to 0 for grade columns
+    const headers = spreadsheetData[0];
+    const header = headers[colIndex];
+    if (header?.startsWith('WW') || header?.startsWith('PT') || header?.startsWith('QA')) {
+      if (!header.includes('Avg')) { // Only for input columns, not calculated averages
+        if (value && value.trim() !== '') {
+          const parsed = parseFloat(value);
+          
+          // Get the maximum score for this column
+          let maxScore = null;
+          if (header?.startsWith('WW')) {
+            const columnIndex = parseInt(header.replace('WW', '')) - 1;
+            maxScore = gradingConfig.writtenWork.totals?.[columnIndex];
+          } else if (header?.startsWith('PT')) {
+            const columnIndex = parseInt(header.replace('PT', '')) - 1;
+            maxScore = gradingConfig.performanceTasks.totals?.[columnIndex];
+          } else if (header?.startsWith('QA')) {
+            const columnIndex = parseInt(header.replace('QA', '')) - 1;
+            maxScore = gradingConfig.quarterlyAssessment.totals?.[columnIndex];
+          }
+          
+          // Validate input: convert to 0 if invalid, negative, or exceeds maximum
+          if (isNaN(parsed) || parsed < 0 || (maxScore && parsed > maxScore)) {
+            value = '0';
+            editValue = '0'; // Update the input field as well
+            wasInvalid = true;
+          }
+        }
+      }
+    }
+    
+    // Track invalid cells for styling
+    const cellKey = `${rowIndex}-${colIndex}`;
+    if (wasInvalid) {
+      invalidCells.add(cellKey);
+    } else {
+      invalidCells.delete(cellKey);
+    }
+    invalidCells = new Set(invalidCells); // Trigger reactivity
     
     // Update the spreadsheet data
     spreadsheetData[rowIndex][colIndex] = value;
@@ -628,6 +692,7 @@
                 class:student-info={colIndex < 2}
                 class:calculated={isCalculatedColumn(colIndex)}
                 class:editable={!isCalculatedColumn(colIndex) && colIndex > 1}
+                class:invalid={invalidCells.has(`${rowIndex + 1}-${colIndex}`)}
                 onclick={(e) => handleCellClick(rowIndex + 1, colIndex, e)}
               >
                 {#if isEditing && selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex}
@@ -827,6 +892,34 @@
 
   .spreadsheet-container::-webkit-scrollbar-thumb:hover {
     background: var(--md-sys-color-outline);
+  }
+
+  /* Invalid cell styling */
+  .spreadsheet-cell.invalid {
+    background-color: var(--md-sys-color-error-container) !important;
+    color: var(--md-sys-color-on-error-container) !important;
+    border-color: var(--md-sys-color-error) !important;
+    animation: errorPulse 0.5s ease-in-out;
+  }
+
+  .spreadsheet-cell.invalid .cell-content {
+    color: var(--md-sys-color-on-error-container);
+    font-weight: 600;
+  }
+
+  @keyframes errorPulse {
+    0% { 
+      background-color: var(--md-sys-color-error);
+      transform: scale(1);
+    }
+    50% { 
+      background-color: var(--md-sys-color-error);
+      transform: scale(1.02);
+    }
+    100% { 
+      background-color: var(--md-sys-color-error-container);
+      transform: scale(1);
+    }
   }
 </style>
 
