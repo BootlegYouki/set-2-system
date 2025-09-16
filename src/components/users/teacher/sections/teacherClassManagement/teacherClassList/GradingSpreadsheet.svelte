@@ -549,13 +549,13 @@
       let assessmentIndex = -1;
       
       if (header.startsWith('WW')) {
-        assessmentType = 'writtenWork';
+        assessmentType = 'Written Work';
         assessmentIndex = parseInt(header.substring(2)) - 1;
       } else if (header.startsWith('PT')) {
-        assessmentType = 'performanceTasks';
+        assessmentType = 'Performance Task';
         assessmentIndex = parseInt(header.substring(2)) - 1;
       } else if (header.startsWith('QA')) {
-        assessmentType = 'quarterlyAssessment';
+        assessmentType = 'Quarterly Assessment';
         assessmentIndex = parseInt(header.substring(2)) - 1;
       }
       
@@ -841,9 +841,11 @@
                 class:clickable={isAssessmentColumn(colIndex)}
                 onclick={(e) => handleHeaderClick(colIndex, e)}
                 title={isAssessmentColumn(colIndex) ? 'Click to set total scores' : ''}>
-              {header}
+              <span class="header-text">{header}</span>
               {#if isAssessmentColumn(colIndex)}
-                <span class="header-icon material-symbols-outlined">settings</span>
+                <div class="header-overlay">
+                  <span class="header-icon material-symbols-outlined">settings</span>
+                </div>
               {/if}
             </th>
           {/each}
@@ -917,6 +919,29 @@
     z-index: 10;
     text-align: center;
     min-width: 80px;
+    position: relative;
+  }
+
+  .header-text {
+    display: block;
+  }
+
+  .header-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .spreadsheet-header.clickable:hover .header-overlay {
+    opacity: 1;
   }
 
   .spreadsheet-header.student-info {
@@ -941,10 +966,8 @@
   }
 
   .header-icon {
-    font-size: 16px;
-    margin-left: 4px;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
+    font-size: 18px;
+    color: white;
   }
 
   .spreadsheet-cell.calculated {
