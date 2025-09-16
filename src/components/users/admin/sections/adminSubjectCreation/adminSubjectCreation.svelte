@@ -2,6 +2,7 @@
 	import './adminSubjectCreation.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { onMount } from 'svelte';
 
 	// Subject creation state
 	let isCreating = false;
@@ -27,6 +28,10 @@
 	// Edit dropdown states
 	let isEditGradeDropdownOpen = false;
 
+	// Data loading state
+	let isLoading = false;
+	let recentSubjects = [];
+
 	// Grade levels for Philippines DepEd (Grades 7-10)
 	const gradeLevels = [
 		{ value: 7, label: 'Grade 7', description: 'Junior High School - First Year' },
@@ -48,41 +53,30 @@
 		return matchesSearchTerm && matchesGrade;
 	});
 
-	// Recent subject creations (mock data)
-	let recentSubjects = [
-		{
-			id: 1,
-			name: 'Mathematics',
-			code: 'MATH-7',
-			gradeLevel: 'Grade 7',
-			createdDate: '01/15/2024',
-			status: 'active'
-		},
-		{
-			id: 2,
-			name: 'English',
-			code: 'ENG-8',
-			gradeLevel: 'Grade 8',
-			createdDate: '01/14/2024',
-			status: 'active'
-		},
-		{
-			id: 3,
-			name: 'Science',
-			code: 'SCI-9',
-			gradeLevel: 'Grade 9',
-			createdDate: '01/13/2024',
-			status: 'active'
-		},
-		{
-			id: 4,
-			name: 'Filipino',
-			code: 'FIL-10',
-			gradeLevel: 'Grade 10',
-			createdDate: '01/12/2024',
-			status: 'active'
+	// Load subjects from database
+	async function loadSubjects() {
+		isLoading = true;
+		try {
+			const response = await fetch('/api/subjects');
+			const result = await response.json();
+			
+			if (result.success) {
+				recentSubjects = result.data;
+			} else {
+				toastStore.error('Failed to load subjects: ' + result.message);
+			}
+		} catch (error) {
+			console.error('Error loading subjects:', error);
+			toastStore.error('Failed to load subjects. Please try again.');
+		} finally {
+			isLoading = false;
 		}
-	];
+	}
+
+	// Initialize component
+	onMount(() => {
+		loadSubjects();
+	});
 
 	// Handle form submission
 	async function handleCreateSubject() {
@@ -94,28 +88,34 @@
 		isCreating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 500));
+			const response = await fetch('/api/subjects', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					name: subjectName.trim(),
+					code: subjectCode.trim(),
+					gradeLevel: selectedGradeLevel
+				})
+			});
 
-			// Add to recent subjects
-			const newSubject = {
-				id: recentSubjects.length + 1,
-				name: subjectName,
-				code: subjectCode,
-				gradeLevel: `Grade ${selectedGradeLevel}`,
-				createdDate: new Date().toLocaleDateString('en-US'),
-				status: 'active'
-			};
+			const result = await response.json();
 
-			recentSubjects = [newSubject, ...recentSubjects];
+			if (result.success) {
+				// Add the new subject to the list
+				recentSubjects = [result.data, ...recentSubjects];
 
-			// Reset form
-			selectedGradeLevel = '';
-			subjectName = '';
-			subjectCode = '';
+				// Reset form
+				selectedGradeLevel = '';
+				subjectName = '';
+				subjectCode = '';
 
-			// Show success toast
-			toastStore.success(`Subject "${newSubject.name}" created successfully with code ${newSubject.code}`);
+				// Show success toast
+				toastStore.success(result.message);
+			} else {
+				toastStore.error(result.message);
+			}
 
 		} catch (error) {
 			console.error('Error creating subject:', error);
@@ -126,16 +126,37 @@
 	}
 
 	// Handle subject removal
-	function handleRemoveSubject(subject) {
+	async function handleRemoveSubject(subject) {
 		modalStore.confirm(
 			'Remove Subject',
 			`<p>Are you sure you want to remove the subject <strong>"${subject.name}"</strong>?</p>`,
-			() => {
-				// Remove the subject from the array
-				recentSubjects = recentSubjects.filter(s => s.id !== subject.id);
-				
-				// Show success toast
-				toastStore.success(`Subject "${subject.name}" has been removed successfully`);
+			async () => {
+				try {
+					const response = await fetch('/api/subjects', {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							id: subject.id
+						})
+					});
+
+					const result = await response.json();
+
+					if (result.success) {
+						// Remove the subject from the array
+						recentSubjects = recentSubjects.filter(s => s.id !== subject.id);
+						
+						// Show success toast
+						toastStore.success(result.message);
+					} else {
+						toastStore.error(result.message);
+					}
+				} catch (error) {
+					console.error('Error removing subject:', error);
+					toastStore.error('Failed to remove subject. Please try again.');
+				}
 			},
 			null, // onCancel - no action needed
 			{ size: 'small' }
@@ -203,31 +224,42 @@
 		isUpdating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
-
-			// Update subject in the array
-			recentSubjects = recentSubjects.map(subject => {
-				if (subject.id === editingSubjectId) {
-					return {
-						...subject,
-						name: editSubjectName,
-						code: editSubjectCode,
-						gradeLevel: `Grade ${editSelectedGradeLevel}`
-					};
-				}
-				return subject;
+			const response = await fetch('/api/subjects', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					id: editingSubjectId,
+					name: editSubjectName.trim(),
+					code: editSubjectCode.trim(),
+					gradeLevel: editSelectedGradeLevel
+				})
 			});
 
-			// Show success toast
-			toastStore.success(`Subject "${editSubjectName}" updated successfully with code ${editSubjectCode}`);
+			const result = await response.json();
 
-			// Close edit form
-			editingSubjectId = null;
-			editSubjectName = '';
-			editSubjectCode = '';
-			editSelectedGradeLevel = '';
-			isEditGradeDropdownOpen = false;
+			if (result.success) {
+				// Update subject in the array
+				recentSubjects = recentSubjects.map(subject => {
+					if (subject.id === editingSubjectId) {
+						return result.data;
+					}
+					return subject;
+				});
+
+				// Show success toast
+				toastStore.success(result.message);
+
+				// Close edit form
+				editingSubjectId = null;
+				editSubjectName = '';
+				editSubjectCode = '';
+				editSelectedGradeLevel = '';
+				isEditGradeDropdownOpen = false;
+			} else {
+				toastStore.error(result.message);
+			}
 
 		} catch (error) {
 			console.error('Error updating subject:', error);
@@ -436,33 +468,41 @@
 			</div>
 
 			<div class="adminsubject-subjects-grid">
-				{#each filteredSubjects as subject (subject.id)}
-					<div class="adminsubject-subject-card">
-						<div class="adminsubject-subject-header">
-							<div class="adminsubject-subject-title">
-								<h3 class="adminsubject-subject-name">{subject.name} · {subject.gradeLevel}</h3>
-							</div>
-							<div class="adminsubject-action-buttons">
-								<button 
-									type="button" 
-									class="adminsubject-edit-button" 
-									on:click={() => toggleEditForm(subject)}
-									title="{editingSubjectId === subject.id ? 'Cancel Edit' : 'Edit Subject'}"
-								>
-									<span class="material-symbols-outlined">
-										{editingSubjectId === subject.id ? 'close' : 'edit'}
-									</span>
-								</button>
-								<button 
-									type="button" 
-									class="adminsubject-remove-button" 
-									title="Remove Subject"
-									on:click={() => handleRemoveSubject(subject)}
-								>
-									<span class="material-symbols-outlined">delete</span>
-								</button>
-							</div>
+				{#if isLoading}
+					<div class="adminsubject-loading-container">
+						<div class="adminsubject-loading-spinner">
+							<span class="material-symbols-outlined adminsubject-spinner-icon">progress_activity</span>
 						</div>
+						<p class="adminsubject-loading-text">Loading subjects...</p>
+					</div>
+				{:else}
+					{#each filteredSubjects as subject (subject.id)}
+						<div class="adminsubject-subject-card">
+							<div class="adminsubject-subject-header">
+								<div class="adminsubject-subject-title">
+									<h3 class="adminsubject-subject-name">{subject.name} · {subject.gradeLevel}</h3>
+								</div>
+								<div class="adminsubject-action-buttons">
+									<button 
+										type="button" 
+										class="adminsubject-edit-button" 
+										on:click={() => toggleEditForm(subject)}
+										title="{editingSubjectId === subject.id ? 'Cancel Edit' : 'Edit Subject'}"
+									>
+										<span class="material-symbols-outlined">
+											{editingSubjectId === subject.id ? 'close' : 'edit'}
+										</span>
+									</button>
+									<button 
+										type="button" 
+										class="adminsubject-remove-button" 
+										title="Remove Subject"
+										on:click={() => handleRemoveSubject(subject)}
+									>
+										<span class="material-symbols-outlined">delete</span>
+									</button>
+								</div>
+							</div>
 
 						<div class="adminsubject-subject-details">
 							<div class="adminsubject-subject-item-detail">
@@ -578,12 +618,13 @@
 							</div>
 						{/if}
 					</div>
-				{:else}
-					<div class="adminsubject-no-results">
-						<span class="material-symbols-outlined adminsubject-no-results-icon">search_off</span>
-						<p>No subjects found matching your search.</p>
-					</div>
-				{/each}
+					{:else}
+						<div class="adminsubject-no-results">
+							<span class="material-symbols-outlined adminsubject-no-results-icon">search_off</span>
+							<p>No subjects found matching your search.</p>
+						</div>
+					{/each}
+				{/if}
 			</div>
 		</div>
 	</div>
