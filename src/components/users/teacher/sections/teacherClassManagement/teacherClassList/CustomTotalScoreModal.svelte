@@ -7,25 +7,44 @@
   export let currentTotal = '';
   export let onSave = () => {};
   export let onClose = () => {};
+  export let onRename = () => {};
+  export let onRemove = () => {};
   export let visible = false;
+  export let canRemove = true; // Whether the column can be removed
+  export let existingColumnNames = []; // Array of existing column names for validation
 
   const dispatch = createEventDispatcher();
 
   let newTotal = '';
+  let newColumnName = '';
   let error = '';
+  let nameError = '';
   let modalElement;
   let userHasModified = false;
+  let userHasModifiedName = false;
+  let activeTab = 'settings'; // 'settings' or 'total'
+  let showRemoveConfirm = false;
 
   // Update newTotal when currentTotal changes, but only if user hasn't modified it
   $: if (currentTotal !== undefined && currentTotal !== null && !userHasModified) {
     newTotal = currentTotal;
   }
 
+  // Update newColumnName when columnName changes, but only if user hasn't modified it
+  $: if (columnName !== undefined && columnName !== null && !userHasModifiedName) {
+    newColumnName = columnName;
+  }
+
   // Reset when modal becomes visible
   $: if (visible) {
     newTotal = currentTotal || '';
+    newColumnName = columnName || '';
     userHasModified = false;
+    userHasModifiedName = false;
     error = '';
+    nameError = '';
+    activeTab = 'settings';
+    showRemoveConfirm = false;
   }
 
   onMount(() => {
@@ -64,11 +83,60 @@
     return true;
   }
 
+  function validateColumnName() {
+    nameError = '';
+    if (!newColumnName || newColumnName.trim() === '') {
+      nameError = 'Column name is required';
+      return false;
+    }
+    
+    const trimmedName = newColumnName.trim();
+    
+    // Check if name is different from current name and already exists
+    if (trimmedName !== columnName && existingColumnNames.includes(trimmedName)) {
+      nameError = 'Column name already exists';
+      return false;
+    }
+    
+    // Check for valid format (letters, numbers, spaces, hyphens, underscores)
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmedName)) {
+      nameError = 'Column name can only contain letters, numbers, spaces, hyphens, and underscores';
+      return false;
+    }
+    
+    if (trimmedName.length > 20) {
+      nameError = 'Column name cannot exceed 20 characters';
+      return false;
+    }
+    
+    return true;
+  }
+
   function handleSave() {
     if (validateInput()) {
       onSave(assessmentType, columnIndex, newTotal); // Pass assessment type, column index, and text value
       closeModal();
     }
+  }
+
+  function handleRename() {
+    if (validateColumnName()) {
+      onRename(assessmentType, columnIndex, newColumnName.trim());
+      closeModal();
+    }
+  }
+
+  function handleRemove() {
+    showRemoveConfirm = true;
+  }
+
+  function confirmRemove() {
+    onRemove(assessmentType, columnIndex);
+    closeModal();
+  }
+
+  function cancelRemove() {
+    showRemoveConfirm = false;
   }
 
   function closeModal() {
@@ -85,9 +153,17 @@
 
   function handleKeydown(event) {
     if (event.key === 'Escape') {
-      closeModal();
-    } else if (event.key === 'Enter') {
-      handleSave();
+      if (showRemoveConfirm) {
+        cancelRemove();
+      } else {
+        closeModal();
+      }
+    } else if (event.key === 'Enter' && !showRemoveConfirm) {
+      if (activeTab === 'settings') {
+        handleRename();
+      } else {
+        handleSave();
+      }
     }
   }
 
@@ -117,7 +193,7 @@
     >
       <div class="custom-modal-header">
         <h2 id="modal-title" class="custom-modal-title">
-          Set Total Score - {columnName}
+          Column Settings - {columnName}
         </h2>
         <button 
           class="custom-modal-close-btn" 
@@ -127,47 +203,150 @@
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
+
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button 
+          class="tab-button"
+          class:active={activeTab === 'settings'}
+          onclick={() => activeTab = 'settings'}
+        >
+          <span class="material-symbols-outlined">settings</span>
+          Column Settings
+        </button>
+        <button 
+          class="tab-button"
+          class:active={activeTab === 'total'}
+          onclick={() => activeTab = 'total'}
+        >
+          <span class="material-symbols-outlined">calculate</span>
+          Total Score
+        </button>
+      </div>
       
       <div class="custom-modal-body">
-        <div class="assessment-info">
-          <p><strong>Column:</strong> {columnName}</p>
-          <p><strong>Assessment Type:</strong> {formatAssessmentType(assessmentType)}</p>
-          <p><strong>Current Total:</strong> {currentTotal || 'Not set'}</p>
-        </div>
+        {#if showRemoveConfirm}
+          <!-- Remove Confirmation Dialog -->
+          <div class="confirmation-dialog">
+            <div class="confirmation-icon">
+              <span class="material-symbols-outlined">warning</span>
+            </div>
+            <h3 class="confirmation-title">Remove Column</h3>
+            <p class="confirmation-message">
+              Are you sure you want to remove the column "<strong>{columnName}</strong>"? 
+              This action cannot be undone and all data in this column will be lost.
+            </p>
+            <div class="confirmation-actions">
+              <button 
+                type="button" 
+                class="btn btn-secondary" 
+                onclick={cancelRemove}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-danger" 
+                onclick={confirmRemove}
+              >
+                Remove Column
+              </button>
+            </div>
+          </div>
+        {:else if activeTab === 'settings'}
+          <!-- Column Settings Tab -->
+          <div class="assessment-info">
+            <p><strong>Column:</strong> {columnName}</p>
+            <p><strong>Assessment Type:</strong> {formatAssessmentType(assessmentType)}</p>
+          </div>
 
-        <div class="form-group">
-          <label for="total-score" class="form-label">Total Score</label>
-          <input
-            id="total-score"
-            type="text"
-            bind:value={newTotal}
-            class="form-input"
-            class:error={error}
-            placeholder="Enter total score"
-            autofocus
-            oninput={() => { userHasModified = true; error = ''; }}
-          />
-          {#if error}
-            <span class="error-message">{error}</span>
-          {/if}
-        </div>
+          <div class="form-group">
+            <label for="column-name" class="form-label">Column Name</label>
+            <input
+              id="column-name"
+              type="text"
+              bind:value={newColumnName}
+              class="form-input"
+              class:error={nameError}
+              placeholder="Enter column name"
+              maxlength="20"
+              oninput={() => { userHasModifiedName = true; nameError = ''; }}
+            />
+            {#if nameError}
+              <span class="error-message">{nameError}</span>
+            {/if}
+          </div>
 
-        <div class="modal-actions">
-          <button 
-            type="button" 
-            class="btn btn-secondary" 
-            onclick={closeModal}
-          >
-            Cancel
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
-            onclick={handleSave}
-          >
-            Save Total
-          </button>
-        </div>
+          <div class="modal-actions">
+            <button 
+              type="button" 
+              class="btn btn-secondary" 
+              onclick={closeModal}
+            >
+              Cancel
+            </button>
+            {#if canRemove}
+              <button 
+                type="button" 
+                class="btn btn-danger" 
+                onclick={handleRemove}
+              >
+                <span class="material-symbols-outlined">delete</span>
+                Remove Column
+              </button>
+            {/if}
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              onclick={handleRename}
+              disabled={newColumnName.trim() === columnName || !newColumnName.trim()}
+            >
+              <span class="material-symbols-outlined">edit</span>
+              Rename Column
+            </button>
+          </div>
+        {:else}
+          <!-- Total Score Tab -->
+          <div class="assessment-info">
+            <p><strong>Column:</strong> {columnName}</p>
+            <p><strong>Assessment Type:</strong> {formatAssessmentType(assessmentType)}</p>
+            <p><strong>Current Total:</strong> {currentTotal || 'Not set'}</p>
+          </div>
+
+          <div class="form-group">
+            <label for="total-score" class="form-label">Total Score</label>
+            <input
+              id="total-score"
+              type="text"
+              bind:value={newTotal}
+              class="form-input"
+              class:error={error}
+              placeholder="Enter total score"
+              oninput={() => { userHasModified = true; error = ''; }}
+            />
+            {#if error}
+              <span class="error-message">{error}</span>
+            {/if}
+          </div>
+
+          <div class="modal-actions">
+            <button 
+              type="button" 
+              class="btn btn-secondary" 
+              onclick={closeModal}
+            >
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              onclick={handleSave}
+            >
+              <span class="material-symbols-outlined">save</span>
+              Save Total
+            </button>
+          </div>
+        {/if}
       </div>
     </div>
   </div>
@@ -357,6 +536,108 @@
   .btn-primary:hover {
     background-color: var(--md-sys-color-primary-container);
     color: var(--md-sys-color-on-primary-container);
+  }
+
+  .btn-danger {
+    background-color: var(--md-sys-color-error);
+    color: var(--md-sys-color-on-error);
+  }
+
+  .btn-danger:hover {
+    background-color: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .btn:disabled:hover {
+    background-color: inherit;
+    color: inherit;
+  }
+
+  .btn .material-symbols-outlined {
+    font-size: 18px;
+    margin-right: var(--spacing-xs);
+  }
+
+  /* Tab Navigation Styles */
+  .tab-navigation {
+    display: flex;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    background-color: var(--md-sys-color-surface-container);
+  }
+
+  .tab-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: none;
+    background: none;
+    color: var(--md-sys-color-on-surface-variant);
+    font-family: var(--md-sys-typescale-label-large-font);
+    font-size: var(--md-sys-typescale-label-large-size);
+    font-weight: var(--md-sys-typescale-label-large-weight);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border-bottom: 2px solid transparent;
+  }
+
+  .tab-button:hover {
+    background-color: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  .tab-button.active {
+    color: var(--md-sys-color-primary);
+    border-bottom-color: var(--md-sys-color-primary);
+    background-color: var(--md-sys-color-primary-container);
+  }
+
+  .tab-button .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  /* Confirmation Dialog Styles */
+  .confirmation-dialog {
+    text-align: center;
+    padding: var(--spacing-lg);
+  }
+
+  .confirmation-icon {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .confirmation-icon .material-symbols-outlined {
+    font-size: 48px;
+    color: var(--md-sys-color-error);
+  }
+
+  .confirmation-title {
+    margin: 0 0 var(--spacing-md) 0;
+    font-family: var(--md-sys-typescale-headline-small-font);
+    font-size: var(--md-sys-typescale-headline-small-size);
+    font-weight: var(--md-sys-typescale-headline-small-weight);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  .confirmation-message {
+    margin: 0 0 var(--spacing-lg) 0;
+    font-family: var(--md-sys-typescale-body-medium-font);
+    font-size: var(--md-sys-typescale-body-medium-size);
+    color: var(--md-sys-color-on-surface-variant);
+    line-height: 1.5;
+  }
+
+  .confirmation-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
   }
 
   .btn:focus-visible {

@@ -38,19 +38,19 @@
     
     // Add Written Work columns
     for (let i = 1; i <= gradingConfig.writtenWork.count; i++) {
-      headers.push(`WW${i}`);
+      headers.push(getColumnName('writtenWork', i - 1));
     }
     headers.push('WW Avg');
     
     // Add Performance Tasks columns
     for (let i = 1; i <= gradingConfig.performanceTasks.count; i++) {
-      headers.push(`PT${i}`);
+      headers.push(getColumnName('performanceTasks', i - 1));
     }
     headers.push('PT Avg');
     
     // Add Quarterly Assessment columns
     for (let i = 1; i <= gradingConfig.quarterlyAssessment.count; i++) {
-      headers.push(`QA${i}`);
+      headers.push(getColumnName('quarterlyAssessment', i - 1));
     }
     headers.push('QA Avg');
     headers.push('Final Grade');
@@ -332,7 +332,7 @@
   function openTotalScoreModal(assessmentType, columnIndex, columnName) {
     modalAssessmentType = assessmentType;
     modalColumnIndex = columnIndex;
-    modalColumnName = columnName;
+    modalColumnName = getColumnName(assessmentType, columnIndex);
     modalCurrentTotal = getTotalForColumn(assessmentType, columnIndex);
     modalVisible = true;
   }
@@ -352,6 +352,105 @@
     
     // Recalculate spreadsheet data
     initializeSpreadsheetData();
+  }
+
+  // Handle column rename
+  function handleColumnRename(assessmentType, columnIndex, newName) {
+    // Initialize column names array if it doesn't exist
+    if (!gradingConfig[assessmentType].columnNames) {
+      gradingConfig[assessmentType].columnNames = [];
+    }
+    
+    // Update the specific column name
+    gradingConfig[assessmentType].columnNames[columnIndex] = newName;
+    
+    // Trigger reactivity
+    gradingConfig = { ...gradingConfig };
+    
+    // Recalculate spreadsheet data to reflect new name
+    initializeSpreadsheetData();
+    
+    toastStore.success(`Column renamed to "${newName}"`);
+  }
+
+  // Handle column removal
+  function handleColumnRemove(assessmentType, columnIndex) {
+    // Check if we can remove (must have at least 1 column)
+    if (gradingConfig[assessmentType].count <= 1) {
+      toastStore.error('Cannot remove column. At least one column is required.');
+      return;
+    }
+
+    // Decrease column count
+    gradingConfig[assessmentType].count -= 1;
+
+    // Remove from totals array if it exists
+    if (gradingConfig[assessmentType].totals) {
+      gradingConfig[assessmentType].totals.splice(columnIndex, 1);
+    }
+
+    // Remove from column names array if it exists
+    if (gradingConfig[assessmentType].columnNames) {
+      gradingConfig[assessmentType].columnNames.splice(columnIndex, 1);
+    }
+
+    // Update student data to remove the column
+    students = students.map(student => {
+      const newStudent = { ...student };
+      if (newStudent[assessmentType] && Array.isArray(newStudent[assessmentType])) {
+        newStudent[assessmentType].splice(columnIndex, 1);
+      }
+      return newStudent;
+    });
+
+    // Trigger reactivity
+    gradingConfig = { ...gradingConfig };
+    
+    // Recalculate spreadsheet data
+    initializeSpreadsheetData();
+    
+    toastStore.success('Column removed successfully');
+  }
+
+  // Get existing column names for validation
+  function getExistingColumnNames(assessmentType) {
+    const names = [];
+    
+    // Add default column names
+    for (let i = 1; i <= gradingConfig[assessmentType].count; i++) {
+      const defaultName = getColumnName(assessmentType, i - 1);
+      names.push(defaultName);
+    }
+    
+    // Add custom column names if they exist
+    if (gradingConfig[assessmentType].columnNames) {
+      gradingConfig[assessmentType].columnNames.forEach((name, index) => {
+        if (name && name.trim()) {
+          names[index] = name.trim();
+        }
+      });
+    }
+    
+    return names;
+  }
+
+  // Get column name (custom or default)
+  function getColumnName(assessmentType, columnIndex) {
+    // Check if custom name exists
+    if (gradingConfig[assessmentType].columnNames && 
+        gradingConfig[assessmentType].columnNames[columnIndex]) {
+      return gradingConfig[assessmentType].columnNames[columnIndex];
+    }
+    
+    // Return default name
+    const prefix = assessmentType === 'writtenWork' ? 'WW' : 
+                   assessmentType === 'performanceTasks' ? 'PT' : 'QA';
+    return `${prefix}${columnIndex + 1}`;
+  }
+
+  // Check if column can be removed
+  function canRemoveColumn(assessmentType) {
+    return gradingConfig[assessmentType].count > 1;
   }
 
   // Helper function to get current total for a specific column
