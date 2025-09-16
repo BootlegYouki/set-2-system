@@ -19,7 +19,10 @@ const dbConfig = {
   destroyTimeoutMillis: 5000,
   reapIntervalMillis: 1000,
   createRetryIntervalMillis: 200,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+  // SSL configuration for production (Heroku requires SSL)
+  ssl: process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true' 
+    ? { rejectUnauthorized: false } 
+    : false
 };
 
 // Create connection pool
@@ -28,6 +31,13 @@ const pool = new Pool(dbConfig);
 // Handle pool errors
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
+  console.error('Database config:', {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    database: dbConfig.database,
+    user: dbConfig.user,
+    ssl: dbConfig.ssl
+  });
   process.exit(-1);
 });
 
@@ -38,6 +48,12 @@ export const query = async (text, params) => {
     return res;
   } catch (err) {
     console.error('Query error:', err);
+    console.error('Database connection details:', {
+      host: dbConfig.host,
+      database: dbConfig.database,
+      ssl: dbConfig.ssl,
+      nodeEnv: process.env.NODE_ENV
+    });
     throw err;
   }
 };
