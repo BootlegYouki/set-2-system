@@ -211,7 +211,6 @@
           class:active={activeTab === 'settings'}
           onclick={() => activeTab = 'settings'}
         >
-          <span class="material-symbols-outlined">settings</span>
           Column Settings
         </button>
         <button 
@@ -219,7 +218,6 @@
           class:active={activeTab === 'total'}
           onclick={() => activeTab = 'total'}
         >
-          <span class="material-symbols-outlined">calculate</span>
           Total Score
         </button>
       </div>
@@ -291,8 +289,7 @@
                 class="btn btn-danger" 
                 onclick={handleRemove}
               >
-                <span class="material-symbols-outlined">delete</span>
-                Remove Column
+                Remove
               </button>
             {/if}
             <button 
@@ -301,8 +298,7 @@
               onclick={handleRename}
               disabled={newColumnName.trim() === columnName || !newColumnName.trim()}
             >
-              <span class="material-symbols-outlined">edit</span>
-              Rename Column
+              Rename
             </button>
           </div>
         {:else}
@@ -342,7 +338,6 @@
               class="btn btn-primary" 
               onclick={handleSave}
             >
-              <span class="material-symbols-outlined">save</span>
               Save Total
             </button>
           </div>
@@ -553,15 +548,7 @@
     cursor: not-allowed;
   }
 
-  .btn:disabled:hover {
-    background-color: inherit;
-    color: inherit;
-  }
 
-  .btn .material-symbols-outlined {
-    font-size: 18px;
-    margin-right: var(--spacing-xs);
-  }
 
   /* Tab Navigation Styles */
   .tab-navigation {
@@ -599,9 +586,7 @@
     background-color: var(--md-sys-color-primary-container);
   }
 
-  .tab-button .material-symbols-outlined {
-    font-size: 20px;
-  }
+
 
   /* Confirmation Dialog Styles */
   .confirmation-dialog {
