@@ -782,21 +782,11 @@
     position: relative;
   }
 
-  .spreadsheet-header.clickable:hover {
-    background-color: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    transform: translateY(-1px);
-  }
-
   .header-icon {
     font-size: 16px;
     margin-left: 4px;
     opacity: 0.7;
     transition: opacity 0.2s ease;
-  }
-
-  .spreadsheet-header.clickable:hover .header-icon {
-    opacity: 1;
   }
 
   .spreadsheet-cell.calculated {
@@ -844,9 +834,6 @@
     cursor: pointer;
   }
 
-  .spreadsheet-cell.editable:hover {
-    background-color: var(--md-sys-color-primary-container);
-  }
 
   .spreadsheet-cell.selected {
     outline: 2px solid var(--md-sys-color-primary);
@@ -908,7 +895,6 @@
   .spreadsheet-cell.invalid {
     background-color: var(--md-sys-color-error-container) !important;
     color: var(--md-sys-color-on-error-container) !important;
-    border-color: var(--md-sys-color-error) !important;
     animation: errorPulse 0.5s ease-in-out;
   }
 
