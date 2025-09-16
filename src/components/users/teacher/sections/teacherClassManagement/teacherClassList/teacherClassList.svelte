@@ -82,19 +82,14 @@
   }
 
   function removeColumn(category) {
-    console.log('removeColumn called for:', category, 'current count:', gradingConfig[category].count);
     if (gradingConfig[category].count > 1) {
       gradingConfig[category].count -= 1;
-      console.log('New count after removal:', gradingConfig[category].count);
       adjustStudentData();
-    } else {
-      console.log('Cannot remove - count is already at minimum (1)');
     }
   }
 
   // Adjust student data based on column configuration
   function adjustStudentData() {
-    console.log('Adjusting student data...');
     students = students.map(student => {
       const newStudent = {
         ...student,
@@ -102,10 +97,8 @@
         performanceTasks: Array(gradingConfig.performanceTasks.count).fill(0).map((_, i) => student.performanceTasks?.[i] || 0),
         quarterlyAssessment: Array(gradingConfig.quarterlyAssessment.count).fill(0).map((_, i) => student.quarterlyAssessment?.[i] || 0)
       };
-      console.log('Updated student:', newStudent.name, newStudent);
       return newStudent;
     });
-    console.log('All students updated:', students);
   }
 
   // Calculate average with totals support
@@ -310,7 +303,7 @@
   </div>
 
   <!-- Grading Spreadsheet Section -->
-  <GradingSpreadsheet {students} {gradingConfig} />
+  <GradingSpreadsheet bind:students {gradingConfig} />
 </div>
 
 <!-- Toast Notification -->

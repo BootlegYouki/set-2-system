@@ -134,8 +134,6 @@
   function handleGlobalKeydown(event) {
     if (!selectedCell) return;
     
-    console.log('handleGlobalKeydown called:', event.key, 'selectedCell:', selectedCell, 'isEditing:', isEditing);
-    
     // Don't handle global keydown when editing - let the input handler take care of it
     if (isEditing) return;
 
@@ -498,8 +496,6 @@
 
   function handleKeyDown(event, rowIndex, colIndex) {
     if (!selectedCell) return;
-    
-    console.log('INPUT handleKeyDown called:', event.key, 'from', rowIndex, colIndex, 'isEditing:', isEditing);
     
     // ONLY handle navigation when we're actually editing (input is focused)
     if (!isEditing) return;
