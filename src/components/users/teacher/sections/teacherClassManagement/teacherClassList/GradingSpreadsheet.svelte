@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import * as XLSX from 'xlsx';
+  import { toastStore } from '../../../../../common/js/toastStore.js';
   import CustomTotalScoreModal from './CustomTotalScoreModal.svelte';
 
   export let students = [];
@@ -531,6 +532,15 @@
             value = '0';
             editValue = '0'; // Update the input field as well
             wasInvalid = true;
+            
+            // Show appropriate toast message based on the type of invalid input
+            if (isNaN(parsed)) {
+              toastStore.error('Invalid input detected. Only numbers are allowed in grade cells.');
+            } else if (parsed < 0) {
+              toastStore.error('Negative values are not allowed. Score has been set to 0.');
+            } else if (maxScore && parsed > maxScore) {
+              toastStore.error(`Score cannot exceed the maximum of ${maxScore}. Value has been set to 0.`);
+            }
           }
         }
       }
