@@ -462,6 +462,12 @@
 	letter-spacing: 0.5px;
 }
 
+.scheduleassign-calculated-time.invalid {
+	background: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+	border: 1px solid var(--md-sys-color-error);
+}
+
 /* Responsive Design for Time Inputs */
 @media (max-width: 768px) {
 	.scheduleassign-time-row {

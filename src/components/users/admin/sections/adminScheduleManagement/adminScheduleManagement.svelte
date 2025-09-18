@@ -141,6 +141,7 @@
 	let selectedFormTeacher = '';
 	let isStartPeriodDropdownOpen = false;
 	let isEndPeriodDropdownOpen = false;
+	let isInvalidTimeRange = false;
 
 	// Edit assignment states
 	let editingAssignmentId = null;
@@ -149,6 +150,7 @@
 	let editEndTime = '';
 	let editEndAmPm = 'AM';
 	let editCalculatedDuration = 0;
+	let isEditInvalidTimeRange = false;
 	let editAssignmentSubject = '';
 	let editSelectedTeacher = null;
 	let isUpdating = false;
@@ -250,6 +252,16 @@
 	$: selectedFormSubjectObj = subjects.find(s => s.id === selectedFormSubject);
 	$: selectedFormTimeSlotObj = timeSlots.find(t => t.id === selectedFormTimeSlot);
 	$: selectedFormTeacherObj = teachers.find(t => t.id === selectedFormTeacher);
+
+	// Computed property for add form validation
+	$: isAddFormValid = newSchedule.startTime.trim() && 
+						newSchedule.endTime.trim() && 
+						newSchedule.startAmPm && 
+						newSchedule.endAmPm && 
+						selectedFormSubject && 
+						selectedFormTeacher &&
+						newSchedule.calculatedDuration &&
+						!isInvalidTimeRange;
 
 	// Clear saved schedules when selection changes
 	$: if (selectedFormYear || selectedFormSection || selectedFormDay) {
@@ -906,6 +918,7 @@
 	function calculateEditTimeSlot() {
 		// Reset calculated values
 		editCalculatedDuration = 0;
+		isEditInvalidTimeRange = false;
 
 		// Check if we have valid inputs
 		if (!editStartTime || !editEndTime || !editStartAmPm || !editEndAmPm) {
@@ -939,18 +952,30 @@
 			}
 
 			// Convert to 24-hour format
-			if (editStartAmPm === 'PM' && startHour !== 12) startHour += 12;
-			if (editStartAmPm === 'AM' && startHour === 12) startHour = 0;
-			if (editEndAmPm === 'PM' && endHour !== 12) endHour += 12;
-			if (editEndAmPm === 'AM' && endHour === 12) endHour = 0;
+			let startHour24 = startHour;
+			if (editStartAmPm === 'PM' && startHour !== 12) startHour24 += 12;
+			if (editStartAmPm === 'AM' && startHour === 12) startHour24 = 0;
+			
+			let endHour24 = endHour;
+			if (editEndAmPm === 'PM' && endHour !== 12) endHour24 += 12;
+			if (editEndAmPm === 'AM' && endHour === 12) endHour24 = 0;
 
 			// Calculate total minutes
-			const startTotalMinutes = startHour * 60 + startMinute;
-			let endTotalMinutes = endHour * 60 + endMinute;
+			const startTotalMinutes = startHour24 * 60 + startMinute;
+			let endTotalMinutes = endHour24 * 60 + endMinute;
 
-			// Handle next day scenario
+			// Check for invalid time ranges (same day logic)
 			if (endTotalMinutes <= startTotalMinutes) {
-				endTotalMinutes += 24 * 60; // Add 24 hours
+				// Check if this is a logical overnight schedule vs invalid same-day schedule
+				if (startHour24 >= 18 && endHour24 < 12) {
+					// Valid overnight schedule - allow it
+					endTotalMinutes += 24 * 60; // Add 24 hours
+				} else {
+					// Invalid time range - mark as invalid
+					isEditInvalidTimeRange = true;
+					editCalculatedDuration = 'Invalid time range';
+					return;
+				}
 			}
 
 			// Calculate duration in minutes
@@ -974,6 +999,7 @@
 	function calculateTimeSlot() {
 		// Reset calculated duration first
 		newSchedule.calculatedDuration = '';
+		isInvalidTimeRange = false;
 
 		// Check if all required inputs are provided
 		const startTimeInput = newSchedule.startTime;
@@ -1029,9 +1055,26 @@
 		const endTime = new Date();
 		endTime.setHours(endHour24, endMinute, 0, 0);
 
-		// Handle case where end time is next day (e.g., 11 PM to 1 AM)
+		// Check for invalid time ranges (same day logic)
+		// If end time is earlier than start time on the same day, it's invalid
+		// Example: 5:00 AM to 3:00 AM is invalid (should be 5:00 AM to 3:00 AM next day)
 		if (endTime <= startTime) {
-			endTime.setDate(endTime.getDate() + 1);
+			// Check if this is a logical overnight schedule (e.g., 11 PM to 6 AM)
+			// vs an invalid same-day schedule (e.g., 5 AM to 3 AM)
+			const startHourOnly = startHour24;
+			const endHourOnly = endHour24;
+			
+			// If start time is in evening/night (6 PM to 11:59 PM) and end time is in morning (12 AM to 11:59 AM)
+			// then it's a valid overnight schedule
+			if (startHourOnly >= 18 && endHourOnly < 12) {
+				// Valid overnight schedule - allow it
+				endTime.setDate(endTime.getDate() + 1);
+			} else {
+				// Invalid time range - mark as invalid
+				isInvalidTimeRange = true;
+				newSchedule.calculatedDuration = 'Invalid time range';
+				return;
+			}
 		}
 
 		// Calculate duration in minutes
@@ -1403,10 +1446,16 @@
 								
 								<!-- Calculated Duration Display -->
 								{#if newSchedule.calculatedDuration}
-									<div class="scheduleassign-calculated-time">
-										<span class="material-symbols-outlined">schedule</span>
+									<div class="scheduleassign-calculated-time" class:invalid={isInvalidTimeRange}>
+										<span class="material-symbols-outlined">
+											{isInvalidTimeRange ? 'error' : 'schedule'}
+										</span>
 										<span class="time-display">
-											Duration: {newSchedule.calculatedDuration} minutes
+											{#if isInvalidTimeRange}
+												{newSchedule.calculatedDuration}
+											{:else}
+												Duration: {newSchedule.calculatedDuration} minutes
+											{/if}
 										</span>
 									</div>
 								{/if}
@@ -1504,7 +1553,7 @@
 								type="button" 
 								class="scheduleassign-save-schedule-btn"
 								on:click={handleAddSchedule}
-								disabled={isAssigning}
+								disabled={isAssigning || !isAddFormValid}
 							>
 								{#if isAssigning}
 									Adding...
@@ -1844,10 +1893,16 @@
 										
 										<!-- Calculated Duration Display -->
 										{#if editCalculatedDuration}
-											<div class="scheduleassign-calculated-time">
-												<span class="material-symbols-outlined">schedule</span>
+											<div class="scheduleassign-calculated-time" class:invalid={isEditInvalidTimeRange}>
+												<span class="material-symbols-outlined">
+													{isEditInvalidTimeRange ? 'error' : 'schedule'}
+												</span>
 												<span class="time-display">
-													Duration: {editCalculatedDuration} minutes
+													{#if isEditInvalidTimeRange}
+														{editCalculatedDuration}
+													{:else}
+														Duration: {editCalculatedDuration} minutes
+													{/if}
 												</span>
 											</div>
 										{/if}
@@ -1948,7 +2003,7 @@
 										type="submit" 
 										class="scheduleassign-submit-button"
 										on:click={handleEditAssignment}
-										disabled={isUpdating || !editStartTime.trim() || !editEndTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher}
+										disabled={isUpdating || !editStartTime.trim() || !editEndTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher || isEditInvalidTimeRange}
 									>
 										{#if isUpdating}
 											Updating...
