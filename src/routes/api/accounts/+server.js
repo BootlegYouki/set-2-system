@@ -116,17 +116,20 @@ export async function GET({ url }) {
     
     const selectQuery = `
       SELECT 
-        id,
-        account_number,
-        full_name,
-        first_name,
-        last_name,
-        middle_initial,
-        account_type,
-        created_at,
-        updated_at
-      FROM users
-      ORDER BY created_at DESC
+        u.id,
+        u.account_number,
+        u.full_name,
+        u.first_name,
+        u.last_name,
+        u.middle_initial,
+        u.account_type,
+        u.subject_id,
+        s.name as subject_name,
+        u.created_at,
+        u.updated_at
+      FROM users u
+      LEFT JOIN subjects s ON u.subject_id = s.id
+      ORDER BY u.created_at DESC
       LIMIT $1
     `;
     
@@ -141,6 +144,8 @@ export async function GET({ url }) {
       middleInitial: account.middle_initial,
       type: account.account_type === 'student' ? 'Student' : account.account_type === 'teacher' ? 'Teacher' : 'Admin',
       number: account.account_number,
+      subject: account.subject_name || '',
+      subjectId: account.subject_id,
       createdDate: new Date(account.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(account.updated_at).toLocaleDateString('en-US'),
       status: 'active'
@@ -168,47 +173,96 @@ export async function GET({ url }) {
 // PUT /api/accounts - Update an existing account
 export async function PUT({ request }) {
   try {
-    const { id, firstName, lastName, middleInitial } = await request.json();
+    const { id, firstName, lastName, middleInitial, subject } = await request.json();
     
     // Validate required fields
     if (!id || !firstName || !lastName) {
       return json({ error: 'Account ID, first name, and last name are required' }, { status: 400 });
     }
     
-    // Check if account exists
-    const checkQuery = `SELECT id FROM users WHERE id = $1`;
+    // Check if account exists and get its type
+    const checkQuery = `SELECT id, account_type FROM users WHERE id = $1`;
     const checkResult = await query(checkQuery, [id]);
     
     if (checkResult.rows.length === 0) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
     
+    const accountType = checkResult.rows[0].account_type;
+    
     // Construct full name
     const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
     
-    // Update the account
-    const updateQuery = `
-      UPDATE users 
-      SET 
-        first_name = $1,
-        last_name = $2,
-        middle_initial = $3,
-        full_name = $4,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5
-      RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, created_at, updated_at
-    `;
+    // Find subject_id if subject name is provided for teacher accounts
+    let subjectId = null;
+    if (accountType === 'teacher' && subject) {
+      const subjectQuery = `SELECT id FROM subjects WHERE name = $1`;
+      const subjectResult = await query(subjectQuery, [subject]);
+      if (subjectResult.rows.length > 0) {
+        subjectId = subjectResult.rows[0].id;
+      }
+    }
     
-    const values = [
-      firstName,
-      lastName,
-      middleInitial || null,
-      fullName,
-      id
-    ];
+    // Prepare update query based on account type
+    let updateQuery;
+    let values;
+    
+    if (accountType === 'teacher') {
+      // Update with subject_id for teacher accounts
+      updateQuery = `
+        UPDATE users 
+        SET 
+          first_name = $1,
+          last_name = $2,
+          middle_initial = $3,
+          full_name = $4,
+          subject_id = $5,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $6
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, created_at, updated_at
+      `;
+      values = [
+        firstName,
+        lastName,
+        middleInitial || null,
+        fullName,
+        subjectId,
+        id
+      ];
+    } else {
+      // Update without subject_id for non-teacher accounts
+      updateQuery = `
+        UPDATE users 
+        SET 
+          first_name = $1,
+          last_name = $2,
+          middle_initial = $3,
+          full_name = $4,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $5
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, created_at, updated_at
+      `;
+      values = [
+        firstName,
+        lastName,
+        middleInitial || null,
+        fullName,
+        id
+      ];
+    }
     
     const result = await query(updateQuery, values);
     const updatedAccount = result.rows[0];
+    
+    // Get subject name if subject_id exists
+    let subjectName = '';
+    if (updatedAccount.subject_id) {
+      const subjectQuery = `SELECT name FROM subjects WHERE id = $1`;
+      const subjectResult = await query(subjectQuery, [updatedAccount.subject_id]);
+      if (subjectResult.rows.length > 0) {
+        subjectName = subjectResult.rows[0].name;
+      }
+    }
     
     // Format response to match frontend expectations
     const response = {
@@ -219,6 +273,8 @@ export async function PUT({ request }) {
       middleInitial: updatedAccount.middle_initial,
       type: updatedAccount.account_type === 'student' ? 'Student' : updatedAccount.account_type === 'teacher' ? 'Teacher' : 'Admin',
       number: updatedAccount.account_number,
+      subject: subjectName,
+      subjectId: updatedAccount.subject_id,
       createdDate: new Date(updatedAccount.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(updatedAccount.updated_at).toLocaleDateString('en-US'),
       status: 'active'
@@ -311,5 +367,5 @@ async function generateAccountNumber(accountType) {
     }
   }
   
-  return `${prefix}-${year}-${nextNumber.toString().padStart(3, '0')}`;
+  return `${prefix}-${year}-${nextNumber.toString().padStart(4, '0')}`;
 }

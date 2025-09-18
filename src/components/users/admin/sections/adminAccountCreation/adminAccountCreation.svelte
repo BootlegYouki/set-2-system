@@ -18,19 +18,37 @@
 	let isDropdownOpen = false;
 	let isGenderDropdownOpen = false;
 	let isSubjectDropdownOpen = false;
+	let isFilterDropdownOpen = false;
+
+	// Filter state
+	let selectedFilter = 'all';
 
 	// Edit account state
 	let editingAccountId = null;
 	let editFirstName = '';
 	let editLastName = '';
 	let editMiddleInitial = '';
+	let editSubject = '';
+	let editSubjectId = null;
+	let isEditSubjectDropdownOpen = false;
 	let isUpdating = false;
+
+	// Search functionality
+	let searchQuery = '';
 
 	// Account types
 	const accountTypes = [
 		{ id: 'student', name: 'Student Account', description: 'Create a new student account', icon: 'school' },
 		{ id: 'teacher', name: 'Teacher Account', description: 'Create a new teacher account', icon: 'person' },
 		{ id: 'admin', name: 'Admin Account', description: 'Create a new admin account', icon: 'admin_panel_settings' }
+	];
+
+	// Filter options
+	const filterOptions = [
+		{ id: 'all', name: 'All Accounts', icon: 'group' },
+		{ id: 'student', name: 'Students', icon: 'school' },
+		{ id: 'teacher', name: 'Teachers', icon: 'person' },
+		{ id: 'admin', name: 'Admins', icon: 'admin_panel_settings' }
 	];
 
 	// Gender options
@@ -53,6 +71,8 @@
 			isDropdownOpen = false;
 			isGenderDropdownOpen = false;
 			isSubjectDropdownOpen = false;
+			isEditSubjectDropdownOpen = false;
+			isFilterDropdownOpen = false;
 		}
 	}
 
@@ -102,6 +122,9 @@
 			editFirstName = '';
 			editLastName = '';
 			editMiddleInitial = '';
+			editSubject = '';
+			editSubjectId = null;
+			isEditSubjectDropdownOpen = false;
 		} else {
 			// Open the form and populate with current values
 			editingAccountId = account.id;
@@ -110,6 +133,8 @@
 				editFirstName = account.firstName;
 				editLastName = account.lastName;
 				editMiddleInitial = account.middleInitial || '';
+				editSubject = account.subject || '';
+				editSubjectId = account.subjectId || null;
 			} else {
 				// Fallback: Parse the name (assuming format: "LastName, FirstName M.I." or "LastName, FirstName")
 				const nameParts = account.name.split(', ');
@@ -125,6 +150,8 @@
 						editMiddleInitial = '';
 					}
 				}
+				editSubject = account.subject || '';
+				editSubjectId = account.subjectId || null;
 			}
 		}
 	}
@@ -138,17 +165,30 @@
 		isUpdating = true;
 
 		try {
+			// Find the current account to check its type
+			const currentAccount = recentAccounts.find(account => account.id === editingAccountId);
+			
+			// Prepare the request body
+			const requestBody = {
+				id: editingAccountId,
+				firstName: editFirstName.trim(),
+				lastName: editLastName.trim(),
+				middleInitial: editMiddleInitial ? editMiddleInitial.trim() : null
+			};
+
+			// Add subject only for teacher accounts
+			if (currentAccount && currentAccount.type.toLowerCase() === 'teacher') {
+				// Use the subject name from the selected subject for the API
+				const selectedSubjectObj = subjectOptions.find(subject => subject.id === editSubjectId);
+				requestBody.subject = selectedSubjectObj ? selectedSubjectObj.name : null;
+			}
+
 			const response = await fetch('/api/accounts', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					id: editingAccountId,
-					firstName: editFirstName.trim(),
-					lastName: editLastName.trim(),
-					middleInitial: editMiddleInitial ? editMiddleInitial.trim() : null
-				})
+				body: JSON.stringify(requestBody)
 			});
 
 			const result = await response.json();
@@ -170,6 +210,7 @@
 				editFirstName = '';
 				editLastName = '';
 				editMiddleInitial = '';
+				editSubject = '';
 			} else {
 				toastStore.error(result.error || 'Failed to update account');
 			}
@@ -217,6 +258,29 @@
 	function selectSubject(subject) {
 		selectedSubject = subject.id;
 		isSubjectDropdownOpen = false;
+	}
+
+	// Toggle edit subject dropdown
+	function toggleEditSubjectDropdown() {
+		isEditSubjectDropdownOpen = !isEditSubjectDropdownOpen;
+	}
+
+	// Select edit subject and close dropdown
+	function selectEditSubject(subject) {
+		editSubjectId = subject.id;
+		editSubject = subject.displayName;
+		isEditSubjectDropdownOpen = false;
+	}
+
+	// Toggle filter dropdown
+	function toggleFilterDropdown() {
+		isFilterDropdownOpen = !isFilterDropdownOpen;
+	}
+
+	// Select filter and close dropdown
+	function selectFilter(filter) {
+		selectedFilter = filter.id;
+		isFilterDropdownOpen = false;
 	}
 
 	// Handle form submission
@@ -297,6 +361,28 @@
 	// Get selected subject object
 	$: selectedSubjectObj = subjectOptions.find(subject => subject.id === selectedSubject);
 
+	// Get selected filter object
+	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
+
+	// Filter accounts based on selected filter and search query
+	$: filteredAccounts = recentAccounts.filter(account => {
+		// First apply type filter
+		const accountType = account.type.toLowerCase();
+		const typeMatches = selectedFilter === 'all' || accountType === selectedFilter;
+		
+		// Then apply search filter
+		if (!searchQuery.trim()) {
+			return typeMatches;
+		}
+		
+		const query = searchQuery.toLowerCase().trim();
+		const nameMatches = account.name.toLowerCase().includes(query);
+		const numberMatches = account.number.toString().includes(query);
+		const subjectMatches = account.subject && account.subject.toLowerCase().includes(query);
+		
+		return typeMatches && (nameMatches || numberMatches || subjectMatches);
+	});
+
 	// Generate next account number for the selected type
 	function getNextAccountNumber(accountType) {
 		const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
@@ -305,7 +391,7 @@
 		);
 		
 		if (filteredAccounts.length === 0) {
-			return `${prefix}-2024-001`;
+			return `${prefix}-2025-0001`;
 		}
 		
 		// Extract numbers and find the highest
@@ -315,7 +401,7 @@
 		});
 		
 		const nextNumber = Math.max(...numbers) + 1;
-		return `${prefix}-2024-${nextNumber.toString().padStart(3, '0')}`;
+		return `${prefix}-2025-${nextNumber.toString().padStart(4, '0')}`;
 	}
 
 	// Load subjects from database
@@ -613,18 +699,86 @@
 	<!-- Recent Account Creations -->
 	<div class="recent-accounts-section">
 		<div class="account-section-header">
-			<h2 class="section-title">Recent Account Creations</h2>
-			<p class="section-subtitle">Recently created accounts in the system</p>
+			<div class="section-header-content">
+				<div class="section-title-group">
+					<h2 class="section-title">Recent Account Creations</h2>
+					<p class="section-subtitle">Recently created accounts in the system</p>
+				</div>
+				
+				<!-- Search and Filter Container -->
+				<div class="search-filter-container">
+					<!-- Search Input -->
+					<div class="search-container">
+						<div class="search-input-wrapper">
+							<span class="material-symbols-outlined search-icon">search</span>
+							<input 
+								type="text" 
+								class="search-input" 
+								placeholder="Search accounts by name, number, or subject..."
+								bind:value={searchQuery}
+							/>
+							{#if searchQuery}
+								<button 
+									type="button" 
+									class="clear-search-button"
+									on:click={() => searchQuery = ''}
+								>
+									<span class="material-symbols-outlined">close</span>
+								</button>
+							{/if}
+						</div>
+					</div>
+
+					<!-- Filter Dropdown -->
+					<div class="filter-container">
+						<div class="custom-dropdown" class:open={isFilterDropdownOpen}>
+							<button 
+								type="button"
+								class="dropdown-trigger filter-trigger" 
+								class:selected={selectedFilter !== 'all'}
+								on:click={toggleFilterDropdown}
+							>
+								{#if selectedFilterObj}
+									<div class="selected-option">
+										<span class="material-symbols-outlined option-icon">{selectedFilterObj.icon}</span>
+										<div class="option-content">
+											<span class="option-name">{selectedFilterObj.name}</span>
+										</div>
+									</div>
+								{:else}
+									<span class="placeholder">Filter by type</span>
+								{/if}
+								<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							</button>
+							<div class="dropdown-menu">
+								{#each filterOptions as filter (filter.id)}
+									<button 
+										type="button"
+										class="dropdown-option" 
+										class:selected={selectedFilter === filter.id}
+										on:click={() => selectFilter(filter)}
+									>
+										<span class="material-symbols-outlined option-icon">{filter.icon}</span>
+										<div class="option-content">
+											<span class="option-name">{filter.name}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div class="accounts-grid">
 			{#if isLoadingAccounts}
 				<div class="loading-container">
-						<span class="loader"></span>
+						<span class="account-loader"></span>
 					<p class="loading-text">Loading accounts...</p>
 				</div>
 			{:else}
-				{#each recentAccounts as account (account.id)}
+				{#each filteredAccounts as account (account.id)}
 			<div class="account-card">
 				<div class="account-card-header">
 					<div class="account-title">
@@ -669,89 +823,143 @@
 					</div>
 				</div>
 
-				<!-- Edit Form (conditionally shown) -->
+				<!-- Edit Form (shown when editing this account) -->
 				{#if editingAccountId === account.id}
 					<div class="edit-form-section">
 						<div class="edit-form-container">
 							<div class="edit-form-header">
-								<h4 class="edit-form-title">Edit Account Name</h4>
+								<h4 class="edit-form-title">Edit Account Information</h4>
 								<p class="edit-form-subtitle">Update the name information for this account</p>
 							</div>
-
-							<div class="edit-form-content">
-								<form on:submit|preventDefault={handleEditAccount}>
-									<!-- Name Fields -->
-									<div class="edit-name-fields-row">
-										<div class="form-group">
-											<label class="form-label" for="edit-last-name">Last Name *</label>
-											<input 
-												type="text" 
-												id="edit-last-name"
-												class="form-input" 
-												bind:value={editLastName}
-												placeholder="Enter last name"
-												required
-											/>
-										</div>
-
-										<div class="form-group">
-											<label class="form-label" for="edit-first-name">First Name *</label>
-											<input 
-												type="text" 
-												id="edit-first-name"
-												class="form-input" 
-												bind:value={editFirstName}
-												placeholder="Enter first name"
-												required
-											/>
-										</div>
-
-										<div class="form-group">
-											<label class="form-label" for="edit-middle-initial">M.I.</label>
-											<input 
-												type="text" 
-												id="edit-middle-initial"
-												class="form-input" 
-												bind:value={editMiddleInitial}
-												placeholder="M"
-												maxlength="1"
-												style="text-transform: uppercase;"
-											/>
-										</div>
+							
+							<form on:submit|preventDefault={handleEditAccount} class="edit-form-content">
+								<div class="edit-name-fields-row">
+									<div class="form-group">
+										<label class="form-label" for="edit-last-name-{account.id}">Last Name *</label>
+										<input 
+											type="text" 
+											id="edit-last-name-{account.id}"
+											class="form-input" 
+											bind:value={editLastName}
+											placeholder="Enter last name"
+											required
+										/>
 									</div>
 
-									<!-- Form Actions -->
-									<div class="edit-form-actions">
-										<button 
-											type="button" 
-											class="account-cancel-button"
-											on:click={() => toggleEditForm(account)}
-										>
-											Cancel
-										</button>
-										<button 
-											type="submit" 
-											class="account-submit-button"
-											class:loading={isUpdating}
-											disabled={isUpdating || !editFirstName || !editLastName}
-										>
-											{#if isUpdating}
-												Updating...
-											{:else}
-												Save Changes
-											{/if}
-										</button>
+									<div class="form-group">
+										<label class="form-label" for="edit-first-name-{account.id}">First Name *</label>
+										<input 
+											type="text" 
+											id="edit-first-name-{account.id}"
+											class="form-input" 
+											bind:value={editFirstName}
+											placeholder="Enter first name"
+											required
+										/>
 									</div>
-								</form>
-							</div>
+
+									<div class="form-group">
+										<label class="form-label" for="edit-middle-initial-{account.id}">M.I.</label>
+										<input 
+											type="text" 
+											id="edit-middle-initial-{account.id}"
+											class="form-input" 
+											bind:value={editMiddleInitial}
+											placeholder="M"
+											maxlength="1"
+											style="text-transform: uppercase;"
+										/>
+									</div>
+								</div>
+
+								<!-- Subject field for teacher accounts only -->
+								{#if account.type.toLowerCase() === 'teacher'}
+									<div class="form-group">
+										<label class="form-label" for="edit-subject-{account.id}">Subject</label>
+										<div class="custom-dropdown" class:open={isEditSubjectDropdownOpen}>
+											<button 
+												type="button"
+												class="dropdown-trigger" 
+												class:selected={editSubjectId}
+												on:click={toggleEditSubjectDropdown}
+												id="edit-subject-{account.id}"
+											>
+												{#if editSubject}
+													<div class="selected-option">
+														<div class="option-content">
+															<span class="option-name">{editSubject}</span>
+														</div>
+													</div>
+												{:else}
+													<span class="placeholder">Select subject</span>
+												{/if}
+												<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+											</button>
+											<div class="dropdown-menu">
+												{#each subjectOptions as subject (subject.id)}
+													<button 
+														type="button"
+														class="dropdown-option" 
+														class:selected={editSubjectId === subject.id}
+														on:click={() => selectEditSubject(subject)}
+													>
+														<div class="option-content">
+															<span class="option-name">{subject.displayName}</span>
+														</div>
+													</button>
+												{/each}
+											</div>
+										</div>
+									</div>
+								{/if}
+
+								<div class="edit-form-actions">
+									<button 
+										type="button" 
+										class="account-cancel-button"
+										on:click={() => toggleEditForm(account)}
+									>
+										Cancel
+									</button>
+									<button 
+										type="submit" 
+										class="account-submit-button"
+										class:loading={isUpdating}
+										disabled={isUpdating || !editFirstName || !editLastName}
+									>
+										{#if isUpdating}
+											Updating...
+										{:else}
+											Update Account
+										{/if}
+									</button>
+								</div>
+							</form>
 						</div>
 					</div>
 				{/if}
 			</div>
 		{:else}
 			<div class="no-results">
-				<span class="material-symbols-outlined no-results-icon">person_off</span>
-				<p>No accounts found. Create your first account above.</p>
+				<span class="material-symbols-outlined no-results-icon">
+					{searchQuery ? 'search_off' : 'person_off'}
+				</span>
+				<p>
+					{#if searchQuery}
+						No accounts found matching "{searchQuery}".
+					{:else}
+						No {selectedFilter === 'all' ? '' : selectedFilterObj?.name.toLowerCase() || ''} accounts found.
+					{/if}
+				</p>
+				{#if searchQuery}
+					<button 
+						type="button" 
+						class="clear-search-button-inline"
+						on:click={() => searchQuery = ''}
+					>
+						Clear search
+					</button>
+				{/if}
 			</div>
 		{/each}
 		{/if}

@@ -491,27 +491,20 @@
 
 /* No Results Message */
 .no-results {
-  text-align: center;
-  padding: var(--spacing-xl);
-  color: var(--md-sys-color-on-surface-variant);
-  border: 2px dashed var(--md-sys-color-outline-variant);
-  border-radius: var(--radius-lg);
-  margin-top: var(--spacing-lg);
+	text-align: center;
+	padding: var(--spacing-xl) var(--spacing-lg);
+	color: var(--text-secondary);
 }
 
 .no-results-icon {
-  font-size: 48px;
-  margin-bottom: var(--spacing-md);
-  display: block;
-  color: var(--md-sys-color-on-surface-variant);
-  opacity: 0.7;
+	font-size: 3rem;
+	margin-bottom: var(--spacing-md);
+	opacity: 0.5;
 }
 
 .no-results p {
-  font-family: var(--md-sys-typescale-body-large-font);
-  font-size: var(--md-sys-typescale-body-large-size);
-  color: var(--md-sys-color-on-surface-variant);
-  margin: 0;
+	margin: 0;
+	font-size: var(--font-size-body-medium);
 }
 
 /* Recent Accounts Section */
@@ -521,6 +514,128 @@
   padding: var(--spacing-xl);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.section-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+}
+
+.section-title-group {
+  flex: 1;
+}
+
+/* Search and Filter Container */
+.search-filter-container {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+  min-width: 400px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
+  min-height: 58px;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
+}
+
+.search-icon {
+  position: absolute;
+  left: calc(var(--spacing-sm) + 5px);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-left: 40px;
+  padding-right: 40px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  transition: all var(--transition-normal);
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.clear-search-button {
+  position: absolute;
+  right: var(--spacing-xs);
+  background: none;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+  font-size: 18px;
+  z-index: 2;
+}
+
+.clear-search-button:hover {
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+.clear-search-button-inline {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--md-sys-typescale-body-medium-size);
+  font-weight: 500;
+  transition: all var(--transition-normal);
+  margin-top: var(--spacing-sm);
+}
+
+.clear-search-button-inline:hover {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.filter-container {
+  flex-shrink: 0;
+  min-width: 200px;
+}
+
+.filter-trigger {
+  min-width: 200px;
+  font-size: var(--md-sys-typescale-body-medium-size);
 }
 
 .accounts-grid {
@@ -722,6 +837,21 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-sm);
+  }
+
+  .section-header-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+
+  .filter-container {
+    min-width: auto;
+  }
+
+  .filter-trigger {
+    min-width: auto;
+    width: 100%;
   }
 }
 
