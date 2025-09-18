@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 // POST /api/accounts - Create a new account
 export async function POST({ request }) {
   try {
-    const { accountType, gender, subjectId, firstName, lastName, middleInitial, email } = await request.json();
+    const { accountType, gender, subjectId, yearLevel, firstName, lastName, middleInitial, email } = await request.json();
     
     // Validate required fields
     if (!accountType || !gender || !firstName || !lastName) {
@@ -20,6 +20,11 @@ export async function POST({ request }) {
     // Validate subject for teachers
     if (accountType === 'teacher' && !subjectId) {
       return json({ error: 'Subject is required for teachers' }, { status: 400 });
+    }
+    
+    // Validate year level for students
+    if (accountType === 'student' && !yearLevel) {
+      return json({ error: 'Year level is required for students' }, { status: 400 });
     }
     
     // Generate account number
@@ -43,9 +48,10 @@ export async function POST({ request }) {
         gender, 
         email, 
         subject_id, 
+        year_level,
         password_hash,
         created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
       RETURNING id, account_number, full_name, account_type, created_at, updated_at
     `;
     
@@ -59,6 +65,7 @@ export async function POST({ request }) {
       gender,
       email || null,
       subjectId || null,
+      yearLevel || null,
       hashedPassword
     ];
     
@@ -124,6 +131,7 @@ export async function GET({ url }) {
         u.middle_initial,
         u.account_type,
         u.subject_id,
+        u.year_level,
         s.name as subject_name,
         u.created_at,
         u.updated_at
@@ -146,6 +154,7 @@ export async function GET({ url }) {
       number: account.account_number,
       subject: account.subject_name || '',
       subjectId: account.subject_id,
+      yearLevel: account.year_level,
       createdDate: new Date(account.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(account.updated_at).toLocaleDateString('en-US'),
       status: 'active'
@@ -173,7 +182,7 @@ export async function GET({ url }) {
 // PUT /api/accounts - Update an existing account
 export async function PUT({ request }) {
   try {
-    const { id, firstName, lastName, middleInitial, subject } = await request.json();
+    const { id, firstName, lastName, middleInitial, subject, yearLevel } = await request.json();
     
     // Validate required fields
     if (!id || !firstName || !lastName) {
@@ -219,7 +228,7 @@ export async function PUT({ request }) {
           subject_id = $5,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $6
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, created_at, updated_at
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, created_at, updated_at
       `;
       values = [
         firstName,
@@ -229,8 +238,30 @@ export async function PUT({ request }) {
         subjectId,
         id
       ];
+    } else if (accountType === 'student') {
+      // Update with year_level for student accounts
+      updateQuery = `
+        UPDATE users 
+        SET 
+          first_name = $1,
+          last_name = $2,
+          middle_initial = $3,
+          full_name = $4,
+          year_level = $5,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $6
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, created_at, updated_at
+      `;
+      values = [
+        firstName,
+        lastName,
+        middleInitial || null,
+        fullName,
+        yearLevel || null,
+        id
+      ];
     } else {
-      // Update without subject_id for non-teacher accounts
+      // Update without subject_id or year_level for admin accounts
       updateQuery = `
         UPDATE users 
         SET 
@@ -240,7 +271,7 @@ export async function PUT({ request }) {
           full_name = $4,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $5
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, created_at, updated_at
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, created_at, updated_at
       `;
       values = [
         firstName,

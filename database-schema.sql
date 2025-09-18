@@ -6,6 +6,7 @@
 -- If updating an existing database, run the following commands:
 -- ALTER TABLE subjects DROP COLUMN IF EXISTS status;
 -- DROP INDEX IF EXISTS idx_subjects_status;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS year_level VARCHAR(20);
 
 CREATE TABLE IF NOT EXISTS subjects (
     id SERIAL PRIMARY KEY,
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
     gender VARCHAR(10) NOT NULL CHECK (gender IN ('male', 'female')),
     email VARCHAR(255),
     subject_id INTEGER REFERENCES subjects(id),
+    year_level VARCHAR(20),
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
