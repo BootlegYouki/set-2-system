@@ -397,11 +397,26 @@
 .account-card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: var(--spacing-md);
 }
 
 .account-title {
   display: block;
+}
+
+.account-id {
+  display: flex;
+  align-items: center;
+}
+
+.student-id {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-primary-container);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
 }
 
 .account-name {
@@ -412,9 +427,9 @@
 }
 
 /* Account Details */
-.account-details {
+.master-account-details {
   display: flex;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-md);
   flex-wrap: wrap;
   margin-bottom: var(--spacing-md);
 }

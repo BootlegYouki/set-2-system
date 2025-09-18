@@ -17,10 +17,10 @@
 	// Year level options
 	const yearLevelOptions = [
 		{ id: '', name: 'All Year Levels', icon: 'school' },
-		{ id: 'grade-7', name: '1st Year', icon: 'looks_one' },
-		{ id: 'grade-8', name: '2nd Year', icon: 'looks_two' },
-		{ id: 'grade-9', name: '3rd Year', icon: 'looks_3' },
-		{ id: 'grade-10', name: '4th Year', icon: 'looks_4' },
+		{ id: '1st', name: '1st Year', icon: 'looks_one' },
+		{ id: '2nd', name: '2nd Year', icon: 'looks_two' },
+		{ id: '3rd', name: '3rd Year', icon: 'looks_3' },
+		{ id: '4th', name: '4th Year', icon: 'looks_4' },
 	];
 
 	// Section options
@@ -285,7 +285,6 @@
 						on:click={clearFilters}
 					>
 						<span class="material-symbols-outlined">filter_list_off</span>
-						Clear Filters
 					</button>
 				{/if}
 			</div>
@@ -305,17 +304,16 @@
 					<div class="account-card">
 						<div class="account-card-header">
 							<div class="account-title">
-								<h3 class="account-name">{student.name} · Student</h3>
+								<h3 class="account-name">{student.name} · {student.yearLevel || 'Not specified'} Year</h3>
 							</div>
-						</div>
-						
-						<div class="account-details">
 							{#if student.number}
-								<div class="account-detail-item">
-									<span class="material-symbols-outlined">badge</span>
-									<span>ID: {student.number}</span>
+								<div class="account-id">
+									<span class="student-id">ID: {student.number}</span>
 								</div>
 							{/if}
+						</div>
+						
+						<div class="master-account-details">
 							{#if student.email}
 								<div class="account-detail-item">
 									<span class="material-symbols-outlined">email</span>
@@ -386,7 +384,6 @@
 						class="clear-search-button-inline"
 						on:click={clearFilters}
 					>
-						Clear filters
 					</button>
 				{/if}
 			</div>
