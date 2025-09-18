@@ -14,6 +14,13 @@
 	let lastName = '';
 	let middleInitial = '';
 	let email = '';
+	
+	// Additional Information for students
+	let birthdate = '';
+	let address = '';
+	let guardian = '';
+	let contactNumber = '';
+	let calculatedAge = 0;
 
 	// Custom dropdown state
 	let isDropdownOpen = false;
@@ -36,6 +43,16 @@
 	let isEditSubjectDropdownOpen = false;
 	let isEditYearLevelDropdownOpen = false;
 	let isUpdating = false;
+	
+	// Edit additional information for students
+	let editBirthdate = '';
+	let editAddress = '';
+	let editGuardian = '';
+	let editContactNumber = '';
+	let editCalculatedAge = 0;
+	
+	// Current account being edited (reactive)
+	$: currentAccount = editingAccountId ? recentAccounts.find(account => account.id === editingAccountId) : null;
 
 	// Search functionality
 	let searchQuery = '';
@@ -139,6 +156,11 @@
 			editSubject = '';
 			editSubjectId = null;
 			editYearLevel = '';
+			editBirthdate = '';
+			editAddress = '';
+			editGuardian = '';
+			editContactNumber = '';
+			editCalculatedAge = 0;
 			isEditSubjectDropdownOpen = false;
 			isEditYearLevelDropdownOpen = false;
 		} else {
@@ -152,6 +174,10 @@
 				editSubject = account.subject || '';
 				editSubjectId = account.subjectId || null;
 				editYearLevel = account.yearLevel || '';
+				editBirthdate = account.birthdate || '';
+				editAddress = account.address || '';
+				editGuardian = account.guardian || '';
+				editContactNumber = account.contactNumber || '';
 			} else {
 				// Fallback: Parse the name (assuming format: "LastName, FirstName M.I." or "LastName, FirstName")
 				const nameParts = account.name.split(', ');
@@ -170,6 +196,10 @@
 				editSubject = account.subject || '';
 				editSubjectId = account.subjectId || null;
 				editYearLevel = account.yearLevel || '';
+				editBirthdate = account.birthdate || '';
+				editAddress = account.address || '';
+				editGuardian = account.guardian || '';
+				editContactNumber = account.contactNumber || '';
 			}
 		}
 	}
@@ -180,12 +210,17 @@
 			return;
 		}
 
+		// Additional validation for student accounts
+		if (currentAccount && currentAccount.type.toLowerCase() === 'student') {
+			if (!editBirthdate || !editAddress || !editGuardian || !editContactNumber) {
+				toastStore.error('Please fill in all required student information fields.');
+				return;
+			}
+		}
+
 		isUpdating = true;
 
 		try {
-			// Find the current account to check its type
-			const currentAccount = recentAccounts.find(account => account.id === editingAccountId);
-			
 			// Prepare the request body
 			const requestBody = {
 				id: editingAccountId,
@@ -201,9 +236,13 @@
 				requestBody.subject = selectedSubjectObj ? selectedSubjectObj.name : null;
 			}
 
-			// Add year level only for student accounts
+			// Add year level and additional info for student accounts
 			if (currentAccount && currentAccount.type.toLowerCase() === 'student') {
 				requestBody.yearLevel = editYearLevel || null;
+				requestBody.birthdate = editBirthdate || null;
+				requestBody.address = editAddress ? editAddress.trim() : null;
+				requestBody.guardian = editGuardian ? editGuardian.trim() : null;
+				requestBody.contactNumber = editContactNumber ? editContactNumber.trim() : null;
 			}
 
 			const response = await fetch('/api/accounts', {
@@ -235,6 +274,11 @@
 				editMiddleInitial = '';
 				editSubject = '';
 				editYearLevel = '';
+				editBirthdate = '';
+				editAddress = '';
+				editGuardian = '';
+				editContactNumber = '';
+				editCalculatedAge = 0;
 			} else {
 				toastStore.error(result.error || 'Failed to update account');
 			}
@@ -351,6 +395,14 @@
 			toastStore.error('Please select a year level for the student account.');
 			return;
 		}
+		
+		// Check if student account requires additional information
+		if (selectedAccountType === 'student') {
+			if (!birthdate || !address || !guardian || !contactNumber) {
+				toastStore.error('Please fill in all additional information fields for the student account.');
+				return;
+			}
+		}
 
 		// Check if teacher account requires subject selection
 		if (selectedAccountType === 'teacher' && !selectedSubject) {
@@ -375,7 +427,11 @@
 					firstName,
 					lastName,
 					middleInitial,
-					email
+					email,
+					birthdate: selectedAccountType === 'student' ? birthdate : null,
+					address: selectedAccountType === 'student' ? address : null,
+					guardian: selectedAccountType === 'student' ? guardian : null,
+					contactNumber: selectedAccountType === 'student' ? contactNumber : null
 				})
 			});
 
@@ -401,6 +457,11 @@
 			lastName = '';
 			middleInitial = '';
 			email = '';
+			birthdate = '';
+			address = '';
+			guardian = '';
+			contactNumber = '';
+			calculatedAge = 0;
 
 		} catch (error) {
 			console.error('Error creating account:', error);
@@ -427,6 +488,38 @@
 
 	// Get selected edit year level object
 	$: selectedEditYearLevelObj = yearLevelOptions.find(yearLevel => yearLevel.id === editYearLevel);
+
+	// Calculate age from birthdate
+	$: {
+		if (birthdate) {
+			const birthDate = new Date(birthdate);
+			const today = new Date();
+			let age = today.getFullYear() - birthDate.getFullYear();
+			const monthDiff = today.getMonth() - birthDate.getMonth();
+			if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+				age--;
+			}
+			calculatedAge = age >= 0 ? age : 0;
+		} else {
+			calculatedAge = 0;
+		}
+	}
+
+	// Calculate age from edit birthdate
+	$: {
+		if (editBirthdate) {
+			const birthDate = new Date(editBirthdate);
+			const today = new Date();
+			let age = today.getFullYear() - birthDate.getFullYear();
+			const monthDiff = today.getMonth() - birthDate.getMonth();
+			if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+				age--;
+			}
+			editCalculatedAge = age >= 0 ? age : 0;
+		} else {
+			editCalculatedAge = 0;
+		}
+	}
 
 	// Filter accounts based on selected filter and search query
 	$: filteredAccounts = recentAccounts.filter(account => {
@@ -767,6 +860,77 @@
 					</div>
 				{/if}
 
+				<!-- Additional Information Section (for students only) -->
+				{#if selectedAccountType === 'student'}
+					<div class="additional-info-section">
+						<h3 class="section-subtitle">Additional Information</h3>
+						<p class="section-description">Required information for student accounts</p>
+						
+						<div class="form-row">
+							<div class="form-group">
+								<label class="form-label" for="birthdate">Birthdate *</label>
+								<input 
+									type="date" 
+									id="birthdate"
+									class="form-input" 
+									bind:value={birthdate}
+									required
+								/>
+							</div>
+
+							<div class="form-group">
+								<label class="form-label" for="age">Age</label>
+								<input 
+									type="number" 
+									id="age"
+									class="form-input age-display" 
+									value={calculatedAge}
+									readonly
+									placeholder="Auto-calculated"
+								/>
+							</div>
+						</div>
+
+						<div class="form-group">
+							<label class="form-label" for="address">Address *</label>
+							<textarea 
+								id="address"
+								class="form-input form-textarea" 
+								bind:value={address}
+								placeholder="Enter complete address"
+								rows="3"
+								required
+							></textarea>
+						</div>
+
+						<div class="form-row">
+							<div class="form-group">
+								<label class="form-label" for="guardian">Guardian/Parent Name *</label>
+								<input 
+									type="text" 
+									id="guardian"
+									class="form-input" 
+									bind:value={guardian}
+									placeholder="Enter guardian/parent name"
+									required
+								/>
+							</div>
+
+							<div class="form-group">
+								<label class="form-label" for="contact-number">Contact Number *</label>
+								<input 
+									type="tel" 
+									id="contact-number"
+									class="form-input" 
+									bind:value={contactNumber}
+									placeholder="Enter contact number"
+									required
+								/>
+							</div>
+						</div>
+					</div>
+				{/if}
+
 				<!-- Account Number Info -->
 				<div class="form-group">
 					<div class="form-label">
@@ -789,7 +953,7 @@
 						type="submit" 
 						class="create-button"
 						class:loading={isCreating}
-						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || (selectedAccountType === 'teacher' && !selectedSubject) || ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email)}
+						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || (selectedAccountType === 'teacher' && !selectedSubject) || ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email) || (selectedAccountType === 'student' && (!birthdate || !address || !guardian || !contactNumber))}
 					>
 						{#if isCreating}
 							Creating Account...
@@ -924,6 +1088,30 @@
 						<div class="account-detail-item">
 							<span class="material-symbols-outlined">school</span>
 							<span>{account.yearLevel} Year</span>
+						</div>
+					{/if}
+					{#if account.type === 'Student' && account.age}
+						<div class="account-detail-item">
+							<span class="material-symbols-outlined">cake</span>
+							<span>Age: {account.age}</span>
+						</div>
+					{/if}
+					{#if account.type === 'Student' && account.guardian}
+						<div class="account-detail-item">
+							<span class="material-symbols-outlined">family_restroom</span>
+							<span>Guardian: {account.guardian}</span>
+						</div>
+					{/if}
+					{#if account.type === 'Student' && account.contactNumber}
+						<div class="account-detail-item">
+							<span class="material-symbols-outlined">phone</span>
+							<span>Contact: {account.contactNumber}</span>
+						</div>
+					{/if}
+					{#if account.type === 'Student' && account.address}
+						<div class="account-detail-item">
+							<span class="material-symbols-outlined">home</span>
+							<span>Address: {account.address}</span>
 						</div>
 					{/if}
 					{#if account.type === 'Teacher' && account.subject}
@@ -1073,6 +1261,75 @@
 											</div>
 										</div>
 									</div>
+
+									<!-- Additional Information for Student Edit -->
+									<div class="additional-info-section">
+										<h4 class="section-subtitle">Additional Information</h4>
+										<p class="section-description">Update student additional information</p>
+										
+										<div class="form-row">
+											<div class="form-group">
+												<label class="form-label" for="edit-birthdate-{account.id}">Birthdate *</label>
+												<input 
+													type="date" 
+													id="edit-birthdate-{account.id}"
+													class="form-input" 
+													bind:value={editBirthdate}
+													required
+												/>
+											</div>
+
+											<div class="form-group">
+												<label class="form-label" for="edit-age-{account.id}">Age</label>
+												<input 
+													type="number" 
+													id="edit-age-{account.id}"
+													class="form-input age-display" 
+													value={editCalculatedAge}
+													readonly
+													placeholder="Auto-calculated"
+												/>
+											</div>
+										</div>
+
+										<div class="form-group">
+											<label class="form-label" for="edit-address-{account.id}">Address *</label>
+											<textarea 
+												id="edit-address-{account.id}"
+												class="form-input form-textarea" 
+												bind:value={editAddress}
+												placeholder="Enter complete address"
+												rows="3"
+												required
+											></textarea>
+										</div>
+
+										<div class="form-row">
+											<div class="form-group">
+												<label class="form-label" for="edit-guardian-{account.id}">Guardian/Parent Name *</label>
+												<input 
+													type="text" 
+													id="edit-guardian-{account.id}"
+													class="form-input" 
+													bind:value={editGuardian}
+													placeholder="Enter guardian/parent name"
+													required
+												/>
+											</div>
+
+											<div class="form-group">
+												<label class="form-label" for="edit-contact-number-{account.id}">Contact Number *</label>
+												<input 
+													type="tel" 
+													id="edit-contact-number-{account.id}"
+													class="form-input" 
+													bind:value={editContactNumber}
+													placeholder="Enter contact number"
+													required
+												/>
+											</div>
+										</div>
+									</div>
 								{/if}
 
 								<div class="edit-form-actions">
@@ -1087,7 +1344,7 @@
 										type="submit" 
 										class="account-submit-button"
 										class:loading={isUpdating}
-										disabled={isUpdating || !editFirstName || !editLastName}
+										disabled={isUpdating || !editFirstName || !editLastName || (currentAccount && currentAccount.type.toLowerCase() === 'student' && (!editBirthdate || !editAddress || !editGuardian || !editContactNumber))}
 									>
 										{#if isUpdating}
 											Updating...

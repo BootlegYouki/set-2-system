@@ -7,6 +7,11 @@
 -- ALTER TABLE subjects DROP COLUMN IF EXISTS status;
 -- DROP INDEX IF EXISTS idx_subjects_status;
 -- ALTER TABLE users ADD COLUMN IF NOT EXISTS year_level VARCHAR(20);
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS birthdate DATE;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER;
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS guardian VARCHAR(255);
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS contact_number VARCHAR(20);
 
 CREATE TABLE IF NOT EXISTS subjects (
     id SERIAL PRIMARY KEY,
@@ -30,6 +35,11 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255),
     subject_id INTEGER REFERENCES subjects(id),
     year_level VARCHAR(20),
+    birthdate DATE,
+    address TEXT,
+    age INTEGER,
+    guardian VARCHAR(255),
+    contact_number VARCHAR(20),
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

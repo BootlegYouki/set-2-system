@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 // POST /api/accounts - Create a new account
 export async function POST({ request }) {
   try {
-    const { accountType, gender, subjectId, yearLevel, firstName, lastName, middleInitial, email } = await request.json();
+    const { accountType, gender, subjectId, yearLevel, firstName, lastName, middleInitial, email, birthdate, address, guardian, contactNumber } = await request.json();
     
     // Validate required fields
     if (!accountType || !gender || !firstName || !lastName) {
@@ -25,6 +25,25 @@ export async function POST({ request }) {
     // Validate year level for students
     if (accountType === 'student' && !yearLevel) {
       return json({ error: 'Year level is required for students' }, { status: 400 });
+    }
+    
+    // Validate additional information for students
+    if (accountType === 'student') {
+      if (!birthdate || !address || !guardian || !contactNumber) {
+        return json({ error: 'Birthdate, address, guardian, and contact number are required for students' }, { status: 400 });
+      }
+    }
+    
+    // Calculate age from birthdate for students
+    let age = null;
+    if (accountType === 'student' && birthdate) {
+      const birthDate = new Date(birthdate);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
     }
     
     // Generate account number
@@ -49,9 +68,14 @@ export async function POST({ request }) {
         email, 
         subject_id, 
         year_level,
+        birthdate,
+        address,
+        age,
+        guardian,
+        contact_number,
         password_hash,
         created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
       RETURNING id, account_number, full_name, account_type, created_at, updated_at
     `;
     
@@ -66,6 +90,11 @@ export async function POST({ request }) {
       email || null,
       subjectId || null,
       yearLevel || null,
+      birthdate || null,
+      address || null,
+      age,
+      guardian || null,
+      contactNumber || null,
       hashedPassword
     ];
     
@@ -132,6 +161,11 @@ export async function GET({ url }) {
         u.account_type,
         u.subject_id,
         u.year_level,
+        u.birthdate,
+        u.address,
+        u.age,
+        u.guardian,
+        u.contact_number,
         s.name as subject_name,
         u.created_at,
         u.updated_at
@@ -155,6 +189,11 @@ export async function GET({ url }) {
       subject: account.subject_name || '',
       subjectId: account.subject_id,
       yearLevel: account.year_level,
+      birthdate: account.birthdate,
+      address: account.address,
+      age: account.age,
+      guardian: account.guardian,
+      contactNumber: account.contact_number,
       createdDate: new Date(account.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(account.updated_at).toLocaleDateString('en-US'),
       status: 'active'
@@ -182,7 +221,7 @@ export async function GET({ url }) {
 // PUT /api/accounts - Update an existing account
 export async function PUT({ request }) {
   try {
-    const { id, firstName, lastName, middleInitial, subject, yearLevel } = await request.json();
+    const { id, firstName, lastName, middleInitial, subject, yearLevel, birthdate, address, guardian, contactNumber } = await request.json();
     
     // Validate required fields
     if (!id || !firstName || !lastName) {
@@ -198,6 +237,25 @@ export async function PUT({ request }) {
     }
     
     const accountType = checkResult.rows[0].account_type;
+    
+    // Validate additional information for students
+    if (accountType === 'student') {
+      if (!birthdate || !address || !guardian || !contactNumber) {
+        return json({ error: 'Birthdate, address, guardian, and contact number are required for students' }, { status: 400 });
+      }
+    }
+    
+    // Calculate age from birthdate for students
+    let age = null;
+    if (accountType === 'student' && birthdate) {
+      const birthDate = new Date(birthdate);
+      const today = new Date();
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
     
     // Construct full name
     const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
@@ -228,7 +286,7 @@ export async function PUT({ request }) {
           subject_id = $5,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $6
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, created_at, updated_at
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
       `;
       values = [
         firstName,
@@ -239,7 +297,7 @@ export async function PUT({ request }) {
         id
       ];
     } else if (accountType === 'student') {
-      // Update with year_level for student accounts
+      // Update with year_level and additional information for student accounts
       updateQuery = `
         UPDATE users 
         SET 
@@ -248,9 +306,14 @@ export async function PUT({ request }) {
           middle_initial = $3,
           full_name = $4,
           year_level = $5,
+          birthdate = $6,
+          address = $7,
+          age = $8,
+          guardian = $9,
+          contact_number = $10,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $6
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, created_at, updated_at
+        WHERE id = $11
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
       `;
       values = [
         firstName,
@@ -258,6 +321,11 @@ export async function PUT({ request }) {
         middleInitial || null,
         fullName,
         yearLevel || null,
+        birthdate || null,
+        address || null,
+        age,
+        guardian || null,
+        contactNumber || null,
         id
       ];
     } else {
@@ -271,7 +339,7 @@ export async function PUT({ request }) {
           full_name = $4,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $5
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, created_at, updated_at
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, year_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
       `;
       values = [
         firstName,
@@ -306,6 +374,12 @@ export async function PUT({ request }) {
       number: updatedAccount.account_number,
       subject: subjectName,
       subjectId: updatedAccount.subject_id,
+      yearLevel: updatedAccount.year_level,
+      birthdate: updatedAccount.birthdate,
+      address: updatedAccount.address,
+      age: updatedAccount.age,
+      guardian: updatedAccount.guardian,
+      contactNumber: updatedAccount.contact_number,
       createdDate: new Date(updatedAccount.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(updatedAccount.updated_at).toLocaleDateString('en-US'),
       status: 'active'
