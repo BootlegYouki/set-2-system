@@ -99,7 +99,7 @@
   .student-portal.nav-rail-collapsed .content-area, 
   .teacher-portal.nav-rail-collapsed .content-area,
   .admin-portal.nav-rail-collapsed .content-area {
-    left: 220px;
+    left: 230px;
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
 }

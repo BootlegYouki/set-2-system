@@ -3,22 +3,52 @@
 	// Props
 	let { adminActiveSection = $bindable('dashboard'), adminNavRailVisible = true, onnavigate } = $props();
 
-	// Navigation items
+	// Folder state
+	let managementFolderExpanded = $state(false);
+
+	// Navigation items with folder structure
 	const navigationItems = [
 		{
 			id: 'dashboard',
 			label: 'Dashboard',
-			icon: 'dashboard'
+			icon: 'dashboard',
+			type: 'item'
 		},
 		{
-			id: 'room-management',
-			label: 'Room Management',
-			icon: 'meeting_room'
+			id: 'management-folder',
+			label: 'Management',
+			icon: 'folder',
+			type: 'folder',
+			expanded: managementFolderExpanded,
+			items: [
+				{
+					id: 'room-management',
+					label: 'Room Management',
+					icon: 'meeting_room'
+				},
+				{
+					id: 'section-management',
+					label: 'Section Management',
+					icon: 'class'
+				},
+				{
+					id: 'schedule-management',
+					label: 'Schedule Management',
+					icon: 'schedule'
+				}
+			]
 		},
 		{
-			id: 'section-management',
-			label: 'Section Management',
-			icon: 'class'
+			id: 'document-requests',
+			label: 'Document Requests',
+			icon: 'description',
+			type: 'item'
+		},
+		{
+			id: 'account-creation',
+			label: 'Account Creation',
+			icon: 'person_add',
+			type: 'item'
 		},
 		{
 			id: 'subject-creation',
@@ -26,24 +56,10 @@
 			icon: 'subject'
 		},
 		{
-			id: 'schedule-management',
-			label: 'Schedule Management',
-			icon: 'schedule'
-		},
-		{
-			id: 'document-requests',
-			label: 'Document Requests',
-			icon: 'description'
-		},
-		{
-			id: 'account-creation',
-			label: 'Account Creation',
-			icon: 'person_add'
-		},
-		{
 			id: 'student-masterlist',
 			label: 'Student Masterlist',
-			icon: 'groups'
+			icon: 'groups',
+			type: 'item'
 		},
 	];
 
@@ -55,26 +71,80 @@
 			onnavigate({ detail: { section: sectionId } });
 		}
 	}
+
+	// Handle folder toggle
+	function toggleFolder(folderId) {
+		if (folderId === 'management-folder') {
+			managementFolderExpanded = !managementFolderExpanded;
+		}
+	}
+
+	// Check if any item in folder is active
+	function isFolderActive(folder) {
+		return folder.items?.some(item => item.id === adminActiveSection) || false;
+	}
 </script>
 
 <!-- Navigation Rail (Desktop) -->
 <nav class="admin-menu-navigation-rail" class:collapsed={!adminNavRailVisible} role="navigation" aria-label="Admin portal navigation">
 	<div class="admin-menu-rail-container">
 		{#each navigationItems as item (item.id)}
-			<button 
-				class="admin-menu-rail-item" 
-				class:active={item.id === adminActiveSection}
-				onclick={() => handleNavigation(item.id)}
-				aria-label={item.label}
-				aria-current={item.id === adminActiveSection ? 'page' : undefined}
-			>
-				<div class="admin-menu-rail-icon-container">
-					<span class="material-symbols-outlined admin-menu-rail-icon">
-						{item.icon}
-					</span>
-				</div>
-				<span class="admin-menu-rail-label">{item.label}</span>
-			</button>
+			{#if item.type === 'folder'}
+				<!-- Folder item -->
+				<button 
+					class="admin-menu-rail-item admin-menu-folder" 
+					class:active={isFolderActive(item)}
+					class:expanded={managementFolderExpanded}
+					onclick={() => toggleFolder(item.id)}
+					aria-label={item.label}
+					aria-expanded={managementFolderExpanded}
+				>
+					<div class="admin-menu-rail-icon-container">
+						<span class="material-symbols-outlined admin-menu-rail-icon">
+							{managementFolderExpanded ? 'folder_open' : 'folder'}
+						</span>
+					</div>
+					<span class="admin-menu-rail-label">{item.label}</span>
+				</button>
+				
+				<!-- Folder contents -->
+				{#if managementFolderExpanded}
+					<div class="admin-menu-folder-contents">
+						{#each item.items as subItem (subItem.id)}
+							<button 
+								class="admin-menu-rail-item admin-menu-sub-item" 
+								class:active={subItem.id === adminActiveSection}
+								onclick={() => handleNavigation(subItem.id)}
+								aria-label={subItem.label}
+								aria-current={subItem.id === adminActiveSection ? 'page' : undefined}
+							>
+								<div class="admin-menu-rail-icon-container">
+									<span class="material-symbols-outlined admin-menu-rail-icon">
+										{subItem.icon}
+									</span>
+								</div>
+								<span class="admin-menu-rail-label">{subItem.label}</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			{:else}
+				<!-- Regular item -->
+				<button 
+					class="admin-menu-rail-item" 
+					class:active={item.id === adminActiveSection}
+					onclick={() => handleNavigation(item.id)}
+					aria-label={item.label}
+					aria-current={item.id === adminActiveSection ? 'page' : undefined}
+				>
+					<div class="admin-menu-rail-icon-container">
+						<span class="material-symbols-outlined admin-menu-rail-icon">
+							{item.icon}
+						</span>
+					</div>
+					<span class="admin-menu-rail-label">{item.label}</span>
+				</button>
+			{/if}
 		{/each}
 	</div>
 </nav>
@@ -84,19 +154,65 @@
 	<div class="admin-menu-nav-container">
 		<!-- Navigation items -->
 		{#each navigationItems as item (item.id)}
-			<button 
-				class="admin-menu-nav-item" 
-				class:active={item.id === adminActiveSection}
-				onclick={() => handleNavigation(item.id)}
-				aria-label={item.label}
-				aria-current={item.id === adminActiveSection ? 'page' : undefined}
-			>
-				<div class="admin-menu-nav-icon-container">
-					<span class="material-symbols-outlined admin-menu-nav-icon">
-						{item.icon}
-					</span>
-				</div>
-			</button>
+			{#if item.type === 'folder'}
+				<!-- Folder item for mobile -->
+				<button 
+					class="admin-menu-nav-item admin-menu-folder" 
+					class:active={isFolderActive(item)}
+					onclick={() => toggleFolder(item.id)}
+					aria-label={item.label}
+					aria-expanded={managementFolderExpanded}
+				>
+					<div class="admin-menu-nav-icon-container">
+						<span class="material-symbols-outlined admin-menu-nav-icon">
+							{managementFolderExpanded ? 'folder_open' : 'folder'}
+						</span>
+					</div>
+				</button>
+			{:else}
+				<!-- Regular item for mobile -->
+				<button 
+					class="admin-menu-nav-item" 
+					class:active={item.id === adminActiveSection}
+					onclick={() => handleNavigation(item.id)}
+					aria-label={item.label}
+					aria-current={item.id === adminActiveSection ? 'page' : undefined}
+				>
+					<div class="admin-menu-nav-icon-container">
+						<span class="material-symbols-outlined admin-menu-nav-icon">
+							{item.icon}
+						</span>
+					</div>
+				</button>
+			{/if}
 		{/each}
-	</div>
+	
+	<!-- Mobile folder overlay -->
+	{#if managementFolderExpanded}
+		<div class="admin-menu-mobile-folder-overlay" onclick={() => toggleFolder('management-folder')}>
+			<div class="admin-menu-mobile-folder-content" onclick={(e) => e.stopPropagation()}>
+				<div class="admin-menu-mobile-folder-header">
+					<h3>Management</h3>
+					<button class="admin-menu-close-folder" onclick={() => toggleFolder('management-folder')}>
+						<span class="material-symbols-outlined">close</span>
+					</button>
+				</div>
+				<div class="admin-menu-mobile-folder-items">
+					{#each navigationItems.find(item => item.id === 'management-folder')?.items || [] as subItem (subItem.id)}
+						<button 
+							class="admin-menu-mobile-folder-item" 
+							class:active={subItem.id === adminActiveSection}
+							onclick={() => {
+								handleNavigation(subItem.id);
+								toggleFolder('management-folder');
+							}}
+						>
+							<span class="material-symbols-outlined">{subItem.icon}</span>
+							<span>{subItem.label}</span>
+						</button>
+					{/each}
+				</div>
+			</div>
+		</div>
+	{/if}
 </nav>

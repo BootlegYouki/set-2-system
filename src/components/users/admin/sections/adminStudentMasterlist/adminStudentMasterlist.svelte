@@ -294,9 +294,9 @@
 	<!-- Students List -->
 	<div class="students-list-section">
 		{#if isLoading}
-			<div class="loading-container">
-				<div class="loading-spinner"></div>
-				<p class="loading-text">Loading students...</p>
+			<div class="masterlist-loading-container">
+				<span class="student-loader"></span>
+				<p class="masterlist-loading-text">Loading students...</p>
 			</div>
 		{:else if filteredStudents.length > 0}
 			<div class="students-grid">
