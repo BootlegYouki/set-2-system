@@ -40,6 +40,11 @@
 			label: 'Account Creation',
 			icon: 'person_add'
 		},
+		{
+			id: 'student-masterlist',
+			label: 'Student Masterlist',
+			icon: 'groups'
+		},
 	];
 
 	// Handle navigation

@@ -1016,7 +1016,7 @@
 							</div>
 
 							<div class="form-group">
-								<label class="form-label" for="contact-number">Contact Number *</label>
+								<label class="form-label" for="contact-number">Guardian's Contact Number *</label>
 								<input 
 									type="tel" 
 									id="contact-number"
@@ -1207,12 +1207,6 @@
 						<div class="account-detail-item">
 							<span class="material-symbols-outlined">phone</span>
 							<span>Contact: {account.contactNumber}</span>
-						</div>
-					{/if}
-					{#if account.type === 'Student' && account.address}
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">home</span>
-							<span>Address: {account.address}</span>
 						</div>
 					{/if}
 					{#if account.type === 'Teacher' && account.subject}
@@ -1426,7 +1420,7 @@
 											</div>
 
 											<div class="form-group">
-												<label class="form-label" for="edit-contact-number-{account.id}">Contact Number *</label>
+												<label class="form-label" for="edit-contact-number-{account.id}">Guardian's Contact Number *</label>
 												<input 
 													type="tel" 
 													id="edit-contact-number-{account.id}"

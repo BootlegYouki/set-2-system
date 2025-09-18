@@ -19,6 +19,7 @@
   import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
   import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
   import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
+  import AdminStudentMasterlist from '../components/users/admin/sections/adminStudentMasterlist/adminStudentMasterlist.svelte';
   import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
   import AdminSectionManagement from '../components/users/admin/sections/adminSectionManagement/adminSectionManagement.svelte';
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
@@ -216,6 +217,8 @@
           <AdminDashboard />
         {:else if adminActiveSection === 'account-creation'}
           <AdminAccountCreation />
+        {:else if adminActiveSection === 'student-masterlist'}
+          <AdminStudentMasterlist />
         {:else if adminActiveSection === 'room-management'}
           <AdminRoomManagement />
         {:else if adminActiveSection === 'section-management'}

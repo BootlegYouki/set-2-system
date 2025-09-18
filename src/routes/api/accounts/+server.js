@@ -149,8 +149,10 @@ export async function POST({ request }) {
 export async function GET({ url }) {
   try {
     const limit = url.searchParams.get('limit') || '10';
+    const type = url.searchParams.get('type'); // Get the type parameter
     
-    const selectQuery = `
+    // Build the query with optional WHERE clause for type filtering
+    let selectQuery = `
       SELECT 
         u.id,
         u.account_number,
@@ -158,6 +160,7 @@ export async function GET({ url }) {
         u.first_name,
         u.last_name,
         u.middle_initial,
+        u.email,
         u.account_type,
         u.subject_id,
         u.year_level,
@@ -171,11 +174,19 @@ export async function GET({ url }) {
         u.updated_at
       FROM users u
       LEFT JOIN subjects s ON u.subject_id = s.id
-      ORDER BY u.created_at DESC
-      LIMIT $1
     `;
     
-    const result = await query(selectQuery, [parseInt(limit)]);
+    const queryParams = [parseInt(limit)];
+    
+    // Add WHERE clause if type parameter is provided
+    if (type) {
+      selectQuery += ` WHERE u.account_type = $2`;
+      queryParams.push(type);
+    }
+    
+    selectQuery += ` ORDER BY u.created_at DESC LIMIT $1`;
+    
+    const result = await query(selectQuery, queryParams);
     
     // Format the data to match frontend expectations
     const accounts = result.rows.map(account => ({
@@ -184,6 +195,7 @@ export async function GET({ url }) {
       firstName: account.first_name,
       lastName: account.last_name,
       middleInitial: account.middle_initial,
+      email: account.email,
       type: account.account_type === 'student' ? 'Student' : account.account_type === 'teacher' ? 'Teacher' : 'Admin',
       number: account.account_number,
       subject: account.subject_name || '',
