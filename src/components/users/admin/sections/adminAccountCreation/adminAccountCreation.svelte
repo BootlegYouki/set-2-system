@@ -54,6 +54,68 @@
 	// Current account being edited (reactive)
 	$: currentAccount = editingAccountId ? recentAccounts.find(account => account.id === editingAccountId) : null;
 
+	// Contact number validation
+	function validateContactNumber(value) {
+		if (!value) return false;
+		
+		// Remove any non-digit characters
+		const digitsOnly = value.replace(/\D/g, '');
+		
+		// Check if it starts with 09 and has exactly 11 digits
+		return digitsOnly.startsWith('09') && digitsOnly.length === 11;
+	}
+
+	function formatContactNumber(value) {
+		// Remove any non-digit characters
+		const digitsOnly = value.replace(/\D/g, '');
+		
+		// Limit to 11 digits
+		return digitsOnly.slice(0, 11);
+	}
+
+	function handleContactNumberInput(event, isEdit = false) {
+		const formatted = formatContactNumber(event.target.value);
+		if (isEdit) {
+			editContactNumber = formatted;
+		} else {
+			contactNumber = formatted;
+		}
+		event.target.value = formatted;
+	}
+
+	// Date validation function
+	function validateDate(dateString) {
+		if (!dateString) return true; // Allow empty dates
+		
+		// Check if the date string is complete (YYYY-MM-DD format for HTML date input)
+		if (dateString.length < 10) return true; // Allow partial input
+		
+		const date = new Date(dateString);
+		const year = date.getFullYear();
+		const currentYear = new Date().getFullYear();
+		
+		// Check if date is valid and year is reasonable (between 1900 and current year + 10)
+		if (isNaN(date.getTime()) || year < 1900 || year > currentYear + 10) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	function handleDateInput(event, isEdit = false) {
+		const dateValue = event.target.value;
+		
+		// Update the bound value immediately without validation during typing
+		if (isEdit) {
+			editBirthdate = dateValue;
+		} else {
+			birthdate = dateValue;
+		}
+		
+		// Only validate on blur (when user finishes typing) or if they try to submit
+		// This prevents interruption during typing
+	}
+
 	// Search functionality
 	let searchQuery = '';
 
@@ -174,7 +236,16 @@
 				editSubject = account.subject || '';
 				editSubjectId = account.subjectId || null;
 				editYearLevel = account.yearLevel || '';
-				editBirthdate = account.birthdate || '';
+				// Format birthdate for date input (YYYY-MM-DD) - timezone safe
+				if (account.birthdate) {
+					const date = new Date(account.birthdate);
+					const year = date.getFullYear();
+					const month = String(date.getMonth() + 1).padStart(2, '0');
+					const day = String(date.getDate()).padStart(2, '0');
+					editBirthdate = `${year}-${month}-${day}`;
+				} else {
+					editBirthdate = '';
+				}
 				editAddress = account.address || '';
 				editGuardian = account.guardian || '';
 				editContactNumber = account.contactNumber || '';
@@ -196,7 +267,16 @@
 				editSubject = account.subject || '';
 				editSubjectId = account.subjectId || null;
 				editYearLevel = account.yearLevel || '';
-				editBirthdate = account.birthdate || '';
+				// Format birthdate for date input (YYYY-MM-DD) - timezone safe
+				if (account.birthdate) {
+					const date = new Date(account.birthdate);
+					const year = date.getFullYear();
+					const month = String(date.getMonth() + 1).padStart(2, '0');
+					const day = String(date.getDate()).padStart(2, '0');
+					editBirthdate = `${year}-${month}-${day}`;
+				} else {
+					editBirthdate = '';
+				}
 				editAddress = account.address || '';
 				editGuardian = account.guardian || '';
 				editContactNumber = account.contactNumber || '';
@@ -214,6 +294,12 @@
 		if (currentAccount && currentAccount.type.toLowerCase() === 'student') {
 			if (!editBirthdate || !editAddress || !editGuardian || !editContactNumber) {
 				toastStore.error('Please fill in all required student information fields.');
+				return;
+			}
+			
+			// Validate contact number format
+			if (!validateContactNumber(editContactNumber)) {
+				toastStore.error('Invalid contact number.');
 				return;
 			}
 		}
@@ -402,6 +488,12 @@
 				toastStore.error('Please fill in all additional information fields for the student account.');
 				return;
 			}
+			
+			// Validate contact number format
+				if (!validateContactNumber(contactNumber)) {
+					toastStore.error('Invalid contact number.');
+					return;
+				}
 		}
 
 		// Check if teacher account requires subject selection
@@ -874,6 +966,13 @@
 									id="birthdate"
 									class="form-input" 
 									bind:value={birthdate}
+									on:blur={(e) => {
+										if (birthdate && !validateDate(birthdate)) {
+											toastStore.error('Invalid date. Please enter a valid date.');
+											birthdate = '';
+											e.target.value = '';
+										}
+									}}
 									required
 								/>
 							</div>
@@ -923,7 +1022,9 @@
 									id="contact-number"
 									class="form-input" 
 									bind:value={contactNumber}
-									placeholder="Enter contact number"
+									on:input={(e) => handleContactNumberInput(e, false)}
+									placeholder="09xxxxxxxxxx"
+									maxlength="11"
 									required
 								/>
 							</div>
@@ -1275,6 +1376,13 @@
 													id="edit-birthdate-{account.id}"
 													class="form-input" 
 													bind:value={editBirthdate}
+													on:blur={(e) => {
+														if (editBirthdate && !validateDate(editBirthdate)) {
+															toastStore.error('Invalid date. Please enter a valid date.');
+															editBirthdate = '';
+															e.target.value = '';
+														}
+													}}
 													required
 												/>
 											</div>
@@ -1324,7 +1432,9 @@
 													id="edit-contact-number-{account.id}"
 													class="form-input" 
 													bind:value={editContactNumber}
-													placeholder="Enter contact number"
+													on:input={(e) => handleContactNumberInput(e, true)}
+													placeholder="09xxxxxxxxxx"
+													maxlength="11"
 													required
 												/>
 											</div>
