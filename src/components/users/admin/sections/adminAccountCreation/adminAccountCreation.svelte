@@ -618,7 +618,13 @@
 		</div>
 
 		<div class="accounts-grid">
-			{#each recentAccounts as account (account.id)}
+			{#if isLoadingAccounts}
+				<div class="loading-container">
+						<span class="loader"></span>
+					<p class="loading-text">Loading accounts...</p>
+				</div>
+			{:else}
+				{#each recentAccounts as account (account.id)}
 			<div class="account-card">
 				<div class="account-card-header">
 					<div class="account-title">
@@ -748,6 +754,7 @@
 				<p>No accounts found. Create your first account above.</p>
 			</div>
 		{/each}
+		{/if}
 		</div>
 	</div>
 </div>

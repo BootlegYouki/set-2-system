@@ -40,11 +40,6 @@
 			label: 'Account Creation',
 			icon: 'person_add'
 		},
-		{
-			id: 'settings',
-			label: 'Settings',
-			icon: 'settings'
-		}
 	];
 
 	// Handle navigation

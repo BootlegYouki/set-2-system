@@ -129,22 +129,26 @@
 	// Add Schedule State
 	let isAddingSchedule = false;
 	let newSchedule = { 
-		startHour: '',
-		startMinute: '',
-		amPm: 'AM',
-		duration: '',
-		calculatedStartTime: '',
-		calculatedEndTime: ''
+		startTime: '',
+		startAmPm: 'AM',
+		endTime: '',
+		endAmPm: 'AM',
+		calculatedDuration: ''
 	};
 	// Array to store saved schedules for current selection
 	let savedSchedules = [];
 	let isFormTeacherDropdownOpen = false;
 	let selectedFormTeacher = '';
-	let isPeriodDropdownOpen = false;
+	let isStartPeriodDropdownOpen = false;
+	let isEndPeriodDropdownOpen = false;
 
 	// Edit assignment states
 	let editingAssignmentId = null;
-	let editAssignmentTime = '';
+	let editStartTime = '';
+	let editStartAmPm = 'AM';
+	let editEndTime = '';
+	let editEndAmPm = 'AM';
+	let editCalculatedDuration = 0;
 	let editAssignmentSubject = '';
 	let editSelectedTeacher = null;
 	let isUpdating = false;
@@ -152,6 +156,8 @@
 	// Edit dropdown states
 	let isEditSubjectDropdownOpen = false;
 	let isEditTeacherDropdownOpen = false;
+	let isEditStartPeriodDropdownOpen = false;
+	let isEditEndPeriodDropdownOpen = false;
 
 	const days = [
 		{ id: 'monday', name: 'Monday' },
@@ -279,10 +285,13 @@
 			isFormSubjectDropdownOpen = false;
 			isFormTimeSlotDropdownOpen = false;
 			isFormTeacherDropdownOpen = false;
-			isPeriodDropdownOpen = false;
+			isStartPeriodDropdownOpen = false;
+			isEndPeriodDropdownOpen = false;
 			// Edit dropdowns
 			isEditSubjectDropdownOpen = false;
 			isEditTeacherDropdownOpen = false;
+			isEditStartPeriodDropdownOpen = false;
+			isEditEndPeriodDropdownOpen = false;
 		}
 	}
 
@@ -459,42 +468,9 @@
 			return;
 		}
 
-		// Convert inputs to numbers for validation
-		const hourInput = newSchedule.startHour;
-		const minuteInput = newSchedule.startMinute;
-		const durationInput = newSchedule.duration;
-
-		// Check if inputs are provided
-		if (!hourInput && hourInput !== 0 && hourInput !== '0') {
-			toastStore.warning('Please enter the hour (1-12)');
-			return;
-		}
-
-		if (!minuteInput && minuteInput !== 0 && minuteInput !== '0') {
-			toastStore.warning('Please enter the minute (0-59)');
-			return;
-		}
-
-		if (!durationInput && durationInput !== 0 && durationInput !== '0') {
-			toastStore.warning('Please enter the duration in minutes');
-			return;
-		}
-
-		// Parse and validate ranges
-		const hour = parseInt(hourInput);
-		const minute = parseInt(minuteInput);
-		const duration = parseInt(durationInput);
-		
-		if (isNaN(hour) || hour < 1 || hour > 12) {
-			toastStore.warning('Hour must be between 1 and 12');
-			return;
-		}
-		if (isNaN(minute) || minute < 0 || minute > 59) {
-			toastStore.warning('Minute must be between 0 and 59');
-			return;
-		}
-		if (isNaN(duration) || duration <= 0) {
-			toastStore.warning('Duration must be greater than 0 minutes');
+		// Check if time inputs are provided
+		if (!newSchedule.startTime || !newSchedule.endTime) {
+			toastStore.warning('Please enter both start and end times');
 			return;
 		}
 
@@ -502,15 +478,14 @@
 		calculateTimeSlot();
 
 		// Check if time calculation was successful after forced recalculation
-		if (!newSchedule.calculatedStartTime || !newSchedule.calculatedEndTime) {
+		if (!newSchedule.calculatedDuration) {
 			toastStore.error('Time calculation failed. Please check your inputs and try again.');
 			console.log('Debug - Time calculation failed:', {
-				hour: hourInput,
-				minute: minuteInput,
-				duration: durationInput,
-				amPm: newSchedule.amPm,
-				calculatedStart: newSchedule.calculatedStartTime,
-				calculatedEnd: newSchedule.calculatedEndTime
+				startTime: newSchedule.startTime,
+				endTime: newSchedule.endTime,
+				startAmPm: newSchedule.startAmPm,
+				endAmPm: newSchedule.endAmPm,
+				calculatedDuration: newSchedule.calculatedDuration
 			});
 			return;
 		}
@@ -521,6 +496,10 @@
 			// Simulate API call
 			await new Promise(resolve => setTimeout(resolve, 1000));
 
+			// Format display times
+			const displayStartTime = `${newSchedule.startTime} ${newSchedule.startAmPm}`;
+			const displayEndTime = `${newSchedule.endTime} ${newSchedule.endAmPm}`;
+
 			// Create new assignment
 				const newAssignment = {
 					id: scheduleAssignments.length + 1,
@@ -530,7 +509,7 @@
 					teacher: selectedFormTeacherObj.name,
 					subject: selectedFormSubjectObj.name,
 					day: selectedFormDayObj.name,
-					timeSlot: `${newSchedule.calculatedStartTime} - ${newSchedule.calculatedEndTime}`,
+					timeSlot: `${displayStartTime} - ${displayEndTime}`,
 					period: 'Custom Period'
 				};
 
@@ -540,8 +519,9 @@
 				// Add to saved schedules for current selection
 				const savedSchedule = {
 					id: Date.now(),
-					startTime: newSchedule.calculatedStartTime,
-					endTime: newSchedule.calculatedEndTime,
+					startTime: displayStartTime,
+					endTime: displayEndTime,
+					duration: newSchedule.calculatedDuration,
 					subject: selectedFormSubjectObj.name,
 					subjectIcon: selectedFormSubjectObj.icon,
 					teacher: selectedFormTeacherObj.name
@@ -553,12 +533,11 @@
 
 			// Reset form
 			newSchedule = { 
-				startHour: '',
-				startMinute: '',
-				amPm: 'AM',
-				duration: '',
-				calculatedStartTime: '',
-				calculatedEndTime: ''
+				startTime: '',
+				startAmPm: 'AM',
+				endTime: '',
+				endAmPm: 'AM',
+				calculatedDuration: ''
 			};
 			selectedFormSubject = '';
 			selectedFormTeacher = '';
@@ -574,29 +553,40 @@
 
 	function cancelAddSchedule() {
 		newSchedule = { 
-			startHour: '',
-			startMinute: '',
-			amPm: 'AM',
-			duration: '',
-			calculatedStartTime: '',
-			calculatedEndTime: ''
+			startTime: '',
+			startAmPm: 'AM',
+			endTime: '',
+			endAmPm: 'AM',
+			calculatedDuration: ''
 		};
 		selectedFormSubject = '';
 		selectedFormTeacher = '';
 		isAddingSchedule = false;
 		isFormSubjectDropdownOpen = false;
 		isFormTeacherDropdownOpen = false;
-		isPeriodDropdownOpen = false;
+		isStartPeriodDropdownOpen = false;
+		isEndPeriodDropdownOpen = false;
 	}
 
 	// Period dropdown functions
-	function togglePeriodDropdown() {
-		isPeriodDropdownOpen = !isPeriodDropdownOpen;
+	function toggleStartPeriodDropdown() {
+		isStartPeriodDropdownOpen = !isStartPeriodDropdownOpen;
+		isEndPeriodDropdownOpen = false;
 	}
 
-	function selectPeriod(period) {
-		newSchedule.amPm = period;
-		isPeriodDropdownOpen = false;
+	function selectStartPeriod(period) {
+		newSchedule.startAmPm = period;
+		isStartPeriodDropdownOpen = false;
+	}
+
+	function toggleEndPeriodDropdown() {
+		isEndPeriodDropdownOpen = !isEndPeriodDropdownOpen;
+		isStartPeriodDropdownOpen = false;
+	}
+
+	function selectEndPeriod(period) {
+		newSchedule.endAmPm = period;
+		isEndPeriodDropdownOpen = false;
 	}
 
 	function removeSchedule(scheduleId) {
@@ -690,23 +680,73 @@
 		if (editingAssignmentId === assignment.id) {
 			// Close the form
 			editingAssignmentId = null;
-			editAssignmentTime = '';
+			editStartTime = '';
+			editStartAmPm = 'AM';
+			editEndTime = '';
+			editEndAmPm = 'AM';
+			editCalculatedDuration = 0;
 			editAssignmentSubject = '';
 			editSelectedTeacher = null;
 			isEditSubjectDropdownOpen = false;
 			isEditTeacherDropdownOpen = false;
+			isEditStartPeriodDropdownOpen = false;
+			isEditEndPeriodDropdownOpen = false;
 		} else {
-			// Open the form
+			// Open the form and parse existing time slot
 			editingAssignmentId = assignment.id;
-			editAssignmentTime = assignment.timeSlot || '';
 			editAssignmentSubject = assignment.subject || '';
 			editSelectedTeacher = teachers.find(teacher => teacher.name === assignment.teacher) || null;
+			
+			// Parse existing time slot (e.g., "8:00 AM - 9:00 AM")
+			if (assignment.timeSlot) {
+				const timeMatch = assignment.timeSlot.match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+				if (timeMatch) {
+					editStartTime = `${timeMatch[1]}:${timeMatch[2]}`;
+					editStartAmPm = timeMatch[3].toUpperCase();
+					editEndTime = `${timeMatch[4]}:${timeMatch[5]}`;
+					editEndAmPm = timeMatch[6].toUpperCase();
+				} else {
+					// Fallback for different formats
+					editStartTime = '';
+					editStartAmPm = 'AM';
+					editEndTime = '';
+					editEndAmPm = 'AM';
+				}
+			} else {
+				editStartTime = '';
+				editStartAmPm = 'AM';
+				editEndTime = '';
+				editEndAmPm = 'AM';
+			}
+			editCalculatedDuration = 0;
 		}
 	}
 
 	async function handleEditAssignment() {
-		if (!editAssignmentTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher) {
+		if (!editStartTime.trim() || !editEndTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher) {
 			toastStore.warning('Please fill in all required fields');
+			return;
+		}
+
+		// Validate time format
+		const timeRegex = /^([0-9]|0[0-9]|1[0-2]):[0-5][0-9]$/;
+		if (!timeRegex.test(editStartTime) || !timeRegex.test(editEndTime)) {
+			toastStore.warning('Please enter valid time in HH:MM format (12-hour)');
+			return;
+		}
+
+		// Calculate duration and validate
+		const startMinutes = convertToMinutes(editStartTime, editStartAmPm);
+		const endMinutes = convertToMinutes(editEndTime, editEndAmPm);
+		let duration = endMinutes - startMinutes;
+		
+		// Handle cross-day scenarios
+		if (duration <= 0) {
+			duration += 24 * 60; // Add 24 hours in minutes
+		}
+
+		if (duration > 12 * 60) { // More than 12 hours
+			toastStore.warning('Duration cannot exceed 12 hours');
 			return;
 		}
 
@@ -716,29 +756,39 @@
 			// Simulate API call
 			await new Promise(resolve => setTimeout(resolve, 1500));
 
+			// Format time slot for display
+			const formattedTimeSlot = `${editStartTime} ${editStartAmPm} - ${editEndTime} ${editEndAmPm}`;
+
 			// Update assignment in the array
 			scheduleAssignments = scheduleAssignments.map(assignment => {
 				if (assignment.id === editingAssignmentId) {
 					return {
 						...assignment,
-						timeSlot: editAssignmentTime,
+						timeSlot: formattedTimeSlot,
 						subject: editAssignmentSubject,
-						teacher: editSelectedTeacher.name
+						teacher: editSelectedTeacher.name,
+						duration: duration
 					};
 				}
 				return assignment;
 			});
 
 			// Show success message
-			toastStore.success(`Assignment updated successfully! Time: ${editAssignmentTime}, Subject: ${editAssignmentSubject}, Teacher: ${editSelectedTeacher.name}`);
+			toastStore.success(`Assignment updated successfully! Time: ${formattedTimeSlot}, Subject: ${editAssignmentSubject}, Teacher: ${editSelectedTeacher.name}`);
 
 			// Close edit form
 			editingAssignmentId = null;
-			editAssignmentTime = '';
+			editStartTime = '';
+			editStartAmPm = 'AM';
+			editEndTime = '';
+			editEndAmPm = 'AM';
+			editCalculatedDuration = 0;
 			editAssignmentSubject = '';
 			editSelectedTeacher = null;
 			isEditSubjectDropdownOpen = false;
 			isEditTeacherDropdownOpen = false;
+			isEditStartPeriodDropdownOpen = false;
+			isEditEndPeriodDropdownOpen = false;
 
 		} catch (error) {
 			console.error('Error updating assignment:', error);
@@ -763,11 +813,17 @@
 				// Close edit form if it was open for this assignment
 				if (editingAssignmentId === assignment.id) {
 					editingAssignmentId = null;
-					editAssignmentTime = '';
+					editStartTime = '';
+					editStartAmPm = 'AM';
+					editEndTime = '';
+					editEndAmPm = 'AM';
+					editCalculatedDuration = 0;
 					editAssignmentSubject = '';
 					editSelectedTeacher = null;
 					isEditSubjectDropdownOpen = false;
 					isEditTeacherDropdownOpen = false;
+					isEditStartPeriodDropdownOpen = false;
+					isEditEndPeriodDropdownOpen = false;
 				}
 			},
 			() => {
@@ -781,6 +837,8 @@
 	function toggleEditSubjectDropdown() {
 		isEditSubjectDropdownOpen = !isEditSubjectDropdownOpen;
 		isEditTeacherDropdownOpen = false;
+		isEditStartPeriodDropdownOpen = false;
+		isEditEndPeriodDropdownOpen = false;
 	}
 
 	function selectEditSubject(subject) {
@@ -791,6 +849,8 @@
 	function toggleEditTeacherDropdown() {
 		isEditTeacherDropdownOpen = !isEditTeacherDropdownOpen;
 		isEditSubjectDropdownOpen = false;
+		isEditStartPeriodDropdownOpen = false;
+		isEditEndPeriodDropdownOpen = false;
 	}
 
 	function selectEditTeacher(teacher) {
@@ -798,59 +858,188 @@
 		isEditTeacherDropdownOpen = false;
 	}
 
+	// Edit time dropdown functions
+	function toggleEditStartPeriodDropdown() {
+		isEditStartPeriodDropdownOpen = !isEditStartPeriodDropdownOpen;
+		isEditEndPeriodDropdownOpen = false;
+		isEditSubjectDropdownOpen = false;
+		isEditTeacherDropdownOpen = false;
+	}
+
+	function selectEditStartPeriod(period) {
+		editStartAmPm = period;
+		isEditStartPeriodDropdownOpen = false;
+		calculateEditTimeSlot();
+	}
+
+	function toggleEditEndPeriodDropdown() {
+		isEditEndPeriodDropdownOpen = !isEditEndPeriodDropdownOpen;
+		isEditStartPeriodDropdownOpen = false;
+		isEditSubjectDropdownOpen = false;
+		isEditTeacherDropdownOpen = false;
+	}
+
+	function selectEditEndPeriod(period) {
+		editEndAmPm = period;
+		isEditEndPeriodDropdownOpen = false;
+		calculateEditTimeSlot();
+	}
+
+	// Edit time input handlers
+	function handleEditStartTimeInput(event) {
+		const value = event.target.value;
+		if (value.match(/^\d{1,2}:\d{2}$/) || value.match(/^\d{1,2}$/) || value === '') {
+			editStartTime = value;
+			calculateEditTimeSlot();
+		}
+	}
+
+	function handleEditEndTimeInput(event) {
+		const value = event.target.value;
+		if (value.match(/^\d{1,2}:\d{2}$/) || value.match(/^\d{1,2}$/) || value === '') {
+			editEndTime = value;
+			calculateEditTimeSlot();
+		}
+	}
+
+	// Calculate edit time slot duration
+	function calculateEditTimeSlot() {
+		// Reset calculated values
+		editCalculatedDuration = 0;
+
+		// Check if we have valid inputs
+		if (!editStartTime || !editEndTime || !editStartAmPm || !editEndAmPm) {
+			return;
+		}
+
+		try {
+			// Parse start time
+			let startHour, startMinute;
+			if (editStartTime.includes(':')) {
+				[startHour, startMinute] = editStartTime.split(':').map(num => parseInt(num));
+			} else {
+				startHour = parseInt(editStartTime);
+				startMinute = 0;
+			}
+
+			// Parse end time
+			let endHour, endMinute;
+			if (editEndTime.includes(':')) {
+				[endHour, endMinute] = editEndTime.split(':').map(num => parseInt(num));
+			} else {
+				endHour = parseInt(editEndTime);
+				endMinute = 0;
+			}
+
+			// Validate time inputs
+			if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute) ||
+				startHour < 1 || startHour > 12 || endHour < 1 || endHour > 12 ||
+				startMinute < 0 || startMinute >= 60 || endMinute < 0 || endMinute >= 60) {
+				return;
+			}
+
+			// Convert to 24-hour format
+			if (editStartAmPm === 'PM' && startHour !== 12) startHour += 12;
+			if (editStartAmPm === 'AM' && startHour === 12) startHour = 0;
+			if (editEndAmPm === 'PM' && endHour !== 12) endHour += 12;
+			if (editEndAmPm === 'AM' && endHour === 12) endHour = 0;
+
+			// Calculate total minutes
+			const startTotalMinutes = startHour * 60 + startMinute;
+			let endTotalMinutes = endHour * 60 + endMinute;
+
+			// Handle next day scenario
+			if (endTotalMinutes <= startTotalMinutes) {
+				endTotalMinutes += 24 * 60; // Add 24 hours
+			}
+
+			// Calculate duration in minutes
+			editCalculatedDuration = endTotalMinutes - startTotalMinutes;
+
+		} catch (error) {
+			console.error('Error calculating edit time slot:', error);
+			editCalculatedDuration = 0;
+		}
+	}
+
+	// Reactive calculation for edit form
+	$: if (editStartTime && editEndTime && editStartAmPm && editEndAmPm) {
+		calculateEditTimeSlot();
+	}
+
 	// Computed properties for edit form
 	$: editSelectedSubjectObj = subjects.find(subject => subject.name === editAssignmentSubject);
 
 	// Time calculation function
 	function calculateTimeSlot() {
-		// Reset calculated times first
-		newSchedule.calculatedStartTime = '';
-		newSchedule.calculatedEndTime = '';
+		// Reset calculated duration first
+		newSchedule.calculatedDuration = '';
 
 		// Check if all required inputs are provided
-		const hourInput = newSchedule.startHour;
-		const minuteInput = newSchedule.startMinute;
-		const durationInput = newSchedule.duration;
+		const startTimeInput = newSchedule.startTime;
+		const endTimeInput = newSchedule.endTime;
 
-		// Check for empty/null/undefined values (but allow 0)
-		if ((hourInput === '' || hourInput === null || hourInput === undefined) ||
-			(minuteInput === '' || minuteInput === null || minuteInput === undefined) ||
-			(durationInput === '' || durationInput === null || durationInput === undefined)) {
+		// Check for empty/null/undefined values
+		if (!startTimeInput || !endTimeInput || !newSchedule.startAmPm || !newSchedule.endAmPm) {
 			return;
 		}
 
-		// Parse inputs to numbers
-		const hour = parseInt(hourInput);
-		const minute = parseInt(minuteInput);
-		const durationMinutes = parseInt(durationInput);
+		// Parse time inputs (expecting format like "7:00" or "7:30")
+		const startTimeParts = startTimeInput.split(':');
+		const endTimeParts = endTimeInput.split(':');
+
+		if (startTimeParts.length !== 2 || endTimeParts.length !== 2) {
+			return;
+		}
+
+		const startHour = parseInt(startTimeParts[0]);
+		const startMinute = parseInt(startTimeParts[1]) || 0;
+		const endHour = parseInt(endTimeParts[0]);
+		const endMinute = parseInt(endTimeParts[1]) || 0;
 
 		// Validate parsed numbers and ranges
-		if (isNaN(hour) || isNaN(minute) || isNaN(durationMinutes)) {
+		if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
 			return;
 		}
 
-		if (hour < 1 || hour > 12 || minute < 0 || minute > 59 || durationMinutes <= 0) {
+		if (startHour < 1 || startHour > 12 || startMinute < 0 || startMinute > 59 ||
+			endHour < 1 || endHour > 12 || endMinute < 0 || endMinute > 59) {
 			return;
 		}
 
 		// Convert to 24-hour format
-		let startHour24 = hour;
-		if (newSchedule.amPm === 'PM' && hour !== 12) {
+		let startHour24 = startHour;
+		if (newSchedule.startAmPm === 'PM' && startHour !== 12) {
 			startHour24 += 12;
-		} else if (newSchedule.amPm === 'AM' && hour === 12) {
+		} else if (newSchedule.startAmPm === 'AM' && startHour === 12) {
 			startHour24 = 0;
 		}
 
-		// Create start time
+		let endHour24 = endHour;
+		if (newSchedule.endAmPm === 'PM' && endHour !== 12) {
+			endHour24 += 12;
+		} else if (newSchedule.endAmPm === 'AM' && endHour === 12) {
+			endHour24 = 0;
+		}
+
+		// Create start and end time objects
 		const startTime = new Date();
-		startTime.setHours(startHour24, minute, 0, 0);
+		startTime.setHours(startHour24, startMinute, 0, 0);
 
-		// Calculate end time
-		const endTime = new Date(startTime.getTime() + (durationMinutes * 60000));
+		const endTime = new Date();
+		endTime.setHours(endHour24, endMinute, 0, 0);
 
-		// Format times for display
-		newSchedule.calculatedStartTime = formatTime(startTime);
-		newSchedule.calculatedEndTime = formatTime(endTime);
+		// Handle case where end time is next day (e.g., 11 PM to 1 AM)
+		if (endTime <= startTime) {
+			endTime.setDate(endTime.getDate() + 1);
+		}
+
+		// Calculate duration in minutes
+		const durationMs = endTime.getTime() - startTime.getTime();
+		const durationMinutes = Math.round(durationMs / (1000 * 60));
+
+		// Set calculated duration
+		newSchedule.calculatedDuration = durationMinutes.toString();
 	}
 
 	function formatTime(date) {
@@ -867,7 +1056,7 @@
 	}
 
 	// Reactive calculation when inputs change
-	$: if (newSchedule.startHour || newSchedule.startMinute || newSchedule.amPm || newSchedule.duration) {
+	$: if (newSchedule.startTime || newSchedule.endTime || newSchedule.startAmPm || newSchedule.endAmPm) {
 		calculateTimeSlot();
 	}
 </script>
@@ -1105,46 +1294,33 @@
 							<!-- Time Configuration Section -->
 							<div class="scheduleassign-time-section">
 								<div class="scheduleassign-time-row">
-									<!-- Hour Input -->
+									<!-- Start Time Input -->
 									<div class="scheduleassign-input-group">
-										<label class="scheduleassign-form-label" for="start-hour">Hour *</label>
+										<label class="scheduleassign-form-label" for="start-time">Start Time *</label>
 										<input 
 											type="text" 
-											id="start-hour"
+											id="start-time"
 											class="scheduleassign-time-input"
-											bind:value={newSchedule.startHour}
-											placeholder="1-12"
+											bind:value={newSchedule.startTime}
+											placeholder="7:00"
 											required
 										/>
 									</div>
 									
-									<!-- Minute Input -->
+									<!-- Start AM/PM Selection -->
 									<div class="scheduleassign-input-group">
-										<label class="scheduleassign-form-label" for="start-minute">Minute *</label>
-										<input 
-											type="text" 
-											id="start-minute"
-											class="scheduleassign-time-input"
-											bind:value={newSchedule.startMinute}
-											placeholder="0-59"
-											required
-										/>
-									</div>
-									
-									<!-- AM/PM Selection -->
-									<div class="scheduleassign-input-group">
-										<label class="scheduleassign-form-label" for="am-pm">Period *</label>
-										<div class="scheduleassign-period-dropdown" class:open={isPeriodDropdownOpen}>
+										<label class="scheduleassign-form-label" for="start-am-pm">Period *</label>
+										<div class="scheduleassign-period-dropdown" class:open={isStartPeriodDropdownOpen}>
 											<button 
 												type="button"
-												id="am-pm"
+												id="start-am-pm"
 												class="scheduleassign-period-dropdown-button" 
-												class:selected={newSchedule.amPm}
-												on:click={togglePeriodDropdown}
+												class:selected={newSchedule.startAmPm}
+												on:click={toggleStartPeriodDropdown}
 											>
 												<div class="scheduleassign-period-selected-option">
 													<span class="material-symbols-outlined option-icon">schedule</span>
-													<span class="option-name">{newSchedule.amPm}</span>
+													<span class="option-name">{newSchedule.startAmPm}</span>
 												</div>
 												<span class="material-symbols-outlined scheduleassign-period-dropdown-arrow">expand_more</span>
 											</button>
@@ -1152,8 +1328,8 @@
 												<button 
 													type="button"
 													class="scheduleassign-period-dropdown-item" 
-													class:selected={newSchedule.amPm === 'AM'}
-													on:click={() => selectPeriod('AM')}
+													class:selected={newSchedule.startAmPm === 'AM'}
+													on:click={() => selectStartPeriod('AM')}
 												>
 													<span class="material-symbols-outlined option-icon">wb_sunny</span>
 													<span class="option-name">AM</span>
@@ -1161,8 +1337,8 @@
 												<button 
 													type="button"
 													class="scheduleassign-period-dropdown-item" 
-													class:selected={newSchedule.amPm === 'PM'}
-													on:click={() => selectPeriod('PM')}
+													class:selected={newSchedule.startAmPm === 'PM'}
+													on:click={() => selectStartPeriod('PM')}
 												>
 													<span class="material-symbols-outlined option-icon">nightlight</span>
 													<span class="option-name">PM</span>
@@ -1171,26 +1347,66 @@
 										</div>
 									</div>
 									
-									<!-- Duration Input -->
+									<!-- End Time Input -->
 									<div class="scheduleassign-input-group">
-										<label class="scheduleassign-form-label" for="duration">Duration (minutes) *</label>
+										<label class="scheduleassign-form-label" for="end-time">End Time *</label>
 										<input 
 											type="text" 
-											id="duration"
+											id="end-time"
 											class="scheduleassign-time-input"
-											bind:value={newSchedule.duration}
-											placeholder="Duration in minutes"
+											bind:value={newSchedule.endTime}
+											placeholder="8:00"
 											required
 										/>
 									</div>
+									
+									<!-- End AM/PM Selection -->
+									<div class="scheduleassign-input-group">
+										<label class="scheduleassign-form-label" for="end-am-pm">Period *</label>
+										<div class="scheduleassign-period-dropdown" class:open={isEndPeriodDropdownOpen}>
+											<button 
+												type="button"
+												id="end-am-pm"
+												class="scheduleassign-period-dropdown-button" 
+												class:selected={newSchedule.endAmPm}
+												on:click={toggleEndPeriodDropdown}
+											>
+												<div class="scheduleassign-period-selected-option">
+													<span class="material-symbols-outlined option-icon">schedule</span>
+													<span class="option-name">{newSchedule.endAmPm}</span>
+												</div>
+												<span class="material-symbols-outlined scheduleassign-period-dropdown-arrow">expand_more</span>
+											</button>
+											<div class="scheduleassign-period-dropdown-menu">
+												<button 
+													type="button"
+													class="scheduleassign-period-dropdown-item" 
+													class:selected={newSchedule.endAmPm === 'AM'}
+													on:click={() => selectEndPeriod('AM')}
+												>
+													<span class="material-symbols-outlined option-icon">wb_sunny</span>
+													<span class="option-name">AM</span>
+												</button>
+												<button 
+													type="button"
+													class="scheduleassign-period-dropdown-item" 
+													class:selected={newSchedule.endAmPm === 'PM'}
+													on:click={() => selectEndPeriod('PM')}
+												>
+													<span class="material-symbols-outlined option-icon">nightlight</span>
+													<span class="option-name">PM</span>
+												</button>
+											</div>
+										</div>
+									</div>
 								</div>
 								
-								<!-- Calculated Time Display -->
-								{#if newSchedule.calculatedStartTime && newSchedule.calculatedEndTime}
+								<!-- Calculated Duration Display -->
+								{#if newSchedule.calculatedDuration}
 									<div class="scheduleassign-calculated-time">
 										<span class="material-symbols-outlined">schedule</span>
 										<span class="time-display">
-											{newSchedule.calculatedStartTime} - {newSchedule.calculatedEndTime}
+											Duration: {newSchedule.calculatedDuration} minutes
 										</span>
 									</div>
 								{/if}
@@ -1511,136 +1727,235 @@
 
 						<!-- Inline Edit Form -->
 						{#if editingAssignmentId === assignment.id}
-							<div class="scheduleassign-edit-form-section">
-								<div class="scheduleassign-edit-form-container">
-									<div class="scheduleassign-edit-form-header">
-										<h2 class="scheduleassign-edit-form-title">Edit Assignment</h2>
-										<p class="scheduleassign-edit-form-subtitle">Update time, subject, and teacher for this assignment</p>
-									</div>
-									
-									<form class="scheduleassign-edit-form-content" on:submit|preventDefault={handleEditAssignment}>
-										<!-- Time, Subject, and Teacher Row -->
-										<div class="scheduleassign-edit-form-row">
-											<!-- Time Input -->
-											<div class="scheduleassign-form-group scheduleassign-form-group-third">
-												<label class="scheduleassign-form-label" for="edit-assignment-time">
-													Time *
-												</label>
+							<div class="scheduleassign-add-form">
+								<h3 class="scheduleassign-form-title">Edit Assignment</h3>
+								<div class="scheduleassign-form-inputs">
+									<!-- Time Configuration Section -->
+									<div class="scheduleassign-time-section">
+										<div class="scheduleassign-time-row">
+											<!-- Start Time Input -->
+											<div class="scheduleassign-input-group">
+												<label class="scheduleassign-form-label" for="edit-start-time">Start Time *</label>
 												<input 
 													type="text" 
-													id="edit-assignment-time"
-													class="scheduleassign-form-input" 
-													bind:value={editAssignmentTime}
-													placeholder="e.g., 8:00 AM - 9:00 AM"
+													id="edit-start-time"
+													class="scheduleassign-time-input"
+													bind:value={editStartTime}
+													placeholder="7:00"
+													on:input={handleEditStartTimeInput}
 													required
 												/>
 											</div>
-
-											<!-- Subject Selection -->
-											<div class="scheduleassign-form-group scheduleassign-form-group-third">
-												<label class="scheduleassign-form-label" for="edit-assignment-subject">
-													Subject *
-												</label>
-												<div class="scheduleassign-custom-dropdown" class:open={isEditSubjectDropdownOpen}>
+											
+											<!-- Start AM/PM Selection -->
+											<div class="scheduleassign-input-group">
+												<label class="scheduleassign-form-label" for="edit-start-am-pm">Period *</label>
+												<div class="scheduleassign-period-dropdown" class:open={isEditStartPeriodDropdownOpen}>
 													<button 
 														type="button"
-														class="scheduleassign-dropdown-button" 
-														class:selected={editAssignmentSubject}
-														on:click={toggleEditSubjectDropdown}
-														id="edit-assignment-subject"
+														id="edit-start-am-pm"
+														class="scheduleassign-period-dropdown-button" 
+														class:selected={editStartAmPm}
+														on:click={toggleEditStartPeriodDropdown}
 													>
-														{#if editSelectedSubjectObj}
-															<div class="scheduleassign-selected-option">
-																<span class="material-symbols-outlined option-icon">{editSelectedSubjectObj.icon}</span>
-																<div class="option-content">
-																	<span class="option-name">{editSelectedSubjectObj.name}</span>
-																</div>
-															</div>
-														{:else}
-															<span class="placeholder">Select subject</span>
-														{/if}
-														<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
+														<div class="scheduleassign-period-selected-option">
+															<span class="material-symbols-outlined option-icon">schedule</span>
+															<span class="option-name">{editStartAmPm}</span>
+														</div>
+														<span class="material-symbols-outlined scheduleassign-period-dropdown-arrow">expand_more</span>
 													</button>
-													<div class="scheduleassign-dropdown-menu">
-														{#each subjects as subject (subject.id)}
-															<button 
-																type="button"
-																class="scheduleassign-dropdown-item" 
-																class:selected={editAssignmentSubject === subject.name}
-																on:click={() => selectEditSubject(subject)}
-															>
-																<span class="material-symbols-outlined option-icon">{subject.icon}</span>
-																<div class="option-content">
-																	<span class="option-name">{subject.name}</span>
-																</div>
-															</button>
-														{/each}
+													<div class="scheduleassign-period-dropdown-menu">
+														<button 
+															type="button"
+															class="scheduleassign-period-dropdown-item" 
+															class:selected={editStartAmPm === 'AM'}
+															on:click={() => selectEditStartPeriod('AM')}
+														>
+															<span class="material-symbols-outlined option-icon">wb_sunny</span>
+															<span class="option-name">AM</span>
+														</button>
+														<button 
+															type="button"
+															class="scheduleassign-period-dropdown-item" 
+															class:selected={editStartAmPm === 'PM'}
+															on:click={() => selectEditStartPeriod('PM')}
+														>
+															<span class="material-symbols-outlined option-icon">nightlight</span>
+															<span class="option-name">PM</span>
+														</button>
 													</div>
 												</div>
 											</div>
-
-											<!-- Teacher Selection -->
-											<div class="scheduleassign-form-group scheduleassign-form-group-third">
-												<label class="scheduleassign-form-label" for="edit-assignment-teacher">
-													Teacher *
-												</label>
-												<div class="scheduleassign-custom-dropdown" class:open={isEditTeacherDropdownOpen}>
+											
+											<!-- End Time Input -->
+											<div class="scheduleassign-input-group">
+												<label class="scheduleassign-form-label" for="edit-end-time">End Time *</label>
+												<input 
+													type="text" 
+													id="edit-end-time"
+													class="scheduleassign-time-input"
+													bind:value={editEndTime}
+													placeholder="8:00"
+													on:input={handleEditEndTimeInput}
+													required
+												/>
+											</div>
+											
+											<!-- End AM/PM Selection -->
+											<div class="scheduleassign-input-group">
+												<label class="scheduleassign-form-label" for="edit-end-am-pm">Period *</label>
+												<div class="scheduleassign-period-dropdown" class:open={isEditEndPeriodDropdownOpen}>
 													<button 
 														type="button"
-														class="scheduleassign-dropdown-button" 
-														class:selected={editSelectedTeacher}
-														on:click={toggleEditTeacherDropdown}
-														id="edit-assignment-teacher"
+														id="edit-end-am-pm"
+														class="scheduleassign-period-dropdown-button" 
+														class:selected={editEndAmPm}
+														on:click={toggleEditEndPeriodDropdown}
 													>
-														{#if editSelectedTeacher}
-															<div class="scheduleassign-selected-option">
-																<span class="material-symbols-outlined option-icon">person</span>
-																<div class="option-content">
-																	<span class="option-name">{editSelectedTeacher.name}</span>
-																</div>
-															</div>
-														{:else}
-															<span class="placeholder">Select teacher</span>
-														{/if}
-														<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
+														<div class="scheduleassign-period-selected-option">
+															<span class="material-symbols-outlined option-icon">schedule</span>
+															<span class="option-name">{editEndAmPm}</span>
+														</div>
+														<span class="material-symbols-outlined scheduleassign-period-dropdown-arrow">expand_more</span>
 													</button>
-													<div class="scheduleassign-dropdown-menu">
-														{#each teachers as teacher (teacher.id)}
-															<button 
-																type="button"
-																class="scheduleassign-dropdown-item" 
-																class:selected={editSelectedTeacher?.id === teacher.id}
-																on:click={() => selectEditTeacher(teacher)}
-															>
-																<span class="material-symbols-outlined option-icon">person</span>
-																<div class="option-content">
-																	<span class="option-name">{teacher.name}</span>
-																</div>
-															</button>
-														{/each}
+													<div class="scheduleassign-period-dropdown-menu">
+														<button 
+															type="button"
+															class="scheduleassign-period-dropdown-item" 
+															class:selected={editEndAmPm === 'AM'}
+															on:click={() => selectEditEndPeriod('AM')}
+														>
+															<span class="material-symbols-outlined option-icon">wb_sunny</span>
+															<span class="option-name">AM</span>
+														</button>
+														<button 
+															type="button"
+															class="scheduleassign-period-dropdown-item" 
+															class:selected={editEndAmPm === 'PM'}
+															on:click={() => selectEditEndPeriod('PM')}
+														>
+															<span class="material-symbols-outlined option-icon">nightlight</span>
+															<span class="option-name">PM</span>
+														</button>
 													</div>
 												</div>
 											</div>
 										</div>
-
-										<!-- Form Actions -->
-										<div class="scheduleassign-edit-form-actions">
-											<button type="button" class="scheduleassign-cancel-button" on:click={() => toggleEditForm(assignment)}>
-												Cancel
-											</button>
-											<button 
-												type="submit" 
-												class="scheduleassign-submit-button"
-												disabled={isUpdating || !editAssignmentTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher}
-											>
-												{#if isUpdating}
-													Updating...
-												{:else}
-													Update
-												{/if}
-											</button>
+										
+										<!-- Calculated Duration Display -->
+										{#if editCalculatedDuration}
+											<div class="scheduleassign-calculated-time">
+												<span class="material-symbols-outlined">schedule</span>
+												<span class="time-display">
+													Duration: {editCalculatedDuration} minutes
+												</span>
+											</div>
+										{/if}
+									</div>
+									
+									<!-- Subject and Teacher Row -->
+									<div class="scheduleassign-subject-teacher-row">
+										<!-- Subject Selection -->
+										<div class="scheduleassign-input-group">
+											<label class="scheduleassign-form-label" for="edit-subject-selection">Subject *</label>
+											<div class="scheduleassign-custom-dropdown" class:open={isEditSubjectDropdownOpen}>
+												<button 
+													type="button"
+													id="edit-subject-selection"
+													class="scheduleassign-dropdown-button" 
+													class:selected={editAssignmentSubject}
+													on:click={toggleEditSubjectDropdown}
+												>
+													{#if editSelectedSubjectObj}
+														<div class="scheduleassign-selected-option">
+															<span class="material-symbols-outlined option-icon">{editSelectedSubjectObj.icon}</span>
+															<div class="option-content">
+																<span class="option-name">{editSelectedSubjectObj.name}</span>
+															</div>
+														</div>
+													{:else}
+														<span class="placeholder">Select subject</span>
+													{/if}
+													<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
+												</button>
+												<div class="scheduleassign-dropdown-menu">
+													{#each subjects as subject (subject.id)}
+														<button 
+															type="button"
+															class="scheduleassign-dropdown-item" 
+															class:selected={editAssignmentSubject === subject.name}
+															on:click={() => selectEditSubject(subject)}
+														>
+															<span class="material-symbols-outlined option-icon">{subject.icon}</span>
+															<div class="option-content">
+																<span class="option-name">{subject.name}</span>
+															</div>
+														</button>
+													{/each}
+												</div>
+											</div>
 										</div>
-									</form>
+										
+										<!-- Teacher Selection -->
+										<div class="scheduleassign-input-group">
+											<label class="scheduleassign-form-label" for="edit-teacher-selection">Teacher *</label>
+											<div class="scheduleassign-custom-dropdown" class:open={isEditTeacherDropdownOpen}>
+												<button 
+													type="button"
+													id="edit-teacher-selection"
+													class="scheduleassign-dropdown-button" 
+													class:selected={editSelectedTeacher}
+													on:click={toggleEditTeacherDropdown}
+												>
+													{#if editSelectedTeacher}
+														<div class="scheduleassign-selected-option">
+															<span class="material-symbols-outlined option-icon">person</span>
+															<div class="option-content">
+																<span class="option-name">{editSelectedTeacher.name}</span>
+															</div>
+														</div>
+													{:else}
+														<span class="placeholder">Select teacher</span>
+													{/if}
+													<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
+												</button>
+												<div class="scheduleassign-dropdown-menu">
+													{#each teachers as teacher (teacher.id)}
+														<button 
+															type="button"
+															class="scheduleassign-dropdown-item" 
+															class:selected={editSelectedTeacher?.id === teacher.id}
+															on:click={() => selectEditTeacher(teacher)}
+														>
+															<span class="material-symbols-outlined option-icon">person</span>
+															<div class="option-content">
+																<span class="option-name">{teacher.name}</span>
+															</div>
+														</button>
+													{/each}
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- Form Actions -->
+								<div class="scheduleassign-form-actions">
+									<button type="button" class="scheduleassign-cancel-button" on:click={() => toggleEditForm(assignment)}>
+										Cancel
+									</button>
+									<button 
+										type="submit" 
+										class="scheduleassign-submit-button"
+										on:click={handleEditAssignment}
+										disabled={isUpdating || !editStartTime.trim() || !editEndTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher}
+									>
+										{#if isUpdating}
+											Updating...
+										{:else}
+											Update
+										{/if}
+									</button>
 								</div>
 							</div>
 						{/if}

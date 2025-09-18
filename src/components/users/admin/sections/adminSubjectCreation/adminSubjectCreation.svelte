@@ -470,9 +470,7 @@
 			<div class="adminsubject-subjects-grid">
 				{#if isLoading}
 					<div class="adminsubject-loading-container">
-						<div class="adminsubject-loading-spinner">
-							<span class="material-symbols-outlined adminsubject-spinner-icon">progress_activity</span>
-						</div>
+							<span class="subject-loader"></span>
 						<p class="adminsubject-loading-text">Loading subjects...</p>
 					</div>
 				{:else}
