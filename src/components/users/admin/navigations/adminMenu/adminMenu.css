@@ -47,7 +47,7 @@
 }
 
 .admin-menu-rail-item.active {
-  /* background-color: var(--md-sys-color-on-primary);  */
+  background-color: var(--md-sys-color-on-primary); 
   color: var(--md-sys-color-on-primary-container);
   border-radius: var(--radius-full);
 }
@@ -58,7 +58,7 @@
 }
 
 .admin-menu-folder.active {
-  background-color: var(--md-sys-color-primary-container);
+  background-color: var(--md-sys-color-surface-container-low);
   color: var(--md-sys-color-on-primary-container);
 }
 
@@ -217,7 +217,7 @@
 }
 
 .admin-menu-nav-item:active {
-  transform: scale(0.95);
+  background-color: var(--md-sys-color-on-primary-container);
 }
 
 .admin-menu-nav-item.active {
