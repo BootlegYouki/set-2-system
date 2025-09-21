@@ -60,16 +60,6 @@
   backdrop-filter: blur(10px) brightness(1);
 }
 
-/* Dark mode input field styling */
-[data-theme="dark"] .custom-text-field {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Dark mode checkbox */
-[data-theme="dark"] .checkbox-checkmark {
-  border-color: rgba(255, 255, 255, 0.6);
-}
-
 /* Dark mode forgot password button */
 [data-theme="dark"] .custom-text-button {
   color: rgba(255, 255, 255, 0.8);
@@ -193,27 +183,6 @@
   margin: var(--spacing-sm) 0;
 }
 
-/* Custom checkbox styling - Material Design inspired */
-.custom-checkbox {
-  position: absolute;
-  opacity: 0;
-  cursor: pointer;
-  height: 0;
-  width: 0;
-}
-
-.checkbox-checkmark {
-  position: relative;
-  display: inline-block;
-  height: 18px;
-  width: 18px;
-  border: 2px solid rgba(26, 26, 26, 0.6);
-  border-radius: 2px;
-  background-color: transparent;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
 .custom-checkbox:checked + .checkbox-checkmark {
   background-color: var(--md-sys-color-primary);
   border-color: var(--md-sys-color-primary);
@@ -242,15 +211,17 @@
   align-items: center;
   width: 100%;
   min-height: 60px;
-  background-color: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background-color: #707070;
   border-radius: 4px 4px 0 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.2s ease;
   padding: 0 16px;
   box-sizing: border-box;
+}
+
+[data-theme="dark"] .custom-text-field {
+  background-color: #090909;
 }
 
 .custom-text-field:focus-within {
@@ -294,6 +265,28 @@
   font-family: var(--md-sys-typescale-body-large-font);
   transition: background-color var(--transition-normal), box-shadow 200ms, color var(--transition-slow);
 }
+
+/* Force override autofill background in Chrome/Edge/Safari */
+
+
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #090909 inset !important; /* Force background */
+  -webkit-text-fill-color: #f1f5f9 !important;               /* Force text color */
+  caret-color: #f1f5f9;                                      /* Caret color */
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #707070 inset !important; /* Force background */
+  -webkit-text-fill-color: #f1f5f9 !important;               /* Force text color */
+  caret-color: #f1f5f9;                                      /* Caret color */
+}
+ 
 
 .text-input::placeholder {
   color: rgba(255, 255, 255, 0.6);

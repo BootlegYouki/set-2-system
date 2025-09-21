@@ -111,6 +111,9 @@
                  oninput={handleIdNumberChange}
                  onkeydown={handleKeyDown}
                  autocomplete="off"
+                 autocapitalize="off"
+                 autocorrect="off"
+                 spellcheck="false"
                  class="text-input"
                  placeholder=" "
                  
@@ -131,7 +134,10 @@
                  value={password}
                  oninput={handlePasswordChange}
                  onkeydown={handleKeyDown}
-                 autocomplete="new-password"
+                 autocomplete="off"
+                 autocapitalize="off"
+                 autocorrect="off"
+                 spellcheck="false"
                  class="text-input"
                  placeholder=" "
                />
