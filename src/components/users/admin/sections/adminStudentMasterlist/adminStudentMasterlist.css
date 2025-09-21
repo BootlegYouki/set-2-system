@@ -29,11 +29,10 @@
 }
 
 /* Header Styles */
-.student-header {
+.admin-student-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
   gap: var(--spacing-md);
 }
 
@@ -59,26 +58,7 @@
 /* Filters Section */
 .filters-section {
   margin-bottom: var(--spacing-xl);
-}
-
-.student-section-header {
-  margin-bottom: var(--spacing-lg);
-}
-
-.section-title {
-  font-family: var(--md-sys-typescale-title-large-font);
-  font-size: var(--md-sys-typescale-title-large-size);
-  font-weight: var(--md-sys-typescale-title-large-weight);
-  color: var(--md-sys-color-on-surface);
-  margin: 0 0 var(--spacing-sm) 0;
-}
-
-.section-subtitle {
-  font-family: var(--md-sys-typescale-body-large-font);
-  font-size: var(--md-sys-typescale-body-large-size);
-  color: var(--md-sys-color-on-surface-variant);
-  margin: 0 0 var(--spacing-lg) 0;
-}
+} 
 
 /* Search and Filter Container */
 .search-filter-container {
@@ -414,6 +394,47 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-md);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.archive-button {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.archive-button:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline);
+	color: var(--md-sys-color-on-surface);
+	box-shadow: var(--elevation-1);
+}
+
+.archive-button .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+.archive-button:active {
+	background-color: var(--md-sys-color-surface-container-high);
+	box-shadow: none;
+	transform: scale(0.95);
 }
 
 .account-title {

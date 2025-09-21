@@ -76,7 +76,8 @@
 		filteredStudents = students.filter(student => {
 			const matchesSearch = !searchQuery || 
 				student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				student.email.toLowerCase().includes(searchQuery.toLowerCase());
+				student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(student.number && student.number.toLowerCase().includes(searchQuery.toLowerCase()));
 			
 			const matchesYearLevel = !selectedYearLevel || 
 				student.yearLevel === selectedYearLevel;
@@ -166,7 +167,7 @@
 
 <div class="student-masterlist-container">
 	<!-- Header -->
-	<div class="student-header">
+	<div class="admin-student-header">
 		<div class="header-content">
 			<h1 class="page-title">Student Masterlist</h1>
 			<p class="page-subtitle">View and manage all student records in the system</p>
@@ -175,11 +176,6 @@
 
 	<!-- Filters Section -->
 	<div class="filters-section">
-		<div class="student-section-header">
-			<h2 class="section-title">Student Records</h2>
-			<p class="section-subtitle">Search and filter students by year level and section</p>
-		</div>
-
 		<div class="search-filter-container">
 			<!-- Search Bar -->
 			<div class="search-container">
@@ -187,9 +183,9 @@
 					<span class="material-symbols-outlined search-icon">search</span>
 					<input 
 						type="text" 
-						class="search-input" 
-						placeholder="Search students by name or email..."
-						bind:value={searchQuery}
+					class="search-input" 
+					placeholder="Search students by name, email, or ID..."
+					bind:value={searchQuery}
 					/>
 					{#if searchQuery}
 						<button 
@@ -304,13 +300,18 @@
 					<div class="account-card">
 						<div class="account-card-header">
 							<div class="account-title">
-								<h3 class="account-name">{student.name} · {student.yearLevel || 'Not specified'} Year</h3>
+								<h3 class="account-name">{#if student.number}{student.number}{/if} · {student.name}</h3>
 							</div>
-							{#if student.number}
-								<div class="account-id">
-									<span class="student-id">ID: {student.number}</span>
-								</div>
-							{/if}
+							<div class="action-buttons">
+								<button 
+									type="button"
+									class="archive-button"
+									title="Archive Student"
+									on:click={() => {}}
+								>
+									<span class="material-symbols-outlined">archive</span>
+								</button>
+							</div>
 						</div>
 						
 						<div class="master-account-details">
@@ -323,7 +324,7 @@
 							{#if student.yearLevel && student.yearLevel !== 'Not specified'}
 								<div class="account-detail-item">
 									<span class="material-symbols-outlined">school</span>
-									<span>{yearLevelOptions.find(level => level.id === student.yearLevel)?.name || student.yearLevel} Year</span>
+									<span>{yearLevelOptions.find(level => level.id === student.yearLevel)?.name || student.yearLevel}</span>
 								</div>
 							{/if}
 							{#if student.section && student.section !== 'Not specified'}
@@ -383,7 +384,7 @@
 						type="button" 
 						class="clear-search-button-inline"
 						on:click={clearFilters}
-					>
+					>Clear
 					</button>
 				{/if}
 			</div>
