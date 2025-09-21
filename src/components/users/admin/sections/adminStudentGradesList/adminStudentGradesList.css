@@ -447,6 +447,15 @@
   background-color: var(--md-sys-color-surface-variant);
 }
 
+.sgl-student-row.low-gwa {
+  background-color: var(--md-sys-color-error-container);
+}
+
+.sgl-student-row.low-gwa:hover {
+  background-color: var(--md-sys-color-error-container);
+  opacity: 0.8;
+}
+
 .sgl-student-row:last-child td {
   border-bottom: none;
 }

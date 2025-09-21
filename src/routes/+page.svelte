@@ -27,6 +27,7 @@
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
   import AdminSubjectCreation from '../components/users/admin/sections/adminSubjectCreation/adminSubjectCreation.svelte';
   import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
+  // import AdminSettings from '../components/users/admin/sections/adminSettings/adminSettings.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store using Svelte 5 runes
@@ -97,6 +98,11 @@
   // Handle navigation from admin menu
   function handleAdminNavigation(event) {
     adminActiveSection = event.detail.section;
+  }
+  
+  // Handle navigation to settings from admin navbar
+  function handleAdminNavigateToSettings() {
+    adminActiveSection = 'settings';
   }
 
   // Handle navigation rail toggle
@@ -212,6 +218,7 @@
         profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleAdminToggleNavRail}
+        onNavigateToSettings={handleAdminNavigateToSettings}
       />
       
       <main class="content-area">
@@ -235,6 +242,8 @@
           <AdminSubjectCreation />
         {:else if adminActiveSection === 'document-requests'}
           <AdminDocumentRequests />
+        {:else if adminActiveSection === 'settings'}
+          <AdminSettings />
         {/if}
       </main>
 

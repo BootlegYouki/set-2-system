@@ -4,7 +4,7 @@
 	import { showSuccess } from '../../../../common/js/toastStore.js';
 
 	// Props
-	let { adminName = 'Admin User', adminId = 'ADMIN-001', profileImage = null, onlogout, onToggleNavRail } = $props();
+	let { adminName = 'Admin User', accountNumber = 'ADM-2025-0001', profileImage = null, onlogout, onToggleNavRail, onNavigateToSettings } = $props();
 
 	// Theme state (default to dark mode)
 	let isDarkMode = $state(true);
@@ -111,7 +111,7 @@
 				<button class="user-profile" onclick={toggleDropdown}>
 					<div class="user-info">
 						<span class="user-name">{adminName}</span>
-						<span class="user-id">ID: {adminId}</span>
+						<span class="user-id">Account: {accountNumber}</span>
 					</div>
 					
 					<div class="user-avatar">
@@ -128,9 +128,9 @@
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
 					<div class="user-dropdown-menu">
-						<button class="dropdown-item" onclick={closeDropdown}>
-							<span class="material-symbols-outlined">person</span>
-							Profile
+						<button class="dropdown-item" onclick={() => { closeDropdown(); onNavigateToSettings(); }}>
+							<span class="material-symbols-outlined">settings</span>
+							Settings
 						</button>
 						<button class="dropdown-item" onclick={() => { closeDropdown(); showSuccess('Logged out successfully. See you next time!'); onlogout(); }}>
 							<span class="material-symbols-outlined">logout</span>

@@ -3,17 +3,17 @@
   // Material Web Components removed - using custom components with Material Design styling
   import './loginpage.css';
   import { onMount } from 'svelte';
-  import { validateEmail, validatePassword } from './js/validation.js';
+  import { validateIdNumber, validatePassword } from './js/validation.js';
   import { getCurrentTheme, toggleTheme } from './js/theme.js';
   import { handleLogin } from './js/authHelpers.js';
 
   // Svelte 5 runes for state management
-  let email = $state('');
+  let idNumber = $state('');
   let password = $state('');
   let rememberMe = $state(false);
   let isLoading = $state(false);
   let showPassword = $state(false);
-  let errors = $state({ email: '', password: '', general: '' });
+  let errors = $state({ idNumber: '', password: '', general: '' });
   
   // Theme state (sync with already-set theme from app.html)
   let isDarkMode = $state(false);
@@ -35,21 +35,21 @@
     event.preventDefault();
     
     // Reset errors
-    errors = { email: '', password: '', general: '' };
+    errors = { idNumber: '', password: '', general: '' };
     
     // Validate inputs
-    const emailError = validateEmail(email);
+    const idNumberError = validateIdNumber(idNumber);
     const passwordError = validatePassword(password);
     
-    if (emailError || passwordError) {
-      errors = { email: emailError, password: passwordError, general: '' };
+    if (idNumberError || passwordError) {
+      errors = { idNumber: idNumberError, password: passwordError, general: '' };
       return;
     }
     
     isLoading = true;
     
     try {
-      await handleLogin({ email, password, rememberMe });
+      await handleLogin({ accountNumber: idNumber, password, rememberMe });
     } catch (error) {
       errors = { ...errors, general: error.message };
     } finally {
@@ -58,10 +58,10 @@
   };
 
   // Handle input changes with real-time validation
-  const handleEmailChange = (event) => {
-    email = event.target.value;
-    if (errors.email) {
-      errors = { ...errors, email: validateEmail(email) };
+  const handleIdNumberChange = (event) => {
+    idNumber = event.target.value;
+    if (errors.idNumber) {
+      errors = { ...errors, idNumber: validateIdNumber(idNumber) };
     }
   };
 
@@ -102,24 +102,24 @@
     </div>
     <!-- Login Form -->
     <form class="login-form" onsubmit={handleSubmit} novalidate autocomplete="off">
-        <!-- Email Field -->
+        <!-- ID Number Field -->
         <div class="form-field">
-          <div class="custom-text-field {errors.email ? 'error' : ''}">
-            <span class="leading-icon material-symbols-outlined">email</span>
+          <div class="custom-text-field {errors.idNumber ? 'error' : ''}">
+            <span class="leading-icon material-symbols-outlined">badge</span>
             <input
-                 type="email"
-                 value={email}
-                 oninput={handleEmailChange}
+                 type="text"
+                 value={idNumber}
+                 oninput={handleIdNumberChange}
                  onkeydown={handleKeyDown}
                  autocomplete="off"
                  class="text-input"
                  placeholder=" "
                  
                />
-            <label class="text-label" for="email-input">Email Address</label>
+            <label class="text-label" for="idnumber-input">ID Number</label>
           </div>
-          {#if errors.email}
-            <div class="error-text">{errors.email}</div>
+          {#if errors.idNumber}
+            <div class="error-text">{errors.idNumber}</div>
           {/if}
         </div>
 

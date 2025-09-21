@@ -43,7 +43,7 @@
 		{ id: 'STU-2024-006', name: 'Isabella Marie Garcia', yearLevel: '3', section: 'B', gwa: 91.4 },
 		{ id: 'STU-2024-007', name: 'Miguel Angel Torres', yearLevel: '4', section: 'A', gwa: 87.6 },
 		{ id: 'STU-2024-008', name: 'Sophia Grace Mendoza', yearLevel: '4', section: 'B', gwa: 83.9 },
-		{ id: 'STU-2024-009', name: 'Rafael Luis Morales', yearLevel: '1', section: 'C', gwa: 76.2 },
+		{ id: 'STU-2024-009', name: 'Rafael Luis Morales', yearLevel: '1', section: 'C', gwa: 74.2 },
 		{ id: 'STU-2024-010', name: 'Camila Rose Fernandez', yearLevel: '2', section: 'C', gwa: 94.8 },
 		{ id: 'STU-2024-011', name: 'Diego Sebastian Cruz', yearLevel: '3', section: 'C', gwa: 82.1 },
 		{ id: 'STU-2024-012', name: 'Valentina Joy Ramos', yearLevel: '4', section: 'C', gwa: 89.7 },
@@ -343,7 +343,7 @@
 						</thead>
 					<tbody>
 						{#each filteredStudents as student (student.id)}
-						<tr>
+						<tr class="sgl-student-row" class:low-gwa={student.gwa < 75}>
 							<td class="sgl-student-id">{student.id}</td>
 							<td class="sgl-student-name">{student.name}</td>
 							<td class="sgl-year-level">{getYearLevelName(student.yearLevel)}</td>

@@ -47,77 +47,84 @@ const testAccounts = {
 /**
  * Handle user login
  * @param {Object} loginData - Login data object
- * @param {string} loginData.email - User email
+ * @param {string} loginData.accountNumber - User account number
  * @param {string} loginData.password - User password  
  * @param {boolean} loginData.rememberMe - Remember me option
  * @returns {Promise<Object>} Promise that resolves with user data or rejects with error
  */
-export const handleLogin = async ({ email, password, rememberMe }) => {
+export const handleLogin = async ({ accountNumber, password, rememberMe }) => {
   try {
-    // Simulate API call
-    await simulateAPICall(500);
-    
-    // Check if the email exists in test accounts
-    const account = testAccounts[email.toLowerCase()];
-    
-    if (!account ) {
-      throw new Error('Invalid credentials. Please try again.');
+    // Make API call to authenticate with account number
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ accountNumber, password })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Store user data in localStorage
+      const userData = {
+        id: data.user.id,
+        name: data.user.name,
+        accountNumber: data.user.accountNumber,
+        accountType: data.user.accountType,
+        isAuthenticated: true
+      };
+      
+      // Update auth store with the user type and data
+      authStore.login(userData.accountType, userData);
+      
+      // Show success message
+      showSuccess(`Login successful! Welcome back, ${userData.name}.`);
+      
+      console.log('Login successful:', { accountNumber, userType: userData.accountType, rememberMe });
+      
+      return userData;
+    } else {
+      throw new Error(data.error || 'Invalid credentials. Please try again.');
     }
-    
-    // Verify password
-    if (account.password !== password) {
-      throw new Error('Invalid credentials. Please try again.');
-    }
-    
-    // Use the account's user type and data
-    const { userType: accountUserType, userData } = account;
-    
-    // Update auth store with the correct user type from the account
-    authStore.login(accountUserType, userData);
-    
-    // Show success message
-    showSuccess(`Login successful! Welcome back, ${userData.name}.`);
-    
-    console.log('Login successful:', { email, userType: accountUserType, rememberMe });
-    
-    return userData;
   } catch (error) {
-    showError(error.message);
-    throw error;
+    const errorMessage = error.message || 'Network error. Please try again.';
+    showError(errorMessage);
+    throw new Error(errorMessage);
   }
 };
 
 /**
  * Create form submission handler
- * @param {Object} formState - Form state object containing email, password, etc.
+ * @param {Object} formState - Form state object containing accountNumber, password, etc.
  * @param {Function} setErrors - Function to set form errors
  * @param {Function} setLoading - Function to set loading state
- * @param {Function} validateEmail - Email validation function
+ * @param {Function} validateAccountNumber - Account number validation function
  * @param {Function} validatePassword - Password validation function
  * @returns {Function} Form submit handler function
  */
-export const createSubmitHandler = (formState, setErrors, setLoading, validateEmail, validatePassword) => {
+export const createSubmitHandler = (formState, setErrors, setLoading, validateAccountNumber, validatePassword) => {
   return async (event) => {
     event.preventDefault();
     
-    const { email, password, userType, rememberMe } = formState;
+    const { accountNumber, password, userType, rememberMe } = formState;
     
     // Reset errors
-    setErrors({ email: '', password: '', general: '' });
+    setErrors({ accountNumber: '', password: '', general: '' });
     
     // Validate inputs
-    const emailError = validateEmail(email);
+    const accountNumberError = validateAccountNumber(accountNumber);
     const passwordError = validatePassword(password);
     
-    if (emailError || passwordError) {
-      setErrors({ email: emailError, password: passwordError, general: '' });
+    if (accountNumberError || passwordError) {
+      setErrors({ accountNumber: accountNumberError, password: passwordError, general: '' });
       return;
     }
     
     setLoading(true);
     
     try {
-      await handleLogin({ email, password, userType, rememberMe });
+      await handleLogin({ accountNumber, password, userType, rememberMe });
     } catch (error) {
       setErrors(prev => ({ ...prev, general: error.message }));
     } finally {

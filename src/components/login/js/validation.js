@@ -1,12 +1,13 @@
 /**
- * Email validation function
- * @param {string} email - Email to validate
+ * ID Number validation function
+ * @param {string} idNumber - ID Number to validate
  * @returns {string} Error message or empty string if valid
  */
-export const validateEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email) return 'Email is required';
-  if (!emailRegex.test(email)) return 'Please enter a valid email address';
+export const validateIdNumber = (idNumber) => {
+  // Pattern for account numbers like STU-2025-0001, FAC-2025-0001, etc.
+  const idNumberRegex = /^[A-Z]{3}-\d{4}-\d{4}$/;
+  if (!idNumber) return 'ID Number is required';
+  if (!idNumberRegex.test(idNumber)) return 'Please enter a valid ID Number (e.g., STU-2025-0001)';
   return '';
 };
 
