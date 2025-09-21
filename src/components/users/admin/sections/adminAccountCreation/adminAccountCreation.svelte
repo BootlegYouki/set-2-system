@@ -2,6 +2,7 @@
 	import './adminAccountCreation.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { authStore } from '../../../../login/js/auth.js';
 	import { onMount } from 'svelte';
 
 	// Account creation state
@@ -53,6 +54,35 @@
 	
 	// Current account being edited (reactive)
 	$: currentAccount = editingAccountId ? recentAccounts.find(account => account.id === editingAccountId) : null;
+
+	// Name capitalization function
+	function capitalizeFirstLetter(str) {
+		if (!str) return str;
+		return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+	}
+
+	// Handle name input with automatic capitalization
+	function handleNameInput(event, field, isEdit = false) {
+		const value = event.target.value;
+		const capitalizedValue = capitalizeFirstLetter(value);
+		
+		if (isEdit) {
+			if (field === 'firstName') {
+				editFirstName = capitalizedValue;
+			} else if (field === 'lastName') {
+				editLastName = capitalizedValue;
+			}
+		} else {
+			if (field === 'firstName') {
+				firstName = capitalizedValue;
+			} else if (field === 'lastName') {
+				lastName = capitalizedValue;
+			}
+		}
+		
+		// Update the input field value
+		event.target.value = capitalizedValue;
+	}
 
 	// Contact number validation
 	function validateContactNumber(value) {
@@ -171,6 +201,13 @@
 
 	// Handle account removal with modal confirmation
 	async function handleRemoveAccount(account) {
+		// Check if the account being deleted is the currently logged-in user
+		const currentUser = $authStore.userData;
+		if (currentUser && currentUser.accountNumber === account.number) {
+			toastStore.error('You cannot delete your own account while logged in.');
+			return;
+		}
+
 		modalStore.confirm(
 			'Remove Account',
 			`<p>Are you sure you want to remove the account for <strong>"${account.name}"</strong>?</p>`,
@@ -906,6 +943,7 @@
 							id="last-name"
 							class="form-input" 
 							bind:value={lastName}
+							on:input={(e) => handleNameInput(e, 'lastName')}
 							placeholder="Enter last name"
 							required
 						/>
@@ -918,6 +956,7 @@
 							id="first-name"
 							class="form-input" 
 							bind:value={firstName}
+							on:input={(e) => handleNameInput(e, 'firstName')}
 							placeholder="Enter first name"
 							required
 						/>
@@ -1243,6 +1282,7 @@
 											id="edit-last-name-{account.id}"
 											class="form-input" 
 											bind:value={editLastName}
+											on:input={(e) => handleNameInput(e, 'lastName', true)}
 											placeholder="Enter last name"
 											required
 										/>
@@ -1255,6 +1295,7 @@
 											id="edit-first-name-{account.id}"
 											class="form-input" 
 											bind:value={editFirstName}
+											on:input={(e) => handleNameInput(e, 'firstName', true)}
 											placeholder="Enter first name"
 											required
 										/>
