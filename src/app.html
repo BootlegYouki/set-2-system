@@ -170,11 +170,61 @@
 				}
 			})();
 			
+			// Resource loading manager
+			window.resourceLoadingManager = {
+				totalResources: 0,
+				loadedResources: 0,
+				criticalResources: [],
+				isComplete: false,
+				callbacks: [],
+				
+				addResource: function(resource) {
+					this.criticalResources.push(resource);
+					this.totalResources++;
+					this.updateProgress();
+				},
+				
+				markResourceLoaded: function() {
+					this.loadedResources++;
+					this.updateProgress();
+					this.checkCompletion();
+				},
+				
+				updateProgress: function() {
+					const progress = this.totalResources > 0 ? (this.loadedResources / this.totalResources) * 100 : 0;
+					if (window.appLoadingManager) {
+						window.appLoadingManager.updateProgress(Math.min(progress, 95)); // Cap at 95% until fully complete
+					}
+				},
+				
+				checkCompletion: function() {
+					if (this.loadedResources >= this.totalResources && !this.isComplete) {
+						this.isComplete = true;
+						// Don't automatically hide loading - let layout.svelte control this
+						if (window.appLoadingManager) {
+							window.appLoadingManager.updateProgress(100);
+						}
+						// Notify callbacks that resources are complete
+						this.callbacks.forEach(callback => callback());
+						this.callbacks = [];
+					}
+				},
+				
+				onComplete: function(callback) {
+					if (this.isComplete) {
+						callback();
+					} else {
+						this.callbacks.push(callback);
+					}
+				}
+			};
+			
 			// App loading management
 			window.appLoadingManager = {
 				isReady: false,
 				readyCallbacks: [],
 				loadingProgress: 0,
+				isAuthenticated: false,
 				
 				onReady: function(callback) {
 					if (this.isReady) {
@@ -197,25 +247,175 @@
 					if (fillElement) {
 						fillElement.style.width = progress + '%';
 					}
+				},
+				
+				checkAuthState: function() {
+					try {
+						const authState = localStorage.getItem('authState');
+						if (authState) {
+							const parsed = JSON.parse(authState);
+							this.isAuthenticated = parsed.isAuthenticated === true;
+						}
+					} catch (e) {
+						this.isAuthenticated = false;
+					}
+					return this.isAuthenticated;
 				}
 			};
 			
-			// Start smooth progress animation
-			let progress = 0;
-			const progressInterval = setInterval(() => {
-				progress += 1;
-				window.appLoadingManager.updateProgress(progress);
-				if (progress >= 100) {
-					clearInterval(progressInterval);
+			// Track critical resources
+			function trackCriticalResources() {
+				// Track Google Fonts
+				const fontLinks = document.querySelectorAll('link[href*="fonts.googleapis.com"]');
+				fontLinks.forEach(link => {
+					window.resourceLoadingManager.addResource('font');
+					link.addEventListener('load', () => window.resourceLoadingManager.markResourceLoaded());
+					link.addEventListener('error', () => window.resourceLoadingManager.markResourceLoaded()); // Count errors as loaded to prevent hanging
+				});
+				
+				// Track preloaded stylesheets
+				const preloadLinks = document.querySelectorAll('link[rel="preload"][as="style"]');
+				preloadLinks.forEach(link => {
+					window.resourceLoadingManager.addResource('preload-style');
+					link.addEventListener('load', () => window.resourceLoadingManager.markResourceLoaded());
+					link.addEventListener('error', () => window.resourceLoadingManager.markResourceLoaded());
+				});
+				
+				// Track when DOM is ready
+				window.resourceLoadingManager.addResource('dom');
+				if (document.readyState === 'loading') {
+					document.addEventListener('DOMContentLoaded', () => window.resourceLoadingManager.markResourceLoaded());
+				} else {
+					window.resourceLoadingManager.markResourceLoaded();
 				}
-			}, 28); // 100 steps over ~2.8 seconds for smooth animation
+				
+				// Track Vite/SvelteKit assets (CSS and JS bundles)
+				const observer = new MutationObserver((mutations) => {
+					mutations.forEach((mutation) => {
+						mutation.addedNodes.forEach((node) => {
+							if (node.nodeType === 1) { // Element node
+								// Track CSS files (including Vite generated ones)
+								if (node.tagName === 'LINK' && node.rel === 'stylesheet' && !node.href.includes('fonts.googleapis.com')) {
+									window.resourceLoadingManager.addResource('css');
+									node.addEventListener('load', () => window.resourceLoadingManager.markResourceLoaded());
+									node.addEventListener('error', () => window.resourceLoadingManager.markResourceLoaded());
+								}
+								// Track JavaScript modules (including Vite bundles)
+								else if (node.tagName === 'SCRIPT' && (node.src || node.type === 'module')) {
+									window.resourceLoadingManager.addResource('js');
+									node.addEventListener('load', () => window.resourceLoadingManager.markResourceLoaded());
+									node.addEventListener('error', () => window.resourceLoadingManager.markResourceLoaded());
+								}
+							}
+						});
+					});
+				});
+				
+				// Start observing for dynamically added assets
+				observer.observe(document.head, { childList: true, subtree: true });
+				
+				// Observe body when it's available
+				if (document.body) {
+					observer.observe(document.body, { childList: true, subtree: true });
+				} else {
+					document.addEventListener('DOMContentLoaded', () => {
+						if (document.body) {
+							observer.observe(document.body, { childList: true, subtree: true });
+						}
+					});
+				}
+				
+				// Track existing CSS and JS files
+				const existingCSS = document.querySelectorAll('link[rel="stylesheet"]:not([href*="fonts.googleapis.com"])');
+				existingCSS.forEach(link => {
+					window.resourceLoadingManager.addResource('css');
+					if (link.sheet) {
+						window.resourceLoadingManager.markResourceLoaded();
+					} else {
+						link.addEventListener('load', () => window.resourceLoadingManager.markResourceLoaded());
+						link.addEventListener('error', () => window.resourceLoadingManager.markResourceLoaded());
+					}
+				});
+				
+				const existingJS = document.querySelectorAll('script[src], script[type="module"]');
+				existingJS.forEach(script => {
+					window.resourceLoadingManager.addResource('js');
+					// If script is already loaded or inline, mark as loaded
+					if (!script.src || script.readyState === 'complete') {
+						window.resourceLoadingManager.markResourceLoaded();
+					} else {
+						script.addEventListener('load', () => window.resourceLoadingManager.markResourceLoaded());
+						script.addEventListener('error', () => window.resourceLoadingManager.markResourceLoaded());
+					}
+				});
+				
+				// Track when all resources are loaded (including dynamic ones)
+				window.resourceLoadingManager.addResource('window-load');
+				if (document.readyState === 'complete') {
+					window.resourceLoadingManager.markResourceLoaded();
+				} else {
+					window.addEventListener('load', () => window.resourceLoadingManager.markResourceLoaded());
+				}
+				
+				// Additional check for SvelteKit app initialization
+				window.resourceLoadingManager.addResource('svelte-app');
+				
+				// Check if SvelteKit has initialized by looking for app container content
+				function checkSvelteAppReady() {
+					const appContainer = document.querySelector('[data-sveltekit-preload-data]');
+					if (appContainer && appContainer.children.length > 0) {
+						// Check if there's actual content (not just loading state)
+						const hasContent = appContainer.querySelector('main, .app-content, [class*="page"], [class*="layout"]');
+						if (hasContent) {
+							window.resourceLoadingManager.markResourceLoaded();
+							return true;
+						}
+					}
+					return false;
+				}
+				
+				// Check immediately and then periodically
+				if (!checkSvelteAppReady()) {
+					const checkInterval = setInterval(() => {
+						if (checkSvelteAppReady()) {
+							clearInterval(checkInterval);
+						}
+					}, 50);
+					
+					// Fallback timeout for SvelteKit app check
+					setTimeout(() => {
+						clearInterval(checkInterval);
+						window.resourceLoadingManager.markResourceLoaded();
+					}, 3000);
+				}
+			}
 			
-			// Auto-hide loading after maximum time
+			// Initialize resource tracking
+			trackCriticalResources();
+			
+			// Check authentication state for fallback timing
+			window.appLoadingManager.checkAuthState();
+			
+			// Fallback timeout based on authentication state (in case resources load too quickly or hang)
+			const isAuthenticated = window.appLoadingManager.isAuthenticated;
+			const fallbackTimeout = isAuthenticated ? 3000 : 6000;
+			
 			setTimeout(() => {
 				if (!window.appLoadingManager.isReady) {
+					console.log('Loading timeout reached, forcing completion');
+					window.appLoadingManager.updateProgress(100);
 					window.appLoadingManager.setReady();
 				}
-			}, 3000);
+			}, fallbackTimeout);
+			
+			// Minimum loading time to prevent flash
+			const minimumLoadTime = isAuthenticated ? 1500 : 2500;
+			setTimeout(() => {
+				// Only allow completion after minimum time has passed
+				if (window.resourceLoadingManager.isComplete && !window.appLoadingManager.isReady) {
+					window.appLoadingManager.setReady();
+				}
+			}, minimumLoadTime);
 		</script>
 		
 		%sveltekit.head%
