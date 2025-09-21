@@ -10,7 +10,6 @@
   // Svelte 5 runes for state management
   let idNumber = $state('');
   let password = $state('');
-  let rememberMe = $state(false);
   let isLoading = $state(false);
   let showPassword = $state(false);
   let errors = $state({ idNumber: '', password: '', general: '' });
@@ -49,7 +48,7 @@
     isLoading = true;
     
     try {
-      await handleLogin({ accountNumber: idNumber, password, rememberMe });
+      await handleLogin({ accountNumber: idNumber, password });
     } catch (error) {
       errors = { ...errors, general: error.message };
     } finally {
@@ -160,21 +159,6 @@
           {#if errors.password}
             <div class="error-text">{errors.password}</div>
           {/if}
-        </div>
-
-        <!-- Remember Me Checkbox -->
-        <div class="form-field remember-me-field">
-          <label class="remember-me-label" for="remember-me-checkbox">
-            <input
-              type="checkbox"
-              id="remember-me-checkbox"
-              class="custom-checkbox"
-              checked={rememberMe}
-              onchange={(e) => (rememberMe = e.target.checked)}
-            />
-            <span class="checkbox-checkmark"></span>
-            <span>Remember me</span>
-          </label>
         </div>
 
         <!-- Submit Button -->

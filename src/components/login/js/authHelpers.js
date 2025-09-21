@@ -49,10 +49,9 @@ const testAccounts = {
  * @param {Object} loginData - Login data object
  * @param {string} loginData.accountNumber - User account number
  * @param {string} loginData.password - User password  
- * @param {boolean} loginData.rememberMe - Remember me option
  * @returns {Promise<Object>} Promise that resolves with user data or rejects with error
  */
-export const handleLogin = async ({ accountNumber, password, rememberMe }) => {
+export const handleLogin = async ({ accountNumber, password }) => {
   try {
     // Make API call to authenticate with account number
     const response = await fetch('/api/auth', {
@@ -81,7 +80,7 @@ export const handleLogin = async ({ accountNumber, password, rememberMe }) => {
       // Show success message
       showSuccess(`Login successful! Welcome back, ${userData.name}.`);
       
-      console.log('Login successful:', { accountNumber, userType: userData.accountType, rememberMe });
+      console.log('Login successful:', { accountNumber, userType: userData.accountType });
       
       return userData;
     } else {
@@ -107,7 +106,7 @@ export const createSubmitHandler = (formState, setErrors, setLoading, validateAc
   return async (event) => {
     event.preventDefault();
     
-    const { accountNumber, password, userType, rememberMe } = formState;
+    const { accountNumber, password, userType } = formState;
     
     // Reset errors
     setErrors({ accountNumber: '', password: '', general: '' });
@@ -124,7 +123,7 @@ export const createSubmitHandler = (formState, setErrors, setLoading, validateAc
     setLoading(true);
     
     try {
-      await handleLogin({ accountNumber, password, userType, rememberMe });
+      await handleLogin({ accountNumber, password, userType });
     } catch (error) {
       setErrors(prev => ({ ...prev, general: error.message }));
     } finally {
