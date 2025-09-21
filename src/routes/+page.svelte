@@ -156,7 +156,7 @@
     <div class="student-portal" class:nav-rail-collapsed={!isNavRailVisible}>
       <StudentNavbar 
         studentName={authState.userData?.name || 'Student'}
-        studentId={authState.userData?.id || 'N/A'}
+        accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleToggleNavRail}
@@ -186,7 +186,7 @@
     <div class="teacher-portal" class:nav-rail-collapsed={!teacherNavRailVisible}>
       <TeacherNavbar 
         teacherName={authState.userData?.name || 'Teacher'}
-        teacherId={authState.userData?.id || 'N/A'}
+        accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleTeacherToggleNavRail}
@@ -214,7 +214,7 @@
     <div class="admin-portal" class:nav-rail-collapsed={!adminNavRailVisible}>
       <AdminNavbar 
         adminName={authState.userData?.name || 'Admin'}
-        adminId={authState.userData?.id || 'N/A'}
+        accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleAdminToggleNavRail}

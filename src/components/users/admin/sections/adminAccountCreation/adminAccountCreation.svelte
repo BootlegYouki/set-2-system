@@ -538,7 +538,7 @@
 
 			// Show success toast
 			const accountTypeLabel = selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin';
-			toastStore.success(`${accountTypeLabel} account created successfully for ${data.account.full_name}! Password is the same as account number: ${data.account.account_number}`);
+			toastStore.success(`${accountTypeLabel} account created successfully for ${data.account.name}! Password is the same as account number: ${data.account.number}`);
 
 			// Reset form
 			selectedAccountType = '';

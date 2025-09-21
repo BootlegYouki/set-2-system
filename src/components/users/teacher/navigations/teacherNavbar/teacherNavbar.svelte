@@ -4,7 +4,7 @@
 	import { showSuccess } from '../../../../common/js/toastStore.js';
 
 	// Props
-	let { teacherName = 'John Does', teacherId = '2024-001234', profileImage = null, onlogout, onToggleNavRail } = $props();
+	let { teacherName = 'John Does', accountNumber = 'TCH-2025-0001', profileImage = null, onlogout, onToggleNavRail, onNavigateToSettings } = $props();
 
 	// Theme state (default to dark mode)
 	let isDarkMode = $state(true);
@@ -113,7 +113,7 @@
 				<button class="teacher-navbar-user-profile" onclick={toggleDropdown}>
 					<div class="teacher-navbar-user-info">
 						<span class="teacher-navbar-user-name">{teacherName}</span>
-				<span class="user-id">ID: {teacherId}</span>
+				<span class="user-id">Account: {accountNumber}</span>
 					</div>
 					
 					<div class="teacher-navbar-user-avatar">
@@ -130,9 +130,9 @@
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
 					<div class="teacher-navbar-dropdown-menu">
-						<button class="teacher-navbar-dropdown-item" onclick={closeDropdown}>
-							<span class="material-symbols-outlined">person</span>
-							Profile
+						<button class="teacher-navbar-dropdown-item" onclick={() => { closeDropdown(); onNavigateToSettings(); }}>
+							<span class="material-symbols-outlined">settings</span>
+							Settings
 						</button>
 						<button class="teacher-navbar-dropdown-item" onclick={() => { closeDropdown(); showSuccess('Logged out successfully. See you next time!'); onlogout(); }}>
 							<span class="material-symbols-outlined">logout</span>

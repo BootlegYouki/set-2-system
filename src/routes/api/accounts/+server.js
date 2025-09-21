@@ -431,7 +431,7 @@ export async function DELETE({ request }) {
       return json({ error: 'Account ID is required' }, { status: 400 });
     }
     
-    // Check if account exists and is a student
+    // Check if account exists
     const checkQuery = `SELECT id, full_name, account_type FROM users WHERE id = $1`;
     const checkResult = await query(checkQuery, [id]);
     
@@ -441,35 +441,49 @@ export async function DELETE({ request }) {
     
     const account = checkResult.rows[0];
     
-    if (account.account_type !== 'student') {
-      return json({ error: 'Only student accounts can be archived' }, { status: 400 });
+    // Handle different account types differently
+    if (account.account_type === 'student') {
+      // Archive students instead of deleting
+      const archiveQuery = `
+        UPDATE users 
+        SET 
+          status = 'archived',
+          archived_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `;
+      await query(archiveQuery, [id]);
+      
+      return json({
+        success: true,
+        message: `Student "${account.full_name}" has been archived successfully`
+      });
+    } else {
+      // Actually delete teacher and admin accounts
+      const deleteQuery = `DELETE FROM users WHERE id = $1`;
+      await query(deleteQuery, [id]);
+      
+      const accountTypeLabel = account.account_type === 'teacher' ? 'Teacher' : 'Admin';
+      return json({
+        success: true,
+        message: `${accountTypeLabel} "${account.full_name}" has been deleted successfully`
+      });
     }
     
-    // Archive the student instead of deleting
-    const archiveQuery = `
-      UPDATE users 
-      SET 
-        status = 'archived',
-        archived_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-    `;
-    await query(archiveQuery, [id]);
-    
-    return json({
-      success: true,
-      message: `Student "${account.full_name}" has been archived successfully`
-    });
-    
   } catch (error) {
-    console.error('Error archiving account:', error);
+    console.error('Error deleting/archiving account:', error);
     
     // Database connection errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
     
-    return json({ error: 'Failed to archive account. Please try again.' }, { status: 500 });
+    // Foreign key constraint violation (if account is referenced elsewhere)
+    if (error.code === '23503') {
+      return json({ error: 'Cannot delete account as it is referenced by other records' }, { status: 409 });
+    }
+    
+    return json({ error: 'Failed to delete account. Please try again.' }, { status: 500 });
   }
 }
 
