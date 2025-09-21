@@ -20,6 +20,8 @@
   import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
   import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
   import AdminStudentMasterlist from '../components/users/admin/sections/adminStudentMasterlist/adminStudentMasterlist.svelte';
+  import AdminArchivedStudents from '../components/users/admin/sections/adminArchivedStudents/adminArchivedStudents.svelte';
+  import AdminStudentGradesList from '../components/users/admin/sections/adminStudentGradesList/adminStudentGradesList.svelte';
   import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
   import AdminSectionManagement from '../components/users/admin/sections/adminSectionManagement/adminSectionManagement.svelte';
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
@@ -219,6 +221,10 @@
           <AdminAccountCreation />
         {:else if adminActiveSection === 'student-masterlist'}
           <AdminStudentMasterlist />
+        {:else if adminActiveSection === 'archived-students'}
+          <AdminArchivedStudents />
+        {:else if adminActiveSection === 'student-grades-list'}
+          <AdminStudentGradesList />
         {:else if adminActiveSection === 'room-management'}
           <AdminRoomManagement />
         {:else if adminActiveSection === 'section-management'}

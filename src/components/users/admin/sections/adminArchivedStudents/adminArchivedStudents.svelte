@@ -1,5 +1,5 @@
 <script>
-	import './adminStudentMasterlist.css';
+	import './adminArchivedStudents.css';
 	import { onMount } from 'svelte';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 
@@ -38,34 +38,35 @@
 	$: selectedYearLevelObj = yearLevelOptions.find(level => level.id === selectedYearLevel);
 	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
 
-	// Load students data
-	async function loadStudents() {
+	// Load archived students data
+	async function loadArchivedStudents() {
 		isLoading = true;
 		try {
-			const response = await fetch('/api/accounts?type=student');
+			const response = await fetch('/api/archived-students');
 			if (!response.ok) {
-				throw new Error('Failed to load students');
+				throw new Error('Failed to load archived students');
 			}
 			const data = await response.json();
 			
 			// Transform API data to match our component structure
-			students = data.accounts.map(account => ({
-				id: account.id,
-				name: account.name,
-				number: account.number, // Add the student ID number
-				email: account.email,
-				yearLevel: account.yearLevel || 'Not specified',
-				section: account.section || 'Not specified',
-				birthdate: account.birthdate || 'Not specified',
-				address: account.address || 'Not specified',
-				guardian: account.guardian || 'Not specified',
-				contactNumber: account.contactNumber || 'Not specified',
-				status: account.status || 'active'
+			students = data.students.map(student => ({
+				id: student.id,
+				name: student.name,
+				number: student.number, // Add the student ID number
+				email: student.email,
+				yearLevel: student.yearLevel || 'Not specified',
+				section: student.section || 'Not specified',
+				birthdate: student.birthdate || 'Not specified',
+				address: student.address || 'Not specified',
+				guardian: student.guardian || 'Not specified',
+				contactNumber: student.contactNumber || 'Not specified',
+				status: student.status || 'archived',
+				archivedAt: student.archivedDate || new Date().toISOString()
 			}));
 			filterStudents();
 		} catch (error) {
-			console.error('Error loading students:', error);
-			toastStore.error('Failed to load students. Please try again.');
+			console.error('Error loading archived students:', error);
+			toastStore.error('Failed to load archived students. Please try again.');
 			// Fallback to empty array on error
 			students = [];
 		} finally {
@@ -138,6 +139,46 @@
 		});
 	}
 
+	// Format archived date for display
+	function formatArchivedDate(archivedAt) {
+		if (!archivedAt) return 'N/A';
+		const date = new Date(archivedAt);
+		return date.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric'
+		});
+	}
+
+	// Restore student from archive
+	async function restoreStudent(studentId) {
+		try {
+			const response = await fetch(`/api/archived-students`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ id: studentId })
+			});
+			
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.error || 'Failed to restore student');
+			}
+			
+			const result = await response.json();
+			
+			// Show success toast
+			toastStore.success(result.message || 'Student restored successfully');
+			
+			// Reload the archived students list
+			await loadArchivedStudents();
+		} catch (error) {
+			console.error('Error restoring student:', error);
+			toastStore.error(error.message || 'Failed to restore student. Please try again.');
+		}
+	}
+
 	// Clear all filters
 	function clearFilters() {
 		searchQuery = '';
@@ -151,40 +192,14 @@
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.custom-dropdown')) {
+		if (!event.target.closest('.aas-custom-dropdown')) {
 			isYearLevelDropdownOpen = false;
 			isSectionDropdownOpen = false;
 		}
 	}
 
-	// Archive student function
-	async function archiveStudent(studentId, studentName) {
-		try {
-			const response = await fetch('/api/accounts', {
-				method: 'DELETE',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ id: studentId })
-			});
-
-			const result = await response.json();
-
-			if (response.ok && result.success) {
-				toastStore.success(result.message);
-				// Reload students to reflect the change
-				await loadStudents();
-			} else {
-				toastStore.error(result.error || 'Failed to archive student');
-			}
-		} catch (error) {
-			console.error('Error archiving student:', error);
-			toastStore.error('Failed to archive student. Please try again.');
-		}
-	}
-
 	onMount(() => {
-		loadStudents();
+		loadArchivedStudents();
 		document.addEventListener('click', handleClickOutside);
 		
 		return () => {
@@ -193,32 +208,32 @@
 	});
 </script>
 
-<div class="student-masterlist-container">
+<div class="aas-archived-students-container">
 	<!-- Header -->
-	<div class="admin-student-header">
-		<div class="header-content">
-			<h1 class="page-title">Student Masterlist</h1>
-			<p class="page-subtitle">View and manage all student records in the system</p>
+	<div class="aas-admin-student-header">
+		<div class="aas-header-content">
+			<h1 class="aas-page-title">Archived Students</h1>
+			<p class="aas-page-subtitle">View and manage archived student records</p>
 		</div>
 	</div>
 
 	<!-- Filters Section -->
-	<div class="filters-section">
-		<div class="search-filter-container">
+	<div class="aas-filters-section">
+		<div class="aas-search-filter-container">
 			<!-- Search Bar -->
-			<div class="search-container">
-				<div class="search-input-wrapper">
-					<span class="material-symbols-outlined search-icon">search</span>
+			<div class="aas-search-container">
+				<div class="aas-search-input-wrapper">
+					<span class="material-symbols-outlined aas-search-icon">search</span>
 					<input 
 						type="text" 
-					class="search-input" 
-					placeholder="Search students by name, email, or ID..."
-					bind:value={searchQuery}
+						class="aas-search-input" 
+						placeholder="Search archived students by name, email, or ID..."
+						bind:value={searchQuery}
 					/>
 					{#if searchQuery}
 						<button 
 							type="button" 
-							class="clear-search-button"
+							class="aas-clear-search-button"
 							on:click={() => searchQuery = ''}
 						>
 							<span class="material-symbols-outlined">close</span>
@@ -228,37 +243,37 @@
 			</div>
 
 			<!-- Filter Dropdowns -->
-			<div class="filter-container">
+			<div class="aas-filter-container">
 				<!-- Year Level Filter -->
-				<div class="filter-group">
-					<label class="filter-label">Year Level</label>
-					<div class="custom-dropdown" class:open={isYearLevelDropdownOpen}>
+				<div class="aas-filter-group">
+					<label class="aas-filter-label">Year Level</label>
+					<div class="aas-custom-dropdown" class:open={isYearLevelDropdownOpen}>
 						<button 
 							type="button"
-							class="dropdown-trigger filter-trigger" 
+							class="aas-dropdown-trigger aas-filter-trigger" 
 							on:click={toggleYearLevelDropdown}
 						>
 							{#if selectedYearLevelObj && selectedYearLevel}
-								<div class="selected-option">
-									<span class="material-symbols-outlined option-icon">{selectedYearLevelObj.icon}</span>
-									<span class="option-name">{selectedYearLevelObj.name}</span>
+								<div class="aas-selected-option">
+									<span class="material-symbols-outlined aas-option-icon">{selectedYearLevelObj.icon}</span>
+									<span class="aas-option-name">{selectedYearLevelObj.name}</span>
 								</div>
 							{:else}
-								<span class="placeholder">All Year Levels</span>
+								<span class="aas-placeholder">All Year Levels</span>
 							{/if}
-							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
 						</button>
-						<div class="dropdown-menu">
+						<div class="aas-dropdown-menu">
 							{#each yearLevelOptions as yearLevel (yearLevel.id)}
 								<button 
 									type="button"
-									class="dropdown-option" 
+									class="aas-dropdown-option" 
 									class:selected={selectedYearLevel === yearLevel.id}
 									on:click={() => selectYearLevel(yearLevel)}
 								>
-									<span class="material-symbols-outlined option-icon">{yearLevel.icon}</span>
-									<div class="option-content">
-										<span class="option-name">{yearLevel.name}</span>
+									<span class="material-symbols-outlined aas-option-icon">{yearLevel.icon}</span>
+									<div class="aas-option-content">
+										<span class="aas-option-name">{yearLevel.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -267,33 +282,33 @@
 				</div>
 
 				<!-- Section Filter -->
-				<div class="filter-group">
-					<label class="filter-label">Section</label>
-					<div class="custom-dropdown" class:open={isSectionDropdownOpen}>
+				<div class="aas-filter-group">
+					<label class="aas-filter-label">Section</label>
+					<div class="aas-custom-dropdown" class:open={isSectionDropdownOpen}>
 						<button 
 							type="button"
-							class="dropdown-trigger filter-trigger" 
+							class="aas-dropdown-trigger aas-filter-trigger" 
 							on:click={toggleSectionDropdown}
 						>
 							{#if selectedSectionObj && selectedSection}
-								<div class="selected-option">
-									<span class="option-name">{selectedSectionObj.name}</span>
+								<div class="aas-selected-option">
+									<span class="aas-option-name">{selectedSectionObj.name}</span>
 								</div>
 							{:else}
-								<span class="placeholder">All Sections</span>
+								<span class="aas-placeholder">All Sections</span>
 							{/if}
-							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
 						</button>
-						<div class="dropdown-menu">
+						<div class="aas-dropdown-menu">
 							{#each sectionOptions as section (section.id)}
 								<button 
 									type="button"
-									class="dropdown-option" 
+									class="aas-dropdown-option" 
 									class:selected={selectedSection === section.id}
 									on:click={() => selectSection(section)}
 								>
-									<div class="option-content">
-										<span class="option-name">{section.name}</span>
+									<div class="aas-option-content">
+										<span class="aas-option-name">{section.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -305,7 +320,7 @@
 				{#if searchQuery || selectedYearLevel || selectedSection}
 					<button 
 						type="button" 
-						class="clear-filters-button"
+						class="aas-clear-filters-button"
 						on:click={clearFilters}
 					>
 						<span class="material-symbols-outlined">filter_alt_off</span>
@@ -316,77 +331,81 @@
 	</div>
 
 	<!-- Students List -->
-	<div class="students-list-section">
+	<div class="aas-students-list-section">
 		{#if isLoading}
-			<div class="masterlist-loading-container">
-				<span class="student-loader"></span>
-				<p class="masterlist-loading-text">Loading students...</p>
+			<div class="aas-loading-container">
+				<span class="aas-student-loader"></span>
+				<p class="aas-loading-text">Loading archived students...</p>
 			</div>
 		{:else if filteredStudents.length > 0}
-			<div class="students-grid">
+			<div class="aas-students-grid">
 				{#each filteredStudents as student (student.id)}
-					<div class="account-card">
-						<div class="account-card-header">
-							<div class="account-title">
-								<h3 class="account-name">{#if student.number}{student.number}{/if} · {student.name}</h3>
+					<div class="aas-account-card">
+						<div class="aas-account-card-header">
+							<div class="aas-account-title">
+								<h3 class="aas-account-name">{#if student.number}{student.number}{/if} · {student.name}</h3>
+								<div class="aas-archived-badge">
+									<span class="material-symbols-outlined">archive</span>
+									<span>Archived {formatArchivedDate(student.archivedAt)}</span>
+								</div>
 							</div>
-							<div class="action-buttons">
+							<div class="aas-action-buttons">
 								<button 
 									type="button"
-									class="archive-button"
-									title="Archive Student"
-									on:click={() => archiveStudent(student.id, student.name)}
+									class="aas-restore-button"
+									title="Restore Student"
+									on:click={() => restoreStudent(student.id)}
 								>
-									<span class="material-symbols-outlined">archive</span>
+									<span class="material-symbols-outlined">unarchive</span>
 								</button>
 							</div>
 						</div>
 						
-						<div class="master-account-details">
+						<div class="aas-account-details">
 							{#if student.email}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">email</span>
 									<span>{student.email}</span>
 								</div>
 							{/if}
 							{#if student.yearLevel && student.yearLevel !== 'Not specified'}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">school</span>
 									<span>{yearLevelOptions.find(level => level.id === student.yearLevel)?.name || student.yearLevel}</span>
 								</div>
 							{/if}
 							{#if student.section && student.section !== 'Not specified'}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">class</span>
 									<span>Section: {sectionOptions.find(section => section.id === student.section)?.name || student.section}</span>
 								</div>
 							{/if}
 							{#if student.birthdate && student.birthdate !== 'Not specified'}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">cake</span>
 									<span>Age: {calculateAge(student.birthdate)} years old</span>
 								</div>
 							{/if}
 							{#if student.guardian && student.guardian !== 'Not specified'}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">family_restroom</span>
 									<span>Guardian: {student.guardian}</span>
 								</div>
 							{/if}
 							{#if student.contactNumber && student.contactNumber !== 'Not specified'}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">phone</span>
 									<span>Contact: {student.contactNumber}</span>
 								</div>
 							{/if}
 							{#if student.address && student.address !== 'Not specified'}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">home</span>
 									<span>Address: {student.address}</span>
 								</div>
 							{/if}
 							{#if student.birthdate && student.birthdate !== 'Not specified'}
-								<div class="account-detail-item">
+								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">calendar_today</span>
 									<span>Birthdate: {formatBirthdate(student.birthdate)}</span>
 								</div>
@@ -396,21 +415,21 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="no-results">
-				<span class="material-symbols-outlined no-results-icon">
-					{searchQuery || selectedYearLevel || selectedSection ? 'search_off' : 'school'}
+			<div class="aas-no-results">
+				<span class="material-symbols-outlined aas-no-results-icon">
+					{searchQuery || selectedYearLevel || selectedSection ? 'search_off' : 'archive'}
 				</span>
 				<p>
 					{#if searchQuery || selectedYearLevel || selectedSection}
-						No students found matching your search criteria.
+						No archived students found matching your search criteria.
 					{:else}
-						No students found in the system.
+						No archived students found in the system.
 					{/if}
 				</p>
 				{#if searchQuery || selectedYearLevel || selectedSection}
 					<button 
 						type="button" 
-						class="clear-search-button-inline"
+						class="aas-clear-search-button-inline"
 						on:click={clearFilters}
 					>Clear
 					</button>

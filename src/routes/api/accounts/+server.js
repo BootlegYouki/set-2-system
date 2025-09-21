@@ -180,8 +180,10 @@ export async function GET({ url }) {
     
     // Add WHERE clause if type parameter is provided
     if (type) {
-      selectQuery += ` WHERE u.account_type = $2`;
+      selectQuery += ` WHERE u.account_type = $2 AND (u.status IS NULL OR u.status = 'active')`;
       queryParams.push(type);
+    } else {
+      selectQuery += ` WHERE (u.status IS NULL OR u.status = 'active')`;
     }
     
     selectQuery += ` ORDER BY u.created_at DESC LIMIT $1`;
@@ -420,42 +422,54 @@ export async function PUT({ request }) {
   }
 }
 
-// DELETE /api/accounts - Delete an account by ID
+// DELETE /api/accounts - Archive a student account by ID
 export async function DELETE({ request }) {
   try {
     const { id } = await request.json();
     
-    // Validate required fields
     if (!id) {
       return json({ error: 'Account ID is required' }, { status: 400 });
     }
     
-    // Check if account exists
-    const checkQuery = `SELECT id, full_name FROM users WHERE id = $1`;
+    // Check if account exists and is a student
+    const checkQuery = `SELECT id, full_name, account_type FROM users WHERE id = $1`;
     const checkResult = await query(checkQuery, [id]);
     
     if (checkResult.rows.length === 0) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
     
-    // Delete the account
-    const deleteQuery = `DELETE FROM users WHERE id = $1`;
-    await query(deleteQuery, [id]);
+    const account = checkResult.rows[0];
     
-    return json({ 
-      success: true, 
-      message: `Account for "${checkResult.rows[0].full_name}" has been deleted successfully` 
+    if (account.account_type !== 'student') {
+      return json({ error: 'Only student accounts can be archived' }, { status: 400 });
+    }
+    
+    // Archive the student instead of deleting
+    const archiveQuery = `
+      UPDATE users 
+      SET 
+        status = 'archived',
+        archived_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `;
+    await query(archiveQuery, [id]);
+    
+    return json({
+      success: true,
+      message: `Student "${account.full_name}" has been archived successfully`
     });
     
   } catch (error) {
-    console.error('Error deleting account:', error);
+    console.error('Error archiving account:', error);
     
     // Database connection errors
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
     
-    return json({ error: 'Failed to delete account. Please try again.' }, { status: 500 });
+    return json({ error: 'Failed to archive account. Please try again.' }, { status: 500 });
   }
 }
 

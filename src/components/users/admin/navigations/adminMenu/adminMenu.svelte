@@ -39,6 +39,24 @@
 			]
 		},
 		{
+			id: 'student-masterlist',
+			label: 'Student Masterlist',
+			icon: 'groups',
+			type: 'item'
+		},
+		{
+			id: 'archived-students',
+			label: 'Archived Students',
+			icon: 'archive',
+			type: 'item'
+		},
+		{
+			id: 'student-grades-list',
+			label: 'Student Grades List',
+			icon: 'grade',
+			type: 'item'
+		},
+		{
 			id: 'document-requests',
 			label: 'Document Requests',
 			icon: 'description',
@@ -54,12 +72,6 @@
 			id: 'subject-creation',
 			label: 'Subject Creation',
 			icon: 'subject'
-		},
-		{
-			id: 'student-masterlist',
-			label: 'Student Masterlist',
-			icon: 'groups',
-			type: 'item'
 		},
 	];
 

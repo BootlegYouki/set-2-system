@@ -12,6 +12,8 @@
 -- ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER;
 -- ALTER TABLE users ADD COLUMN IF NOT EXISTS guardian VARCHAR(255);
 -- ALTER TABLE users ADD COLUMN IF NOT EXISTS contact_number VARCHAR(20);
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'archived'));
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP WITH TIME ZONE;
 
 CREATE TABLE IF NOT EXISTS subjects (
     id SERIAL PRIMARY KEY,
@@ -40,6 +42,8 @@ CREATE TABLE IF NOT EXISTS users (
     age INTEGER,
     guardian VARCHAR(255),
     contact_number VARCHAR(20),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'archived')),
+    archived_at TIMESTAMP WITH TIME ZONE,
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -51,6 +55,8 @@ CREATE INDEX IF NOT EXISTS idx_subjects_code ON subjects(code);
 CREATE INDEX IF NOT EXISTS idx_users_account_number ON users(account_number);
 CREATE INDEX IF NOT EXISTS idx_users_account_type ON users(account_type);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE INDEX IF NOT EXISTS idx_users_archived_at ON users(archived_at);
 
 -- Insert sample data (updated to match new schema without status field)
 INSERT INTO subjects (name, code, grade_level) VALUES
