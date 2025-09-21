@@ -9,38 +9,23 @@
 	let { children } = $props();
 	let isAuthInitialized = $state(false);
 	let loadingProgress = $state(0);
-	let loadingStage = $state('Initializing...');
 	
-	// Loading stages with realistic messages
-	const loadingStages = [
-		{ progress: 0, message: 'Initializing...' },
-		{ progress: 15, message: 'Loading authentication...' },
-		{ progress: 35, message: 'Connecting to server...' },
-		{ progress: 55, message: 'Fetching user data...' },
-		{ progress: 75, message: 'Setting up interface...' },
-		{ progress: 90, message: 'Almost ready...' },
-		{ progress: 100, message: 'Complete!' }
-	];
-	
-	// Initialize auth store with fake loading progress
+	// Initialize auth store with smooth loading progress
 	onMount(() => {
-		let currentStageIndex = 0;
-		
-		const progressInterval = setInterval(() => {
-			if (currentStageIndex < loadingStages.length) {
-				const stage = loadingStages[currentStageIndex];
-				loadingProgress = stage.progress;
-				loadingStage = stage.message;
-				currentStageIndex++;
-			} else {
-				clearInterval(progressInterval);
+		// Start smooth progress animation
+		loadingProgress = 0;
+		const smoothProgressInterval = setInterval(() => {
+			loadingProgress += 1;
+			if (loadingProgress >= 100) {
+				loadingProgress = 100;
+				clearInterval(smoothProgressInterval);
 				// Small delay before showing content for smooth transition
 				setTimeout(() => {
 					authStore.initialize();
 					isAuthInitialized = true;
 				}, 300);
 			}
-		}, 400); // Each stage takes 400ms for realistic timing
+		}, 28); // 100 steps over ~2.8 seconds for smooth animation
 	});
 </script>
 
@@ -61,8 +46,7 @@
 	<!-- Loading state to prevent flash -->
 	<div class="loading-container">
 		<div class="loading-content">
-			<span class="material-symbols-outlined loading-icon">school</span>
-			<p class="loading-text">{loadingStage}</p>
+			<span class="material-symbols-outlined onload-icon">school</span>
 			
 			<!-- Progress bar -->
 			<div class="progress-container">
@@ -110,23 +94,12 @@
 		text-align: center;
 	}
 
-	.loading-icon {
-		font-size: 48px;
+	.onload-icon {
+		font-size: 120px;
 		color: var(--md-sys-color-primary);
-		margin: 0 auto 16px;
+		margin: 0 auto 32px;
 		display: block;
-		animation: pulse 2s ease-in-out infinite, float 3s ease-in-out infinite;
 		transition: color var(--transition-normal, 0.3s ease);
-	}
-
-	.loading-text {
-		color: var(--md-sys-color-on-surface);
-		font-family: 'Roboto', sans-serif;
-		margin: 0 0 20px 0;
-		font-size: 14px;
-		font-weight: 400;
-		min-height: 20px;
-		transition: opacity 0.3s ease;
 	}
 
 	.progress-container {
@@ -149,11 +122,12 @@
 	.progress-fill {
 		height: 100%;
 		background: linear-gradient(90deg, 
-			var(--md-sys-color-primary) 0%, 
-			var(--md-sys-color-primary-container) 100%);
+			var(--md-sys-color-primary-container) 0%, 
+			var(--md-sys-color-secondary-container) 100%);
 		border-radius: 3px;
-		transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		transition: width 0.1s linear;
 		position: relative;
+		overflow: hidden;
 	}
 
 	.progress-fill::after {
@@ -165,13 +139,28 @@
 		bottom: 0;
 		background: linear-gradient(90deg, 
 			transparent 0%, 
-			rgba(255, 255, 255, 0.3) 50%, 
+			rgba(255, 255, 255, 0.4) 30%,
+			rgba(255, 255, 255, 0.6) 50%,
+			rgba(255, 255, 255, 0.4) 70%,
 			transparent 100%);
-		animation: shimmer 1.5s infinite;
+		animation: shimmer 1.2s ease-in-out infinite;
+		width: 100px;
 	}
 
 	@keyframes shimmer {
-		0% { transform: translateX(-100%); }
-		100% { transform: translateX(200%); }
+		0% { 
+			transform: translateX(-120px);
+			opacity: 0;
+		}
+		20% {
+			opacity: 1;
+		}
+		80% {
+			opacity: 1;
+		}
+		100% { 
+			transform: translateX(300px);
+			opacity: 0;
+		}
 	}
 </style>
