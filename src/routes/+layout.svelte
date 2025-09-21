@@ -11,124 +11,16 @@
 	
 	// Initialize auth store
 	onMount(() => {
-		// Wait for resource loading to complete or minimum time, whichever is longer
-		const checkResourcesAndAuth = () => {
-			const isAuthenticated = window.appLoadingManager?.checkAuthState() || false;
-			const minimumDelay = isAuthenticated ? 3400 : 4400; // Added 2 seconds to waiting time
+		// Small delay to let app loading show, then initialize auth
+		setTimeout(() => {
+			authStore.initialize();
+			isAuthInitialized = true;
 			
-			// Check if resources are loaded
-			const resourcesComplete = window.resourceLoadingManager?.isComplete || false;
-			
-			if (resourcesComplete) {
-				// Resources are loaded, initialize auth and signal app ready
-				authStore.initialize();
-				isAuthInitialized = true;
-				
-				// Wait for actual content to be visible before hiding loading
-				const waitForVisibleContent = () => {
-					// Check for login page or authenticated content
-					const loginElement = document.querySelector('.login-container, .login-page, [class*="login"]');
-					const studentPortal = document.querySelector('.student-portal');
-					const teacherPortal = document.querySelector('.teacher-portal');
-					const adminPortal = document.querySelector('.admin-portal');
-					const appContainer = document.querySelector('.app-container');
-					
-					// Check if any content is visible and has rendered
-					const hasVisibleContent = loginElement || studentPortal || teacherPortal || adminPortal;
-					const appContainerHasContent = appContainer && appContainer.children.length > 0;
-					
-					if (hasVisibleContent && appContainerHasContent) {
-						// Content is visible, safe to hide loading
-						setTimeout(() => {
-							if (window.appLoadingManager && !window.appLoadingManager.isReady) {
-								window.appLoadingManager.setReady();
-							}
-						}, 50); // Small delay to ensure rendering is complete
-					} else {
-						// Content not visible yet, check again
-						setTimeout(waitForVisibleContent, 50);
-					}
-				};
-				
-				// Start checking for visible content after a small delay
-				setTimeout(waitForVisibleContent, 100);
-			} else {
-				// Resources not loaded yet, wait for them
-				if (window.resourceLoadingManager) {
-					window.resourceLoadingManager.onComplete(() => {
-						authStore.initialize();
-						isAuthInitialized = true;
-						
-						// Wait for actual content to be visible before hiding loading
-						const waitForVisibleContent = () => {
-							// Check for login page or authenticated content
-							const loginElement = document.querySelector('.login-container, .login-page, [class*="login"]');
-							const studentPortal = document.querySelector('.student-portal');
-							const teacherPortal = document.querySelector('.teacher-portal');
-							const adminPortal = document.querySelector('.admin-portal');
-							const appContainer = document.querySelector('.app-container');
-							
-							// Check if any content is visible and has rendered
-							const hasVisibleContent = loginElement || studentPortal || teacherPortal || adminPortal;
-							const appContainerHasContent = appContainer && appContainer.children.length > 0;
-							
-							if (hasVisibleContent && appContainerHasContent) {
-								// Content is visible, safe to hide loading
-								setTimeout(() => {
-									if (window.appLoadingManager && !window.appLoadingManager.isReady) {
-										window.appLoadingManager.setReady();
-									}
-								}, 50); // Small delay to ensure rendering is complete
-							} else {
-								// Content not visible yet, check again
-								setTimeout(waitForVisibleContent, 50);
-							}
-						};
-						
-						// Start checking for visible content after a small delay
-						setTimeout(waitForVisibleContent, 100);
-					});
-				} else {
-					// Fallback if resource manager not available
-					setTimeout(() => {
-						authStore.initialize();
-						isAuthInitialized = true;
-						
-						// Wait for actual content to be visible before hiding loading
-						const waitForVisibleContent = () => {
-							// Check for login page or authenticated content
-							const loginElement = document.querySelector('.login-container, .login-page, [class*="login"]');
-							const studentPortal = document.querySelector('.student-portal');
-							const teacherPortal = document.querySelector('.teacher-portal');
-							const adminPortal = document.querySelector('.admin-portal');
-							const appContainer = document.querySelector('.app-container');
-							
-							// Check if any content is visible and has rendered
-							const hasVisibleContent = loginElement || studentPortal || teacherPortal || adminPortal;
-							const appContainerHasContent = appContainer && appContainer.children.length > 0;
-							
-							if (hasVisibleContent && appContainerHasContent) {
-								// Content is visible, safe to hide loading
-								setTimeout(() => {
-									if (window.appLoadingManager && !window.appLoadingManager.isReady) {
-										window.appLoadingManager.setReady();
-									}
-								}, 50); // Small delay to ensure rendering is complete
-							} else {
-								// Content not visible yet, check again
-								setTimeout(waitForVisibleContent, 50);
-							}
-						};
-						
-						// Start checking for visible content after a small delay
-						setTimeout(waitForVisibleContent, 100);
-					}, minimumDelay);
-				}
+			// Signal to app.html that the app is ready
+			if (window.appLoadingManager) {
+				window.appLoadingManager.setReady();
 			}
-		};
-		
-		// Small delay to ensure resource tracking is initialized
-		setTimeout(checkResourcesAndAuth, 100);
+		}, 2800); // Slightly before the 3-second timeout
 	});
 </script>
 
