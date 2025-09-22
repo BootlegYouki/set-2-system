@@ -147,8 +147,8 @@
 	<!-- Recent Activities Section -->
 	<div class="activities-section">
 		<div class="section-header">
-			<h2 class="section-title">Recent Activities</h2>
-			<p class="section-subtitle">Latest system activities and updates</p>
+			<h2 class="section-title">Activity Logs</h2>
+			<p class="section-subtitle">System activities and updates</p>
 		</div>
 		
 		<div class="activities-list">
