@@ -37,7 +37,6 @@
 		try {
 			activitiesLoading = true;
 			activitiesError = null;
-			
 			const response = await fetch(`/api/activity-logs?limit=${activityLimit}`);
 			const data = await response.json();
 			
@@ -148,7 +147,15 @@
 	<div class="activities-section">
 		<div class="section-header">
 			<h2 class="section-title">Activity Logs</h2>
-			<p class="section-subtitle">System activities and updates</p>
+			<button 
+				class="refresh-button" 
+				on:click={fetchRecentActivities}
+				disabled={activitiesLoading}
+				title="Refresh activity logs"
+			>
+				<span class="material-symbols-outlined">refresh</span>
+				Refresh
+			</button>
 		</div>
 		
 		<div class="activities-list">
@@ -159,12 +166,8 @@
 				</div>
 			{:else if activitiesError}
 				<div class="activities-error">
-					<span class="material-symbols-outlined">error</span>
+					<span class="material-symbols-outlined error-icon">error</span>
 					<p>Error loading activities: {activitiesError}</p>
-					<button class="retry-button" on:click={fetchRecentActivities}>
-						<span class="material-symbols-outlined">refresh</span>
-						Retry
-					</button>
 				</div>
 			{:else if recentActivities.length === 0}
 				<div class="activities-empty">
