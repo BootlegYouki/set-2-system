@@ -54,7 +54,7 @@
 				name: account.name,
 				number: account.number, // Add the student ID number
 				email: account.email,
-				gradeLevel: account.yearLevel || 'Not specified',
+				gradeLevel: account.gradeLevel || 'Not specified',
 				section: account.section || 'Not specified',
 				birthdate: account.birthdate || 'Not specified',
 				address: account.address || 'Not specified',

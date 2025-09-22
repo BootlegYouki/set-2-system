@@ -16,13 +16,13 @@
 	let isYearLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
 
-	// Year level options
-	const yearLevelOptions = [
-		{ id: '', name: 'All Year Levels', icon: 'school' },
-		{ id: '1st', name: '1st Year', icon: 'looks_one' },
-		{ id: '2nd', name: '2nd Year', icon: 'looks_two' },
-		{ id: '3rd', name: '3rd Year', icon: 'looks_3' },
-		{ id: '4th', name: '4th Year', icon: 'looks_4' },
+	// Grade level options
+	const gradeLevelOptions = [
+		{ id: '', name: 'All Grade Levels', icon: 'school' },
+		{ id: '7', name: 'Grade 7', icon: 'looks_one' },
+		{ id: '8', name: 'Grade 8', icon: 'looks_two' },
+		{ id: '9', name: 'Grade 9', icon: 'looks_3' },
+		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
 	];
 
 	// Section options
@@ -36,7 +36,7 @@
 	];
 
 	// Computed values
-	$: selectedYearLevelObj = yearLevelOptions.find(level => level.id === selectedYearLevel);
+	$: selectedYearLevelObj = gradeLevelOptions.find(level => level.id === selectedYearLevel);
 	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
 
 	// Load archived students data
@@ -53,16 +53,15 @@
 			students = data.students.map(student => ({
 				id: student.id,
 				name: student.name,
-				number: student.number, // Add the student ID number
+				number: student.number,
 				email: student.email,
-				yearLevel: student.yearLevel || 'Not specified',
+				gradeLevel: student.gradeLevel || 'Not specified',
 				section: student.section || 'Not specified',
 				birthdate: student.birthdate || 'Not specified',
 				address: student.address || 'Not specified',
 				guardian: student.guardian || 'Not specified',
 				contactNumber: student.contactNumber || 'Not specified',
-				status: student.status || 'archived',
-				archivedAt: student.archivedDate || new Date().toISOString()
+				archivedDate: student.archivedDate || 'Not specified'
 			}));
 			filterStudents();
 		} catch (error) {
@@ -252,7 +251,7 @@
 							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
 						</button>
 						<div class="aas-dropdown-menu">
-							{#each yearLevelOptions as yearLevel (yearLevel.id)}
+							{#each gradeLevelOptions as yearLevel (yearLevel.id)}
 								<button 
 									type="button"
 									class="aas-dropdown-option" 
@@ -334,7 +333,7 @@
 								<h3 class="aas-account-name">{#if student.number}{student.number}{/if} · {student.name}</h3>
 								<div class="aas-archived-badge">
 									<span class="material-symbols-outlined">archive</span>
-									<span>Archived {formatArchivedDate(student.archivedAt)}</span>
+									<span>Archived {formatArchivedDate(student.archivedDate)}</span>
 								</div>
 							</div>
 							<div class="aas-action-buttons">
@@ -356,10 +355,10 @@
 									<span>{student.email}</span>
 								</div>
 							{/if}
-							{#if student.yearLevel && student.yearLevel !== 'Not specified'}
+							{#if student.gradeLevel && student.gradeLevel !== 'Not specified'}
 								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">school</span>
-									<span>{yearLevelOptions.find(level => level.id === student.yearLevel)?.name || student.yearLevel}</span>
+									<span>{gradeLevelOptions.find(level => level.id === student.gradeLevel)?.name || student.gradeLevel}</span>
 								</div>
 							{/if}
 							{#if student.section && student.section !== 'Not specified'}
