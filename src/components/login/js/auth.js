@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 
 // Storage key for authentication data
@@ -59,7 +59,33 @@ function createAuthStore() {
       saveToStorage(newState);
     },
     // Logout function
-    logout: () => {
+    logout: async () => {
+      // Get current user data before logout for activity logging
+      const currentState = get(authStore);
+      
+      // Log logout activity if user is authenticated
+      if (currentState.isAuthenticated && currentState.userData) {
+        try {
+          await fetch('/api/activity-logs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              activity_type: 'user_logout',
+              user_id: currentState.userData.id,
+              user_account_number: currentState.userData.accountNumber,
+              activity_data: {
+                full_name: currentState.userData.name,
+                account_type: currentState.userType
+              }
+            })
+          });
+        } catch (error) {
+          console.error('Failed to log logout activity:', error);
+        }
+      }
+      
       const newState = {
         isAuthenticated: false,
         userType: null,

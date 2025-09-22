@@ -121,8 +121,8 @@
   }
 
   // Handle logout
-  function handleLogout() {
-    authStore.logout();
+  async function handleLogout() {
+    await authStore.logout();
     activeSection = 'grades'; // Reset to default section
     teacherActiveSection = 'schedule'; // Reset teacher section
     adminActiveSection = 'dashboard'; // Reset admin section

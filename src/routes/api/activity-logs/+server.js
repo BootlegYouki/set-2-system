@@ -151,26 +151,34 @@ export async function GET({ url }) {
 					icon = 'info';
 			}
 
-			// Calculate relative time
+			// Calculate relative time using UTC to avoid timezone issues
 			const now = new Date();
 			const activityTime = new Date(row.created_at);
-			const diffMs = now - activityTime;
+			
+			// Ensure both dates are in UTC for accurate comparison
+			const nowUTC = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
+			const activityTimeUTC = new Date(activityTime.getTime());
+			
+			const diffMs = nowUTC - activityTimeUTC;
 			const diffMins = Math.floor(diffMs / 60000);
 			const diffHours = Math.floor(diffMins / 60);
 			const diffDays = Math.floor(diffHours / 24);
 
-			let timestamp;
-			if (diffMins < 1) {
-				timestamp = 'Just now';
-			} else if (diffMins < 60) {
-				timestamp = `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-			} else if (diffHours < 24) {
-				timestamp = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-			} else if (diffDays < 7) {
-				timestamp = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-			} else {
-				timestamp = activityTime.toLocaleDateString();
-			}
+			// Format timestamp as YYYY/MM/DD - HH:MM (24hr format) in local timezone
+			// Use toLocaleString to get proper local time formatting and add 8 minutes offset
+			const adjustedTime = new Date(activityTime.getTime() + (8 * 60 * 1000)); // Add 8 minutes
+			const localTimeString = adjustedTime.toLocaleString('en-CA', {
+				timeZone: 'Asia/Singapore',
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+				hour12: false
+			});
+			
+			// Convert from YYYY-MM-DD, HH:MM to YYYY/MM/DD - HH:MM format
+			const timestamp = localTimeString.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2})/, '$1/$2/$3 - $4:$5');
 
 			return {
 				id: row.id,

@@ -22,6 +22,9 @@
 	let recentActivities = [];
 	let activitiesLoading = true;
 	let activitiesError = null;
+	let activityLimit = 10;
+	let hasMoreActivities = true;
+	let loadingMore = false;
 
 	// Handle quick action clicks
 	function handleQuickAction(actionId) {
@@ -35,11 +38,13 @@
 			activitiesLoading = true;
 			activitiesError = null;
 			
-			const response = await fetch('/api/activity-logs?limit=10');
+			const response = await fetch(`/api/activity-logs?limit=${activityLimit}`);
 			const data = await response.json();
 			
 			if (data.success) {
 				recentActivities = data.activities;
+				// Check if there are more activities to load
+				hasMoreActivities = data.activities.length === activityLimit;
 			} else {
 				throw new Error(data.error || 'Failed to fetch activities');
 			}
@@ -48,6 +53,32 @@
 			activitiesError = error.message;
 		} finally {
 			activitiesLoading = false;
+		}
+	}
+
+	// Load more activities
+	async function loadMoreActivities() {
+		try {
+			loadingMore = true;
+			activitiesError = null;
+			
+			const newLimit = activityLimit + 10;
+			const response = await fetch(`/api/activity-logs?limit=${newLimit}`);
+			const data = await response.json();
+			
+			if (data.success) {
+				recentActivities = data.activities;
+				activityLimit = newLimit;
+				// Check if there are more activities to load
+				hasMoreActivities = data.activities.length === newLimit;
+			} else {
+				throw new Error(data.error || 'Failed to fetch more activities');
+			}
+		} catch (error) {
+			console.error('Error loading more activities:', error);
+			activitiesError = error.message;
+		} finally {
+			loadingMore = false;
 		}
 	}
 
@@ -155,6 +186,24 @@
 						<span class="activity-timestamp">{activity.timestamp}</span>
 					</div>
 				{/each}
+				
+				<!-- View More Button -->
+				{#if hasMoreActivities && !activitiesLoading}
+					<div class="view-more-container">
+						<button 
+							class="view-more-button" 
+							on:click={loadMoreActivities}
+							disabled={loadingMore}
+						>
+							{#if loadingMore}
+								<div class="load-more button-loader"></div>
+							{:else}
+								<span class="material-symbols-outlined">expand_more</span>
+								View More Activities
+							{/if}
+						</button>
+					</div>
+				{/if}
 			{/if}
 		</div>
 	</div>
