@@ -2,6 +2,7 @@
 	import './adminArchivedStudents.css';
 	import { onMount } from 'svelte';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
 	// State variables
 	let students = [];
@@ -153,20 +154,7 @@
 	// Restore student from archive
 	async function restoreStudent(studentId) {
 		try {
-			const response = await fetch(`/api/archived-students`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ id: studentId })
-			});
-			
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to restore student');
-			}
-			
-			const result = await response.json();
+			const result = await api.put('/api/archived-students', { id: studentId });
 			
 			// Show success toast
 			toastStore.success(result.message || 'Student restored successfully');

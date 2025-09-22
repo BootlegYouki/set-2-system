@@ -139,7 +139,7 @@ export async function GET({ url }) {
 					icon = 'delete';
 					break;
 				case 'account_restored':
-					message = `Account restored: ${data.full_name || row.user_account_number}`;
+					message = `Student restored: ${data.full_name || row.user_account_number}`;
 					icon = 'restore';
 					break;
 				case 'subject_deleted':
