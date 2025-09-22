@@ -7,20 +7,40 @@ A comprehensive student information system built with SvelteKit, designed specif
 ### ✅ Completed Features
 - **Complete Authentication System** with role-based access control (Student, Teacher, Admin)
 - **Student Portal** with 6 main sections: Profile, Grades, Schedule, Documents, Notifications, and Todo List
-- **Teacher Portal** with Schedule, Class Management, and Advisory Class features
-- **Admin Portal** with Dashboard, Account Creation, Room/Section Management, Schedule Management, Subject Creation, and Document Request Management
+- **Teacher Portal** with Schedule, Class Management, Advisory Class features, and Advanced Grading System
+- **Admin Portal** with comprehensive management features including:
+  - Dashboard with system statistics and analytics
+  - Account Creation for all user types
+  - Student Masterlist with full student information management
+  - Archived Students management with restoration capabilities
+  - Student Grades List for academic oversight
+  - Room Management for facility organization
+  - Section Management for class organization
+  - Schedule Management with conflict detection
+  - Subject Creation aligned with DepEd curriculum
+  - Document Request Management with approval workflows
+- **Database Integration** with PostgreSQL backend and comprehensive schema
+- **API Endpoints** for authentication, account management, activity logging, and subject management
+- **Advanced Grading System** with custom total score modals and spreadsheet-style grading
+- **Activity Logging System** with JSONB data storage and IP tracking
 - **Global Modal System** with backdrop click and ESC key support
 - **Toast Notification System** with auto-dismiss functionality
 - **Comprehensive Design System** with Material Design 3 principles
 - **Todo List Management** with categories, due dates, and completion tracking
 - **Document Request System** with approval workflow and status tracking
 - **Responsive Navigation** with collapsible rail navigation for all user roles
+- **User Account Management** with archiving, status tracking, and detailed profile information
 
 ### 🎯 Key Implementations
 - **Svelte 5 Runes**: Modern reactive state management using `$state()` and `$derived()`
 - **Component-Scoped Styling**: Each component has unique CSS prefixes to prevent conflicts
 - **Material Design Integration**: Custom components built with MD3 design tokens
 - **Philippine DepEd Curriculum**: Subject management aligned with local educational standards
+- **PostgreSQL Database**: Robust backend with comprehensive schema and indexing
+- **RESTful API Architecture**: Well-structured API endpoints with proper error handling
+- **Advanced Authentication**: Secure password hashing with bcrypt and role-based access
+- **Activity Tracking**: Comprehensive logging system with JSONB data storage
+- **Responsive Design**: Mobile-first approach with collapsible navigation systems
 
 ## 🏗️ Project Architecture
 
@@ -31,25 +51,82 @@ src/
 ├── app.html                    # Main HTML template
 ├── components/                 # Reusable UI components
 │   ├── common/                # Shared components across all user types
+│   │   ├── Modal.svelte       # Reusable modal dialog component
+│   │   ├── ModalContainer.svelte # Global modal manager
 │   │   ├── Odometer.svelte    # Animated number counter
 │   │   ├── Toast.svelte       # Notification component
-│   │   └── ToastContainer.svelte # Global toast manager
+│   │   ├── ToastContainer.svelte # Global toast manager
+│   │   └── js/                # Shared JavaScript utilities
+│   │       ├── modalStore.js  # Modal state management
+│   │       └── toastStore.js  # Toast notification store
 │   ├── login/                 # Authentication components
 │   │   ├── loginpage.svelte   # Main login interface
 │   │   ├── loginpage.css      # Login-specific styles
 │   │   └── js/                # Authentication logic
+│   │       ├── auth.js        # Authentication store
+│   │       ├── authHelpers.js # Authentication utilities
+│   │       ├── theme.js       # Theme management
+│   │       └── validation.js  # Form validation
 │   └── users/                 # Role-based components
 │       ├── admin/             # Administrator interface
+│       │   ├── navigations/   # Admin navigation components
+│       │   └── sections/      # Admin feature modules
+│       │       ├── adminDashboard/
+│       │       ├── adminAccountCreation/
+│       │       ├── adminStudentMasterlist/
+│       │       ├── adminArchivedStudents/
+│       │       ├── adminStudentGradesList/
+│       │       ├── adminRoomManagement/
+│       │       ├── adminSectionManagement/
+│       │       ├── adminScheduleManagement/
+│       │       ├── adminSubjectCreation/
+│       │       └── adminDocumentRequests/
 │       ├── student/           # Student interface
+│       │   ├── navigations/   # Student navigation components
+│       │   └── sections/      # Student feature modules
+│       │       ├── studentProfile/
+│       │       ├── studentGrade/
+│       │       ├── studentSchedule/
+│       │       ├── studentDocumentRequest/
+│       │       ├── studentNotification/
+│       │       └── studentTodolist/
 │       └── teacher/           # Teacher interface
+│           ├── navigations/   # Teacher navigation components
+│           └── sections/      # Teacher feature modules
+│               ├── teacherSchedule/
+│               ├── teacherClassManagement/
+│               │   ├── teacherClassSelection/
+│               │   └── teacherClassList/
+│               │       ├── CustomTotalScoreModal.svelte
+│               │       └── GradingSpreadsheet.svelte
+│               └── teacherAdvisoryClass/
+├── database/                  # Database connection and utilities
+│   └── db.js                 # PostgreSQL connection handler
 ├── lib/                       # Shared libraries and assets
 │   ├── assets/               # Static assets (images, icons)
+│   │   ├── favicon.svg       # Site favicon
+│   │   └── images/           # Login background images
 │   └── styles/               # Global styling system
 │       ├── design-system.css # Main design system entry point
+│       ├── +page.css         # Page-specific styles
 │       └── design-system-styles/ # Modular CSS architecture
+│           ├── variables.css # CSS custom properties
+│           ├── themes.css    # Light/dark mode configurations
+│           ├── base.css      # Base styles and resets
+│           ├── utilities.css # Utility classes
+│           └── layout.css    # Layout-specific styles
 └── routes/                   # SvelteKit routing
     ├── +layout.svelte       # Global layout wrapper
-    └── +page.svelte         # Main application entry point
+    ├── +page.svelte         # Main application entry point
+    └── api/                 # Backend API endpoints
+        ├── auth/            # Authentication endpoints
+        ├── accounts/        # Account management endpoints
+        ├── activity-logs/   # Activity logging endpoints
+        ├── archived-students/ # Student archiving endpoints
+        ├── subjects/        # Subject management endpoints
+        └── helper/          # API utility functions
+            ├── api-helper.js
+            └── auth-helper.js
 ```
 
 ## 🎨 Design System Architecture
@@ -159,12 +236,15 @@ Each component follows a consistent structure:
 
 #### 👨‍💼 Admin Features
 - **Dashboard** with system overview and statistics using animated Odometer counters
-- **Room Management** with CRUD operations for classroom management
-- **Section Management** for organizing student groups by grade level
-- **Subject Creation** (DepEd curriculum-aligned) with grade level assignments
-- **Schedule Assignment** with time slot management and conflict detection
-- **Document Request Management** with approval workflow and status tracking
-- **Account Creation** for students, teachers, and administrators
+- **Account Creation** for students, teachers, and administrators with role-based setup
+- **Student Masterlist** with comprehensive student information management and search capabilities
+- **Archived Students** management with restoration capabilities and status tracking
+- **Student Grades List** for academic oversight and performance monitoring across all students
+- **Room Management** with CRUD operations for classroom management and facility organization
+- **Section Management** for organizing student groups by grade level and class assignments
+- **Subject Creation** (DepEd curriculum-aligned) with grade level assignments and course management
+- **Schedule Assignment** with time slot management, conflict detection, and resource allocation
+- **Document Request Management** with approval workflow, status tracking, and administrative oversight
 
 #### 👨‍🎓 Student Features
 - **Profile Management** with personal information display
@@ -176,9 +256,13 @@ Each component follows a consistent structure:
 
 #### 👨‍🏫 Teacher Features
 - **Class Schedule** with teaching assignments and time management
-- **Student Management** through class selection and student lists
-- **Advisory Class Management** with comprehensive student oversight
-- **Class List Views** with detailed student information and grading capabilities
+- **Class Management** with advanced features including:
+  - **Class Selection** interface for choosing teaching assignments
+  - **Class List Views** with detailed student information and grading capabilities
+  - **Advanced Grading System** with spreadsheet-style interface
+  - **Custom Total Score Modals** for flexible assessment scoring
+- **Advisory Class Management** with comprehensive student oversight and mentoring tools
+- **Student Performance Tracking** with detailed academic progress monitoring
 
 ## 🔄 Application Flow & Rendering
 
@@ -217,6 +301,13 @@ let adminNavRailVisible = $state(false);       // Admin nav
 - **Package Manager**: npm
 - **Adapter**: Node.js adapter for production deployment
 
+### Backend & Database
+- **Database**: PostgreSQL with comprehensive schema design
+- **Database Driver**: pg (PostgreSQL client) 8.16.3
+- **Authentication**: bcrypt 6.0.0 for secure password hashing
+- **Environment Management**: dotenv 17.2.2 for configuration
+- **File Processing**: xlsx 0.18.5 for spreadsheet operations
+
 ### Development Tools
 - **ESLint**: 9.18.0 with Svelte plugin for code linting
 - **Prettier**: 3.4.2 with Svelte plugin for code formatting
@@ -230,44 +321,24 @@ let adminNavRailVisible = $state(false);       // Admin nav
 - **Animations**: Odometer library (0.4.8) for number animations
 
 ### Architecture
-- **Component System**: Role-based component organization
-- **State Management**: Svelte 5 runes (`$state()`, `$derived()`)
-- **Routing**: SvelteKit file-based routing
-- **Authentication**: Custom auth store with role-based access control
+- **Component System**: Role-based component organization with modular architecture
+- **State Management**: Svelte 5 runes (`$state()`, `$derived()`) for reactive programming
+- **Routing**: SvelteKit file-based routing with API endpoints
+- **Authentication**: Custom auth store with role-based access control and secure session management
+- **Database Architecture**: PostgreSQL with indexed tables, triggers, and JSONB support
+- **API Design**: RESTful endpoints with proper error handling and validation
 
-## 🔐 Authentication System
-
-### Role-Based Access Control
-
-The system implements a comprehensive authentication system with three distinct user roles:
-
-#### Test Accounts
-
-For development and testing purposes, use these predefined accounts:
-
-**Student Account**
-- Email: `student@school.edu`
-- Password: `student123`
-- Access: Student Portal with grades, schedule, documents, notifications, and todo sections
-
-**Teacher Account**
-- Email: `teacher@school.edu`
-- Password: `teacher123`
-- Access: Teacher Portal with schedule, class management, and advisory class features
-
-**Admin Account**
-- Email: `admin@school.edu`
-- Password: `admin123`
-- Access: Admin Portal with dashboard, account creation, room/section management, and more
 
 #### Authentication Features
 
-- **Automatic Role Detection**: System determines user role based on email address
-- **Role-based Routing**: Each account type redirects to its respective portal
+- **Account Number-Based Login**: System supports both account numbers and email addresses for authentication
+- **Secure Password Hashing**: Uses bcrypt for robust password security
+- **Automatic Role Detection**: System determines user role based on account type in database
+- **Role-based Routing**: Each account type redirects to its respective portal with appropriate permissions
 - **Personalized Interface**: Login success includes user's name and role-specific navigation
-- **Session Management**: Secure session handling with logout functionality
-- **Form Validation**: Client-side validation for login credentials
-- **Error Handling**: Comprehensive error messages for invalid credentials
+- **Session Management**: Secure session handling with logout functionality and activity tracking
+- **Form Validation**: Client-side validation for login credentials with comprehensive error handling
+- **Database Integration**: Authentication queries against PostgreSQL with indexed lookups for performance
 
 ## 🎯 Educational Context
 
@@ -309,11 +380,14 @@ npm run preview
 - **`+layout.svelte`**: Global layout, imports design system, manages fonts and meta tags, includes global toast and modal containers
 - **`+page.svelte`**: Main application controller, handles authentication and role-based rendering with Svelte 5 runes
 - **`design-system.css`**: Central import point for all design system modules
+- **`database-schema.sql`**: Complete PostgreSQL database schema with tables, indexes, triggers, and sample data
+- **`db.js`**: Database connection handler and query utilities for PostgreSQL integration
 - **`auth.js`**: Authentication state management with role detection and session handling
+- **API Endpoints**: RESTful server routes for authentication, account management, activity logging, and data operations
 - **Menu components**: Handle navigation state and section switching for each user role
 - **Section components**: Individual feature implementations with component-scoped styling
 - **Modal/Toast Systems**: Global state management for notifications and modal dialogs
-- **TEST_ACCOUNTS.md**: Predefined test accounts for development and testing
+- **Grading Components**: Advanced grading system with spreadsheet interface and custom scoring modals
 
 ## 🔧 Customization & Extension
 
