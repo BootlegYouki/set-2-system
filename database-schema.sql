@@ -108,44 +108,6 @@ CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_data_gin ON activity_logs USING GIN(activity_data);
 
--- Create monthly partitions for the current year (you can extend this as needed)
--- Current month partition
-CREATE TABLE IF NOT EXISTS activity_logs_2024_01 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_02 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_03 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-03-01') TO ('2024-04-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_04 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-04-01') TO ('2024-05-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_05 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-05-01') TO ('2024-06-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_06 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-06-01') TO ('2024-07-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_07 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-07-01') TO ('2024-08-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_08 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-08-01') TO ('2024-09-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_09 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-09-01') TO ('2024-10-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_10 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-10-01') TO ('2024-11-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_11 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-11-01') TO ('2024-12-01');
-
-CREATE TABLE IF NOT EXISTS activity_logs_2024_12 PARTITION OF activity_logs
-    FOR VALUES FROM ('2024-12-01') TO ('2025-01-01');
-
 -- Function to create new monthly partitions automatically
 CREATE OR REPLACE FUNCTION create_monthly_partition(table_name text, start_date date)
 RETURNS void AS $$
@@ -158,6 +120,54 @@ BEGIN
     
     EXECUTE format('CREATE TABLE IF NOT EXISTS %I PARTITION OF %I FOR VALUES FROM (%L) TO (%L)',
                    partition_name, table_name, start_date, end_date);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create initial partitions for current and next few months
+-- This approach is more scalable and automatically handles year transitions
+DO $$
+DECLARE
+    start_date date;
+    i integer;
+BEGIN
+    -- Start from current month
+    start_date := date_trunc('month', CURRENT_DATE);
+    
+    -- Create partitions for current month + next 11 months (1 year ahead)
+    FOR i IN 0..11 LOOP
+        PERFORM create_monthly_partition('activity_logs', (start_date + (i || ' months')::interval)::date);
+    END LOOP;
+END $$;
+
+-- Function to automatically create future partitions (maintenance function)
+-- This should be called periodically (e.g., monthly via cron job or scheduled task)
+CREATE OR REPLACE FUNCTION maintain_activity_log_partitions()
+RETURNS void AS $$
+DECLARE
+    current_month date;
+    future_months integer := 3; -- Always keep 3 months ahead
+    i integer;
+BEGIN
+    current_month := date_trunc('month', CURRENT_DATE);
+    
+    -- Create partitions for the next few months if they don't exist
+    FOR i IN 0..future_months LOOP
+        PERFORM create_monthly_partition('activity_logs', current_month + (i || ' months')::interval);
+    END LOOP;
+    
+    -- Optional: Clean up old partitions (uncomment if you want to auto-drop old data)
+    -- This example keeps 12 months of data
+    /*
+    DECLARE
+        old_partition_date date;
+        old_partition_name text;
+    BEGIN
+        old_partition_date := current_month - interval '12 months';
+        old_partition_name := 'activity_logs_' || to_char(old_partition_date, 'YYYY_MM');
+        
+        EXECUTE format('DROP TABLE IF EXISTS %I', old_partition_name);
+    END;
+    */
 END;
 $$ LANGUAGE plpgsql;
 

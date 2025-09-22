@@ -18,6 +18,8 @@ export async function POST({ request, getClientAddress }) {
         u.id,
         u.account_number,
         u.full_name,
+        u.first_name,
+        u.gender,
         u.account_type,
         u.password_hash,
         u.status
@@ -44,6 +46,8 @@ export async function POST({ request, getClientAddress }) {
     const userData = {
       id: user.id,
       name: user.full_name,
+      firstName: user.first_name,
+      gender: user.gender,
       accountNumber: user.account_number,
       accountType: user.account_type
     };

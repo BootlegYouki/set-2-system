@@ -69,6 +69,8 @@ export const handleLogin = async ({ accountNumber, password }) => {
       const userData = {
         id: data.user.id,
         name: data.user.name,
+        firstName: data.user.firstName,
+        gender: data.user.gender,
         accountNumber: data.user.accountNumber,
         accountType: data.user.accountType,
         isAuthenticated: true

@@ -4,7 +4,15 @@
 	import { showSuccess } from '../../../../common/js/toastStore.js';
 
 	// Props
-	let { studentName = 'John Does', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onNavigateToSettings } = $props();
+	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onNavigateToSettings } = $props();
+
+	// Function to get title based on gender
+	function getTitle(gender) {
+		return gender === 'female' ? 'Ms.' : 'Mr.';
+	}
+
+	// Computed display name with title
+	let displayName = $derived(`${getTitle(gender)} ${firstName}`);
 
 	// Theme state (default to dark mode)
 	let isDarkMode = $state(true);
@@ -91,7 +99,7 @@
 			
 			<div class="logo-section">
 				<span class="material-symbols-outlined logo-icon">school</span>
-				<span class="app-title">Welcome, {studentName}</span>
+				<span class="app-title">Welcome, {displayName}</span>
 			</div>
 		</div>
 
@@ -121,7 +129,7 @@
 							<img src={profileImage} alt="Profile" class="avatar-image" />
 						{:else}
 							<div class="avatar-placeholder">
-								{getInitials(studentName)}
+								{getInitials(firstName)}
 							</div>
 						{/if}
 					</div>

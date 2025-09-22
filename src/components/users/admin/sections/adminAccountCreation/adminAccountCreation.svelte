@@ -65,19 +65,23 @@
 	// Handle name input with automatic capitalization
 	function handleNameInput(event, field, isEdit = false) {
 		const value = event.target.value;
-		const capitalizedValue = capitalizeFirstLetter(value);
+		const capitalizedValue = field === 'middleInitial' ? value.toUpperCase() : capitalizeFirstLetter(value);
 		
 		if (isEdit) {
 			if (field === 'firstName') {
 				editFirstName = capitalizedValue;
 			} else if (field === 'lastName') {
 				editLastName = capitalizedValue;
+			} else if (field === 'middleInitial') {
+				editMiddleInitial = capitalizedValue;
 			}
 		} else {
 			if (field === 'firstName') {
 				firstName = capitalizedValue;
 			} else if (field === 'lastName') {
 				lastName = capitalizedValue;
+			} else if (field === 'middleInitial') {
+				middleInitial = capitalizedValue;
 			}
 		}
 		
@@ -949,9 +953,9 @@
 							id="middle-initial"
 							class="form-input" 
 							bind:value={middleInitial}
+							on:input={(e) => handleNameInput(e, 'middleInitial')}
 							placeholder="M"
 							maxlength="1"
-							style="text-transform: uppercase;"
 						/>
 					</div>
 				</div>
@@ -1288,9 +1292,9 @@
 											id="edit-middle-initial-{account.id}"
 											class="form-input" 
 											bind:value={editMiddleInitial}
+											on:input={(e) => handleNameInput(e, 'middleInitial', true)}
 											placeholder="M"
 											maxlength="1"
-											style="text-transform: uppercase;"
 										/>
 									</div>
 								</div>

@@ -509,7 +509,6 @@
   padding: var(--spacing-2xl);
   gap: var(--spacing-md);
   text-align: center;
-  margin-top: var(--spacing-2xl);
 }
 
 .aas-no-results-icon {
