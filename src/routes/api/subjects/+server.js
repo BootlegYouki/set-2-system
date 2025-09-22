@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { query } from '../../../database/db.js';
+import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
 // GET /api/subjects - Fetch all subjects with optional filtering
 export async function GET({ url }) {
@@ -66,7 +67,7 @@ export async function GET({ url }) {
 }
 
 // POST /api/subjects - Create a new subject
-export async function POST({ request }) {
+export async function POST({ request, getClientAddress }) {
   try {
     const data = await request.json();
     const { name, code, gradeLevel } = data;
@@ -101,6 +102,31 @@ export async function POST({ request }) {
     );
     
     const newSubject = result.rows[0];
+    
+    // Log the subject creation activity
+    try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await logActivityWithUser(
+        'subject_created',
+        user,
+        {
+          name: newSubject.name,
+          code: newSubject.code,
+          grade_level: newSubject.grade_level
+        },
+        ip_address,
+        user_agent
+      );
+    } catch (logError) {
+      console.error('Error logging subject creation activity:', logError);
+      // Don't fail the subject creation if logging fails
+    }
     
     // Format response to match component structure
     const formattedSubject = {
@@ -204,7 +230,7 @@ export async function PUT({ request }) {
 }
 
 // DELETE /api/subjects - Delete a subject
-export async function DELETE({ request }) {
+export async function DELETE({ request, getClientAddress }) {
   try {
     const data = await request.json();
     const { id } = data;
@@ -234,6 +260,30 @@ export async function DELETE({ request }) {
       'DELETE FROM subjects WHERE id = $1',
       [id]
     );
+    
+    // Log the subject deletion activity
+    try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await logActivityWithUser(
+        'subject_deleted',
+        user,
+        {
+          subject_name: existingSubject.rows[0].name,
+          subject_id: id
+        },
+        ip_address,
+        user_agent
+      );
+    } catch (logError) {
+      console.error('Error logging subject deletion activity:', logError);
+      // Don't fail the deletion if logging fails
+    }
     
     return json({
       success: true,

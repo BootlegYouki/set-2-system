@@ -1,11 +1,12 @@
 import { json } from '@sveltejs/kit';
 import { query } from '../../../database/db.js';
 import bcrypt from 'bcrypt';
+import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
 // POST /api/accounts - Create a new account
-export async function POST({ request }) {
+export async function POST({ request, getClientAddress }) {
   try {
-    const { accountType, gender, subjectId, yearLevel, firstName, lastName, middleInitial, email, birthdate, address, guardian, contactNumber } = await request.json();
+    const { accountType, gender, subjectId, yearLevel, firstName, lastName, middleInitial, email, birthdate, address, guardian, contactNumber, createdBy } = await request.json();
     
     // Validate required fields
     if (!accountType || !gender || !firstName || !lastName) {
@@ -100,6 +101,33 @@ export async function POST({ request }) {
     
     const result = await query(insertQuery, values);
     const newAccount = result.rows[0];
+    
+    // Log the account creation activity
+    try {
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await query(
+        'SELECT log_activity($1, $2, $3, $4, $5, $6)',
+        [
+          'account_created',
+          createdBy || null, // Use the ID of the user who created the account
+          newAccount.account_number,
+          JSON.stringify({
+            account_type: accountType,
+            full_name: fullName,
+            grade_level: yearLevel,
+            subject_id: subjectId
+          }),
+          ip_address, // Now capturing actual IP address
+          user_agent  // Now capturing actual user agent
+        ]
+      );
+    } catch (logError) {
+      console.error('Error logging account creation activity:', logError);
+      // Don't fail the account creation if logging fails
+    }
     
     // Format response to match frontend expectations
     const response = {
@@ -213,7 +241,7 @@ export async function GET({ url }) {
       status: 'active'
     }));
     
-    return json({ accounts });
+    return json({ success: true, accounts });
     
   } catch (error) {
     console.error('Error fetching accounts:', error);
@@ -423,7 +451,7 @@ export async function PUT({ request }) {
 }
 
 // DELETE /api/accounts - Archive a student account by ID
-export async function DELETE({ request }) {
+export async function DELETE({ request, getClientAddress }) {
   try {
     const { id } = await request.json();
     
@@ -454,6 +482,30 @@ export async function DELETE({ request }) {
       `;
       await query(archiveQuery, [id]);
       
+      // Log the account archiving activity
+      try {
+        // Get user info from request headers
+        const user = await getUserFromRequest(request);
+        
+        // Get client IP and user agent
+        const ip_address = getClientAddress();
+        const user_agent = request.headers.get('user-agent');
+        
+        await logActivityWithUser(
+          'account_archived',
+          user,
+          {
+            account_type: account.account_type,
+            full_name: account.full_name
+          },
+          ip_address,
+          user_agent
+        );
+      } catch (logError) {
+        console.error('Error logging account archiving activity:', logError);
+        // Don't fail the archiving if logging fails
+      }
+      
       return json({
         success: true,
         message: `Student "${account.full_name}" has been archived successfully`
@@ -462,6 +514,30 @@ export async function DELETE({ request }) {
       // Actually delete teacher and admin accounts
       const deleteQuery = `DELETE FROM users WHERE id = $1`;
       await query(deleteQuery, [id]);
+      
+      // Log the account deletion activity
+      try {
+        // Get user info from request headers
+        const user = await getUserFromRequest(request);
+        
+        // Get client IP and user agent
+        const ip_address = getClientAddress();
+        const user_agent = request.headers.get('user-agent');
+        
+        await logActivityWithUser(
+          'account_deleted',
+          user,
+          {
+            account_type: account.account_type,
+            full_name: account.full_name
+          },
+          ip_address,
+          user_agent
+        );
+      } catch (logError) {
+        console.error('Error logging account deletion activity:', logError);
+        // Don't fail the deletion if logging fails
+      }
       
       const accountTypeLabel = account.account_type === 'teacher' ? 'Teacher' : 'Admin';
       return json({

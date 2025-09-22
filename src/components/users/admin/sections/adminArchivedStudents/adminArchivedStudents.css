@@ -119,6 +119,7 @@
 
 .aas-search-input::placeholder {
   color: var(--md-sys-color-on-surface-variant);
+  font-style: italic;
 }
 
 .aas-clear-search-button {
@@ -233,6 +234,7 @@
 
 .aas-placeholder {
   color: var(--md-sys-color-on-surface-variant);
+  font-style: italic;
 }
 
 .aas-dropdown-arrow {
@@ -404,37 +406,37 @@
 }
 
 .aas-restore-button {
-  background-color: var(--md-sys-color-tertiary-container);
-  border: 1px solid var(--md-sys-color-tertiary);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  color: var(--md-sys-color-on-tertiary-container);
-  cursor: pointer;
-  transition: all var(--transition-normal);
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: pointer;
+	transition: all var(--transition-normal);
 }
 
 .aas-restore-button:hover {
-  background-color: var(--md-sys-color-tertiary);
-  border-color: var(--md-sys-color-tertiary);
-  color: var(--md-sys-color-on-tertiary);
-  box-shadow: var(--elevation-1);
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline);
+	color: var(--md-sys-color-on-surface);
+	box-shadow: var(--elevation-1);
 }
 
 .aas-restore-button .material-symbols-outlined {
-  font-size: 18px;
-  transition: inherit;
+	font-size: 18px;
+	transition: inherit;
 }
 
 .aas-restore-button:active {
-  background-color: var(--md-sys-color-tertiary-container);
-  box-shadow: none;
-  transform: scale(0.95);
+	background-color: var(--md-sys-color-surface-container-high);
+	box-shadow: none;
+	transform: scale(0.95);
 }
 
 .aas-account-title {
@@ -469,8 +471,6 @@
   gap: var(--spacing-xs);
   font-size: 0.75rem;
   color: var(--md-sys-color-on-surface-variant);
-  background-color: var(--md-sys-color-surface-variant);
-  padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: var(--radius-sm);
   margin-top: var(--spacing-xs);
 }
@@ -506,9 +506,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-xxl);
+  padding: var(--spacing-2xl);
   gap: var(--spacing-md);
   text-align: center;
+  margin-top: var(--spacing-2xl);
 }
 
 .aas-no-results-icon {

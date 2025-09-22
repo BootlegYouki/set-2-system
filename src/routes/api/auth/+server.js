@@ -3,7 +3,7 @@ import { query } from '../../../database/db.js';
 import bcrypt from 'bcrypt';
 
 // POST /api/auth - Authenticate user with account number and password
-export async function POST({ request }) {
+export async function POST({ request, getClientAddress }) {
   try {
     const { accountNumber, password } = await request.json();
     
@@ -47,6 +47,31 @@ export async function POST({ request }) {
       accountNumber: user.account_number,
       accountType: user.account_type
     };
+    
+    // Log the login activity
+    try {
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await query(
+        'SELECT log_activity($1, $2, $3, $4, $5, $6)',
+        [
+          'user_login',
+          user.id,
+          user.account_number,
+          JSON.stringify({
+            full_name: user.full_name,
+            account_type: user.account_type
+          }),
+          ip_address, // Now capturing actual IP address
+          user_agent  // Now capturing actual user agent
+        ]
+      );
+    } catch (logError) {
+      console.error('Error logging login activity:', logError);
+      // Don't fail the login if logging fails
+    }
     
     return json({ 
       success: true, 

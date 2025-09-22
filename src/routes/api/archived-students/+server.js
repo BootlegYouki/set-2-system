@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { query } from '../../../database/db.js';
+import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
 // GET /api/archived-students - Fetch archived students
 export async function GET({ url }) {
@@ -109,7 +110,7 @@ export async function GET({ url }) {
 }
 
 // PUT /api/archived-students - Restore a student from archive
-export async function PUT({ request }) {
+export async function PUT({ request, getClientAddress }) {
   try {
     const { id } = await request.json();
     
@@ -149,6 +150,30 @@ export async function PUT({ request }) {
     
     const result = await query(updateQuery, [id]);
     const restoredStudent = result.rows[0];
+    
+    // Log the student restoration activity
+    try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await logActivityWithUser(
+        'account_restored',
+        user,
+        {
+          account_type: 'student',
+          full_name: restoredStudent.full_name
+        },
+        ip_address,
+        user_agent
+      );
+    } catch (logError) {
+      console.error('Error logging student restoration activity:', logError);
+      // Don't fail the restoration if logging fails
+    }
     
     return json({ 
       success: true, 

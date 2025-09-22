@@ -3,6 +3,7 @@
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { authStore } from '../../../../login/js/auth.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
 
 	// Account creation state
@@ -214,17 +215,10 @@
 			async () => {
 				try {
 					// Call the DELETE API endpoint
-					const response = await fetch('/api/accounts', {
-						method: 'DELETE',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({ id: account.id })
-					});
+					const result = await api.delete('/api/accounts', { id: account.id });
 
-					if (!response.ok) {
-						const errorData = await response.json();
-						throw new Error(errorData.error || 'Failed to delete account');
+					if (!result.success) {
+						throw new Error(result.message || 'Failed to delete account');
 					}
 
 					// Remove the account from the array
@@ -368,15 +362,7 @@
 				requestBody.contactNumber = editContactNumber ? editContactNumber.trim() : null;
 			}
 
-			const response = await fetch('/api/accounts', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(requestBody)
-			});
-
-			const result = await response.json();
+			const result = await api.put('/api/accounts', requestBody);
 
 			if (result.success) {
 				// Update account in the array with the response data
@@ -542,32 +528,28 @@
 		isCreating = true;
 
 		try {
+			// Get current user ID from auth store
+			const currentUser = $authStore.userData;
+			
 			// Call API to create account
-			const response = await fetch('/api/accounts', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					accountType: selectedAccountType,
-					gender: selectedGender,
-					subjectId: selectedSubject,
-					yearLevel: selectedYearLevel,
-					firstName,
-					lastName,
-					middleInitial,
-					email,
-					birthdate: selectedAccountType === 'student' ? birthdate : null,
-					address: selectedAccountType === 'student' ? address : null,
-					guardian: selectedAccountType === 'student' ? guardian : null,
-					contactNumber: selectedAccountType === 'student' ? contactNumber : null
-				})
+			const data = await api.post('/api/accounts', {
+				accountType: selectedAccountType,
+				gender: selectedGender,
+				subjectId: selectedSubject,
+				yearLevel: selectedYearLevel,
+				firstName,
+				lastName,
+				middleInitial,
+				email,
+				birthdate: selectedAccountType === 'student' ? birthdate : null,
+				address: selectedAccountType === 'student' ? address : null,
+				guardian: selectedAccountType === 'student' ? guardian : null,
+				contactNumber: selectedAccountType === 'student' ? contactNumber : null,
+				createdBy: currentUser ? currentUser.id : null
 			});
 
-			const data = await response.json();
-
-			if (!response.ok) {
-				throw new Error(data.error || 'Failed to create account');
+			if (!data.success) {
+				throw new Error(data.message || 'Failed to create account');
 			}
 
 			// Add to recent accounts
@@ -694,11 +676,10 @@
 	async function loadSubjects() {
 		isLoadingSubjects = true;
 		try {
-			const response = await fetch('/api/subjects');
-			if (!response.ok) {
+			const data = await api.get('/api/subjects');
+			if (!data.success) {
 				throw new Error('Failed to load subjects');
 			}
-			const data = await response.json();
 			
 			// Format subjects for the dropdown (include year level and code)
 			subjectOptions = data.data.map(subject => ({
@@ -720,11 +701,10 @@
 	async function loadAccounts() {
 		isLoadingAccounts = true;
 		try {
-			const response = await fetch('/api/accounts');
-			if (!response.ok) {
+			const data = await api.get('/api/accounts');
+			if (!data.success) {
 				throw new Error('Failed to load accounts');
 			}
-			const data = await response.json();
 			
 			// API already returns data in the correct format
 			recentAccounts = data.accounts;

@@ -2,6 +2,7 @@
 	import './adminStudentMasterlist.css';
 	import { onMount } from 'svelte';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
 	// State variables
 	let students = [];
@@ -42,11 +43,10 @@
 	async function loadStudents() {
 		isLoading = true;
 		try {
-			const response = await fetch('/api/accounts?type=student');
-			if (!response.ok) {
+			const data = await api.get('/api/accounts?type=student');
+			if (!data.success) {
 				throw new Error('Failed to load students');
 			}
-			const data = await response.json();
 			
 			// Transform API data to match our component structure
 			students = data.accounts.map(account => ({
@@ -160,22 +160,14 @@
 	// Archive student function
 	async function archiveStudent(studentId, studentName) {
 		try {
-			const response = await fetch('/api/accounts', {
-				method: 'DELETE',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ id: studentId })
-			});
+			const result = await api.delete('/api/accounts', { id: studentId });
 
-			const result = await response.json();
-
-			if (response.ok && result.success) {
+			if (result.success) {
 				toastStore.success(result.message);
 				// Reload students to reflect the change
 				await loadStudents();
 			} else {
-				toastStore.error(result.error || 'Failed to archive student');
+				toastStore.error(result.message || 'Failed to archive student');
 			}
 		} catch (error) {
 			console.error('Error archiving student:', error);

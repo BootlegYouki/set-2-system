@@ -120,6 +120,7 @@
 
 .sgl-search-input::placeholder {
   color: var(--md-sys-color-on-surface-variant);
+  font-style: italic;
 }
 
 .sgl-clear-search-button {
@@ -234,6 +235,7 @@
 
 .sgl-placeholder {
   color: var(--md-sys-color-on-surface-variant);
+  font-style: italic;
 }
 
 .sgl-dropdown-arrow {

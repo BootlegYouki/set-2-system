@@ -1,5 +1,6 @@
 <script>
 	import './adminDashboard.css';
+	import { onMount } from 'svelte';
 
 	// Dashboard statistics (mock data)
 	let dashboardStats = [
@@ -17,50 +18,43 @@
 		{ id: 'create-section', label: 'Create Section', icon: 'class', description: 'Add new class sections' }
 	];
 
-	// Recent activities (mock data)
-	let recentActivities = [
-		{
-			id: 1,
-			type: 'account_created',
-			message: 'New student account created: John Doe (STU-2024-001)',
-			timestamp: '2 minutes ago',
-			icon: 'person_add'
-		},
-		{
-			id: 2,
-			type: 'schedule_assigned',
-			message: 'Schedule assigned to Grade 7-A for Room 101',
-			timestamp: '15 minutes ago',
-			icon: 'schedule'
-		},
-		{
-			id: 3,
-			type: 'room_created',
-			message: 'New room created: Room 205 (Building A, Floor 2)',
-			timestamp: '1 hour ago',
-			icon: 'meeting_room'
-		},
-		{
-			id: 4,
-			type: 'section_created',
-			message: 'New section created: Grade 8-C',
-			timestamp: '2 hours ago',
-			icon: 'class'
-		},
-		{
-			id: 5,
-			type: 'account_created',
-			message: 'New teacher account created: Jane Smith (TCH-2024-002)',
-			timestamp: '3 hours ago',
-			icon: 'person_add'
-		}
-	];
+	// Recent activities (loaded from API)
+	let recentActivities = [];
+	let activitiesLoading = true;
+	let activitiesError = null;
 
 	// Handle quick action clicks
 	function handleQuickAction(actionId) {
 		console.log('Quick action clicked:', actionId);
 		// Here you would typically dispatch an event or navigate to the appropriate section
 	}
+
+	// Fetch recent activities from API
+	async function fetchRecentActivities() {
+		try {
+			activitiesLoading = true;
+			activitiesError = null;
+			
+			const response = await fetch('/api/activity-logs?limit=10');
+			const data = await response.json();
+			
+			if (data.success) {
+				recentActivities = data.activities;
+			} else {
+				throw new Error(data.error || 'Failed to fetch activities');
+			}
+		} catch (error) {
+			console.error('Error fetching activities:', error);
+			activitiesError = error.message;
+		} finally {
+			activitiesLoading = false;
+		}
+	}
+
+	// Load activities on component mount
+	onMount(() => {
+		fetchRecentActivities();
+	});
 </script>
 
 <div class="dashboard-container">
@@ -127,17 +121,41 @@
 		</div>
 		
 		<div class="activities-list">
-			{#each recentActivities as activity (activity.id)}
-				<div class="activity-item">
-					<div class="activity-icon">
-						<span class="material-symbols-outlined">{activity.icon}</span>
-					</div>
-					<div class="activity-content">
-						<p class="activity-message">{activity.message}</p>
+			{#if activitiesLoading}
+				<div class="activities-loading">
+					<div class="dashboard-loader"></div>
+					<p>Loading recent activities...</p>
+				</div>
+			{:else if activitiesError}
+				<div class="activities-error">
+					<span class="material-symbols-outlined">error</span>
+					<p>Error loading activities: {activitiesError}</p>
+					<button class="retry-button" on:click={fetchRecentActivities}>
+						<span class="material-symbols-outlined">refresh</span>
+						Retry
+					</button>
+				</div>
+			{:else if recentActivities.length === 0}
+				<div class="activities-empty">
+					<span class="material-symbols-outlined">inbox</span>
+					<p>No recent activities found</p>
+				</div>
+			{:else}
+				{#each recentActivities as activity (activity.id)}
+					<div class="activity-item">
+						<div class="activity-icon">
+							<span class="material-symbols-outlined">{activity.icon}</span>
+						</div>
+						<div class="activity-content">
+							<p class="activity-message">{activity.message}</p>
+							{#if activity.performed_by && activity.performed_by !== 'System'}
+								<p class="activity-user">{activity.performed_by}</p>
+							{/if}
+						</div>
 						<span class="activity-timestamp">{activity.timestamp}</span>
 					</div>
-				</div>
-			{/each}
+				{/each}
+			{/if}
 		</div>
 	</div>
 </div>

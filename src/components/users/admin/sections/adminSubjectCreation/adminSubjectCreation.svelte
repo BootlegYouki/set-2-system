@@ -2,6 +2,7 @@
 	import './adminSubjectCreation.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
 
 	// Subject creation state
@@ -57,8 +58,7 @@
 	async function loadSubjects() {
 		isLoading = true;
 		try {
-			const response = await fetch('/api/subjects');
-			const result = await response.json();
+			const result = await api.get('/api/subjects');
 			
 			if (result.success) {
 				recentSubjects = result.data;
@@ -88,19 +88,11 @@
 		isCreating = true;
 
 		try {
-			const response = await fetch('/api/subjects', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					name: subjectName.trim(),
-					code: subjectCode.trim(),
-					gradeLevel: selectedGradeLevel
-				})
+			const result = await api.post('/api/subjects', {
+				name: subjectName.trim(),
+				code: subjectCode.trim(),
+				gradeLevel: selectedGradeLevel
 			});
-
-			const result = await response.json();
 
 			if (result.success) {
 				// Add the new subject to the list
@@ -132,17 +124,9 @@
 			`<p>Are you sure you want to remove the subject <strong>"${subject.name}"</strong>?</p>`,
 			async () => {
 				try {
-					const response = await fetch('/api/subjects', {
-						method: 'DELETE',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({
-							id: subject.id
-						})
+					const result = await api.delete('/api/subjects', {
+						id: subject.id
 					});
-
-					const result = await response.json();
 
 					if (result.success) {
 						// Remove the subject from the array
@@ -224,20 +208,12 @@
 		isUpdating = true;
 
 		try {
-			const response = await fetch('/api/subjects', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					id: editingSubjectId,
-					name: editSubjectName.trim(),
-					code: editSubjectCode.trim(),
-					gradeLevel: editSelectedGradeLevel
-				})
+			const result = await api.put('/api/subjects', {
+				id: editingSubjectId,
+				name: editSubjectName.trim(),
+				code: editSubjectCode.trim(),
+				gradeLevel: editSelectedGradeLevel
 			});
-
-			const result = await response.json();
 
 			if (result.success) {
 				// Update subject in the array
