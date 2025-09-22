@@ -7,7 +7,7 @@ export async function GET({ url }) {
   try {
     const limit = url.searchParams.get('limit') || '50';
     const search = url.searchParams.get('search') || '';
-    const yearLevel = url.searchParams.get('yearLevel') || '';
+    const gradeLevel = url.searchParams.get('gradeLevel') || '';
     const gender = url.searchParams.get('gender') || '';
     
     // Build the query with WHERE clause for archived students
@@ -20,7 +20,7 @@ export async function GET({ url }) {
         u.last_name,
         u.middle_initial,
         u.email,
-        u.year_level,
+        u.grade_level,
         u.birthdate,
         u.address,
         u.age,
@@ -49,10 +49,10 @@ export async function GET({ url }) {
       paramIndex++;
     }
     
-    // Add year level filter
-    if (yearLevel) {
-      selectQuery += ` AND u.year_level = $${paramIndex}`;
-      queryParams.push(yearLevel);
+    // Add grade level filter
+    if (gradeLevel) {
+      selectQuery += ` AND u.grade_level = $${paramIndex}`;
+      queryParams.push(gradeLevel);
       paramIndex++;
     }
     
@@ -77,7 +77,7 @@ export async function GET({ url }) {
       middleInitial: student.middle_initial,
       email: student.email,
       number: student.account_number,
-      yearLevel: student.year_level,
+      gradeLevel: student.grade_level,
       birthdate: student.birthdate,
       address: student.address,
       age: student.age,

@@ -10,27 +10,17 @@
 		{ id: 'rooms', label: 'Total Rooms', value: '15', icon: 'meeting_room', color: 'primary' }
 	];
 
-	// Quick actions
-	let quickActions = [
-		{ id: 'create-account', label: 'Create Account', icon: 'person_add', description: 'Add new student or teacher' },
-		{ id: 'manage-rooms', label: 'Manage Rooms', icon: 'meeting_room', description: 'Create and assign rooms' },
-		{ id: 'assign-schedule', label: 'Assign Schedule', icon: 'schedule', description: 'Manage class schedules' },
-		{ id: 'create-section', label: 'Create Section', icon: 'class', description: 'Add new class sections' }
-	];
+
 
 	// Recent activities (loaded from API)
 	let recentActivities = [];
 	let activitiesLoading = true;
 	let activitiesError = null;
-	let activityLimit = 10;
+	let activityLimit = 5;
 	let hasMoreActivities = true;
 	let loadingMore = false;
 
-	// Handle quick action clicks
-	function handleQuickAction(actionId) {
-		console.log('Quick action clicked:', actionId);
-		// Here you would typically dispatch an event or navigate to the appropriate section
-	}
+
 
 	// Fetch recent activities from API
 	async function fetchRecentActivities() {
@@ -61,7 +51,7 @@
 			loadingMore = true;
 			activitiesError = null;
 			
-			const newLimit = activityLimit + 10;
+			const newLimit = activityLimit + 5;
 			const response = await fetch(`/api/activity-logs?limit=${newLimit}`);
 			const data = await response.json();
 			
@@ -118,30 +108,7 @@
 		</div>
 	</div>
 
-	<!-- Quick Actions Section -->
-	<div class="actions-section-dashboard">
-		<div class="section-header">
-			<h2 class="section-title">Quick Actions</h2>
-			<p class="section-subtitle">Frequently used administrative tasks</p>
-		</div>
-		
-		<div class="actions-grid">
-			{#each quickActions as action (action.id)}
-				<button 
-					class="action-card" 
-					on:click={() => handleQuickAction(action.id)}
-				>
-					<div class="action-icon">
-						<span class="material-symbols-outlined">{action.icon}</span>
-					</div>
-					<div class="action-content">
-						<h3 class="action-label">{action.label}</h3>
-						<p class="action-description">{action.description}</p>
-					</div>
-				</button>
-			{/each}
-		</div>
-	</div>
+
 
 	<!-- Recent Activities Section -->
 	<div class="activities-section">

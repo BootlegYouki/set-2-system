@@ -7,20 +7,20 @@
 	let filteredStudents = [];
 	let isLoading = true;
 	let searchQuery = '';
-	let selectedYearLevel = '';
+	let selectedGradeLevel = '';
 	let selectedSection = '';
 
 	// Dropdown states
-	let isYearLevelDropdownOpen = false;
+	let isGradeLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
 
-	// Year level options
-	const yearLevelOptions = [
-		{ id: '', name: 'All Year Levels', icon: 'school' },
-		{ id: '1', name: '1st Year', icon: 'looks_one' },
-		{ id: '2', name: '2nd Year', icon: 'looks_two' },
-		{ id: '3', name: '3rd Year', icon: 'looks_3' },
-		{ id: '4', name: '4th Year', icon: 'looks_4' },
+	// Grade level options
+	const gradeLevelOptions = [
+		{ id: '', name: 'All Grade Levels', icon: 'school' },
+		{ id: '7', name: 'Grade 7', icon: 'looks_one' },
+		{ id: '8', name: 'Grade 8', icon: 'looks_two' },
+		{ id: '9', name: 'Grade 9', icon: 'looks_3' },
+		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
 	];
 
 	// Section options
@@ -35,25 +35,25 @@
 
 	// Mock student data
 	const mockStudents = [
-		{ id: 'STU-2024-001', name: 'Juan Carlos Santos', yearLevel: '1', section: 'A', gwa: 92.5 },
-		{ id: 'STU-2024-002', name: 'Maria Elena Rodriguez', yearLevel: '1', section: 'B', gwa: 88.3 },
-		{ id: 'STU-2024-003', name: 'Jose Miguel Dela Cruz', yearLevel: '2', section: 'A', gwa: 85.7 },
-		{ id: 'STU-2024-004', name: 'Ana Sofia Reyes', yearLevel: '2', section: 'B', gwa: 95.2 },
-		{ id: 'STU-2024-005', name: 'Carlos Antonio Lopez', yearLevel: '3', section: 'A', gwa: 79.8 },
-		{ id: 'STU-2024-006', name: 'Isabella Marie Garcia', yearLevel: '3', section: 'B', gwa: 91.4 },
-		{ id: 'STU-2024-007', name: 'Miguel Angel Torres', yearLevel: '4', section: 'A', gwa: 87.6 },
-		{ id: 'STU-2024-008', name: 'Sophia Grace Mendoza', yearLevel: '4', section: 'B', gwa: 83.9 },
-		{ id: 'STU-2024-009', name: 'Rafael Luis Morales', yearLevel: '1', section: 'C', gwa: 74.2 },
-		{ id: 'STU-2024-010', name: 'Camila Rose Fernandez', yearLevel: '2', section: 'C', gwa: 94.8 },
-		{ id: 'STU-2024-011', name: 'Diego Sebastian Cruz', yearLevel: '3', section: 'C', gwa: 82.1 },
-		{ id: 'STU-2024-012', name: 'Valentina Joy Ramos', yearLevel: '4', section: 'C', gwa: 89.7 },
-		{ id: 'STU-2024-013', name: 'Alejandro James Villanueva', yearLevel: '1', section: 'A', gwa: 78.5 },
-		{ id: 'STU-2024-014', name: 'Natalia Hope Santos', yearLevel: '2', section: 'B', gwa: 86.3 },
-		{ id: 'STU-2024-015', name: 'Gabriel Faith Martinez', yearLevel: '3', section: 'A', gwa: 93.1 }
+		{ id: 'STU-2024-001', name: 'Juan Carlos Santos', gradeLevel: '7', section: 'A', gwa: 92.5 },
+		{ id: 'STU-2024-002', name: 'Maria Elena Rodriguez', gradeLevel: '7', section: 'B', gwa: 88.3 },
+		{ id: 'STU-2024-003', name: 'Jose Miguel Dela Cruz', gradeLevel: '8', section: 'A', gwa: 85.7 },
+		{ id: 'STU-2024-004', name: 'Ana Sofia Reyes', gradeLevel: '8', section: 'B', gwa: 95.2 },
+		{ id: 'STU-2024-005', name: 'Carlos Antonio Lopez', gradeLevel: '9', section: 'A', gwa: 79.8 },
+		{ id: 'STU-2024-006', name: 'Isabella Marie Garcia', gradeLevel: '9', section: 'B', gwa: 91.4 },
+		{ id: 'STU-2024-007', name: 'Miguel Angel Torres', gradeLevel: '10', section: 'A', gwa: 87.6 },
+		{ id: 'STU-2024-008', name: 'Sophia Grace Mendoza', gradeLevel: '10', section: 'B', gwa: 83.9 },
+		{ id: 'STU-2024-009', name: 'Rafael Luis Morales', gradeLevel: '7', section: 'C', gwa: 74.2 },
+		{ id: 'STU-2024-010', name: 'Camila Rose Fernandez', gradeLevel: '8', section: 'C', gwa: 94.8 },
+		{ id: 'STU-2024-011', name: 'Diego Sebastian Cruz', gradeLevel: '9', section: 'C', gwa: 82.1 },
+		{ id: 'STU-2024-012', name: 'Valentina Joy Ramos', gradeLevel: '10', section: 'C', gwa: 89.7 },
+		{ id: 'STU-2024-013', name: 'Alejandro James Villanueva', gradeLevel: '7', section: 'A', gwa: 78.5 },
+		{ id: 'STU-2024-014', name: 'Natalia Hope Santos', gradeLevel: '8', section: 'B', gwa: 86.3 },
+		{ id: 'STU-2024-015', name: 'Gabriel Faith Martinez', gradeLevel: '9', section: 'A', gwa: 93.1 }
 	];
 
 	// Computed values
-	$: selectedYearLevelObj = yearLevelOptions.find(level => level.id === selectedYearLevel);
+	$: selectedGradeLevelObj = gradeLevelOptions.find(level => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
 
 	// Load students data
@@ -72,37 +72,37 @@
 		}
 	}
 
-	// Filter students based on search query, year level, and section
+	// Filter students based on search query, grade level, and section
 	function filterStudents() {
 		filteredStudents = students.filter(student => {
 			const matchesSearch = !searchQuery || 
 				student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				student.id.toLowerCase().includes(searchQuery.toLowerCase());
 			
-			const matchesYearLevel = !selectedYearLevel || 
-				student.yearLevel === selectedYearLevel;
+			const matchesGradeLevel = !selectedGradeLevel || 
+				student.gradeLevel === selectedGradeLevel;
 			
 			const matchesSection = !selectedSection || 
 				student.section === selectedSection;
 			
-			return matchesSearch && matchesYearLevel && matchesSection;
+			return matchesSearch && matchesGradeLevel && matchesSection;
 		});
 	}
 
 	// Dropdown functions
-	function toggleYearLevelDropdown() {
-		isYearLevelDropdownOpen = !isYearLevelDropdownOpen;
+	function toggleGradeLevelDropdown() {
+		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
 		isSectionDropdownOpen = false;
 	}
 
 	function toggleSectionDropdown() {
 		isSectionDropdownOpen = !isSectionDropdownOpen;
-		isYearLevelDropdownOpen = false;
+		isGradeLevelDropdownOpen = false;
 	}
 
-	function selectYearLevel(yearLevel) {
-		selectedYearLevel = yearLevel;
-		isYearLevelDropdownOpen = false;
+	function selectGradeLevel(gradeLevel) {
+		selectedGradeLevel = gradeLevel;
+		isGradeLevelDropdownOpen = false;
 		filterStudents();
 	}
 
@@ -120,7 +120,7 @@
 	// Clear filters
 	function clearFilters() {
 		searchQuery = '';
-		selectedYearLevel = '';
+		selectedGradeLevel = '';
 		selectedSection = '';
 		filterStudents();
 	}
@@ -143,21 +143,21 @@
 		return 'Needs Improvement';
 	}
 
-	// Helper function to get year level display name
-	function getYearLevelName(yearLevel) {
-		const yearMap = {
-			'1': '1st Year',
-			'2': '2nd Year', 
-			'3': '3rd Year',
-			'4': '4th Year'
+	// Helper function to get grade level display name
+	function getGradeLevelName(gradeLevel) {
+		const gradeMap = {
+			'7': 'Grade 7',
+			'8': 'Grade 8', 
+			'9': 'Grade 9',
+			'10': 'Grade 10'
 		};
-		return yearMap[yearLevel] || yearLevel;
+		return gradeMap[gradeLevel] || gradeLevel;
 	}
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
 		if (!event.target.closest('.sgl-custom-dropdown')) {
-			isYearLevelDropdownOpen = false;
+			isGradeLevelDropdownOpen = false;
 			isSectionDropdownOpen = false;
 		}
 	}
@@ -214,36 +214,36 @@
 
 			<!-- Filter Dropdowns -->
 			<div class="sgl-filter-container">
-				<!-- Year Level Filter -->
+				<!-- Grade Level Filter -->
 				<div class="sgl-filter-group">
-					<label class="sgl-filter-label">Year Level</label>
-					<div class="sgl-custom-dropdown" class:open={isYearLevelDropdownOpen}>
+					<label class="sgl-filter-label">Grade Level</label>
+					<div class="sgl-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
 						<button 
 							type="button"
 							class="sgl-dropdown-trigger sgl-filter-trigger" 
-							on:click={toggleYearLevelDropdown}
+							on:click={toggleGradeLevelDropdown}
 						>
-							{#if selectedYearLevelObj && selectedYearLevel}
+							{#if selectedGradeLevelObj && selectedGradeLevel}
 								<div class="sgl-selected-option">
-									<span class="material-symbols-outlined sgl-option-icon">{selectedYearLevelObj.icon}</span>
-									<span class="sgl-option-name">{selectedYearLevelObj.name}</span>
+									<span class="material-symbols-outlined sgl-option-icon">{selectedGradeLevelObj.icon}</span>
+									<span class="sgl-option-name">{selectedGradeLevelObj.name}</span>
 								</div>
 							{:else}
-								<span class="sgl-placeholder">All Year Levels</span>
+								<span class="sgl-placeholder">All Grade Levels</span>
 							{/if}
 							<span class="material-symbols-outlined sgl-dropdown-arrow">expand_more</span>
 						</button>
 						<div class="sgl-dropdown-menu">
-							{#each yearLevelOptions as yearLevel (yearLevel.id)}
+							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
 								<button 
 									type="button"
 									class="sgl-dropdown-option" 
-									class:selected={selectedYearLevel === yearLevel.id}
-									on:click={() => selectYearLevel(yearLevel.id)}
+									class:selected={selectedGradeLevel === gradeLevel.id}
+									on:click={() => selectGradeLevel(gradeLevel.id)}
 								>
-									<span class="material-symbols-outlined sgl-option-icon">{yearLevel.icon}</span>
+									<span class="material-symbols-outlined sgl-option-icon">{gradeLevel.icon}</span>
 									<div class="sgl-option-content">
-										<span class="sgl-option-name">{yearLevel.name}</span>
+										<span class="sgl-option-name">{gradeLevel.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -287,7 +287,7 @@
 				</div>
 
 				<!-- Clear Filters Button -->
-				{#if searchQuery || selectedYearLevel || selectedSection}
+				{#if searchQuery || selectedGradeLevel || selectedSection}
 					<button 
 						type="button" 
 						class="sgl-clear-filters-button"
@@ -314,7 +314,7 @@
 				<span class="material-symbols-outlined sgl-empty-icon">search_off</span>
 				<h3 class="sgl-empty-title">No students found</h3>
 				<p class="sgl-empty-description">
-					{#if searchQuery || selectedYearLevel || selectedSection}
+					{#if searchQuery || selectedGradeLevel || selectedSection}
 						Try adjusting your search criteria or filters.
 					{:else}
 						No student records are available at the moment.
@@ -336,7 +336,7 @@
 							<tr>
 								<th>Student ID</th>
 								<th>Name</th>
-								<th>Year Level</th>
+								<th>Grade Level</th>
 								<th>Section</th>
 								<th>GWA</th>
 							</tr>
@@ -346,7 +346,7 @@
 						<tr class="sgl-student-row" class:low-gwa={student.gwa < 75}>
 							<td class="sgl-student-id">{student.id}</td>
 							<td class="sgl-student-name">{student.name}</td>
-							<td class="sgl-year-level">{getYearLevelName(student.yearLevel)}</td>
+							<td class="sgl-year-level">{getGradeLevelName(student.gradeLevel)}</td>
 							<td class="sgl-section">{student.section}</td>
 							<td class="sgl-gwa">{student.gwa.toFixed(1)}%</td>
 						</tr>

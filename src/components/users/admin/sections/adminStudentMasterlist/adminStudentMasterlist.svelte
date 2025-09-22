@@ -9,20 +9,20 @@
 	let filteredStudents = [];
 	let isLoading = true;
 	let searchQuery = '';
-	let selectedYearLevel = '';
+	let selectedGradeLevel = '';
 	let selectedSection = '';
 
 	// Dropdown states
-	let isYearLevelDropdownOpen = false;
+	let isGradeLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
 
-	// Year level options
-	const yearLevelOptions = [
-		{ id: '', name: 'All Year Levels', icon: 'school' },
-		{ id: '1st', name: '1st Year', icon: 'looks_one' },
-		{ id: '2nd', name: '2nd Year', icon: 'looks_two' },
-		{ id: '3rd', name: '3rd Year', icon: 'looks_3' },
-		{ id: '4th', name: '4th Year', icon: 'looks_4' },
+	// Grade level options
+	const gradeLevelOptions = [
+		{ id: '', name: 'All Grade Levels', icon: 'school' },
+		{ id: '7', name: 'Grade 7', icon: 'looks_one' },
+		{ id: '8', name: 'Grade 8', icon: 'looks_two' },
+		{ id: '9', name: 'Grade 9', icon: 'looks_3' },
+		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
 	];
 
 	// Section options
@@ -36,7 +36,7 @@
 	];
 
 	// Computed values
-	$: selectedYearLevelObj = yearLevelOptions.find(level => level.id === selectedYearLevel);
+	$: selectedGradeLevelObj = gradeLevelOptions.find(level => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
 
 	// Load students data
@@ -54,7 +54,7 @@
 				name: account.name,
 				number: account.number, // Add the student ID number
 				email: account.email,
-				yearLevel: account.yearLevel || 'Not specified',
+				gradeLevel: account.yearLevel || 'Not specified',
 				section: account.section || 'Not specified',
 				birthdate: account.birthdate || 'Not specified',
 				address: account.address || 'Not specified',
@@ -73,7 +73,7 @@
 		}
 	}
 
-	// Filter students based on search query, year level, and section
+	// Filter students based on search query, grade level, and section
 	function filterStudents() {
 		filteredStudents = students.filter(student => {
 			const matchesSearch = !searchQuery || 
@@ -81,30 +81,30 @@
 				student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(student.number && student.number.toLowerCase().includes(searchQuery.toLowerCase()));
 			
-			const matchesYearLevel = !selectedYearLevel || 
-				student.yearLevel === selectedYearLevel;
+			const matchesGradeLevel = !selectedGradeLevel || 
+				student.gradeLevel === selectedGradeLevel;
 			
 			const matchesSection = !selectedSection || 
 				student.section === selectedSection;
 			
-			return matchesSearch && matchesYearLevel && matchesSection;
+			return matchesSearch && matchesGradeLevel && matchesSection;
 		});
 	}
 
 	// Dropdown functions
-	function toggleYearLevelDropdown() {
-		isYearLevelDropdownOpen = !isYearLevelDropdownOpen;
+	function toggleGradeLevelDropdown() {
+		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
 		isSectionDropdownOpen = false;
 	}
 
 	function toggleSectionDropdown() {
 		isSectionDropdownOpen = !isSectionDropdownOpen;
-		isYearLevelDropdownOpen = false;
+		isGradeLevelDropdownOpen = false;
 	}
 
-	function selectYearLevel(yearLevel) {
-		selectedYearLevel = yearLevel.id;
-		isYearLevelDropdownOpen = false;
+	function selectGradeLevel(gradeLevel) {
+		selectedGradeLevel = gradeLevel.id;
+		isGradeLevelDropdownOpen = false;
 		filterStudents();
 	}
 
@@ -141,7 +141,7 @@
 	// Clear all filters
 	function clearFilters() {
 		searchQuery = '';
-		selectedYearLevel = '';
+		selectedGradeLevel = '';
 		selectedSection = '';
 		filterStudents();
 	}
@@ -152,7 +152,7 @@
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
 		if (!event.target.closest('.custom-dropdown')) {
-			isYearLevelDropdownOpen = false;
+			isGradeLevelDropdownOpen = false;
 			isSectionDropdownOpen = false;
 		}
 	}
@@ -221,36 +221,36 @@
 
 			<!-- Filter Dropdowns -->
 			<div class="filter-container">
-				<!-- Year Level Filter -->
+				<!-- Grade Level Filter -->
 				<div class="filter-group">
-					<label class="filter-label">Year Level</label>
-					<div class="custom-dropdown" class:open={isYearLevelDropdownOpen}>
+					<label class="filter-label">Grade Level</label>
+					<div class="custom-dropdown" class:open={isGradeLevelDropdownOpen}>
 						<button 
 							type="button"
 							class="dropdown-trigger filter-trigger" 
-							on:click={toggleYearLevelDropdown}
+							on:click={toggleGradeLevelDropdown}
 						>
-							{#if selectedYearLevelObj && selectedYearLevel}
+							{#if selectedGradeLevelObj && selectedGradeLevel}
 								<div class="selected-option">
-									<span class="material-symbols-outlined option-icon">{selectedYearLevelObj.icon}</span>
-									<span class="option-name">{selectedYearLevelObj.name}</span>
+									<span class="material-symbols-outlined option-icon">{selectedGradeLevelObj.icon}</span>
+									<span class="option-name">{selectedGradeLevelObj.name}</span>
 								</div>
 							{:else}
-								<span class="placeholder">All Year Levels</span>
+								<span class="placeholder">All Grade Levels</span>
 							{/if}
 							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
 						</button>
 						<div class="dropdown-menu">
-							{#each yearLevelOptions as yearLevel (yearLevel.id)}
+							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
 								<button 
 									type="button"
 									class="dropdown-option" 
-									class:selected={selectedYearLevel === yearLevel.id}
-									on:click={() => selectYearLevel(yearLevel)}
+									class:selected={selectedGradeLevel === gradeLevel.id}
+									on:click={() => selectGradeLevel(gradeLevel)}
 								>
-									<span class="material-symbols-outlined option-icon">{yearLevel.icon}</span>
+									<span class="material-symbols-outlined option-icon">{gradeLevel.icon}</span>
 									<div class="option-content">
-										<span class="option-name">{yearLevel.name}</span>
+										<span class="option-name">{gradeLevel.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -294,7 +294,7 @@
 				</div>
 
 				<!-- Clear Filters Button -->
-				{#if searchQuery || selectedYearLevel || selectedSection}
+				{#if searchQuery || selectedGradeLevel || selectedSection}
 					<button 
 						type="button" 
 						class="clear-filters-button"
@@ -341,10 +341,10 @@
 									<span>{student.email}</span>
 								</div>
 							{/if}
-							{#if student.yearLevel && student.yearLevel !== 'Not specified'}
+							{#if student.gradeLevel && student.gradeLevel !== 'Not specified'}
 								<div class="account-detail-item">
 									<span class="material-symbols-outlined">school</span>
-									<span>{yearLevelOptions.find(level => level.id === student.yearLevel)?.name || student.yearLevel}</span>
+									<span>{gradeLevelOptions.find(level => level.id === student.gradeLevel)?.name || student.gradeLevel}</span>
 								</div>
 							{/if}
 							{#if student.section && student.section !== 'Not specified'}
@@ -390,16 +390,16 @@
 		{:else}
 			<div class="no-results">
 				<span class="material-symbols-outlined no-results-icon">
-					{searchQuery || selectedYearLevel || selectedSection ? 'search_off' : 'school'}
+					{searchQuery || selectedGradeLevel || selectedSection ? 'search_off' : 'school'}
 				</span>
 				<p>
-					{#if searchQuery || selectedYearLevel || selectedSection}
+					{#if searchQuery || selectedGradeLevel || selectedSection}
 						No students found matching your search criteria.
 					{:else}
 						No students found in the system.
 					{/if}
 				</p>
-				{#if searchQuery || selectedYearLevel || selectedSection}
+				{#if searchQuery || selectedGradeLevel || selectedSection}
 					<button 
 						type="button" 
 						class="clear-search-button-inline"

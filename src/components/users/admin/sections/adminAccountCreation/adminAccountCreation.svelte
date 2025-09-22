@@ -11,7 +11,7 @@
 	let selectedAccountType = '';
 	let selectedGender = '';
 	let selectedSubject = '';
-	let selectedYearLevel = '';
+	let selectedGradeLevel = '';
 	let firstName = '';
 	let lastName = '';
 	let middleInitial = '';
@@ -28,7 +28,7 @@
 	let isDropdownOpen = false;
 	let isGenderDropdownOpen = false;
 	let isSubjectDropdownOpen = false;
-	let isYearLevelDropdownOpen = false;
+	let isGradeLevelDropdownOpen = false;
 	let isFilterDropdownOpen = false;
 
 	// Filter state
@@ -41,9 +41,9 @@
 	let editMiddleInitial = '';
 	let editSubject = '';
 	let editSubjectId = null;
-	let editYearLevel = '';
+	let editGradeLevel = '';
 	let isEditSubjectDropdownOpen = false;
-	let isEditYearLevelDropdownOpen = false;
+	let isEditGradeLevelDropdownOpen = false;
 	let isUpdating = false;
 	
 	// Edit additional information for students
@@ -175,12 +175,12 @@
 		{ id: 'female', name: 'Female', icon: 'female' }
 	];
 
-	// Year level options for students
-	const yearLevelOptions = [
-		{ id: '1st', name: '1st Year', icon: 'looks_one' },
-		{ id: '2nd', name: '2nd Year', icon: 'looks_two' },
-		{ id: '3rd', name: '3rd Year', icon: 'looks_3' },
-		{ id: '4th', name: '4th Year', icon: 'looks_4' }
+	// Grade level options for students
+	const gradeLevelOptions = [
+		{ id: '7', name: 'Grade 7', icon: 'looks_one' },
+		{ id: '8', name: 'Grade 8', icon: 'looks_two' },
+		{ id: '9', name: 'Grade 9', icon: 'looks_3' },
+		{ id: '10', name: 'Grade 10', icon: 'looks_4' }
 	];
 
 	// Subject options for teachers (loaded from database)
@@ -197,9 +197,9 @@
 			isDropdownOpen = false;
 			isGenderDropdownOpen = false;
 			isSubjectDropdownOpen = false;
-			isYearLevelDropdownOpen = false;
+			isGradeLevelDropdownOpen = false;
 			isEditSubjectDropdownOpen = false;
-			isEditYearLevelDropdownOpen = false;
+			isEditGradeLevelDropdownOpen = false;
 			isFilterDropdownOpen = false;
 		}
 	}
@@ -252,14 +252,14 @@
 			editMiddleInitial = '';
 			editSubject = '';
 			editSubjectId = null;
-			editYearLevel = '';
+			editGradeLevel = '';
 			editBirthdate = '';
 			editAddress = '';
 			editGuardian = '';
 			editContactNumber = '';
 			editCalculatedAge = 0;
 			isEditSubjectDropdownOpen = false;
-			isEditYearLevelDropdownOpen = false;
+			isEditGradeLevelDropdownOpen = false;
 		} else {
 			// Open the form and populate with current values
 			editingAccountId = account.id;
@@ -270,7 +270,7 @@
 				editMiddleInitial = account.middleInitial || '';
 				editSubject = account.subject || '';
 				editSubjectId = account.subjectId || null;
-				editYearLevel = account.yearLevel || '';
+				editGradeLevel = account.gradeLevel || '';
 				// Format birthdate for date input (YYYY-MM-DD) - timezone safe
 				if (account.birthdate) {
 					const date = new Date(account.birthdate);
@@ -301,7 +301,7 @@
 				}
 				editSubject = account.subject || '';
 				editSubjectId = account.subjectId || null;
-				editYearLevel = account.yearLevel || '';
+				editGradeLevel = account.gradeLevel || '';
 				// Format birthdate for date input (YYYY-MM-DD) - timezone safe
 				if (account.birthdate) {
 					const date = new Date(account.birthdate);
@@ -357,9 +357,9 @@
 				requestBody.subject = selectedSubjectObj ? selectedSubjectObj.name : null;
 			}
 
-			// Add year level and additional info for student accounts
+			// Add grade level and additional info for student accounts
 			if (currentAccount && currentAccount.type.toLowerCase() === 'student') {
-				requestBody.yearLevel = editYearLevel || null;
+				requestBody.gradeLevel = editGradeLevel || null;
 				requestBody.birthdate = editBirthdate || null;
 				requestBody.address = editAddress ? editAddress.trim() : null;
 				requestBody.guardian = editGuardian ? editGuardian.trim() : null;
@@ -386,7 +386,7 @@
 				editLastName = '';
 				editMiddleInitial = '';
 				editSubject = '';
-				editYearLevel = '';
+				editGradeLevel = '';
 				editBirthdate = '';
 				editAddress = '';
 				editGuardian = '';
@@ -417,9 +417,9 @@
 		if (type.id !== 'teacher') {
 			selectedSubject = '';
 		}
-		// Clear year level selection when switching account types
+		// Clear grade level selection when switching account types
 		if (type.id !== 'student') {
-			selectedYearLevel = '';
+			selectedGradeLevel = '';
 		}
 	}
 
@@ -445,15 +445,15 @@
 		isSubjectDropdownOpen = false;
 	}
 
-	// Toggle year level dropdown
-	function toggleYearLevelDropdown() {
-		isYearLevelDropdownOpen = !isYearLevelDropdownOpen;
+	// Toggle grade level dropdown
+	function toggleGradeLevelDropdown() {
+		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
 	}
 
-	// Select year level and close dropdown
-	function selectYearLevel(yearLevel) {
-		selectedYearLevel = yearLevel.id;
-		isYearLevelDropdownOpen = false;
+	// Select grade level and close dropdown
+	function selectGradeLevel(gradeLevel) {
+		selectedGradeLevel = gradeLevel.id;
+		isGradeLevelDropdownOpen = false;
 	}
 
 	// Toggle edit subject dropdown
@@ -468,15 +468,15 @@
 		isEditSubjectDropdownOpen = false;
 	}
 
-	// Toggle edit year level dropdown
-	function toggleEditYearLevelDropdown() {
-		isEditYearLevelDropdownOpen = !isEditYearLevelDropdownOpen;
+	// Toggle edit grade level dropdown
+	function toggleEditGradeLevelDropdown() {
+		isEditGradeLevelDropdownOpen = !isEditGradeLevelDropdownOpen;
 	}
 
-	// Select edit year level and close dropdown
-	function selectEditYearLevel(yearLevel) {
-		editYearLevel = yearLevel.id;
-		isEditYearLevelDropdownOpen = false;
+	// Select edit grade level and close dropdown
+	function selectEditGradeLevel(gradeLevel) {
+		editGradeLevel = gradeLevel.id;
+		isEditGradeLevelDropdownOpen = false;
 	}
 
 	// Toggle filter dropdown
@@ -503,9 +503,9 @@
 			return;
 		}
 
-		// Check if student account requires year level selection
-		if (selectedAccountType === 'student' && !selectedYearLevel) {
-			toastStore.error('Please select a year level for the student account.');
+		// Check if student account requires grade level selection
+		if (selectedAccountType === 'student' && !selectedGradeLevel) {
+			toastStore.error('Please select a grade level for the student account.');
 			return;
 		}
 		
@@ -540,7 +540,7 @@
 				accountType: selectedAccountType,
 				gender: selectedGender,
 				subjectId: selectedSubject,
-				yearLevel: selectedYearLevel,
+				gradeLevel: selectedGradeLevel,
 				firstName,
 				lastName,
 				middleInitial,
@@ -567,7 +567,7 @@
 			selectedAccountType = '';
 			selectedGender = '';
 			selectedSubject = '';
-			selectedYearLevel = '';
+			selectedGradeLevel = '';
 			firstName = '';
 			lastName = '';
 			middleInitial = '';
@@ -595,14 +595,14 @@
 	// Get selected subject object
 	$: selectedSubjectObj = subjectOptions.find(subject => subject.id === selectedSubject);
 
-	// Get selected year level object
-	$: selectedYearLevelObj = yearLevelOptions.find(yearLevel => yearLevel.id === selectedYearLevel);
+	// Get selected grade level object
+	$: selectedGradeLevelObj = gradeLevelOptions.find(gradeLevel => gradeLevel.id === selectedGradeLevel);
 
 	// Get selected filter object
 	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
 
-	// Get selected edit year level object
-	$: selectedEditYearLevelObj = yearLevelOptions.find(yearLevel => yearLevel.id === editYearLevel);
+	// Get selected edit grade level object
+	$: selectedEditGradeLevelObj = gradeLevelOptions.find(gradeLevel => gradeLevel.id === editGradeLevel);
 
 	// Calculate age from birthdate
 	$: {
@@ -874,41 +874,41 @@
 						</div>
 					{/if}
 
-					<!-- Year Level Selection (only for students) -->
+					<!-- Grade Level Selection (only for students) -->
 					{#if selectedAccountType === 'student'}
 						<div class="form-group">
-							<label class="form-label" for="year-level">Year Level *</label>
-							<div class="custom-dropdown" class:open={isYearLevelDropdownOpen}>
+							<label class="form-label" for="grade-level">Grade Level *</label>
+							<div class="custom-dropdown" class:open={isGradeLevelDropdownOpen}>
 								<button 
 									type="button"
 									class="dropdown-trigger" 
-									class:selected={selectedYearLevel}
-									on:click={toggleYearLevelDropdown}
-									id="year-level"
+									class:selected={selectedGradeLevel}
+									on:click={toggleGradeLevelDropdown}
+									id="grade-level"
 								>
-									{#if selectedYearLevelObj}
+									{#if selectedGradeLevelObj}
 										<div class="selected-option">
-											<span class="material-symbols-outlined option-icon">{selectedYearLevelObj.icon}</span>
+											<span class="material-symbols-outlined option-icon">{selectedGradeLevelObj.icon}</span>
 											<div class="option-content">
-												<span class="option-name">{selectedYearLevelObj.name}</span>
+												<span class="option-name">{selectedGradeLevelObj.name}</span>
 											</div>
 										</div>
 									{:else}
-										<span class="placeholder">Select year level</span>
+										<span class="placeholder">Select grade level</span>
 									{/if}
 									<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
 								</button>
 								<div class="dropdown-menu">
-									{#each yearLevelOptions as yearLevel (yearLevel.id)}
+									{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
 										<button 
 											type="button"
 											class="dropdown-option" 
-											class:selected={selectedYearLevel === yearLevel.id}
-											on:click={() => selectYearLevel(yearLevel)}
+											class:selected={selectedGradeLevel === gradeLevel.id}
+											on:click={() => selectGradeLevel(gradeLevel)}
 										>
-											<span class="material-symbols-outlined option-icon">{yearLevel.icon}</span>
+											<span class="material-symbols-outlined option-icon">{gradeLevel.icon}</span>
 											<div class="option-content">
-												<span class="option-name">{yearLevel.name}</span>
+												<span class="option-name">{gradeLevel.name}</span>
 											</div>
 										</button>
 									{/each}
@@ -1208,10 +1208,10 @@
 						<span class="material-symbols-outlined">badge</span>
 						<span>{account.type} Account</span>
 					</div>
-					{#if account.type === 'Student' && account.yearLevel}
+					{#if account.type === 'Student' && account.gradeLevel}
 						<div class="account-detail-item">
 							<span class="material-symbols-outlined">school</span>
-							<span>{account.yearLevel} Year</span>
+							<span>Grade {account.gradeLevel}</span>
 						</div>
 					{/if}
 					{#if account.type === 'Student' && account.age}
@@ -1340,41 +1340,41 @@
 									</div>
 								{/if}
 
-								<!-- Year Level field for student accounts only -->
+								<!-- Grade Level field for student accounts only -->
 								{#if account.type.toLowerCase() === 'student'}
 									<div class="form-group">
-										<label class="form-label" for="edit-year-level-{account.id}">Year Level</label>
-										<div class="custom-dropdown" class:open={isEditYearLevelDropdownOpen}>
+										<label class="form-label" for="edit-grade-level-{account.id}">Grade Level</label>
+										<div class="custom-dropdown" class:open={isEditGradeLevelDropdownOpen}>
 											<button 
 												type="button"
 												class="dropdown-trigger" 
-												class:selected={editYearLevel}
-												on:click={toggleEditYearLevelDropdown}
-												id="edit-year-level-{account.id}"
+												class:selected={editGradeLevel}
+												on:click={toggleEditGradeLevelDropdown}
+												id="edit-grade-level-{account.id}"
 											>
-												{#if selectedEditYearLevelObj}
+												{#if selectedEditGradeLevelObj}
 													<div class="selected-option">
-														<span class="material-symbols-outlined option-icon">{selectedEditYearLevelObj.icon}</span>
+														<span class="material-symbols-outlined option-icon">{selectedEditGradeLevelObj.icon}</span>
 														<div class="option-content">
-															<span class="option-name">{selectedEditYearLevelObj.name}</span>
+															<span class="option-name">{selectedEditGradeLevelObj.name}</span>
 														</div>
 													</div>
 												{:else}
-													<span class="placeholder">Select year level</span>
+													<span class="placeholder">Select grade level</span>
 												{/if}
 												<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
 											</button>
 											<div class="dropdown-menu">
-												{#each yearLevelOptions as yearLevel (yearLevel.id)}
+												{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
 													<button 
 														type="button"
 														class="dropdown-option" 
-														class:selected={editYearLevel === yearLevel.id}
-														on:click={() => selectEditYearLevel(yearLevel)}
+														class:selected={editGradeLevel === gradeLevel.id}
+														on:click={() => selectEditGradeLevel(gradeLevel)}
 													>
-														<span class="material-symbols-outlined option-icon">{yearLevel.icon}</span>
+														<span class="material-symbols-outlined option-icon">{gradeLevel.icon}</span>
 														<div class="option-content">
-															<span class="option-name">{yearLevel.name}</span>
+															<span class="option-name">{gradeLevel.name}</span>
 														</div>
 													</button>
 												{/each}
