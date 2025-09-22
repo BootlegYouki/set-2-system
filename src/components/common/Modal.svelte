@@ -238,7 +238,7 @@
   }
 
   .modal-body {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     overflow-y: auto;
     flex: 1;
     color: var(--md-sys-color-on-surface);

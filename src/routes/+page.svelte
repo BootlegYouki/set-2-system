@@ -27,7 +27,7 @@
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
   import AdminSubjectCreation from '../components/users/admin/sections/adminSubjectCreation/adminSubjectCreation.svelte';
   import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
-  // import AdminSettings from '../components/users/admin/sections/adminSettings/adminSettings.svelte';
+  import AdminSettings from '../components/users/admin/sections/adminSettings/adminSettings.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store using Svelte 5 runes

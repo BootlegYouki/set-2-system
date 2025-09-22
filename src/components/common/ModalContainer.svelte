@@ -139,7 +139,6 @@
   .modal-generic-content {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);
   }
 
   .modal-message {
@@ -190,6 +189,7 @@
     gap: var(--spacing-md);
     justify-content: flex-end;
     margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
   }
 
   .modal-btn {
