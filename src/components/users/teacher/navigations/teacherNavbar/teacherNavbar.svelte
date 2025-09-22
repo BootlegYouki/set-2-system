@@ -142,7 +142,7 @@
 							<span class="material-symbols-outlined">settings</span>
 							Settings
 						</button>
-						<button class="teacher-navbar-dropdown-item" onclick={() => { closeDropdown(); showSuccess('Logged out successfully. See you next time!'); onlogout(); }}>
+						<button class="teacher-navbar-dropdown-item" onclick={async () => { closeDropdown(); await onlogout(); showSuccess('Logged out successfully. See you next time!'); }}>
 							<span class="material-symbols-outlined">logout</span>
 							Logout
 						</button>
