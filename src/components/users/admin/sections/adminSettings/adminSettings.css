@@ -393,6 +393,88 @@
 	color: var(--md-sys-color-on-surface-variant);
 }
 
+/* Admin Settings Password Form - Modal Specific Styles */
+.admin-settings-password-form {
+	padding: var(--spacing-sm);
+	display: flex;
+	flex-direction: column;
+}
+
+.admin-settings-form-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.admin-settings-form-group label {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface);
+}
+
+.admin-settings-form-input {
+	padding: var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface-container);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all var(--transition-normal);
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.admin-settings-form-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.admin-settings-form-input::placeholder {
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Password Input Wrapper and Toggle Button */
+.admin-settings-password-input-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.admin-settings-password-input-wrapper .admin-settings-form-input {
+	padding-right: 48px; /* Make room for the toggle button */
+}
+
+.admin-settings-password-toggle {
+	position: absolute;
+	right: 12px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: var(--radius-sm);
+	color: var(--md-sys-color-on-surface-variant);
+	transition: all var(--transition-normal);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.admin-settings-password-toggle:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface);
+}
+
+.password-eye-icon {
+	width: 20px;
+	height: 20px;
+	stroke-width: 2;
+}
+
 /* Button Loader */
 .button-loader {
 	width: 16px;

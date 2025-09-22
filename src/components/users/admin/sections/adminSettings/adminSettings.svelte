@@ -3,6 +3,11 @@
 	import { onMount } from 'svelte';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { showSuccess, showError } from '../../../../common/js/toastStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
+
+	// Loading states
+	let loading = $state(false);
+	let saving = $state(false);
 
 	// Current school year state
 	let currentSchoolYear = $state('2024-2025');
@@ -11,18 +16,82 @@
 	let canUndo = $state(false);
 
 	// School year dates
-	let startDate = $state('2024-08-15');
-	let endDate = $state('2025-05-31');
+	let startDate = $state('');
+	let endDate = $state('');
 
 	// Quarter dates
-	let quarter1Start = $state('2024-08-15');
-	let quarter1End = $state('2024-10-31');
-	let quarter2Start = $state('2024-11-01');
-	let quarter2End = $state('2025-01-31');
-	let quarter3Start = $state('2025-02-01');
-	let quarter3End = $state('2025-04-15');
-	let quarter4Start = $state('2025-04-16');
-	let quarter4End = $state('2025-05-31');
+	let quarter1Start = $state('');
+	let quarter1End = $state('');
+	let quarter2Start = $state('');
+	let quarter2End = $state('');
+	let quarter3Start = $state('');
+	let quarter3End = $state('');
+	let quarter4Start = $state('');
+	let quarter4End = $state('');
+
+	// Load admin settings from backend
+	async function loadAdminSettings() {
+		try {
+			loading = true;
+			const result = await api.get('/api/admin-settings');
+			
+			if (result.success) {
+				const settings = result.data;
+				
+				// Update state with loaded settings
+				currentSchoolYear = settings.current_school_year || '2024-2025';
+				startDate = settings.school_year_start_date || '';
+				endDate = settings.school_year_end_date || '';
+				quarter1Start = settings.quarter_1_start_date || '';
+				quarter1End = settings.quarter_1_end_date || '';
+				quarter2Start = settings.quarter_2_start_date || '';
+				quarter2End = settings.quarter_2_end_date || '';
+				quarter3Start = settings.quarter_3_start_date || '';
+				quarter3End = settings.quarter_3_end_date || '';
+				quarter4Start = settings.quarter_4_start_date || '';
+				quarter4End = settings.quarter_4_end_date || '';
+			}
+		} catch (error) {
+			console.error('Error loading admin settings:', error);
+			showError('Failed to load admin settings');
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Save admin settings to backend
+	async function saveAdminSettings() {
+		try {
+			saving = true;
+			
+			const settings = {
+				current_school_year: currentSchoolYear,
+				school_year_start_date: startDate,
+				school_year_end_date: endDate,
+				quarter_1_start_date: quarter1Start,
+				quarter_1_end_date: quarter1End,
+				quarter_2_start_date: quarter2Start,
+				quarter_2_end_date: quarter2End,
+				quarter_3_start_date: quarter3Start,
+				quarter_3_end_date: quarter3End,
+				quarter_4_start_date: quarter4Start,
+				quarter_4_end_date: quarter4End
+			};
+
+			const result = await api.put('/api/admin-settings', { settings });
+			
+			if (result.success) {
+				showSuccess('Admin settings saved successfully');
+			} else {
+				throw new Error(result.error || 'Failed to save settings');
+			}
+		} catch (error) {
+			console.error('Error saving admin settings:', error);
+			showError('Failed to save admin settings');
+		} finally {
+			saving = false;
+		}
+	}
 
 	// Date validation
 	let dateValidationError = $state('');
@@ -100,7 +169,7 @@
 	});
 
 	// Handle date changes
-	function handleDateChange() {
+	async function handleDateChange() {
 		if (dateValidationError) {
 			console.error('Cannot apply changes: Date validation error');
 			return;
@@ -113,16 +182,8 @@
 			return;
 		}
 
-		console.log('Applying date changes:', {
-			schoolYear: { startDate, endDate },
-			quarters: {
-				quarter1: { start: quarter1Start, end: quarter1End },
-				quarter2: { start: quarter2Start, end: quarter2End },
-				quarter3: { start: quarter3Start, end: quarter3End },
-				quarter4: { start: quarter4Start, end: quarter4End }
-			}
-		});
-		// TODO: Implement actual date saving logic
+		// Save settings to backend
+		await saveAdminSettings();
 	}
 
 	// Modal states - removed since we'll use modalStore
@@ -196,38 +257,82 @@
 		}
 	}
 
+	// Toggle password visibility function
+	function togglePasswordVisibility(inputId) {
+		const input = document.getElementById(inputId);
+		const button = input.nextElementSibling;
+		const icon = button.querySelector('.password-eye-icon');
+		
+		if (input.type === 'password') {
+			input.type = 'text';
+			icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+		} else {
+			input.type = 'password';
+			icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+		}
+	}
+
+	// Make function globally available
+	if (typeof window !== 'undefined') {
+		window.togglePasswordVisibility = togglePasswordVisibility;
+	}
+
 	// Handle password change button click
 	function handlePasswordChangeModal() {
 		const passwordFormContent = `
 			<div class="admin-settings-password-form">
 				<div class="admin-settings-form-group">
 					<label for="current-password">Current Password</label>
-					<input 
-						id="current-password"
-						type="password" 
-						placeholder="Enter current password"
-						class="admin-settings-form-input"
-					/>
+					<div class="admin-settings-password-input-wrapper">
+						<input 
+							id="current-password"
+							type="password" 
+							placeholder="Enter current password"
+							class="admin-settings-form-input"
+						/>
+						<button type="button" class="admin-settings-password-toggle" onclick="togglePasswordVisibility('current-password')">
+							<svg class="password-eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+								<line x1="1" y1="1" x2="23" y2="23"/>
+							</svg>
+						</button>
+					</div>
 				</div>
 				
 				<div class="admin-settings-form-group">
 					<label for="new-password">New Password</label>
-					<input 
-						id="new-password"
-						type="password" 
-						placeholder="Enter new password"
-						class="admin-settings-form-input"
-					/>
+					<div class="admin-settings-password-input-wrapper">
+						<input 
+							id="new-password"
+							type="password" 
+							placeholder="Enter new password"
+							class="admin-settings-form-input"
+						/>
+						<button type="button" class="admin-settings-password-toggle" onclick="togglePasswordVisibility('new-password')">
+							<svg class="password-eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+								<line x1="1" y1="1" x2="23" y2="23"/>
+							</svg>
+						</button>
+					</div>
 				</div>
 				
 				<div class="admin-settings-form-group">
 					<label for="confirm-password">Confirm New Password</label>
-					<input 
-						id="confirm-password"
-						type="password" 
-						placeholder="Confirm new password"
-						class="admin-settings-form-input"
-					/>
+					<div class="admin-settings-password-input-wrapper">
+						<input 
+							id="confirm-password"
+							type="password" 
+							placeholder="Confirm new password"
+							class="admin-settings-form-input"
+						/>
+						<button type="button" class="admin-settings-password-toggle" onclick="togglePasswordVisibility('confirm-password')">
+							<svg class="password-eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+								<line x1="1" y1="1" x2="23" y2="23"/>
+							</svg>
+						</button>
+					</div>
 				</div>
 			</div>
 		`;
@@ -246,6 +351,31 @@
 		);
 	}
 	async function handlePasswordChange() {
+		// Get values from the modal inputs
+		const currentPasswordInput = document.getElementById('current-password');
+		const newPasswordInput = document.getElementById('new-password');
+		const confirmPasswordInput = document.getElementById('confirm-password');
+		
+		if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+			showError('Password form inputs not found');
+			return;
+		}
+		
+		const currentPassword = currentPasswordInput.value;
+		const newPassword = newPasswordInput.value;
+		const confirmPassword = confirmPasswordInput.value;
+
+		// Validation
+		if (!currentPassword) {
+			showError('Current password is required');
+			return;
+		}
+
+		if (!newPassword) {
+			showError('New password is required');
+			return;
+		}
+
 		if (newPassword !== confirmPassword) {
 			showError('New passwords do not match');
 			return;
@@ -256,21 +386,37 @@
 			return;
 		}
 
+		// Check if new password is different from current
+		if (currentPassword === newPassword) {
+			showError('New password must be different from current password');
+			return;
+		}
+
 		try {
 			passwordLoading = true;
 			
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
-			
-			// Reset form
-			currentPassword = '';
-			newPassword = '';
-			confirmPassword = '';
-			showPasswordModal = false;
-			
-			showSuccess('Password changed successfully!');
+			// Call the password change API
+			const response = await api.post('/api/change-password', {
+				currentPassword,
+				newPassword
+			});
+
+			if (response.success) {
+				// Reset form inputs
+				currentPasswordInput.value = '';
+				newPasswordInput.value = '';
+				confirmPasswordInput.value = '';
+				
+				showSuccess('Password changed successfully!');
+				
+				// Close the modal
+				modalStore.close();
+			} else {
+				showError(response.error || 'Failed to change password');
+			}
 		} catch (error) {
-			showError('Failed to change password');
+			console.error('Password change error:', error);
+			showError(error.message || 'Failed to change password');
 		} finally {
 			passwordLoading = false;
 		}
@@ -287,7 +433,8 @@
 	}
 
 	onMount(() => {
-		// Initialize component
+		// Load admin settings when component initializes
+		loadAdminSettings();
 	});
 </script>
 
@@ -610,15 +757,19 @@
 					<button 
 						class="admin-settings-action-button admin-settings-primary" 
 						onclick={handleDateChange}
-						disabled={!!dateValidationError || 
+						disabled={saving || loading || !!dateValidationError || 
 								 quarterValidationErrors.quarter1 || 
 								 quarterValidationErrors.quarter2 || 
 								 quarterValidationErrors.quarter3 || 
 								 quarterValidationErrors.quarter4 ||
 								 !startDate || !endDate}
 					>
-						<span class="material-symbols-outlined">check</span>
-						Apply Date Changes
+						{#if saving}
+							Saving...
+						{:else}
+							<span class="material-symbols-outlined">check</span>
+							Apply Date Changes
+						{/if}
 					</button>
 				</div>
 			</div>

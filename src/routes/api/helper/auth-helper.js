@@ -50,3 +50,67 @@ export async function logActivityWithUser(activityType, user, data, ipAddress, u
     // Don't throw - logging failures shouldn't break the main operation
   }
 }
+
+/**
+ * Verify authentication and authorization for API endpoints
+ * @param {Request} request - The incoming request
+ * @param {string[]} allowedRoles - Array of allowed account types (e.g., ['admin', 'teacher'])
+ * @returns {Promise<{success: boolean, user?: object, error?: string, status?: number}>}
+ */
+export async function verifyAuth(request, allowedRoles = []) {
+  try {
+    // Get user information from request headers
+    const user = await getUserFromRequest(request);
+    
+    if (!user) {
+      return {
+        success: false,
+        error: 'Authentication required',
+        status: 401
+      };
+    }
+
+    // If specific roles are required, check user's account type
+    if (allowedRoles.length > 0) {
+      // Get user's account type from database
+      const result = await query(
+        'SELECT account_type FROM users WHERE id = $1 AND status = $2',
+        [user.id, 'active']
+      );
+
+      if (result.rows.length === 0) {
+        return {
+          success: false,
+          error: 'User not found or inactive',
+          status: 401
+        };
+      }
+
+      const userAccountType = result.rows[0].account_type;
+      
+      if (!allowedRoles.includes(userAccountType)) {
+        return {
+          success: false,
+          error: 'Insufficient permissions',
+          status: 403
+        };
+      }
+
+      // Add account type to user object
+      user.account_type = userAccountType;
+    }
+
+    return {
+      success: true,
+      user: user
+    };
+
+  } catch (error) {
+    console.error('Error verifying authentication:', error);
+    return {
+      success: false,
+      error: 'Authentication verification failed',
+      status: 500
+    };
+  }
+}

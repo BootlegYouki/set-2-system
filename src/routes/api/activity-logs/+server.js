@@ -59,12 +59,13 @@ export async function GET({ url }) {
 				u.account_type as user_account_type
 			FROM activity_logs al
 			LEFT JOIN users u ON al.user_id = u.id
+			WHERE u.account_type = 'admin'
 		`;
 		
 		const params = [];
 		
 		if (activity_type) {
-			sqlQuery += ' WHERE al.activity_type = $1';
+			sqlQuery += ' AND al.activity_type = $1';
 			params.push(activity_type);
 		}
 		

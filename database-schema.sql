@@ -204,11 +204,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Insert some sample activity logs
-INSERT INTO activity_logs (activity_type, user_id, user_account_number, activity_data) VALUES
-    ('account_created', NULL, 'STU-2024-001', '{"account_type": "student", "full_name": "John Doe", "grade_level": "7"}'),
-    ('schedule_assigned', NULL, NULL, '{"section": "Grade 7-A", "room": "Room 101", "subject": "Mathematics"}'),
-    ('room_created', NULL, NULL, '{"room_name": "Room 205", "building": "Building A", "floor": 2}'),
-    ('section_created', NULL, NULL, '{"section_name": "Grade 8-C", "grade_level": 8}'),
-    ('account_created', NULL, 'TCH-2024-002', '{"account_type": "teacher", "full_name": "Jane Smith", "subject": "English"}')
-ON CONFLICT DO NOTHING;
+-- Admin settings table for storing system-wide configuration
+CREATE TABLE IF NOT EXISTS admin_settings (
+    id SERIAL PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT,
+    setting_type VARCHAR(20) DEFAULT 'string' CHECK (setting_type IN ('string', 'number', 'boolean', 'date', 'json')),
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create index for faster queries
+CREATE INDEX IF NOT EXISTS idx_admin_settings_key ON admin_settings(setting_key);
+
+-- Trigger to automatically update updated_at for admin_settings
+DROP TRIGGER IF EXISTS update_admin_settings_updated_at ON admin_settings;
+CREATE TRIGGER update_admin_settings_updated_at 
+    BEFORE UPDATE ON admin_settings 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Insert default admin settings
+INSERT INTO admin_settings (setting_key, setting_value, setting_type, description) VALUES
+    ('current_school_year', '2024-2025', 'string', 'Current academic school year'),
+    ('school_year_start_date', NULL, 'date', 'Start date of the school year'),
+    ('school_year_end_date', NULL, 'date', 'End date of the school year'),
+    ('quarter_1_start_date', NULL, 'date', 'Start date of 1st quarter'),
+    ('quarter_1_end_date', NULL, 'date', 'End date of 1st quarter'),
+    ('quarter_2_start_date', NULL, 'date', 'Start date of 2nd quarter'),
+    ('quarter_2_end_date', NULL, 'date', 'End date of 2nd quarter'),
+    ('quarter_3_start_date', NULL, 'date', 'Start date of 3rd quarter'),
+    ('quarter_3_end_date', NULL, 'date', 'End date of 3rd quarter'),
+    ('quarter_4_start_date', NULL, 'date', 'Start date of 4th quarter'),
+    ('quarter_4_end_date', NULL, 'date', 'End date of 4th quarter')
+ON CONFLICT (setting_key) DO NOTHING;
