@@ -199,7 +199,7 @@
 							disabled={loadingMore}
 						>
 							{#if loadingMore}
-								<div class="load-more button-loader"></div>
+								<div class="load-more"></div>
 							{:else}
 								<span class="material-symbols-outlined">expand_more</span>
 								View More Activities
