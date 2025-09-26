@@ -317,7 +317,7 @@
   opacity: 0;
   visibility: hidden;
   transform: translateY(-8px);
-  max-height: 200px;
+  max-height: 300px;
   transition: opacity var(--transition-normal), visibility var(--transition-normal), transform var(--transition-normal);
 }
 

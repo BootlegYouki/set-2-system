@@ -254,7 +254,7 @@
 	gap: var(--spacing-sm);
 	flex-wrap: wrap;
 	justify-content: flex-end;
-	margin-top: var(--spacing-md);
+	margin-top: var(--spacing-lg);
 }
 
 /* Action Buttons */

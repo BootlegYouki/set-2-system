@@ -515,11 +515,6 @@
 
 	<!-- School Year Management Section -->
 	<div class="admin-settings-section">
-		<div class="admin-settings-section-header">
-			<h2 class="admin-settings-section-title">School Year Management</h2>
-			<p class="admin-settings-section-subtitle">Manage the current academic year</p>
-		</div>
-		
 		<div class="admin-settings-card">
 			<div class="admin-settings-card-content">
 				<div class="admin-settings-item">
