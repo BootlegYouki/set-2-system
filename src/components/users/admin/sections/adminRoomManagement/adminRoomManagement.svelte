@@ -1,10 +1,12 @@
 <script>
 	import './adminRoomManagement.css';
 	import { toastStore } from '../../../../common/js/toastStore.js';
-import { modalStore } from '../../../../common/js/modalStore.js';
+	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { onMount } from 'svelte';
 
 	// Room management state
 	let isCreating = false;
+	let isLoading = false;
 
 	// Room creation state
 	let roomName = '';
@@ -24,53 +26,8 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 	let isAssigningInline = false;
 	let isAssignSectionDropdownOpen = false;
 
-
-
-
-
-	// Mock data for existing rooms (Philippine Junior High School)
-	let existingRooms = [
-		{
-			id: 1,
-			name: 'Science Laboratory',
-			building: 'Academic Building A',
-			floor: '2nd Floor',
-			status: 'available',
-			assignedTo: null
-		},
-		{
-			id: 2,
-			name: 'Room 101',
-			building: 'Academic Building A',
-			floor: '1st Floor',
-			status: 'assigned',
-			assignedTo: 'Grade 7 - Section A (Matatag)'
-		},
-		{
-			id: 3,
-			name: 'Computer Laboratory',
-			building: 'Academic Building B',
-			floor: '3rd Floor',
-			status: 'assigned',
-			assignedTo: 'Grade 9 - Section B (Matapat)'
-		},
-		{
-			id: 4,
-			name: 'Room 205',
-			building: 'Academic Building B',
-			floor: '2nd Floor',
-			status: 'available',
-			assignedTo: null
-		},
-		{
-			id: 5,
-			name: 'Audio Visual Room',
-			building: 'Main Building',
-			floor: 'Ground Floor',
-			status: 'assigned',
-			assignedTo: 'Grade 10 - Section C (Mapaglingkod)'
-		}
-	];
+	// Data arrays
+	let existingRooms = [];
 
 	// Mock data for sections (Philippine DepEd Junior High School - Grades 7-10)
 	let sections = [
@@ -88,19 +45,58 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 		{ id: 'grade10-c', name: 'Grade 10 - Section C (Mapaglingkod)' }
 	];
 
-	// Teachers data removed - rooms can only be assigned to sections
-
-
+	// Load rooms data from API
+	async function loadRooms() {
+		isLoading = true;
+		try {
+			const response = await fetch('/api/rooms');
+			if (!response.ok) {
+				throw new Error('Failed to load rooms');
+			}
+			const data = await response.json();
+			
+			if (data.success) {
+				existingRooms = data.data;
+			} else {
+				throw new Error(data.message || 'Failed to load rooms');
+			}
+		} catch (error) {
+			console.error('Error loading rooms:', error);
+			toastStore.error('Failed to load rooms. Please try again.');
+			existingRooms = [];
+		} finally {
+			isLoading = false;
+		}
+	}
 
 	// Handle room removal with confirmation
 	const handleRemoveRoom = (room) => {
 		modalStore.confirm(
 			'Remove Room',
 			`Are you sure you want to remove room ${room.name}? This action cannot be undone.`,
-			() => {
-				// Remove room from the list
-				existingRooms = existingRooms.filter(r => r.id !== room.id);
-				toastStore.success(`Room ${room.name} has been removed successfully.`);
+			async () => {
+				try {
+					const response = await fetch('/api/rooms', {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ id: room.id })
+					});
+
+					const data = await response.json();
+					
+					if (data.success) {
+						// Remove room from the list
+						existingRooms = existingRooms.filter(r => r.id !== room.id);
+						toastStore.success(data.message);
+					} else {
+						throw new Error(data.message || 'Failed to remove room');
+					}
+				} catch (error) {
+					console.error('Error removing room:', error);
+					toastStore.error('Failed to remove room. Please try again.');
+				}
 			},
 			() => {
 				// User cancelled - do nothing
@@ -117,29 +113,29 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 
 		isCreating = true;
 
-
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
+			const response = await fetch('/api/rooms', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					name: roomName,
+					building: building,
+					floor: floor
+				})
+			});
 
-			// Create new room
-			const newRoom = {
-				id: existingRooms.length + 1,
-				name: roomName,
-				building: building,
-				floor: floor,
-				status: 'available',
-				assignedTo: null
-			};
-
-			existingRooms = [newRoom, ...existingRooms];
-
-			// Show success toast
-			toastStore.success(`Room "${roomName}" has been created successfully!`);
-
-			// Reset form
-			resetRoomForm();
-
+			const data = await response.json();
+			
+			if (data.success) {
+				// Add new room to the list
+				existingRooms = [data.data, ...existingRooms];
+				toastStore.success(data.message);
+				resetRoomForm();
+			} else {
+				throw new Error(data.message || 'Failed to create room');
+			}
 		} catch (error) {
 			console.error('Error creating room:', error);
 			toastStore.error('Failed to create room. Please try again.');
@@ -148,21 +144,39 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 		}
 	}
 
-
-
 	// Unassign room
 	async function unassignRoom(roomId) {
 		try {
-			const roomIndex = existingRooms.findIndex(room => room.id === roomId);
-			if (roomIndex !== -1) {
-				const roomName = existingRooms[roomIndex].name;
-				existingRooms[roomIndex] = {
-					...existingRooms[roomIndex],
+			const room = existingRooms.find(r => r.id === roomId);
+			if (!room) return;
+
+			const response = await fetch('/api/rooms', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					id: roomId,
+					name: room.name,
+					building: room.building,
+					floor: room.floor,
 					status: 'available',
 					assignedTo: null
-				};
-				existingRooms = [...existingRooms];
-				toastStore.success(`Room "${roomName}" has been unassigned successfully!`);
+				})
+			});
+
+			const data = await response.json();
+			
+			if (data.success) {
+				// Update room in the list
+				const roomIndex = existingRooms.findIndex(r => r.id === roomId);
+				if (roomIndex !== -1) {
+					existingRooms[roomIndex] = data.data;
+					existingRooms = [...existingRooms];
+				}
+				toastStore.success(`Room "${room.name}" has been unassigned successfully!`);
+			} else {
+				throw new Error(data.message || 'Failed to unassign room');
 			}
 		} catch (error) {
 			console.error('Error unassigning room:', error);
@@ -176,12 +190,6 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 		building = '';
 		floor = '';
 	}
-
-
-
-
-
-
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
@@ -216,31 +224,43 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 		isUpdating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
-
-			// Update room in the array
-			existingRooms = existingRooms.map(room => {
-				if (room.id === editingRoomId) {
-					return {
-						...room,
-						name: editRoomName,
-						building: editBuilding,
-						floor: editFloor
-					};
-				}
-				return room;
+			const room = existingRooms.find(r => r.id === editingRoomId);
+			
+			const response = await fetch('/api/rooms', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					id: editingRoomId,
+					name: editRoomName,
+					building: editBuilding,
+					floor: editFloor,
+					status: room.status,
+					assignedTo: room.assignedTo
+				})
 			});
 
-			// Show success toast
-			toastStore.success(`Room "${editRoomName}" updated successfully!`);
-
-			// Close edit form
-			editingRoomId = null;
-			editRoomName = '';
-			editBuilding = '';
-			editFloor = '';
-
+			const data = await response.json();
+			
+			if (data.success) {
+				// Update room in the array
+				const roomIndex = existingRooms.findIndex(r => r.id === editingRoomId);
+				if (roomIndex !== -1) {
+					existingRooms[roomIndex] = data.data;
+					existingRooms = [...existingRooms];
+				}
+				
+				toastStore.success(data.message);
+				
+				// Close edit form
+				editingRoomId = null;
+				editRoomName = '';
+				editBuilding = '';
+				editFloor = '';
+			} else {
+				throw new Error(data.message || 'Failed to update room');
+			}
 		} catch (error) {
 			console.error('Error updating room:', error);
 			toastStore.error('Failed to update room. Please try again.');
@@ -284,31 +304,42 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 		isAssigningInline = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			const room = existingRooms.find(r => r.id === assigningRoomId);
+			const assignedTo = sections.find(s => s.id === assignSelectedSection)?.name;
 
-			// Find and update the room
-			const roomIndex = existingRooms.findIndex(room => room.id === assigningRoomId);
-			if (roomIndex !== -1) {
-				const assignedTo = sections.find(s => s.id === assignSelectedSection)?.name;
-
-				existingRooms[roomIndex] = {
-					...existingRooms[roomIndex],
+			const response = await fetch('/api/rooms', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					id: assigningRoomId,
+					name: room.name,
+					building: room.building,
+					floor: room.floor,
 					status: 'assigned',
 					assignedTo: assignedTo
-				};
+				})
+			});
 
-				existingRooms = [...existingRooms];
+			const data = await response.json();
+			
+			if (data.success) {
+				// Update room in the array
+				const roomIndex = existingRooms.findIndex(r => r.id === assigningRoomId);
+				if (roomIndex !== -1) {
+					existingRooms[roomIndex] = data.data;
+					existingRooms = [...existingRooms];
+				}
 
-				// Show success toast
-				const roomName = existingRooms[roomIndex].name;
-				toastStore.success(`Room "${roomName}" has been assigned to ${assignedTo} successfully!`);
-
+				toastStore.success(`Room "${room.name}" has been assigned to ${assignedTo} successfully!`);
+				
 				// Close assign form
 				assigningRoomId = null;
 				assignSelectedSection = '';
+			} else {
+				throw new Error(data.message || 'Failed to assign room');
 			}
-
 		} catch (error) {
 			console.error('Error assigning room:', error);
 			toastStore.error('Failed to assign room. Please try again.');
@@ -316,6 +347,11 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 			isAssigningInline = false;
 		}
 	}
+
+	// Load rooms when component mounts
+	onMount(() => {
+		loadRooms();
+	});
 </script>
 
 <div class="admin-room-management-container" on:click={handleClickOutside} on:keydown={handleClickOutside} role="button" tabindex="0">
@@ -403,51 +439,62 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 			<p class="admin-room-section-subtitle">Manage and view all rooms in the system</p>
 		</div>
 
-		<div class="admin-room-rooms-grid">
-			{#each existingRooms as room (room.id)}
-				<div class="admin-room-room-card">
-					<div class="admin-room-room-header">
-						<div class="admin-room-room-title">
-							<h3 class="admin-room-room-name">{room.name}</h3>
+		{#if isLoading}
+			<div class="admin-room-loading">
+				<span class="room-loader"></span>
+				<p>Loading rooms...</p>
+			</div>
+		{:else if existingRooms.length === 0}
+			<div class="admin-room-empty-state">
+				<span class="material-symbols-outlined">meeting_room</span>
+				<p>No rooms found. Create your first room using the form above.</p>
+			</div>
+		{:else}
+			<div class="admin-room-rooms-grid">
+				{#each existingRooms as room (room.id)}
+					<div class="admin-room-room-card">
+						<div class="admin-room-room-header">
+							<div class="admin-room-room-title">
+								<h3 class="admin-room-room-name">{room.name}</h3>
+							</div>
+							<div class="admin-room-action-buttons">
+								{#if room.assignedTo}
+									<button 
+										type="button"
+										class="admin-room-unassign-button"
+										on:click={() => unassignRoom(room.id)}
+										title="Unassign Room"
+									>
+										<span class="material-symbols-outlined">remove_circle</span>
+									</button>
+								{:else}
+									<button 
+										type="button"
+										class="admin-room-assign-button"
+										on:click={() => toggleAssignForm(room)}
+										title="{assigningRoomId === room.id ? 'Cancel Assign' : 'Assign Room'}"
+									>
+										<span class="material-symbols-outlined">{assigningRoomId === room.id ? 'close' : 'add_circle'}</span>
+									</button>
+								{/if}
+								<button 
+									type="button"
+									class="admin-room-edit-button"
+									on:click={() => toggleEditForm(room)}
+									title="{editingRoomId === room.id ? 'Cancel Edit' : 'Edit Room'}"
+								>
+									<span class="material-symbols-outlined">{editingRoomId === room.id ? 'close' : 'edit'}</span>
+								</button>
+								<button 
+									type="button"
+									class="admin-room-remove-button"
+									on:click={() => handleRemoveRoom(room)}
+									title="Remove Room"
+								>
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
 						</div>
-						<div class="admin-room-action-buttons">
-					{#if room.assignedTo}
-						<button 
-							type="button"
-							class="admin-room-unassign-button"
-							on:click={() => unassignRoom(room.id)}
-							title="Unassign Room"
-						>
-							<span class="material-symbols-outlined">remove_circle</span>
-						</button>
-					{:else}
-						<button 
-							type="button"
-							class="admin-room-assign-button"
-							on:click={() => toggleAssignForm(room)}
-							title="{assigningRoomId === room.id ? 'Cancel Assign' : 'Assign Room'}"
-						>
-							<span class="material-symbols-outlined">{assigningRoomId === room.id ? 'close' : 'add_circle'}</span>
-						</button>
-					{/if}
-					<button 
-				type="button"
-				class="admin-room-edit-button"
-				on:click={() => toggleEditForm(room)}
-				title="{editingRoomId === room.id ? 'Cancel Edit' : 'Edit Room'}"
-			>
-				<span class="material-symbols-outlined">{editingRoomId === room.id ? 'close' : 'edit'}</span>
-			</button>
-					<button 
-						type="button"
-						class="admin-room-remove-button"
-						on:click={() => handleRemoveRoom(room)}
-						title="Remove Room"
-					>
-						<span class="material-symbols-outlined">delete</span>
-					</button>
-				</div>
-					</div>
 					
 					<div class="admin-room-room-details">
 						<div class="admin-room-room-location">
@@ -464,8 +511,8 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 								<span class="material-symbols-outlined">check_circle</span>
 								<span>Available</span>
 							</div>
-					{/if}
-				</div>
+						{/if}
+					</div>
 				
 				<!-- Inline Edit Form -->
 				{#if editingRoomId === room.id}
@@ -624,7 +671,8 @@ import { modalStore } from '../../../../common/js/modalStore.js';
 					</div>
 				{/if}
 			</div>
-		{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 </div>
