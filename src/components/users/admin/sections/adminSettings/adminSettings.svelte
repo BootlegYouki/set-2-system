@@ -11,9 +11,6 @@
 
 	// Current school year state
 	let currentSchoolYear = $state('2024-2025');
-	let newSchoolYear = $state('');
-	let previousSchoolYear = $state(null);
-	let canUndo = $state(false);
 
 	// School year dates
 	let startDate = $state('');
@@ -39,18 +36,25 @@
 			if (result.success) {
 			const settings = result.data;
 			
+			// Helper function to convert MM-DD-YYYY to YYYY-MM-DD for HTML5 date inputs
+			function convertToYYYYMMDD(dateString) {
+				if (!dateString) return dateString;
+				const [month, day, year] = dateString.split('-');
+				return `${year}-${month}-${day}`;
+			}
+			
 			// Update state with loaded settings
 			currentSchoolYear = settings.current_school_year || '2024-2025';
-			startDate = settings.school_year_start_date || '';
-			endDate = settings.school_year_end_date || '';
-			quarter1Start = settings.quarter_1_start_date || '';
-			quarter1End = settings.quarter_1_end_date || '';
-			quarter2Start = settings.quarter_2_start_date || '';
-			quarter2End = settings.quarter_2_end_date || '';
-			quarter3Start = settings.quarter_3_start_date || '';
-			quarter3End = settings.quarter_3_end_date || '';
-			quarter4Start = settings.quarter_4_start_date || '';
-			quarter4End = settings.quarter_4_end_date || '';
+			startDate = convertToYYYYMMDD(settings.school_year_start_date) || '';
+			endDate = convertToYYYYMMDD(settings.school_year_end_date) || '';
+			quarter1Start = convertToYYYYMMDD(settings.quarter_1_start_date) || '';
+			quarter1End = convertToYYYYMMDD(settings.quarter_1_end_date) || '';
+			quarter2Start = convertToYYYYMMDD(settings.quarter_2_start_date) || '';
+			quarter2End = convertToYYYYMMDD(settings.quarter_2_end_date) || '';
+			quarter3Start = convertToYYYYMMDD(settings.quarter_3_start_date) || '';
+			quarter3End = convertToYYYYMMDD(settings.quarter_3_end_date) || '';
+			quarter4Start = convertToYYYYMMDD(settings.quarter_4_start_date) || '';
+			quarter4End = convertToYYYYMMDD(settings.quarter_4_end_date) || '';
 			
 			showSuccess('Admin settings loaded successfully!');
 			}
@@ -271,68 +275,6 @@
 	let confirmPassword = $state('');
 	let passwordLoading = $state(false);
 
-	// School year change states
-	let schoolYearLoading = $state(false);
-
-	// Generate next school year
-	function generateNextSchoolYear() {
-		const [startYear] = currentSchoolYear.split('-');
-		const nextStart = parseInt(startYear) + 1;
-		const nextEnd = nextStart + 1;
-		return `${nextStart}-${nextEnd}`;
-	}
-
-	// Handle school year change button click
-	function handleSchoolYearChange() {
-		newSchoolYear = generateNextSchoolYear();
-		
-		modalStore.confirm(
-			'Confirm School Year Change',
-			`<div class="admin-settings-school-year-change-content">
-				<div class="admin-settings-change-info">
-					<div class="admin-settings-current-year">
-						<span class="label">Current School Year:</span>
-						<span class="year">${currentSchoolYear}</span>
-					</div>
-					<div class="admin-settings-new-year">
-						<span class="label">New School Year:</span>
-						<span class="year">${newSchoolYear}</span>
-					</div>
-				</div>
-				<div class="admin-settings-warning">
-          <p>This action will promote eligible students and archive graduates. This cannot be undone easily.</p>
-				</div>
-			</div>`,
-			confirmSchoolYearChange,
-			() => {
-				newSchoolYear = '';
-			},
-			{ size: 'medium' }
-		);
-	}
-
-	// Confirm school year change
-	async function confirmSchoolYearChange() {
-		try {
-			schoolYearLoading = true;
-			showSuccess('Changing school year...', { duration: 1500 });
-			
-			// Simulate API call delay
-			await new Promise(resolve => setTimeout(resolve, 2000));
-			
-			// Store previous year for undo functionality
-			previousSchoolYear = currentSchoolYear;
-			currentSchoolYear = newSchoolYear;
-			canUndo = true;
-			
-			showSuccess(`School year changed to ${newSchoolYear} successfully!`);
-		} catch (error) {
-			showError('Failed to change school year');
-		} finally {
-			schoolYearLoading = false;
-		}
-	}
-
 	// Toggle password visibility function
 	function togglePasswordVisibility(inputId) {
 		const input = document.getElementById(inputId);
@@ -498,16 +440,6 @@
 		}
 	}
 
-	// Undo school year change
-	function undoSchoolYearChange() {
-		if (previousSchoolYear && canUndo) {
-			currentSchoolYear = previousSchoolYear;
-			previousSchoolYear = null;
-			canUndo = false;
-			showSuccess('School year change has been undone');
-		}
-	}
-
 	onMount(() => {
 		// Load admin settings when component initializes
 		loadAdminSettings();
@@ -601,25 +533,6 @@
 					<div class="admin-settings-item-value">
 						<span class="admin-settings-current-year">{currentSchoolYear}</span>
 					</div>
-				</div>
-				
-				<div class="admin-settings-actions">
-					<button 
-						class="admin-settings-action-button admin-settings-primary" 
-						onclick={handleSchoolYearChange}
-					>
-						<span class="material-symbols-outlined">keyboard_arrow_up</span>
-						Advance School Year
-					</button>
-					
-					<button 
-						class="admin-settings-action-button admin-settings-secondary" 
-						onclick={undoSchoolYearChange}
-						disabled={!canUndo}
-					>
-						<span class="material-symbols-outlined">undo</span>
-						Undo Last Change
-					</button>
 				</div>
 			</div>
 		</div>
