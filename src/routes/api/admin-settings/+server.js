@@ -26,6 +26,10 @@ export async function GET({ request }) {
 				value = parseFloat(value);
 			} else if (row.setting_type === 'boolean' && value !== null) {
 				value = value === 'true';
+			} else if (row.setting_type === 'date' && value !== null) {
+				// Keep date in MM-DD-YYYY format as expected by the frontend
+				// No conversion needed - return as stored
+				value = value;
 			} else if (row.setting_type === 'json' && value !== null) {
 				try {
 					value = JSON.parse(value);
@@ -83,6 +87,23 @@ export async function PUT({ request, getClientAddress }) {
 					stringValue = JSON.stringify(value);
 				} else if (value !== null) {
 					stringValue = String(value);
+				}
+
+				// For date settings, validate the MM-DD-YYYY format
+				if (key.includes('date') && value !== null && value !== '') {
+					const dateRegex = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$/;
+					if (!dateRegex.test(value)) {
+						throw new Error(`Invalid date format for ${key}. Expected MM-DD-YYYY format.`);
+					}
+					// Validate that it's a real date by parsing MM-DD-YYYY
+					const [month, day, year] = value.split('-');
+					const date = new Date(year, month - 1, day);
+					if (isNaN(date.getTime()) || 
+						date.getFullYear() != year || 
+						date.getMonth() != month - 1 || 
+						date.getDate() != day) {
+						throw new Error(`Invalid date value for ${key}: ${value}`);
+					}
 				}
 
 				await query(

@@ -33,27 +33,26 @@
 	async function loadAdminSettings() {
 		try {
 			loading = true;
-			showSuccess('Loading admin settings...');
 			
 			const result = await api.get('/api/admin-settings');
 			
 			if (result.success) {
-				const settings = result.data;
-				
-				// Update state with loaded settings
-				currentSchoolYear = settings.current_school_year || '2024-2025';
-				startDate = settings.school_year_start_date || '';
-				endDate = settings.school_year_end_date || '';
-				quarter1Start = settings.quarter_1_start_date || '';
-				quarter1End = settings.quarter_1_end_date || '';
-				quarter2Start = settings.quarter_2_start_date || '';
-				quarter2End = settings.quarter_2_end_date || '';
-				quarter3Start = settings.quarter_3_start_date || '';
-				quarter3End = settings.quarter_3_end_date || '';
-				quarter4Start = settings.quarter_4_start_date || '';
-				quarter4End = settings.quarter_4_end_date || '';
-				
-				showSuccess('Admin settings loaded successfully!');
+			const settings = result.data;
+			
+			// Update state with loaded settings
+			currentSchoolYear = settings.current_school_year || '2024-2025';
+			startDate = settings.school_year_start_date || '';
+			endDate = settings.school_year_end_date || '';
+			quarter1Start = settings.quarter_1_start_date || '';
+			quarter1End = settings.quarter_1_end_date || '';
+			quarter2Start = settings.quarter_2_start_date || '';
+			quarter2End = settings.quarter_2_end_date || '';
+			quarter3Start = settings.quarter_3_start_date || '';
+			quarter3End = settings.quarter_3_end_date || '';
+			quarter4Start = settings.quarter_4_start_date || '';
+			quarter4End = settings.quarter_4_end_date || '';
+			
+			showSuccess('Admin settings loaded successfully!');
 			}
 		} catch (error) {
 			console.error('Error loading admin settings:', error);
@@ -67,20 +66,26 @@
 	async function saveAdminSettings() {
 		try {
 			saving = true;
-			showSuccess('Saving admin settings...', { duration: 1000 });
+			
+			// Helper function to convert YYYY-MM-DD to MM-DD-YYYY
+			function convertToMMDDYYYY(dateString) {
+				if (!dateString) return dateString;
+				const [year, month, day] = dateString.split('-');
+				return `${month}-${day}-${year}`;
+			}
 			
 			const settings = {
 				current_school_year: currentSchoolYear,
-				school_year_start_date: startDate,
-				school_year_end_date: endDate,
-				quarter_1_start_date: quarter1Start,
-				quarter_1_end_date: quarter1End,
-				quarter_2_start_date: quarter2Start,
-				quarter_2_end_date: quarter2End,
-				quarter_3_start_date: quarter3Start,
-				quarter_3_end_date: quarter3End,
-				quarter_4_start_date: quarter4Start,
-				quarter_4_end_date: quarter4End
+				school_year_start_date: convertToMMDDYYYY(startDate),
+				school_year_end_date: convertToMMDDYYYY(endDate),
+				quarter_1_start_date: convertToMMDDYYYY(quarter1Start),
+				quarter_1_end_date: convertToMMDDYYYY(quarter1End),
+				quarter_2_start_date: convertToMMDDYYYY(quarter2Start),
+				quarter_2_end_date: convertToMMDDYYYY(quarter2End),
+				quarter_3_start_date: convertToMMDDYYYY(quarter3Start),
+				quarter_3_end_date: convertToMMDDYYYY(quarter3End),
+				quarter_4_start_date: convertToMMDDYYYY(quarter4Start),
+				quarter_4_end_date: convertToMMDDYYYY(quarter4End)
 			};
 
 			const result = await api.put('/api/admin-settings', { settings });
