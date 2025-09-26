@@ -199,6 +199,18 @@
   width: 100%;
 }
 
+/* Hide the calendar picker dropdown */
+.admin-settings-date-input::-webkit-calendar-picker-indicator {
+	display: none;
+	-webkit-appearance: none;
+}
+
+.admin-settings-date-input::-webkit-inner-spin-button,
+.admin-settings-date-input::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
 .admin-settings-date-input:focus {
 	outline: none;
 	border-color: var(--primary-color);
@@ -210,31 +222,56 @@
 }
 
 .admin-settings-date-input.error {
-	border-color: var(--error-color);
+	border-color: var(--md-sys-color-error);
 	background-color: rgba(239, 68, 68, 0.05);
+	animation: shake 0.3s ease-in-out;
 }
 
 .admin-settings-date-input.error:focus {
-	border-color: var(--error-color);
+	border-color: var(--md-sys-color-error);
 	box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
-.admin-settings-date-error {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	margin-top: 1rem;
-	padding: 0.75rem;
-	background-color: rgba(239, 68, 68, 0.1);
-	border: 1px solid rgba(239, 68, 68, 0.3);
-	border-radius: 0.5rem;
-	color: var(--error-color);
-	font-size: 0.875rem;
+/* Shake animation for invalid input */
+@keyframes shake {
+	0%, 100% { transform: translateX(0); }
+	25% { transform: translateX(-5px); }
+	75% { transform: translateX(5px); }
 }
 
-.admin-settings-date-error .material-symbols-outlined {
-	font-size: 1.125rem;
+/* Enhanced error styling for quarter inputs */
+.admin-settings-date-input.quarter-1-input.error {
+	border-color: var(--md-sys-color-error);
+	background-color: rgba(239, 68, 68, 0.05);
 }
+
+.admin-settings-date-input.quarter-2-input.error {
+	border-color: var(--md-sys-color-error);
+	background-color: rgba(239, 68, 68, 0.05);
+}
+
+.admin-settings-date-input.quarter-3-input.error {
+	border-color: var(--md-sys-color-error);
+	background-color: rgba(239, 68, 68, 0.05);
+}
+
+.admin-settings-date-input.quarter-4-input.error {
+	border-color: var(--md-sys-color-error);
+	background-color: rgba(239, 68, 68, 0.05);
+}
+
+/* Success state for valid dates */
+.admin-settings-date-input.valid {
+	border-color: var(--md-sys-color-primary);
+	background-color: rgba(34, 197, 94, 0.05);
+}
+
+.admin-settings-date-input.valid:focus {
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+
 
 /* Responsive adjustments for date inputs */
 @media (max-width: 768px) {

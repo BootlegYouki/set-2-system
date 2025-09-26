@@ -33,6 +33,8 @@
 	async function loadAdminSettings() {
 		try {
 			loading = true;
+			showSuccess('Loading admin settings...');
+			
 			const result = await api.get('/api/admin-settings');
 			
 			if (result.success) {
@@ -50,6 +52,8 @@
 				quarter3End = settings.quarter_3_end_date || '';
 				quarter4Start = settings.quarter_4_start_date || '';
 				quarter4End = settings.quarter_4_end_date || '';
+				
+				showSuccess('Admin settings loaded successfully!');
 			}
 		} catch (error) {
 			console.error('Error loading admin settings:', error);
@@ -63,6 +67,7 @@
 	async function saveAdminSettings() {
 		try {
 			saving = true;
+			showSuccess('Saving admin settings...', { duration: 1000 });
 			
 			const settings = {
 				current_school_year: currentSchoolYear,
@@ -93,10 +98,65 @@
 		}
 	}
 
-	// Date validation
+	// Date validation - simplified for HTML5 date inputs
 	let dateValidationError = $state('');
 
-	// Validate dates whenever they change
+	// Simple date validation function for HTML5 date inputs
+	function isValidDate(dateString) {
+		if (!dateString) return true; // Allow empty strings
+		
+		// HTML5 date inputs provide YYYY-MM-DD format
+		// Check if it matches YYYY-MM-DD format
+		const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+		if (!dateRegex.test(dateString)) {
+			return false;
+		}
+		
+		// Check if it's a valid date
+		const date = new Date(dateString);
+		return !isNaN(date.getTime()) && date.toISOString().split('T')[0] === dateString;
+	}
+
+	// Date input handlers - simplified since HTML5 date inputs handle most validation
+	function handleDateInput(event, field) {
+		const value = event.target.value;
+		
+		// HTML5 date inputs automatically validate format, so we just need to update the bound variable
+		switch(field) {
+			case 'startDate': 
+				startDate = value;
+				break;
+			case 'endDate': 
+				endDate = value;
+				break;
+			case 'quarter1Start': 
+				quarter1Start = value;
+				break;
+			case 'quarter1End': 
+				quarter1End = value;
+				break;
+			case 'quarter2Start': 
+				quarter2Start = value;
+				break;
+			case 'quarter2End': 
+				quarter2End = value;
+				break;
+			case 'quarter3Start': 
+				quarter3Start = value;
+				break;
+			case 'quarter3End': 
+				quarter3End = value;
+				break;
+			case 'quarter4Start': 
+				quarter4Start = value;
+				break;
+			case 'quarter4End': 
+				quarter4End = value;
+				break;
+		}
+	}
+
+	// Validate dates whenever they change - simplified for HTML5 date inputs
 	$effect(() => {
 		if (startDate && endDate) {
 			const start = new Date(startDate);
@@ -107,6 +167,8 @@
 			} else {
 				dateValidationError = '';
 			}
+		} else {
+			dateValidationError = '';
 		}
 	});
 
@@ -129,6 +191,8 @@
 			} else {
 				quarterValidationErrors.quarter1 = '';
 			}
+		} else {
+			quarterValidationErrors.quarter1 = '';
 		}
 
 		// Validate Quarter 2
@@ -141,6 +205,8 @@
 			} else {
 				quarterValidationErrors.quarter2 = '';
 			}
+		} else {
+			quarterValidationErrors.quarter2 = '';
 		}
 
 		// Validate Quarter 3
@@ -153,6 +219,8 @@
 			} else {
 				quarterValidationErrors.quarter3 = '';
 			}
+		} else {
+			quarterValidationErrors.quarter3 = '';
 		}
 
 		// Validate Quarter 4
@@ -165,6 +233,8 @@
 			} else {
 				quarterValidationErrors.quarter4 = '';
 			}
+		} else {
+			quarterValidationErrors.quarter4 = '';
 		}
 	});
 
@@ -240,6 +310,7 @@
 	async function confirmSchoolYearChange() {
 		try {
 			schoolYearLoading = true;
+			showSuccess('Changing school year...', { duration: 1500 });
 			
 			// Simulate API call delay
 			await new Promise(resolve => setTimeout(resolve, 2000));
@@ -249,7 +320,7 @@
 			currentSchoolYear = newSchoolYear;
 			canUndo = true;
 			
-			showSuccess(`School year changed to ${newSchoolYear}`);
+			showSuccess(`School year changed to ${newSchoolYear} successfully!`);
 		} catch (error) {
 			showError('Failed to change school year');
 		} finally {
@@ -565,22 +636,20 @@
 							<label for="start-date" class="admin-settings-date-label">Start of Classes</label>
 							<input 
 								id="start-date"
-								type="text" 
+								type="date" 
 								bind:value={startDate}
 								class="admin-settings-date-input"
 								class:error={dateValidationError}
-								placeholder="YYYY-MM-DD"
 							/>
 						</div>
 						<div class="admin-settings-date-item">
 							<label for="end-date" class="admin-settings-date-label">End of Classes</label>
 							<input 
 								id="end-date"
-								type="text" 
+								type="date" 
 								bind:value={endDate}
 								class="admin-settings-date-input"
 								class:error={dateValidationError}
-								placeholder="YYYY-MM-DD"
 							/>
 						</div>
 					</div>
@@ -600,22 +669,20 @@
 										<label for="q1-start" class="admin-settings-date-label">Start</label>
 										<input 
 											id="q1-start"
-											type="text" 
+											type="date" 
 											bind:value={quarter1Start}
 											class="admin-settings-date-input quarter-1-input"
 											class:error={quarterValidationErrors.quarter1}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 									<div class="admin-settings-date-item">
 										<label for="q1-end" class="admin-settings-date-label">End</label>
 										<input 
 											id="q1-end"
-											type="text" 
+											type="date" 
 											bind:value={quarter1End}
 											class="admin-settings-date-input quarter-1-input"
 											class:error={quarterValidationErrors.quarter1}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 								</div>
@@ -637,22 +704,20 @@
 										<label for="q2-start" class="admin-settings-date-label">Start</label>
 										<input 
 											id="q2-start"
-											type="text" 
+											type="date" 
 											bind:value={quarter2Start}
 											class="admin-settings-date-input quarter-2-input"
 											class:error={quarterValidationErrors.quarter2}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 									<div class="admin-settings-date-item">
 										<label for="q2-end" class="admin-settings-date-label">End</label>
 										<input 
 											id="q2-end"
-											type="text" 
+											type="date" 
 											bind:value={quarter2End}
 											class="admin-settings-date-input quarter-2-input"
 											class:error={quarterValidationErrors.quarter2}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 								</div>
@@ -674,22 +739,20 @@
 										<label for="q3-start" class="admin-settings-date-label">Start</label>
 										<input 
 											id="q3-start"
-											type="text" 
+											type="date" 
 											bind:value={quarter3Start}
 											class="admin-settings-date-input quarter-3-input"
 											class:error={quarterValidationErrors.quarter3}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 									<div class="admin-settings-date-item">
 										<label for="q3-end" class="admin-settings-date-label">End</label>
 										<input 
 											id="q3-end"
-											type="text" 
+											type="date" 
 											bind:value={quarter3End}
 											class="admin-settings-date-input quarter-3-input"
 											class:error={quarterValidationErrors.quarter3}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 								</div>
@@ -711,22 +774,20 @@
 										<label for="q4-start" class="admin-settings-date-label">Start</label>
 										<input 
 											id="q4-start"
-											type="text" 
+											type="date" 
 											bind:value={quarter4Start}
 											class="admin-settings-date-input quarter-4-input"
 											class:error={quarterValidationErrors.quarter4}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 									<div class="admin-settings-date-item">
 										<label for="q4-end" class="admin-settings-date-label">End</label>
 										<input 
 											id="q4-end"
-											type="text" 
+											type="date" 
 											bind:value={quarter4End}
 											class="admin-settings-date-input quarter-4-input"
 											class:error={quarterValidationErrors.quarter4}
-											placeholder="YYYY-MM-DD"
 										/>
 									</div>
 								</div>
