@@ -261,7 +261,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background-color: #fff;
+  background-color: var(--md-sys-color-on-surface-variant);
   box-shadow: 32px 0 #fff, -32px 0 #fff;
   position: relative;
   animation: flash 0.5s ease-out infinite alternate;
@@ -358,9 +358,14 @@
 	color: var(--md-sys-color-on-surface);
 }
 
-.admin-room-room-card:hover {
+.admin-room-room-card:hover:not(.editing):not(.assigning) {
 	transform: translateY(-2px);
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.admin-room-room-card.editing,
+.admin-room-room-card.assigning {
+	cursor: default;
 }
 
 /* Room Header */

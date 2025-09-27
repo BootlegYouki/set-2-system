@@ -42,6 +42,8 @@
 	let availableStudents = [];
 	let recentSections = [];
 	let isLoading = false;
+	let isLoadingAdvisers = false;
+	let isLoadingStudents = false;
 
 	// Load data on component mount
 	onMount(async () => {
@@ -81,6 +83,7 @@
 
 	async function loadAvailableTeachers() {
 		try {
+			isLoadingAdvisers = true;
 			const result = await api.get(`/api/sections?action=available-teachers&schoolYear=${schoolYear}`);
 			
 			if (result.success) {
@@ -95,11 +98,14 @@
 		} catch (error) {
 			console.error('Error loading teachers:', error);
 			toastStore.error('Failed to load available teachers');
+		} finally {
+			isLoadingAdvisers = false;
 		}
 	}
 
 	async function loadAvailableStudents(grade) {
 		try {
+			isLoadingStudents = true;
 			const result = await api.get(`/api/sections?action=available-students&gradeLevel=${grade}&schoolYear=${schoolYear}`);
 			
 			if (result.success) {
@@ -114,6 +120,8 @@
 		} catch (error) {
 			console.error('Error loading students:', error);
 			toastStore.error('Failed to load available students');
+		} finally {
+			isLoadingStudents = false;
 		}
 	}
 
@@ -326,6 +334,7 @@
 			
 			// Load students for this section
 			editSelectedStudents = await loadSectionStudents(section.id);
+			originalSectionStudents = [...editSelectedStudents]; // Store original students
 			editStudentSearchTerm = '';
 			
 			// Load available students for the grade level (for adding new students)
@@ -432,10 +441,29 @@
 		!adviser.hasSection && 
 		adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase())
 	);
-	$: editFilteredStudents = availableStudents.filter(student => 
-		!student.hasSection && 
-		student.name.toLowerCase().includes(editStudentSearchTerm.toLowerCase())
-	);
+	// Store original section students when editing starts
+	let originalSectionStudents = [];
+
+	$: editFilteredStudents = (() => {
+		// Combine available students with original section students
+		const allPossibleStudents = [...availableStudents];
+		
+		// Add original section students if they're not already in availableStudents
+		originalSectionStudents.forEach(student => {
+			if (!allPossibleStudents.some(s => s.id === student.id)) {
+				allPossibleStudents.push({...student, hasSection: true});
+			}
+		});
+		
+		return allPossibleStudents.filter(student => {
+			// Show students that don't have a section OR are currently selected OR are from original section
+			const isAvailable = !student.hasSection || 
+						   editSelectedStudents.some(s => s.id === student.id) ||
+						   originalSectionStudents.some(s => s.id === student.id);
+			const matchesSearch = student.name.toLowerCase().includes(editStudentSearchTerm.toLowerCase());
+			return isAvailable && matchesSearch;
+		});
+	})();
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -561,20 +589,27 @@
 								/>
 								<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
 							</div>
-							{#each filteredAdvisers as adviser (adviser.id)}
-								<button 
-									type="button"
-									class="sectionmgmt-dropdown-option" 
-									class:selected={selectedAdviser?.id === adviser.id}
-									on:click={() => selectAdviser(adviser)}
-								>
-									<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
-									<div class="sectionmgmt-option-content">
-										<span class="sectionmgmt-option-name">{adviser.name}</span>
-										<span class="sectionmgmt-option-description">{adviser.subject} • {adviser.employeeId}</span>
-									</div>
-								</button>
-							{/each}
+							{#if isLoadingAdvisers}
+								<div class="admin-section-loading">
+									<span class="section-loader"></span>
+									<p>Loading teachers...</p>
+								</div>
+							{:else}
+								{#each filteredAdvisers as adviser (adviser.id)}
+									<button 
+										type="button"
+										class="sectionmgmt-dropdown-option" 
+										class:selected={selectedAdviser?.id === adviser.id}
+										on:click={() => selectAdviser(adviser)}
+									>
+										<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
+										<div class="sectionmgmt-option-content">
+											<span class="sectionmgmt-option-name">{adviser.name}</span>
+											<span class="sectionmgmt-option-description">{adviser.employeeId} • {adviser.subject}</span>
+										</div>
+									</button>
+								{/each}
+							{/if}
 							{#if filteredAdvisers.length === 0}
 								<div class="sectionmgmt-no-results">
 									<span class="material-symbols-outlined">person_off</span>
@@ -629,32 +664,41 @@
 								placeholder="Search students..."
 								bind:value={studentSearchTerm}
 							/>
-							<span class="material-symbols-outlined sectionmgmt-search-icon-create">search</span>
+							<span class="material-symbols-outlined" 
+								class:sectionmgmt-search-icon-create={filteredStudents.length > 0}
+								class:sectionmgmt-search-icon={filteredStudents.length === 0}>search</span>
 						</div>
-							{#each filteredStudents as student (student.id)}
-								<button 
-									type="button"
-									class="sectionmgmt-dropdown-option sectionmgmt-student-option" 
-									class:selected={selectedStudents.some(s => s.id === student.id)}
-									on:click={() => toggleStudentSelection(student)}
-								>
-									<div class="sectionmgmt-student-checkbox">
-										<span class="material-symbols-outlined">
-											{selectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
-										</span>
-									</div>
-									<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
-									<div class="sectionmgmt-option-content">
-										<span class="sectionmgmt-option-name">{student.name}</span>
-										<span class="sectionmgmt-option-description">Grade {student.grade} • {student.studentId}</span>
-									</div>
-								</button>
-							{/each}
-							{#if filteredStudents.length === 0}
-								<div class="sectionmgmt-no-results">
-									<span class="material-symbols-outlined">person_off</span>
-									<span>No available students found for this grade level</span>
+							{#if isLoadingStudents}
+								<div class="admin-section-loading">
+									<span class="section-loader"></span>
+									<p>Loading students...</p>
 								</div>
+							{:else}
+								{#each filteredStudents as student (student.id)}
+									<button 
+										type="button"
+										class="sectionmgmt-dropdown-option sectionmgmt-student-option" 
+										class:selected={selectedStudents.some(s => s.id === student.id)}
+										on:click={() => toggleStudentSelection(student)}
+									>
+										<div class="sectionmgmt-student-checkbox">
+											<span class="material-symbols-outlined">
+												{selectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
+											</span>
+										</div>
+										<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
+										<div class="sectionmgmt-option-content">
+											<span class="sectionmgmt-option-name">{student.name}</span>
+											<span class="sectionmgmt-option-description">Grade {student.grade} • {student.studentId}</span>
+										</div>
+									</button>
+								{/each}
+								{#if filteredStudents.length === 0}
+									<div class="sectionmgmt-no-results">
+										<span class="material-symbols-outlined">person_off</span>
+										<span>No available students found for this grade level</span>
+									</div>
+								{/if}
 							{/if}
 						</div>
 					</div>
@@ -713,8 +757,14 @@
 		</div>
 
 		<div class="sectionmgmt-sections-grid">
-			{#each recentSections as section (section.id)}
-			<div class="sectionmgmt-section-card">
+			{#if isLoading}
+				<div class="admin-section-loading">
+					<span class="section-loader"></span>
+					<p>Loading sections...</p>
+				</div>
+			{:else}
+				{#each recentSections as section (section.id)}
+			<div class="sectionmgmt-section-card" class:editing={editingSectionId === section.id}>
 				<div class="sectionmgmt-section-header-card">
 					<div class="sectionmgmt-section-title">
 						<h3 class="sectionmgmt-section-name">{section.name} · {section.grade}</h3>
@@ -882,7 +932,9 @@
 											placeholder="Search students..."
 											bind:value={editStudentSearchTerm}
 										/>
-										<span class="material-symbols-outlined sectionmgmt-search-icon-edit">search</span>
+										<span class="material-symbols-outlined" 
+											class:sectionmgmt-search-icon-edit={editFilteredStudents.length > 0}
+											class:sectionmgmt-search-icon={editFilteredStudents.length === 0}>search</span>
 									</div>
 											{#each editFilteredStudents as student (student.id)}
 												<button 
@@ -964,6 +1016,7 @@
 			<p>No sections found</p>
 		</div>
 	{/if}
+			{/if}
 		</div>
 	</div>
 </div>

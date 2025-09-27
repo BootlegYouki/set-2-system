@@ -29,6 +29,9 @@
 	let isFilterYearDropdownOpen = false;
 	let isFilterSectionDropdownOpen = false;
 	
+	// Data loading state
+	let isLoading = false;
+	
 	// Day picker states (similar to student schedule)
 	let isAdminDayDropdownOpen = false;
 	
@@ -1713,7 +1716,12 @@
 		</div>
 
 		<div class="scheduleassign-assignments-grid">
-			{#if !isYearSelected}
+			{#if isLoading}
+				<div class="adminschedule-loading-container">
+					<span class="schedule-loader"></span>
+					<p class="adminschedule-loading-text">Loading schedule assignments...</p>
+				</div>
+			{:else if !isYearSelected}
 				<div class="scheduleassign-no-schedule">
 					<div class="scheduleassign-no-schedule-icon">
 						<span class="material-symbols-outlined">calendar_month</span>

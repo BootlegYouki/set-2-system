@@ -416,7 +416,7 @@
 		{:else}
 			<div class="admin-room-rooms-grid">
 				{#each existingRooms as room (room.id)}
-					<div class="admin-room-room-card">
+					<div class="admin-room-room-card" class:editing={editingRoomId === room.id} class:assigning={assigningRoomId === room.id}>
 						<div class="admin-room-room-header">
 							<div class="admin-room-room-title">
 								<h3 class="admin-room-room-name">{room.name}</h3>
