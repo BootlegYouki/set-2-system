@@ -1,4 +1,3 @@
-@ -1,642 +0,0 @@
 <script>
 	import './adminRoomManagement.css';
 	import { toastStore } from '../../../../common/js/toastStore.js';
@@ -582,7 +581,7 @@
 																		<span class="material-symbols-outlined option-icon">group</span>
 																		<div class="option-content">
 																			<span class="option-name">{selectedSectionObj.name}</span>
-																			<span class="option-description">Grade {selectedSectionObj.id.charAt(5)} Section</span>
+																			<span class="option-description">Grade {selectedSectionObj.grade_level} Section</span>
 																		</div>
 																	</div>
 																{/if}
