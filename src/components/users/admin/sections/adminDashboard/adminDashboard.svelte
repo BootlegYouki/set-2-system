@@ -16,7 +16,7 @@
 	let recentActivities = [];
 	let activitiesLoading = true;
 	let activitiesError = null;
-	let activityLimit = 5;
+	let activityLimit = 4;
 	let hasMoreActivities = true;
 	let loadingMore = false;
 
@@ -51,7 +51,7 @@
 			loadingMore = true;
 			activitiesError = null;
 			
-			const newLimit = activityLimit + 5;
+			const newLimit = activityLimit + 4;
 			const response = await fetch(`/api/activity-logs?limit=${newLimit}`);
 			const data = await response.json();
 			
