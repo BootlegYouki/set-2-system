@@ -96,13 +96,24 @@
 }
 
 /* Section Styles */
+.sectionmgmt-title-with-refresh {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  justify-content: space-between;
+  width: 100%;
+}
+
 .sectionmgmt-section-title {
   font-family: var(--md-sys-typescale-title-large-font);
   font-size: var(--md-sys-typescale-title-large-size);
   font-weight: var(--md-sys-typescale-title-large-weight);
   color: var(--md-sys-color-on-surface);
-  margin: 0 0 var(--spacing-sm) 0;
+  margin: 0;
+  flex: 1;
 }
+
+
 
 .sectionmgmt-section-subtitle {
   font-family: var(--md-sys-typescale-body-large-font);

@@ -1,14 +1,45 @@
 <script>
 	import './adminDashboard.css';
 	import { onMount } from 'svelte';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
-	// Dashboard statistics (mock data)
+	// Dashboard statistics (will be loaded from API)
 	let dashboardStats = [
-		{ id: 'students', label: 'Total Students', value: '1,247', icon: 'school', color: 'primary' },
-		{ id: 'teachers', label: 'Total Teachers', value: '45', icon: 'person', color: 'primary' },
-		{ id: 'sections', label: 'Total Sections', value: '28', icon: 'class', color: 'primary' },
-		{ id: 'rooms', label: 'Total Rooms', value: '15', icon: 'meeting_room', color: 'primary' }
+		{ id: 'students', label: 'Total Students', value: '0', icon: 'school', color: 'primary' },
+		{ id: 'teachers', label: 'Total Teachers', value: '0', icon: 'person', color: 'primary' },
+		{ id: 'sections', label: 'Total Sections', value: '0', icon: 'class', color: 'primary' },
+		{ id: 'rooms', label: 'Total Rooms', value: '0', icon: 'meeting_room', color: 'primary' }
 	];
+
+	let statsLoading = true;
+	let statsError = null;
+
+	// Fetch dashboard statistics from API
+	async function fetchDashboardStats() {
+		try {
+			statsLoading = true;
+			statsError = null;
+			
+			const data = await api.get('/api/dashboard');
+			
+			if (data.success) {
+				// Update the stats with real data
+				dashboardStats = [
+					{ id: 'students', label: 'Total Students', value: data.data.students.toLocaleString(), icon: 'school', color: 'primary' },
+					{ id: 'teachers', label: 'Total Teachers', value: data.data.teachers.toLocaleString(), icon: 'person', color: 'primary' },
+					{ id: 'sections', label: 'Total Sections', value: data.data.sections.toLocaleString(), icon: 'class', color: 'primary' },
+					{ id: 'rooms', label: 'Total Rooms', value: data.data.rooms.toLocaleString(), icon: 'meeting_room', color: 'primary' }
+				];
+			} else {
+				throw new Error(data.error || 'Failed to fetch dashboard statistics');
+			}
+		} catch (error) {
+			console.error('Error fetching dashboard statistics:', error);
+			statsError = error.message;
+		} finally {
+			statsLoading = false;
+		}
+	}
 
 
 
@@ -71,9 +102,10 @@
 		}
 	}
 
-	// Load activities on component mount
+	// Load activities and statistics on component mount
 	onMount(() => {
 		fetchRecentActivities();
+		fetchDashboardStats();
 	});
 </script>
 
@@ -90,22 +122,39 @@
 	<div class="stats-section">
 		<div class="section-header">
 			<h2 class="section-title">System Statistics</h2>
-			<p class="section-subtitle">Current overview of your school management system</p>
+			<p class="dashboard-section-subtitle">Current overview of your school management system</p>
 		</div>
 		
-		<div class="stats-grid">
-			{#each dashboardStats as stat (stat.id)}
-				<div class="stat-card stat-{stat.color}">
-					<div class="stat-icon">
-						<span class="material-symbols-outlined">{stat.icon}</span>
+		{#if statsError}
+			<div class="stats-error">
+				<span class="material-symbols-outlined">error</span>
+				<p>Error loading statistics: {statsError}</p>
+				<button class="retry-button" on:click={fetchDashboardStats}>
+					<span class="material-symbols-outlined">refresh</span>
+					Retry
+				</button>
+			</div>
+		{:else}
+			<div class="stats-grid">
+				{#each dashboardStats as stat (stat.id)}
+					<div class="stat-card stat-{stat.color}">
+						<div class="stat-icon">
+							<span class="material-symbols-outlined">{stat.icon}</span>
+						</div>
+						<div class="stat-content">
+							<h3 class="stat-value">
+								{#if statsLoading}
+									Loading...
+								{:else}
+									{stat.value}
+								{/if}
+							</h3>
+							<p class="stat-label">{stat.label}</p>
+						</div>
 					</div>
-					<div class="stat-content">
-						<h3 class="stat-value">{stat.value}</h3>
-						<p class="stat-label">{stat.label}</p>
-					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 

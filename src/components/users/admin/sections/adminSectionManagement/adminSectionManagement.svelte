@@ -551,17 +551,6 @@
 			<h1 class="sectionmgmt-page-title">Section Management</h1>
 			<p class="sectionmgmt-page-subtitle">Create and manage class sections, assign students and advisory teachers</p>
 		</div>
-		<div class="sectionmgmt-header-actions">
-			<button 
-				class="sectionmgmt-refresh-btn" 
-				on:click={loadSections}
-				disabled={isLoading}
-				title="Refresh sections to see latest room assignments"
-			>
-				<span class="material-symbols-outlined">refresh</span>
-				{isLoading ? 'Refreshing...' : 'Refresh'}
-			</button>
-		</div>
 	</div>
 
 	<!-- Section Creation Form -->
@@ -839,7 +828,18 @@
 	<!-- Recent Sections -->
 	<div class="sectionmgmt-recent-sections-section">
 		<div class="sectionmgmt-section-header">
-			<h2 class="sectionmgmt-section-title">Recent Sections</h2>
+			<div class="sectionmgmt-title-with-refresh">
+				<h2 class="sectionmgmt-section-title">Recent Sections</h2>
+				<button 
+					class="sectionmgmt-refresh-btn" 
+					on:click={loadSections}
+					disabled={isLoading}
+					title="Refresh sections to see latest room assignments"
+				>
+					<span class="material-symbols-outlined">refresh</span>
+					{isLoading ? 'Refreshing...' : 'Refresh'}
+				</button>
+			</div>
 			<p class="sectionmgmt-section-subtitle">Recently created sections in the system</p>
 		</div>
 
