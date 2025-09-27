@@ -4,6 +4,12 @@
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
+	import { sectionManagementStore } from '../../../../../lib/stores/admin/sectionManagementStore.js';
+
+	// Destructure store values
+	$: ({ sections, isLoadingSections, sectionsError } = sectionManagementStore);
+	$: isLoading = $isLoadingSections;
+	$: sectionsData = $sections;
 
 	// Section creation state
 	let isCreating = false;
@@ -40,19 +46,25 @@
 	// Data arrays
 	let availableAdvisers = [];
 	let availableStudents = [];
-	let recentSections = [];
-	let isLoading = false;
+	// recentSections now comes from store as sections
+	// isLoading now comes from store
 	let isLoadingAdvisers = false;
 	let isLoadingStudents = false;
 
 	// Load data on component mount
 	onMount(async () => {
-		await loadSections();
+		// Initialize sections from cache (instant load if available)
+		const hasCachedSections = sectionManagementStore.initSections();
+		
+		// Load sections using store method (silent if we have cache, visible loading if not)
+		await sectionManagementStore.loadSections(hasCachedSections);
+		
+		// Always load teachers and students with normal loading
 		await loadAvailableTeachers();
 		
-		// Set up periodic refresh to catch room assignments from other components
+		// Set up periodic refresh for sections only
 		const refreshInterval = setInterval(async () => {
-			await loadSections();
+			await sectionManagementStore.loadSections(true); // Always silent for periodic refresh
 		}, 30000); // Refresh every 30 seconds
 		
 		// Clean up interval on component destroy
@@ -60,41 +72,6 @@
 			clearInterval(refreshInterval);
 		};
 	});
-
-	// API Functions
-	async function loadSections() {
-		try {
-			isLoading = true;
-			const result = await api.get(`/api/sections?action=section-details&schoolYear=${schoolYear}&_t=${Date.now()}`);
-			
-			if (result.success) {
-				recentSections = result.data.map(section => ({
-					id: section.id,
-					name: section.name,
-					grade: `Grade ${section.grade_level}`,
-					adviser: section.adviser_name || 'No Adviser',
-					studentCount: section.student_count,
-					schoolYear: section.school_year,
-					createdDate: new Date(section.created_at).toLocaleDateString('en-US'),
-					status: section.status,
-					room: section.room_name ? `${section.room_name} - ${section.room_building}` : 'No Room Assigned',
-					adviser_id: section.adviser_id,
-					adviser_subject: section.adviser_subject,
-					adviser_account_number: section.adviser_account_number,
-					room_id: section.room_id,
-					room_name: section.room_name,
-					room_building: section.room_building,
-					room_floor: section.room_floor,
-					grade_level: section.grade_level
-				}));
-			}
-		} catch (error) {
-			console.error('Error loading sections:', error);
-			toastStore.error('Failed to load sections');
-		} finally {
-			isLoading = false;
-		}
-	}
 
 	async function loadAvailableTeachers(teacherGradeLevel = null) {
 		try {
@@ -105,9 +82,9 @@
 			if (result.success) {
 				availableAdvisers = result.data.map(teacher => {
 					// Check if this teacher is already assigned to a section
-					// Only check if recentSections array is available
-					const hasSection = recentSections && recentSections.length > 0 ? 
-						recentSections.some(section => section.adviser_id === teacher.id) : false;
+					// Only check if sections array is available
+		const hasSection = sectionsData && sectionsData.length > 0 ?
+			sectionsData.some(section => section.adviser_id === teacher.id) : false;
 					
 					return {
 						id: teacher.id,
@@ -121,12 +98,12 @@
 				
 				// Add current section advisers to the list if they're not already there
 				// This ensures that when editing a section, the current adviser appears in the dropdown
-				if (recentSections && recentSections.length > 0) {
-					for (const section of recentSections) {
+				if (sectionsData && sectionsData.length > 0) {
+			for (const section of sectionsData) {
 						if (section.adviser_id && !availableAdvisers.find(adviser => adviser.id === section.adviser_id)) {
 							availableAdvisers.push({
 								id: section.adviser_id,
-								name: section.adviser,
+								name: section.adviser_name,
 								employeeId: section.adviser_account_number || 'N/A',
 								subject: section.adviser_subject || 'No Subject',
 								subject_grade_level: section.grade_level, // Use section's grade level for existing advisers
@@ -309,6 +286,17 @@
 		student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
 	);
 
+	// Clear selections when grade level changes
+	$: if (gradeLevel) {
+		// Clear selected students that don't match the new grade level
+		selectedStudents = selectedStudents.filter(student => student.grade === gradeLevel);
+		
+		// Clear selected adviser if they don't match the new grade level
+		if (selectedAdviser && selectedAdviser.subject_grade_level && selectedAdviser.subject_grade_level !== parseInt(gradeLevel)) {
+			selectedAdviser = null;
+		}
+	}
+
 	// Form submission
 	async function handleCreateSection() {
 		if (!sectionName || !gradeLevel) {
@@ -341,8 +329,8 @@
 				studentSearchTerm = '';
 				availableStudents = [];
 
-				// Reload data - ensure sections load first, then teachers
-				await loadSections();
+				// Add new section to store and reload teachers
+				sectionManagementStore.addSection(result.data);
 				await loadAvailableTeachers();
 			} else {
 				toastStore.error(result.error || 'Failed to create section');
@@ -432,8 +420,8 @@
 				isEditAdviserDropdownOpen = false;
 				isEditStudentDropdownOpen = false;
 
-				// Reload data - ensure sections load first, then teachers
-				await loadSections();
+				// Update section in store and reload teachers
+				sectionManagementStore.updateSection(editingSectionId, result.data);
 				await loadAvailableTeachers();
 			} else {
 				toastStore.error(result.error || 'Failed to update section');
@@ -492,7 +480,7 @@
 
 			if (result.success) {
 				toastStore.success('Section deleted successfully');
-				await loadSections();
+				sectionManagementStore.removeSection(section.id);
 			} else {
 				toastStore.error(result.error || 'Failed to delete section');
 			}
@@ -505,11 +493,11 @@
 	// Edit filtered data
 	$: editFilteredAdvisers = availableAdvisers.filter(adviser => {
 		// Allow advisers without sections OR the current section's adviser
-		const currentSectionAdviser = editingSectionId && recentSections.find(s => s.id === editingSectionId)?.adviser_id;
+		const currentSectionAdviser = editingSectionId && sectionsData.find(s => s.id === editingSectionId)?.adviser_id;
 		const isAvailable = !adviser.hasSection || adviser.id === currentSectionAdviser;
 		
 		// Get the current section's grade level for filtering
-		const currentSection = editingSectionId && recentSections.find(s => s.id === editingSectionId);
+		const currentSection = editingSectionId && sectionsData.find(s => s.id === editingSectionId);
 		const sectionGradeLevel = currentSection?.grade_level;
 		
 		// Filter by grade level if we have the section's grade level and adviser has subject_grade_level
@@ -642,6 +630,7 @@
 							class:selected={selectedAdviser}
 							on:click={toggleAdviserDropdown}
 							id="adviser"
+							disabled={!gradeLevel}
 						>
 							{#if selectedAdviser}
 							<div class="sectionmgmt-selected-option">
@@ -650,8 +639,10 @@
 									<span class="sectionmgmt-option-name">{selectedAdviser.name}</span>
 								</div>
 							</div>
-							{:else}
+							{:else if gradeLevel}
 								<span class="sectionmgmt-placeholder">Select advisory teacher</span>
+							{:else}
+								<span class="sectionmgmt-placeholder">Select grade level first</span>
 							{/if}
 							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
 						</button>
@@ -832,7 +823,7 @@
 				<h2 class="sectionmgmt-section-title">Recent Sections</h2>
 				<button 
 					class="sectionmgmt-refresh-btn" 
-					on:click={loadSections}
+					on:click={() => sectionManagementStore.loadSections(true)}
 					disabled={isLoading}
 					title="Refresh sections to see latest room assignments"
 				>
@@ -850,11 +841,11 @@
 					<p>Loading sections...</p>
 				</div>
 			{:else}
-				{#each recentSections as section (section.id)}
+				{#each sectionsData as section (section.id)}
 			<div class="sectionmgmt-section-card" class:editing={editingSectionId === section.id}>
 				<div class="sectionmgmt-section-header-card">
 					<div class="sectionmgmt-section-title">
-						<h3 class="sectionmgmt-section-name">{section.name} · {section.grade}</h3>
+						<h3 class="sectionmgmt-section-name">{section.name} · Grade {section.grade_level}</h3>
 					</div>
 					<div class="sectionmgmt-action-buttons">
 						<button 
@@ -879,11 +870,11 @@
 				<div class="sectionmgmt-section-details">
 						<div class="sectionmgmt-section-adviser">
 							<span class="material-symbols-outlined">person_book</span>
-							<span>{section.adviser}</span>
+							<span>{section.adviser_name}</span>
 						</div>
 						<div class="sectionmgmt-section-students">
 							<span class="material-symbols-outlined">group</span>
-							<span>{section.studentCount} students</span>
+							<span>{section.student_count} students</span>
 						</div>
 						<div class="sectionmgmt-section-room">
 							<span class="material-symbols-outlined">location_on</span>
@@ -891,7 +882,7 @@
 						</div>
 						<div class="sectionmgmt-section-created">
 						<span class="material-symbols-outlined">calendar_today</span>
-						<span>Created: {section.createdDate}</span>
+						<span>Created: {new Date(section.created_at).toLocaleDateString()}</span>
 					</div>
 				</div>
 				
@@ -1097,7 +1088,7 @@
 				{/if}
 		</div>
 	{/each}
-	{#if recentSections.length === 0}
+	{#if sectionsData.length === 0}
 		<div class="sectionmgmt-sections-empty">
 			<span class="material-symbols-outlined">school</span>
 			<p>No sections found</p>
