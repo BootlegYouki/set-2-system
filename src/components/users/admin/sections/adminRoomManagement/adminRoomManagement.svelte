@@ -2,6 +2,7 @@
 	import './adminRoomManagement.css';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
 
 	// Room management state
@@ -49,14 +50,10 @@
 	async function loadRooms() {
 		isLoading = true;
 		try {
-			const response = await fetch('/api/rooms');
-			if (!response.ok) {
-				throw new Error('Failed to load rooms');
-			}
-			const data = await response.json();
+			const data = await api.get('/api/rooms');
 			
 			if (data.success) {
-				existingRooms = data.data;
+				existingRooms = data.data || [];
 			} else {
 				throw new Error(data.message || 'Failed to load rooms');
 			}
@@ -76,15 +73,7 @@
 			`Are you sure you want to remove room ${room.name}? This action cannot be undone.`,
 			async () => {
 				try {
-					const response = await fetch('/api/rooms', {
-						method: 'DELETE',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({ id: room.id })
-					});
-
-					const data = await response.json();
+					const data = await api.delete('/api/rooms', { id: room.id });
 					
 					if (data.success) {
 						// Remove room from the list
@@ -114,19 +103,11 @@
 		isCreating = true;
 
 		try {
-			const response = await fetch('/api/rooms', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					name: roomName,
-					building: building,
-					floor: floor
-				})
+			const data = await api.post('/api/rooms', {
+				name: roomName,
+				building: building,
+				floor: floor
 			});
-
-			const data = await response.json();
 			
 			if (data.success) {
 				// Add new room to the list
@@ -150,22 +131,14 @@
 			const room = existingRooms.find(r => r.id === roomId);
 			if (!room) return;
 
-			const response = await fetch('/api/rooms', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					id: roomId,
-					name: room.name,
-					building: room.building,
-					floor: room.floor,
-					status: 'available',
-					assignedTo: null
-				})
+			const data = await api.put('/api/rooms', {
+				id: roomId,
+				name: room.name,
+				building: room.building,
+				floor: room.floor,
+				status: 'available',
+				assignedTo: null
 			});
-
-			const data = await response.json();
 			
 			if (data.success) {
 				// Update room in the list
@@ -226,22 +199,14 @@
 		try {
 			const room = existingRooms.find(r => r.id === editingRoomId);
 			
-			const response = await fetch('/api/rooms', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					id: editingRoomId,
-					name: editRoomName,
-					building: editBuilding,
-					floor: editFloor,
-					status: room.status,
-					assignedTo: room.assignedTo
-				})
+			const data = await api.put('/api/rooms', {
+				id: editingRoomId,
+				name: editRoomName,
+				building: editBuilding,
+				floor: editFloor,
+				status: room.status,
+				assignedTo: room.assignedTo
 			});
-
-			const data = await response.json();
 			
 			if (data.success) {
 				// Update room in the array
@@ -416,12 +381,11 @@
 				<div class="admin-room-form-actions">
 					<button 
 						type="submit" 
-						class="admin-room-create-button"
-						class:admin-room-loading={isCreating}
+						class="admin-room-create-button"	
 						disabled={isCreating || !roomName || !building || !floor}
 					>
 						{#if isCreating}
-					Creating
+					Creating...
 				{:else}
 				<span class="material-symbols-outlined">add_ad</span>
 					Create Room

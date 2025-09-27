@@ -261,7 +261,8 @@ export async function GET({ url }) {
 }
 
 // PUT /api/accounts - Update an existing account
-export async function PUT({ request }) {
+// PUT /api/accounts - Update an existing account
+export async function PUT({ request, getClientAddress }) {
   try {
     const { id, firstName, lastName, middleInitial, subject, gradeLevel, birthdate, address, guardian, contactNumber } = await request.json();
     
@@ -271,7 +272,7 @@ export async function PUT({ request }) {
     }
     
     // Check if account exists and get its type
-    const checkQuery = `SELECT id, account_type FROM users WHERE id = $1`;
+    const checkQuery = `SELECT id, account_type, full_name FROM users WHERE id = $1`;
     const checkResult = await query(checkQuery, [id]);
     
     if (checkResult.rows.length === 0) {
@@ -279,6 +280,7 @@ export async function PUT({ request }) {
     }
     
     const accountType = checkResult.rows[0].account_type;
+    const oldFullName = checkResult.rows[0].full_name;
     
     // Validate additional information for students
     if (accountType === 'student') {
@@ -394,6 +396,32 @@ export async function PUT({ request }) {
     
     const result = await query(updateQuery, values);
     const updatedAccount = result.rows[0];
+    
+    // Log the account update activity
+    try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await logActivityWithUser(
+        'account_updated',
+        user,
+        {
+          account_type: updatedAccount.account_type,
+          old_full_name: oldFullName,
+          new_full_name: updatedAccount.full_name,
+          account_number: updatedAccount.account_number
+        },
+        ip_address,
+        user_agent
+      );
+    } catch (logError) {
+      console.error('Error logging account update activity:', logError);
+      // Don't fail the update if logging fails
+    }
     
     // Get subject name if subject_id exists
     let subjectName = '';

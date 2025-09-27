@@ -49,7 +49,7 @@ export async function GET({ url }) {
       paramIndex++;
     }
     
-    sqlQuery += ' ORDER BY building, floor, name';
+    sqlQuery += ' ORDER BY created_at DESC';
     
     const result = await query(sqlQuery, params);
     
@@ -129,7 +129,7 @@ export async function POST({ request, getClientAddress }) {
         'room_created',
         user,
         {
-          name: newRoom.name,
+          room_name: newRoom.name,
           building: newRoom.building,
           floor: newRoom.floor
         },

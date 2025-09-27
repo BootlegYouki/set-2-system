@@ -233,7 +233,6 @@
 .admin-room-create-button:hover {
 	background: var(--md-sys-color-primary-container);
 	color: var(--md-sys-color-on-primary-container);
-	transform: translateY(-1px);
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -247,6 +246,10 @@
 
 .admin-room-create-button.admin-room-loading {
 	pointer-events: none;
+	min-height: 56px;
+	min-width: 160px;
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
 }
 
 .admin-room-loading-icon {

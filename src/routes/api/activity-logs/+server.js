@@ -147,6 +147,14 @@ export async function GET({ url }) {
 					message = `Subject deleted: ${data.subject_name} (${data.subject_code})`;
 					icon = 'delete';
 					break;
+				case 'room_updated':
+					message = `Room updated: ${data.name} (${data.building}, Floor ${data.floor})`;
+					icon = 'edit';
+					break;
+				case 'room_deleted':
+					message = `Room deleted: ${data.room_name} (${data.building}, Floor ${data.floor})`;
+					icon = 'delete';
+					break;
 				default:
 					message = `${row.activity_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
 					icon = 'info';
@@ -165,7 +173,7 @@ export async function GET({ url }) {
 			const diffHours = Math.floor(diffMins / 60);
 			const diffDays = Math.floor(diffHours / 24);
 
-			// Format timestamp as YYYY/MM/DD - HH:MM (24hr format) in local timezone
+			// Format timestamp as MM/DD/YYYY - HH:MM (24hr format) in local timezone
 			// Use toLocaleString to get proper local time formatting and add 8 minutes offset
 			const localTimeString = activityTime.toLocaleString('en-CA', {
 				timeZone: 'Asia/Singapore',
@@ -177,8 +185,8 @@ export async function GET({ url }) {
 				hour12: false
 			});
 			
-			// Convert from YYYY-MM-DD, HH:MM to YYYY/MM/DD - HH:MM format
-			const timestamp = localTimeString.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2})/, '$1/$2/$3 - $4:$5');
+			// Convert from YYYY-MM-DD, HH:MM to MM/DD/YYYY - HH:MM format
+			const timestamp = localTimeString.replace(/(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2})/, '$2/$3/$1 - $4:$5');
 
 			return {
 				id: row.id,
