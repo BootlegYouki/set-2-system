@@ -2,6 +2,8 @@
 	import './adminSectionManagement.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { onMount } from 'svelte';
 
 	// Section creation state
 	let isCreating = false;
@@ -34,6 +36,105 @@
 	// Edit search states
 	let editAdviserSearchTerm = '';
 	let editStudentSearchTerm = '';
+
+	// Data arrays
+	let availableAdvisers = [];
+	let availableStudents = [];
+	let recentSections = [];
+	let isLoading = false;
+
+	// Load data on component mount
+	onMount(async () => {
+		await loadSections();
+		await loadAvailableTeachers();
+	});
+
+	// API Functions
+	async function loadSections() {
+		try {
+			isLoading = true;
+			const result = await api.get(`/api/sections?action=section-details&schoolYear=${schoolYear}`);
+			
+			if (result.success) {
+				recentSections = result.data.map(section => ({
+					id: section.id,
+					name: section.name,
+					grade: `Grade ${section.grade_level}`,
+					adviser: section.adviser_name || 'No Adviser',
+					studentCount: section.student_count,
+					schoolYear: section.school_year,
+					createdDate: new Date(section.created_at).toLocaleDateString('en-US'),
+					status: section.status,
+					room: section.room_name ? `${section.room_name} - ${section.room_building}` : 'No Room Assigned',
+					adviser_id: section.adviser_id,
+					room_id: section.room_id,
+					grade_level: section.grade_level
+				}));
+			}
+		} catch (error) {
+			console.error('Error loading sections:', error);
+			toastStore.error('Failed to load sections');
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	async function loadAvailableTeachers() {
+		try {
+			const result = await api.get(`/api/sections?action=available-teachers&schoolYear=${schoolYear}`);
+			
+			if (result.success) {
+				availableAdvisers = result.data.map(teacher => ({
+					id: teacher.id,
+					name: teacher.full_name,
+					employeeId: teacher.account_number,
+					subject: teacher.subject_name || 'No Subject',
+					hasSection: false
+				}));
+			}
+		} catch (error) {
+			console.error('Error loading teachers:', error);
+			toastStore.error('Failed to load available teachers');
+		}
+	}
+
+	async function loadAvailableStudents(grade) {
+		try {
+			const result = await api.get(`/api/sections?action=available-students&gradeLevel=${grade}&schoolYear=${schoolYear}`);
+			
+			if (result.success) {
+				availableStudents = result.data.map(student => ({
+					id: student.id,
+					name: student.full_name,
+					studentId: student.account_number,
+					grade: student.grade_level,
+					hasSection: false
+				}));
+			}
+		} catch (error) {
+			console.error('Error loading students:', error);
+			toastStore.error('Failed to load available students');
+		}
+	}
+
+	async function loadSectionStudents(sectionId) {
+		try {
+			const result = await api.get(`/api/sections?action=section-students&sectionId=${sectionId}`);
+			
+			if (result.success) {
+				return result.data.map(student => ({
+					id: student.id,
+					name: student.full_name,
+					studentId: student.account_number,
+					grade: student.grade_level
+				}));
+			}
+			return [];
+		} catch (error) {
+			console.error('Error loading section students:', error);
+			return [];
+		}
+	}
 
 	// Edit student selection functions
 	function toggleEditStudentDropdown() {
@@ -77,79 +178,6 @@
 		{ id: '10', name: 'Grade 10', description: 'Fourth Year Junior High School' }
 	];
 
-	// Mock data for advisers (teachers without assigned sections)
-	let availableAdvisers = [
-		{ id: 1, name: 'Ms. Maria Santos', employeeId: 'TCH-2024-001', subject: 'Mathematics', hasSection: false },
-		{ id: 2, name: 'Mr. Juan Dela Cruz', employeeId: 'TCH-2024-002', subject: 'English', hasSection: false },
-		{ id: 3, name: 'Mrs. Ana Reyes', employeeId: 'TCH-2024-003', subject: 'Science', hasSection: false },
-		{ id: 4, name: 'Mr. Carlos Garcia', employeeId: 'TCH-2024-004', subject: 'Filipino', hasSection: false },
-		{ id: 5, name: 'Ms. Rosa Mendoza', employeeId: 'TCH-2024-005', subject: 'Social Studies', hasSection: false },
-		{ id: 6, name: 'Mr. Pedro Villanueva', employeeId: 'TCH-2024-006', subject: 'Mathematics', hasSection: true }, // Already has section
-		{ id: 7, name: 'Mrs. Carmen Lopez', employeeId: 'TCH-2024-007', subject: 'English', hasSection: true } // Already has section
-	];
-
-	// Mock data for students (unassigned to sections)
-	let availableStudents = [
-		{ id: 1, name: 'John Michael Santos', studentId: 'STU-2024-001', grade: '7', hasSection: false },
-		{ id: 2, name: 'Maria Clara Reyes', studentId: 'STU-2024-002', grade: '7', hasSection: false },
-		{ id: 3, name: 'Jose Rizal Garcia', studentId: 'STU-2024-003', grade: '7', hasSection: false },
-		{ id: 4, name: 'Anna Luna Mendoza', studentId: 'STU-2024-004', grade: '8', hasSection: false },
-		{ id: 5, name: 'Carlos Aguinaldo Cruz', studentId: 'STU-2024-005', grade: '8', hasSection: false },
-		{ id: 6, name: 'Sofia Bonifacio Torres', studentId: 'STU-2024-006', grade: '9', hasSection: false },
-		{ id: 7, name: 'Miguel Mabini Flores', studentId: 'STU-2024-007', grade: '9', hasSection: false },
-		{ id: 8, name: 'Isabella Del Pilar Ramos', studentId: 'STU-2024-008', grade: '10', hasSection: false },
-		{ id: 9, name: 'Gabriel Jacinto Morales', studentId: 'STU-2024-009', grade: '10', hasSection: false },
-		{ id: 10, name: 'Sophia Malvar Castillo', studentId: 'STU-2024-010', grade: '7', hasSection: true } // Already has section
-	];
-
-	// Recent sections (mock data)
-	let recentSections = [
-		{
-			id: 1,
-			name: 'Mabini',
-			grade: 'Grade 7',
-			adviser: 'Ms. Elena Rodriguez',
-			studentCount: 35,
-			schoolYear: '2024-2025',
-			createdDate: '01/15/2024',
-			status: 'active',
-			room: 'Room 101 - Academic Building A'
-		},
-		{
-			id: 2,
-			name: 'Rizal',
-			grade: 'Grade 8',
-			adviser: 'Mr. Roberto Fernandez',
-			studentCount: 32,
-			schoolYear: '2024-2025',
-			createdDate: '01/14/2024',
-			status: 'active',
-			room: 'Room 205 - Academic Building B'
-		},
-		{
-			id: 3,
-			name: 'Bonifacio',
-			grade: 'Grade 9',
-			adviser: 'Mr. Jose Mercado',
-			studentCount: 28,
-			schoolYear: '2024-2025',
-			createdDate: '01/13/2024',
-			status: 'active',
-			room: 'Computer Laboratory - Academic Building B'
-		},
-		{
-			id: 4,
-			name: 'Aguinaldo',
-			grade: 'Grade 10',
-			adviser: 'Mrs. Carmen Santos',
-			studentCount: 30,
-			schoolYear: '2024-2025',
-			createdDate: '01/12/2024',
-			status: 'active',
-			room: 'Audio Visual Room - Main Building'
-		}
-	];
-
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
 		if (!event.target.closest('.sectionmgmt-custom-dropdown')) {
@@ -184,6 +212,8 @@
 		isGradeLevelDropdownOpen = false;
 		// Reset selected students when grade level changes
 		selectedStudents = [];
+		// Load available students for the selected grade
+		loadAvailableStudents(grade.id);
 	}
 
 	function selectAdviser(adviser) {
@@ -238,44 +268,34 @@
 		isCreating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 2000));
+			const result = await api.post('/api/sections', {
+				sectionName,
+				gradeLevel: parseInt(gradeLevel),
+				schoolYear,
+				adviserId: selectedAdviser.id,
+				studentIds: selectedStudents.map(s => s.id),
+				roomId: null // Room assignment can be added later
+			});
 
-			// Create new section
-			const newSection = {
-				id: recentSections.length + 1,
-				name: sectionName,
-				grade: selectedGradeObj.name,
-				adviser: selectedAdviser.name,
-				studentCount: selectedStudents.length,
-				schoolYear: schoolYear,
-				createdDate: new Date().toLocaleDateString('en-US'),
-				status: 'active'
-			};
+			if (result.success) {
+				// Show success toast
+				toastStore.success(result.message);
 
-			// Update data
-			recentSections = [newSection, ...recentSections];
-			
-			// Mark adviser as having a section
-			availableAdvisers = availableAdvisers.map(adviser => 
-				adviser.id === selectedAdviser.id ? { ...adviser, hasSection: true } : adviser
-			);
-			
-			// Mark students as having a section
-			availableStudents = availableStudents.map(student => 
-				selectedStudents.some(s => s.id === student.id) ? { ...student, hasSection: true } : student
-			);
+				// Reset form
+				sectionName = '';
+				gradeLevel = '';
+				selectedAdviser = null;
+				selectedStudents = [];
+				adviserSearchTerm = '';
+				studentSearchTerm = '';
+				availableStudents = [];
 
-			// Show success toast
-			toastStore.success(`Section ${sectionName} (${selectedGradeObj.name}) created successfully with ${selectedStudents.length} students and ${selectedAdviser.name} as adviser!`);
-
-			// Reset form
-			sectionName = '';
-			gradeLevel = '';
-			selectedAdviser = null;
-			selectedStudents = [];
-			adviserSearchTerm = '';
-			studentSearchTerm = '';
+				// Reload data
+				await loadSections();
+				await loadAvailableTeachers();
+			} else {
+				toastStore.error(result.error || 'Failed to create section');
+			}
 
 		} catch (error) {
 			console.error('Error creating section:', error);
@@ -286,7 +306,7 @@
 	}
 
 	// Edit section functions
-	function toggleEditForm(section) {
+	async function toggleEditForm(section) {
 		if (editingSectionId === section.id) {
 			// Close the form
 			editingSectionId = null;
@@ -301,14 +321,17 @@
 			// Open the form
 			editingSectionId = section.id;
 			editSectionName = section.name;
-			editSelectedAdviser = availableAdvisers.find(adviser => adviser.name === section.adviser) || null;
-			// Populate selected students from the section
-			editSelectedStudents = section.students || [];
+			editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id) || 
+							   { id: section.adviser_id, name: section.adviser, employeeId: '', subject: '', hasSection: true };
+			
+			// Load students for this section
+			editSelectedStudents = await loadSectionStudents(section.id);
 			editStudentSearchTerm = '';
+			
+			// Load available students for the grade level (for adding new students)
+			await loadAvailableStudents(section.grade_level);
 		}
 	}
-
-
 
 	async function handleEditSection() {
 		if (!editSectionName || !editSelectedAdviser) {
@@ -319,35 +342,34 @@
 		isUpdating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
+			const result = await api.put('/api/sections', {
+				sectionId: editingSectionId,
+				sectionName: editSectionName,
+				adviserId: editSelectedAdviser.id,
+				studentIds: editSelectedStudents.map(s => s.id),
+				roomId: null // Room assignment can be added later
+			});
 
-			// Update section in the array
-			recentSections = recentSections.map(section => {
-					if (section.id === editingSectionId) {
-						return {
-							...section,
-							name: editSectionName,
-							adviser: editSelectedAdviser.name,
-							students: editSelectedStudents,
-							studentCount: editSelectedStudents.length
-						};
-					}
-					return section;
-				});
+			if (result.success) {
+				// Show success toast
+				toastStore.success(result.message);
 
-			// Show success toast
-			toastStore.success(`Section ${editSectionName} updated successfully!`);
+				// Close edit form
+				editingSectionId = null;
+				editSectionName = '';
+				editSelectedAdviser = null;
+				editSelectedStudents = [];
+				editAdviserSearchTerm = '';
+				editStudentSearchTerm = '';
+				isEditAdviserDropdownOpen = false;
+				isEditStudentDropdownOpen = false;
 
-			// Close edit form
-			editingSectionId = null;
-			editSectionName = '';
-			editSelectedAdviser = null;
-			editSelectedStudents = [];
-			editAdviserSearchTerm = '';
-			editStudentSearchTerm = '';
-			isEditAdviserDropdownOpen = false;
-			isEditStudentDropdownOpen = false;
+				// Reload data
+				await loadSections();
+				await loadAvailableTeachers();
+			} else {
+				toastStore.error(result.error || 'Failed to update section');
+			}
 
 		} catch (error) {
 			console.error('Error updating section:', error);
@@ -370,30 +392,39 @@
 	}
 
 	// Handle section removal with modal confirmation
-	function handleRemoveSection(section) {
+	// Open remove modal
+	function openRemoveModal(section) {
 		modalStore.confirm(
-			'Remove Section',
-			`<p>Are you sure you want to remove section <strong>"${section.name}"</strong> (${section.grade})?</p>`,
-			() => {
-				// Remove section from the list
-				recentSections = recentSections.filter(s => s.id !== section.id);
-				
-				// Mark adviser as available again
-				availableAdvisers = availableAdvisers.map(adviser => 
-					adviser.name === section.adviser ? { ...adviser, hasSection: false } : adviser
-				);
-				
-				// Mark students as available again (if we had student data)
-				// This would need to be implemented based on actual student tracking
-				
-				// Show success toast
-				toastStore.success(`Section "${section.name}" has been removed successfully.`);
-			},
-			() => {
-				// Do nothing on cancel
-			},
-			{ size: 'small' }
+			'Delete Section',
+			`<p>Are you sure you want to permanently delete section <strong>"${section.name}"</strong> (${section.grade})?</p>
+			<p class="sectionmgmt-warning">This action will:</p>
+			<ul class="sectionmgmt-warning-list">
+				<li>Permanently delete the section and all its data</li>
+				<li>Remove all students from this section</li>
+				<li>Free up the advisory teacher for other sections</li>
+				<li>This action cannot be undone</li>
+			</ul>`,
+			() => handleRemoveSection(section),
+			null,
+			{ size: 'medium' }
 		);
+	}
+
+	// Handle section removal
+	async function handleRemoveSection(section) {
+		try {
+			const result = await api.delete('/api/sections', { id: section.id });
+
+			if (result.success) {
+				toastStore.success('Section deleted successfully');
+				await loadSections();
+			} else {
+				toastStore.error(result.error || 'Failed to delete section');
+			}
+		} catch (error) {
+			console.error('Error deleting section:', error);
+			toastStore.error('An error occurred while deleting the section');
+		}
 	}
 
 	// Edit filtered data
@@ -663,7 +694,7 @@
 						disabled={isCreating || !sectionName || !gradeLevel || !selectedAdviser || selectedStudents.length === 0}
 					>
 						{#if isCreating}
-						Creating
+						Creating...
 					{:else}
 						<span class="material-symbols-outlined">groups</span>
 						Create Section
@@ -701,7 +732,7 @@
 						type="button"
 						class="sectionmgmt-remove-button"
 						title="Remove Section"
-						on:click={() => handleRemoveSection(section)}
+						on:click={() => openRemoveModal(section)}
 					>
 						<span class="material-symbols-outlined">delete</span>
 					</button>
@@ -927,6 +958,12 @@
 				{/if}
 		</div>
 	{/each}
+	{#if recentSections.length === 0}
+		<div class="sectionmgmt-sections-empty">
+			<span class="material-symbols-outlined">school</span>
+			<p>No sections found</p>
+		</div>
+	{/if}
 		</div>
 	</div>
 </div>

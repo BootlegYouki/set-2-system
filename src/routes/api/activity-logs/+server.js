@@ -111,6 +111,26 @@ export async function GET({ url }) {
 					message = `New section created: ${data.section_name}`;
 					icon = 'class';
 					break;
+				case 'section_updated':
+					message = `Section updated: ${data.section_name}`;
+					icon = 'edit';
+					break;
+				case 'section_adviser_changed':
+					const oldAdviser = data.old_adviser ? `${data.old_adviser.full_name} (${data.old_adviser.employee_id})` : 'None';
+					const newAdviser = data.new_adviser ? `${data.new_adviser.full_name} (${data.new_adviser.employee_id})` : 'None';
+					message = `Section adviser changed for ${data.section_name}: ${oldAdviser} → ${newAdviser}`;
+					icon = 'swap_horiz';
+					break;
+				case 'section_student_added':
+				case 'student_added_to_section':
+					message = `Student added to ${data.section_name}: ${data.student ? data.student.name || data.student.full_name : 'Unknown Student'} ${data.student ? `(${data.student.account_number})` : ''}`;
+					icon = 'person_add';
+					break;
+				case 'section_student_removed':
+				case 'student_removed_from_section':
+					message = `Student removed from ${data.section_name}: ${data.student ? data.student.name || data.student.full_name : 'Unknown Student'} ${data.student ? `(${data.student.account_number})` : ''}`;
+					icon = 'person_remove';
+					break;
 				case 'user_login':
 					message = `User logged in: ${data.full_name || row.user_account_number}`;
 					icon = 'login';

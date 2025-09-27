@@ -551,14 +551,14 @@
 .sectionmgmt-form-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
 }
 
 .sectionmgmt-create-button {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-xl);
   background-color: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
   border: none;
@@ -567,14 +567,14 @@
   font-size: var(--md-sys-typescale-label-large-size);
   font-weight: var(--md-sys-typescale-label-large-weight);
   cursor: pointer;
-  transition: background-color var(--transition-normal), box-shadow var(--transition-normal);
-  min-width: 160px;
-  justify-content: center;
+  transition: all var(--transition-normal);
+  min-height: 56px;
 }
 
 .sectionmgmt-create-button:hover:not(:disabled) {
-  background-color: var(--md-sys-color-primary-variant);
-  box-shadow: var(--elevation-1);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: var(--shadow-md);
 }
 
 .sectionmgmt-create-button:disabled {
@@ -951,6 +951,38 @@
   }
 }
 
+/* Empty State Styles */
+.sectionmgmt-sections-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	margin: auto;
+	padding: var(--spacing-xl);
+	text-align: center;
+	border-radius: var(--radius-lg);
+	gap: var(--spacing-md);
+	width: 60%;
+	min-height: 200px;
+}
+
+.sectionmgmt-sections-empty .material-symbols-outlined {
+	font-size: 48px;
+	color: var(--md-sys-color-outline);
+}
+
+.sectionmgmt-sections-empty p {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+.sectionmgmt-empty-subtitle {
+	font-size: var(--md-sys-typescale-body-small-size) !important;
+	color: var(--md-sys-color-outline) !important;
+}
+
 @media (max-width: 768px) {
   .sectionmgmt-container {
     padding: var(--spacing-sm);
@@ -972,5 +1004,6 @@
   
   .sectionmgmt-create-button {
     width: 100%;
+    justify-content: center;
   }
 }

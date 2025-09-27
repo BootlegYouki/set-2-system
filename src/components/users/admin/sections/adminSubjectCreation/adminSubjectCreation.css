@@ -358,7 +358,7 @@
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-sm);
-	padding: var(--spacing-md) var(--spacing-lg);
+	padding: var(--spacing-md) var(--spacing-xl);
 	background-color: var(--md-sys-color-primary);
 	color: var(--md-sys-color-on-primary);
 	border: none;
@@ -367,17 +367,16 @@
 	font-size: var(--md-sys-typescale-label-large-size);
 	font-weight: var(--md-sys-typescale-label-large-weight);
 	cursor: pointer;
-	transition: background-color var(--transition-fast), box-shadow var(--transition-fast),
-		transform var(--transition-fast);
+	transition: all var(--transition-normal);
 	min-width: 180px;
 	min-height: 56px;
-	justify-content: center;
+	box-shadow: var(--elevation-1);
 }
 
 .admin-create-button:hover:not(:disabled) {
 	background-color: var(--md-sys-color-primary-container);
 	color: var(--md-sys-color-on-primary-container);
-	box-shadow: var(--shadow-sm);
+	box-shadow: var(--shadow-md);
 }
 
 .admin-create-button:active:not(:disabled) {
@@ -908,6 +907,7 @@
 
 	.admin-create-button {
 		width: 100%;
+		justify-content: center;
 	}
 
 	.admin-subjects-table-container {
