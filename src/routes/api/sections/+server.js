@@ -104,7 +104,7 @@ export async function POST({ request, getClientAddress }) {
         const userAgent = request.headers.get('user-agent');
 
         // Validate required fields
-        if (!sectionName || !gradeLevel || !schoolYear || !adviserId || !studentIds || studentIds.length === 0) {
+        if (!sectionName || !gradeLevel || !schoolYear) {
             return json({ success: false, error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -117,16 +117,18 @@ export async function POST({ request, getClientAddress }) {
                 INSERT INTO sections (name, grade_level, school_year, adviser_id, room_id)
                 VALUES ($1, $2, $3, $4, $5)
                 RETURNING id, name, grade_level, school_year, adviser_id, room_id, created_at
-            `, [sectionName, parseInt(gradeLevel), schoolYear, parseInt(adviserId), roomId ? parseInt(roomId) : null]);
+            `, [sectionName, parseInt(gradeLevel), schoolYear, adviserId ? parseInt(adviserId) : null, roomId ? parseInt(roomId) : null]);
 
             const newSection = sectionResult.rows[0];
 
-            // Add students to section
-            for (const studentId of studentIds) {
-                await query(`
-                    INSERT INTO section_students (section_id, student_id)
-                    VALUES ($1, $2)
-                `, [newSection.id, parseInt(studentId)]);
+            // Add students to section (only if studentIds is provided and not empty)
+            if (studentIds && Array.isArray(studentIds) && studentIds.length > 0) {
+                for (const studentId of studentIds) {
+                    await query(`
+                        INSERT INTO section_students (section_id, student_id)
+                        VALUES ($1, $2)
+                    `, [newSection.id, parseInt(studentId)]);
+                }
             }
 
             // Update room status if assigned

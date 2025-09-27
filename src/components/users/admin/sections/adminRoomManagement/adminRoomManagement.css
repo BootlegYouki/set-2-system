@@ -675,7 +675,7 @@
 
 .dropdown-menu {
 	position: absolute;
-	top: 100%;
+	top: 110%;
 	left: 0;
 	right: 0;
 	background-color: var(--md-sys-color-surface-container);
