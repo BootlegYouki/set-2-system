@@ -2,84 +2,110 @@
 	import './studentProfile.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { authStore } from '../../../../../components/login/js/auth.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { onMount } from 'svelte';
 
-	// Sample student profile data - in real app this would come from props or API
-	let studentProfile = {
-		id: 'STU-2024-001',
-		name: 'Maria Isabella Santos',
-		yearLevel: 'Grade 10',
-		section: 'Einstein',
-		schoolYear: '2024-2025',
-		email: 'maria.santos@student.school.edu.ph',
-		phone: '+63 912 345 6789',
-		address: '123 Rizal Street, Barangay San Jose, Quezon City',
-		birthDate: 'March 15, 2009',
-		guardian: {
-			name: 'Roberto Santos',
-			relationship: 'Father',
-			phone: '+63 917 123 4567',
-			email: 'roberto.santos@email.com'
-		},
-		academicSummary: {
-			gpa: '92.5',
-			rank: '5th',
-			totalStudents: '45',
-			attendance: '98%'
-		},
-		subjects: [
-			{
-				id: 'MATH-10-001',
-				name: 'Mathematics 10',
-				teacher: 'Mrs. Ana Rodriguez',
-				color: 'var(--school-primary)'
-			},
-			{
-				id: 'SCI-10-001',
-				name: 'Science 10',
-				teacher: 'Dr. John Dela Cruz',
-				color: 'var(--school-secondary)'
-			},
-			{
-				id: 'ENG-10-001',
-				name: 'English 10',
-				teacher: 'Ms. Sarah Johnson',
-				color: 'var(--success)'
-			},
-			{
-				id: 'FIL-10-001',
-				name: 'Filipino 10',
-				teacher: 'Gng. Carmen Reyes',
-				color: 'var(--warning)'
-			},
-			{
-				id: 'AP-10-001',
-				name: 'Araling Panlipunan 10',
-				teacher: 'Mr. Miguel Torres',
-				color: 'var(--info)'
-			},
-			{
-				id: 'MAPEH-10-001',
-				name: 'MAPEH 10',
-				teacher: 'Ms. Lisa Garcia',
-				color: 'var(--school-accent)'
-			},
-			{
-				id: 'TLE-10-001',
-				name: 'Technology and Livelihood Education 10',
-				teacher: 'Mr. Robert Mendoza',
-				color: 'var(--grade-excellent)'
-			},
-			{
-				id: 'ESP-10-001',
-				name: 'Edukasyon sa Pagpapakatao 10',
-				teacher: 'Mrs. Grace Villanueva',
-				color: 'var(--grade-good)'
+	// Get basic auth data
+	let authState = $state();
+	let studentData = $state(null);
+	let isLoading = $state(true);
+	let error = $state(null);
+	
+	// Subscribe to auth store changes
+	$effect(() => {
+		const unsubscribe = authStore.subscribe(value => {
+			authState = value;
+		});
+		return unsubscribe;
+	});
+
+	// Fetch complete student data from API
+	async function fetchStudentData() {
+		try {
+			isLoading = true;
+			error = null;
+			
+			if (!authState?.userData?.id) {
+				throw new Error('User not authenticated');
 			}
-		]
-	};
 
-	// Calculate total subjects
-	$: totalSubjects = studentProfile.subjects.length;
+			// Fetch complete user data from accounts API - get current user specifically
+			const response = await api.get(`/api/accounts?type=student&limit=1000`);
+			
+			if (!response.success) {
+				throw new Error(response.message || 'Failed to fetch student data');
+			}
+
+			console.log('API Response:', response);
+			console.log('Auth State User Data:', authState.userData);
+			console.log('Looking for user ID:', authState.userData.id);
+			console.log('Looking for account number:', authState.userData.accountNumber);
+			console.log('Available accounts:', response.accounts.map(acc => ({ id: acc.id, name: acc.name, number: acc.number })));
+
+			// Find the current user's data in the accounts list
+			const currentUserData = response.accounts.find(account => 
+				account.id === authState.userData.id || 
+				account.number === authState.userData.accountNumber
+			);
+
+			if (!currentUserData) {
+				console.error('User not found in accounts list');
+				console.error('Auth user ID:', authState.userData.id);
+				console.error('Auth account number:', authState.userData.accountNumber);
+				console.error('Available account IDs:', response.accounts.map(acc => acc.id));
+				console.error('Available account numbers:', response.accounts.map(acc => acc.number));
+				throw new Error('Student data not found');
+			}
+
+			studentData = currentUserData;
+		} catch (err) {
+			console.error('Error fetching student data:', err);
+			error = err.message;
+			toastStore.error(`Failed to load profile data: ${err.message}`);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Load student data when component mounts or auth state changes
+	$effect(() => {
+		if (authState?.userData?.id) {
+			fetchStudentData();
+		}
+	});
+
+	// Dynamic student profile data based on fetched data
+	let studentProfile = $derived({
+		id: studentData?.number || authState?.userData?.accountNumber || 'N/A',
+		name: studentData?.name || authState?.userData?.name || 'Student Name',
+		firstName: studentData?.firstName || authState?.userData?.firstName || '',
+		lastName: studentData?.lastName || '',
+		middleInitial: studentData?.middleInitial || '',
+		yearLevel: studentData?.gradeLevel ? `Grade ${studentData.gradeLevel}` : 'Not assigned',
+		section: studentData?.section || 'Not assigned',
+		email: studentData?.email || 'Not available',
+		phone: studentData?.contactNumber || 'Not available',
+		address: studentData?.address || 'Not available',
+		birthDate: studentData?.birthdate ? new Date(studentData.birthdate).toLocaleDateString('en-US', { 
+			year: 'numeric', 
+			month: 'long', 
+			day: 'numeric' 
+		}) : 'Not available',
+		age: studentData?.age || 'Not available',
+		guardian: studentData?.guardian || 'Not available',
+		gender: studentData?.gender || authState?.userData?.gender || 'male',
+		academicSummary: {
+			gpa: 'Not available', // Will be populated from grades API
+			rank: 'Not available', // Will be populated from grades API
+			totalStudents: 'Not available', // Will be populated from grades API
+			attendance: 'Not available' // Will be populated from attendance API
+		},
+		subjects: [] // Will be populated from subjects API
+	});
+
+	// Calculate total subjects (will be 0 initially until subjects are loaded)
+	let totalSubjects = $derived(studentProfile.subjects.length || 'Not available');
 
 	// Modal state and functions
 	function openPictureModal() {
@@ -141,21 +167,40 @@
 </script>
 
 <div class="profile-container">
-	<!-- Header Section -->
-	<div class="profile-header">
-		<div class="header-content">
-			<h1 class="page-title">Student Profile</h1>
-			<p class="page-subtitle">Personal Information & Academic Details</p>
+	<!-- Loading State -->
+	{#if isLoading}
+		<div class="loading-container">
+			<div class="loading-spinner"></div>
+			<p>Loading profile data...</p>
 		</div>
-		<div class="profile-avatar">
-			<div class="avatar-circle" onclick={openPictureModal}>
-				<span class="material-symbols-outlined">person</span>
-				<div class="avatar-overlay">
-					<span class="material-symbols-outlined edit-icon">edit</span>
+	{:else if error}
+		<!-- Error State -->
+		<div class="error-container">
+			<div class="error-icon">
+				<span class="material-symbols-outlined">error</span>
+			</div>
+			<p class="error-message">Failed to load profile data: {error}</p>
+			<button class="retry-btn" onclick={fetchStudentData}>
+				<span class="material-symbols-outlined">refresh</span>
+				Retry
+			</button>
+		</div>
+	{:else}
+		<!-- Header Section -->
+		<div class="profile-header">
+			<div class="header-content">
+				<h1 class="page-title">Student Profile</h1>
+				<p class="page-subtitle">Personal Information & Academic Details</p>
+			</div>
+			<div class="profile-avatar">
+				<div class="avatar-circle" onclick={openPictureModal}>
+					<span class="material-symbols-outlined">person</span>
+					<div class="avatar-overlay">
+						<span class="material-symbols-outlined edit-icon">edit</span>
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
 
 	<!-- Student Information Cards -->
 	<div class="profile-info-section">
@@ -201,18 +246,7 @@
 				</div>
 				<div class="info-content">
 					<div class="info-label">Section</div>
-					<div class="info-value">{studentProfile.section}</div>
-				</div>
-			</div>
-
-			<!-- School Year Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">calendar_today</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">School Year</div>
-					<div class="info-value">{studentProfile.schoolYear}</div>
+					<div class="info-value">{studentProfile.section || 'Not assigned'}</div>
 				</div>
 			</div>
 
@@ -223,7 +257,73 @@
 				</div>
 				<div class="info-content">
 					<div class="info-label">Total Subjects</div>
-					<div class="info-value">{totalSubjects}</div>
+					<div class="info-value">{totalSubjects || 'Not available'}</div>
+				</div>
+			</div>
+
+			<!-- Email Card -->
+			<div class="info-card">
+				<div class="info-icon">
+					<span class="material-symbols-outlined">email</span>
+				</div>
+				<div class="info-content">
+					<div class="info-label">Email</div>
+					<div class="info-value">{studentProfile.email || 'Not provided'}</div>
+				</div>
+			</div>
+
+			<!-- Contact Number Card -->
+			<div class="info-card">
+				<div class="info-icon">
+					<span class="material-symbols-outlined">phone</span>
+				</div>
+				<div class="info-content">
+					<div class="info-label">Contact Number</div>
+					<div class="info-value">{studentProfile.phone || 'Not provided'}</div>
+				</div>
+			</div>
+
+			<!-- Address Card -->
+			<div class="info-card">
+				<div class="info-icon">
+					<span class="material-symbols-outlined">home</span>
+				</div>
+				<div class="info-content">
+					<div class="info-label">Address</div>
+					<div class="info-value">{studentProfile.address || 'Not provided'}</div>
+				</div>
+			</div>
+
+			<!-- Birth Date Card -->
+			<div class="info-card">
+				<div class="info-icon">
+					<span class="material-symbols-outlined">cake</span>
+				</div>
+				<div class="info-content">
+					<div class="info-label">Birth Date</div>
+					<div class="info-value">{studentProfile.birthDate || 'Not provided'}</div>
+				</div>
+			</div>
+
+			<!-- Age Card -->
+			<div class="info-card">
+				<div class="info-icon">
+					<span class="material-symbols-outlined">person_outline</span>
+				</div>
+				<div class="info-content">
+					<div class="info-label">Age</div>
+					<div class="info-value">{studentProfile.age ? `${studentProfile.age} years old` : 'Not available'}</div>
+				</div>
+			</div>
+
+			<!-- Guardian Card -->
+			<div class="info-card">
+				<div class="info-icon">
+					<span class="material-symbols-outlined">family_restroom</span>
+				</div>
+				<div class="info-content">
+					<div class="info-label">Guardian</div>
+					<div class="info-value">{studentProfile.guardian || 'Not provided'}</div>
 				</div>
 			</div>
 		</div>
@@ -240,7 +340,7 @@
 				</div>
 				<div class="info-content">
 					<div class="info-label">General Average</div>
-					<div class="info-value">{studentProfile.academicSummary.gpa}</div>
+					<div class="info-value">{studentProfile.academicSummary.gpa || 'Not available'}</div>
 				</div>
 			</div>
 
@@ -251,7 +351,7 @@
 				</div>
 				<div class="info-content">
 					<div class="info-label">Class Rank</div>
-					<div class="info-value">{studentProfile.academicSummary.rank} of {studentProfile.academicSummary.totalStudents}</div>
+					<div class="info-value">{studentProfile.academicSummary.rank && studentProfile.academicSummary.totalStudents ? `${studentProfile.academicSummary.rank} of ${studentProfile.academicSummary.totalStudents}` : 'Not available'}</div>
 				</div>
 			</div>
 
@@ -262,7 +362,7 @@
 				</div>
 				<div class="info-content">
 					<div class="info-label">Attendance Rate</div>
-					<div class="info-value">{studentProfile.academicSummary.attendance}</div>
+					<div class="info-value">{studentProfile.academicSummary.attendance || 'Not available'}</div>
 				</div>
 			</div>
 		</div>
@@ -271,27 +371,35 @@
 	<!-- Subjects Section -->
 	<div class="profile-subjects-section">
 		<h2 class="section-title">Enrolled Subjects</h2>
-		<div class="subjects-grid">
-			{#each studentProfile.subjects as subject (subject.id)}
-				<div class="subject-card">
-					<!-- Subject Icon -->
-					<div class="subject-icon-column">
-						<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
-							<span class="material-symbols-outlined">book</span>
+		{#if studentProfile.subjects.length > 0}
+			<div class="subjects-grid">
+				{#each studentProfile.subjects as subject (subject.id)}
+					<div class="subject-card">
+						<!-- Subject Icon -->
+						<div class="subject-icon-column">
+							<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
+								<span class="material-symbols-outlined">book</span>
+							</div>
+						</div>
+						
+						<!-- Subject Details -->
+						<div class="subject-details-column">
+							<h3 class="subject-name">{subject.name}</h3>
+							<p class="teacher-name">{subject.teacher}</p>
+							<div class="subject-id">
+								<span class="material-symbols-outlined">tag</span>
+								<span class="subject-id-text">{subject.id}</span>
+							</div>
 						</div>
 					</div>
-					
-					<!-- Subject Details -->
-					<div class="subject-details-column">
-						<h3 class="subject-name">{subject.name}</h3>
-						<p class="teacher-name">{subject.teacher}</p>
-						<div class="subject-id">
-							<span class="material-symbols-outlined">tag</span>
-							<span class="subject-id-text">{subject.id}</span>
-						</div>
-					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{:else}
+			<div class="subjects-empty">
+				<span class="material-symbols-outlined">menu_book</span>
+				<p>No subjects enrolled yet</p>
+			</div>
+		{/if}
 	</div>
+	{/if}
 </div>

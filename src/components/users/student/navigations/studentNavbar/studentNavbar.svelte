@@ -4,7 +4,7 @@
 	import { showSuccess } from '../../../../common/js/toastStore.js';
 
 	// Props
-	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onNavigateToSettings } = $props();
+	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
 
 	// Function to get title based on gender
 	function getTitle(gender) {
@@ -138,9 +138,9 @@
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
 					<div class="user-dropdown-menu">
-						<button class="dropdown-item" onclick={() => { closeDropdown(); onNavigateToSettings(); }}>
-							<span class="material-symbols-outlined">settings</span>
-							Settings
+						<button class="dropdown-item" onclick={() => { closeDropdown(); onnavigate('profile'); }}>
+							<span class="material-symbols-outlined">person</span>
+							Profile
 						</button>
 						<button class="dropdown-item" onclick={async () => { closeDropdown(); await onlogout(); showSuccess('Logged out successfully. See you next time!'); }}>
 							<span class="material-symbols-outlined">logout</span>
