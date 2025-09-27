@@ -147,6 +147,10 @@ export async function GET({ url }) {
 					message = `Account archived: ${data.full_name || row.user_account_number}`;
 					icon = 'archive';
 					break;
+				case 'account_deleted':
+					message = `Account deleted: ${data.full_name || row.user_account_number}`;
+					icon = 'delete';
+					break;
 				case 'subject_created':
 					message = `New subject created: ${data.name} (${data.code})`;
 					icon = 'book';

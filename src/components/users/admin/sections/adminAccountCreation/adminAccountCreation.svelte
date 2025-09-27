@@ -190,6 +190,11 @@
 	// Recent account creations (loaded from database)
 	let recentAccounts = [];
 	let isLoadingAccounts = false;
+	
+	// Pagination variables for load more functionality
+	let accountLimit = 5;
+	let hasMoreAccounts = true;
+	let loadingMoreAccounts = false;
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
@@ -705,18 +710,42 @@
 	async function loadAccounts() {
 		isLoadingAccounts = true;
 		try {
-			const data = await api.get('/api/accounts');
+			const data = await api.get(`/api/accounts?limit=${accountLimit}`);
 			if (!data.success) {
 				throw new Error('Failed to load accounts');
 			}
 			
 			// API already returns data in the correct format
 			recentAccounts = data.accounts;
+			hasMoreAccounts = data.accounts.length === accountLimit;
 		} catch (error) {
 			console.error('Error loading accounts:', error);
 			toastStore.error('Failed to load existing accounts');
 		} finally {
 			isLoadingAccounts = false;
+		}
+	}
+
+	// Load more accounts function
+	async function loadMoreAccounts() {
+		try {
+			loadingMoreAccounts = true;
+			
+			const newLimit = accountLimit + 10;
+			const data = await api.get(`/api/accounts?limit=${newLimit}`);
+			
+			if (data.success) {
+				recentAccounts = data.accounts;
+				accountLimit = newLimit;
+				hasMoreAccounts = data.accounts.length === newLimit;
+			} else {
+				throw new Error(data.error || 'Failed to load more accounts');
+			}
+		} catch (error) {
+			console.error('Error loading more accounts:', error);
+			toastStore.error('Failed to load more accounts');
+		} finally {
+			loadingMoreAccounts = false;
 		}
 	}
 
@@ -1510,6 +1539,24 @@
 				{/if}
 			</div>
 		{/each}
+		{/if}
+		
+		<!-- Load More Accounts Button -->
+		{#if hasMoreAccounts && !isLoadingAccounts && filteredAccounts.length > 0}
+			<div class="load-more-accounts-container">
+				<button 
+					class="load-more-accounts-button" 
+					on:click={loadMoreAccounts}
+					disabled={loadingMoreAccounts}
+				>
+					{#if loadingMoreAccounts}
+						<div class="load-more-accounts-spinner"></div>
+					{:else}
+						<span class="material-symbols-outlined">expand_more</span>
+						Load More Accounts
+					{/if}
+				</button>
+			</div>
 		{/if}
 		</div>
 	</div>

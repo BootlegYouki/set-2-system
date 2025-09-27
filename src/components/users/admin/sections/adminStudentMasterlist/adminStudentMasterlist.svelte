@@ -160,7 +160,7 @@
 	// Archive student function
 	async function archiveStudent(studentId, studentName) {
 		try {
-			const result = await api.delete('/api/accounts', { id: studentId });
+			const result = await api.patch('/api/accounts', { id: studentId, action: 'archive' });
 
 			if (result.success) {
 				toastStore.success(result.message);

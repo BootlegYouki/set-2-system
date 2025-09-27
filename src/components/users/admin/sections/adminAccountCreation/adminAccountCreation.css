@@ -1076,7 +1076,68 @@
 .account-submit-button:disabled {
   background-color: var(--md-sys-color-surface-variant);
   color: var(--md-sys-color-on-surface-variant);
-  border-color: var(--md-sys-color-outline-variant);
   cursor: not-allowed;
+}
+
+/* Load More Accounts Button Styles */
+.load-more-accounts-container {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-lg);
+}
+
+.load-more-accounts-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-lg) var(--spacing-lg);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-full);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  min-width: 160px;
+  justify-content: center;
+  max-height: 40px;
+}
+
+.load-more-accounts-button:hover:not(:disabled) {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border-color: var(--md-sys-color-primary);
+  box-shadow: var(--elevation-1);
+}
+
+.load-more-accounts-button:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.load-more-accounts-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #FFF2;
+  box-shadow: 32px 0 #FFF2, -32px 0 #FFF;
+  position: relative;
+  animation: dashboard-flash 0.5s ease-out infinite alternate;
+}
+
+@keyframes dashboard-flash {
+  0% {
+    background-color: #FFF2;
+    box-shadow: 32px 0 #FFF2, -32px 0 #FFF;
+  }
+  50% {
+    background-color: #FFF;
+    box-shadow: 32px 0 #FFF2, -32px 0 #FFF2;
+  }
+  100% {
+    background-color: #FFF2;
+    box-shadow: 32px 0 #FFF, -32px 0 #FFF2;
+  }
 }

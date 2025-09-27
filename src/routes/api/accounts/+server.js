@@ -478,7 +478,7 @@ export async function PUT({ request, getClientAddress }) {
   }
 }
 
-// DELETE /api/accounts - Archive a student account by ID
+// DELETE /api/accounts - Delete an account by ID
 export async function DELETE({ request, getClientAddress }) {
   try {
     const { id } = await request.json();
@@ -497,82 +497,41 @@ export async function DELETE({ request, getClientAddress }) {
     
     const account = checkResult.rows[0];
     
-    // Handle different account types differently
-    if (account.account_type === 'student') {
-      // Archive students instead of deleting
-      const archiveQuery = `
-        UPDATE users 
-        SET 
-          status = 'archived',
-          archived_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-      `;
-      await query(archiveQuery, [id]);
+    // Handle different account types - now delete all account types permanently
+    // Actually delete the account permanently
+    const deleteQuery = `DELETE FROM users WHERE id = $1`;
+    await query(deleteQuery, [id]);
+    
+    // Log the account deletion activity
+    try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
       
-      // Log the account archiving activity
-      try {
-        // Get user info from request headers
-        const user = await getUserFromRequest(request);
-        
-        // Get client IP and user agent
-        const ip_address = getClientAddress();
-        const user_agent = request.headers.get('user-agent');
-        
-        await logActivityWithUser(
-          'account_archived',
-          user,
-          {
-            account_type: account.account_type,
-            full_name: account.full_name
-          },
-          ip_address,
-          user_agent
-        );
-      } catch (logError) {
-        console.error('Error logging account archiving activity:', logError);
-        // Don't fail the archiving if logging fails
-      }
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
       
-      return json({
-        success: true,
-        message: `Student "${account.full_name}" has been archived successfully`
-      });
-    } else {
-      // Actually delete teacher and admin accounts
-      const deleteQuery = `DELETE FROM users WHERE id = $1`;
-      await query(deleteQuery, [id]);
-      
-      // Log the account deletion activity
-      try {
-        // Get user info from request headers
-        const user = await getUserFromRequest(request);
-        
-        // Get client IP and user agent
-        const ip_address = getClientAddress();
-        const user_agent = request.headers.get('user-agent');
-        
-        await logActivityWithUser(
-          'account_deleted',
-          user,
-          {
-            account_type: account.account_type,
-            full_name: account.full_name
-          },
-          ip_address,
-          user_agent
-        );
-      } catch (logError) {
-        console.error('Error logging account deletion activity:', logError);
-        // Don't fail the deletion if logging fails
-      }
-      
-      const accountTypeLabel = account.account_type === 'teacher' ? 'Teacher' : 'Admin';
-      return json({
-        success: true,
-        message: `${accountTypeLabel} "${account.full_name}" has been deleted successfully`
-      });
+      await logActivityWithUser(
+        'account_deleted',
+        user,
+        {
+          account_type: account.account_type,
+          full_name: account.full_name
+        },
+        ip_address,
+        user_agent
+      );
+    } catch (logError) {
+      console.error('Error logging account deletion activity:', logError);
+      // Don't fail the deletion if logging fails
     }
+    
+    const accountTypeLabel = account.account_type === 'student' ? 'Student' : 
+                            account.account_type === 'teacher' ? 'Teacher' : 'Admin';
+    return json({
+      success: true,
+      message: `${accountTypeLabel} "${account.full_name}" has been deleted successfully`
+    });
     
   } catch (error) {
     console.error('Error deleting/archiving account:', error);
@@ -625,4 +584,88 @@ async function generateAccountNumber(accountType) {
   }
   
   return `${prefix}-${year}-${nextNumber.toString().padStart(4, '0')}`;
+}
+
+// PATCH /api/accounts - Archive a student account by ID
+export async function PATCH({ request, getClientAddress }) {
+  try {
+    const { id, action } = await request.json();
+    
+    if (!id) {
+      return json({ error: 'Account ID is required' }, { status: 400 });
+    }
+    
+    if (action !== 'archive') {
+      return json({ error: 'Invalid action. Only "archive" is supported.' }, { status: 400 });
+    }
+    
+    // Check if account exists and is a student
+    const checkQuery = `SELECT id, full_name, account_type FROM users WHERE id = $1`;
+    const checkResult = await query(checkQuery, [id]);
+    
+    if (checkResult.rows.length === 0) {
+      return json({ error: 'Account not found' }, { status: 404 });
+    }
+    
+    const account = checkResult.rows[0];
+    
+    if (account.account_type !== 'student') {
+      return json({ error: 'Only student accounts can be archived' }, { status: 400 });
+    }
+    
+    // Archive the student
+    const archiveQuery = `
+      UPDATE users 
+      SET 
+        status = 'archived',
+        archived_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `;
+    await query(archiveQuery, [id]);
+    
+    // Log the account archiving activity
+    try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await logActivityWithUser(
+        'account_archived',
+        user,
+        {
+          account_type: account.account_type,
+          full_name: account.full_name
+        },
+        ip_address,
+        user_agent
+      );
+    } catch (logError) {
+      console.error('Error logging account archiving activity:', logError);
+      // Don't fail the archiving if logging fails
+    }
+    
+    return json({
+      success: true,
+      message: `Student "${account.full_name}" has been archived successfully`
+    });
+    
+  } catch (error) {
+    console.error('Error archiving account:', error);
+    
+    // Database connection errors
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      return json({ error: 'Database connection failed. Please try again.' }, { status: 503 });
+    }
+    
+    // Foreign key constraint errors
+    if (error.code === '23503') {
+      return json({ error: 'Cannot archive account as it is referenced by other records' }, { status: 409 });
+    }
+    
+    return json({ error: 'Failed to archive account. Please try again.' }, { status: 500 });
+  }
 }
