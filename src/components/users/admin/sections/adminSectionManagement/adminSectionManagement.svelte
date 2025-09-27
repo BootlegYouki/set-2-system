@@ -311,8 +311,8 @@
 
 	// Form submission
 	async function handleCreateSection() {
-		if (!sectionName || !gradeLevel || !selectedAdviser || selectedStudents.length === 0) {
-			toastStore.error('Please fill in all required fields and select at least one student.');
+		if (!sectionName || !gradeLevel) {
+			toastStore.error('Please fill in section name and grade level.');
 			return;
 		}
 
@@ -323,7 +323,7 @@
 				sectionName,
 				gradeLevel: parseInt(gradeLevel),
 				schoolYear,
-				adviserId: selectedAdviser.id,
+				adviserId: selectedAdviser?.id || null,
 				studentIds: selectedStudents.map(s => s.id),
 				roomId: null // Room assignment can be added later
 			});
@@ -645,7 +645,7 @@
 
 					<!-- Adviser Selection -->
 					<div class="sectionmgmt-form-group">
-					<label class="sectionmgmt-form-label" for="adviser">Advisory Teacher *</label>
+					<label class="sectionmgmt-form-label" for="adviser">Advisory Teacher (Optional)</label>
 					<div class="sectionmgmt-custom-dropdown" class:open={isAdviserDropdownOpen}>
 						<button 
 							type="button"
@@ -711,7 +711,7 @@
 
 				<!-- Student Selection -->
 				<div class="sectionmgmt-form-group">
-					<label class="sectionmgmt-form-label" for="students">Students *</label>
+					<label class="sectionmgmt-form-label" for="students">Students (Optional)</label>
 					
 
 
@@ -822,7 +822,7 @@
 						type="submit" 
 						class="sectionmgmt-create-button"
 						class:loading={isCreating}
-						disabled={isCreating || !sectionName || !gradeLevel || !selectedAdviser || selectedStudents.length === 0}
+						disabled={isCreating || !sectionName || !gradeLevel}
 					>
 						{#if isCreating}
 						Creating...
