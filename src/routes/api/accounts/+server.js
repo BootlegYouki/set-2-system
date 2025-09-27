@@ -197,7 +197,7 @@ export async function GET({ url }) {
         u.age,
         u.guardian,
         u.contact_number,
-        s.name as subject_name,
+        s.code as subject_code,
         u.created_at,
         u.updated_at
       FROM users u
@@ -228,7 +228,7 @@ export async function GET({ url }) {
       email: account.email,
       type: account.account_type === 'student' ? 'Student' : account.account_type === 'teacher' ? 'Teacher' : 'Admin',
       number: account.account_number,
-      subject: account.subject_name || '',
+      subject: account.subject_code || '',
       subjectId: account.subject_id,
       gradeLevel: account.grade_level,
       birthdate: account.birthdate,
@@ -568,23 +568,31 @@ async function generateAccountNumber(accountType) {
   const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
   const year = new Date().getFullYear();
   
-  // Get the highest existing number for this type and year
-  const countQuery = `
+  // Get all existing account numbers for this type and year
+  const existingQuery = `
     SELECT account_number 
     FROM users 
     WHERE account_number LIKE $1 
-    ORDER BY account_number DESC 
-    LIMIT 1
+    ORDER BY account_number ASC
   `;
   
-  const result = await query(countQuery, [`${prefix}-${year}-%`]);
+  const result = await query(existingQuery, [`${prefix}-${year}-%`]);
+  
+  // Extract the numeric parts and find the first available number
+  const existingNumbers = result.rows.map(row => {
+    const match = row.account_number.match(/-(\d+)$/);
+    return match ? parseInt(match[1]) : 0;
+  }).sort((a, b) => a - b);
   
   let nextNumber = 1;
-  if (result.rows.length > 0) {
-    const lastNumber = result.rows[0].account_number;
-    const match = lastNumber.match(/-(\d+)$/);
-    if (match) {
-      nextNumber = parseInt(match[1]) + 1;
+  
+  // Find the first gap in the sequence or use the next number after the highest
+  for (let i = 0; i < existingNumbers.length; i++) {
+    if (existingNumbers[i] === nextNumber) {
+      nextNumber++;
+    } else if (existingNumbers[i] > nextNumber) {
+      // Found a gap, use the current nextNumber
+      break;
     }
   }
   
