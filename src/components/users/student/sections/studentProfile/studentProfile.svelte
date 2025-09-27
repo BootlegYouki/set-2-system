@@ -98,8 +98,7 @@
 		academicSummary: {
 			gpa: 'Not available', // Will be populated from grades API
 			rank: 'Not available', // Will be populated from grades API
-			totalStudents: 'Not available', // Will be populated from grades API
-			attendance: 'Not available' // Will be populated from attendance API
+			totalStudents: 'Not available' // Will be populated from grades API
 		},
 		subjects: [] // Will be populated from subjects API
 	});
@@ -205,7 +204,8 @@
 					<p class="profile-loading-text">Loading student information...</p>
 				</div>
 			{:else}
-				<div class="info-cards-grid">
+				<!-- Row 1: 5 cards -->
+				<div class="info-row row-five">
 					<!-- Student ID Card -->
 					<div class="info-card">
 						<div class="info-icon">
@@ -260,7 +260,10 @@
 							<div class="info-value">{totalSubjects || 'Not available'}</div>
 						</div>
 					</div>
+				</div>
 
+				<!-- Row 2: 3 cards -->
+				<div class="info-row row-three">
 					<!-- Email Card -->
 					<div class="info-card">
 						<div class="info-icon">
@@ -283,8 +286,22 @@
 						</div>
 					</div>
 
-					<!-- Address Card -->
+					<!-- Guardian Card -->
 					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">family_restroom</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Guardian</div>
+							<div class="info-value">{studentProfile.guardian || 'Not provided'}</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Row 3: 1 card -->
+				<div class="info-row row-one">
+					<!-- Address Card -->
+					<div class="info-card address-card">
 						<div class="info-icon">
 							<span class="material-symbols-outlined">home</span>
 						</div>
@@ -293,7 +310,10 @@
 							<div class="info-value">{studentProfile.address || 'Not provided'}</div>
 						</div>
 					</div>
+				</div>
 
+				<!-- Row 4: 2 cards -->
+				<div class="info-row row-two">
 					<!-- Birth Date Card -->
 					<div class="info-card">
 						<div class="info-icon">
@@ -315,17 +335,6 @@
 							<div class="info-value">{studentProfile.age ? `${studentProfile.age} years old` : 'Not available'}</div>
 						</div>
 					</div>
-
-					<!-- Guardian Card -->
-					<div class="info-card">
-						<div class="info-icon">
-							<span class="material-symbols-outlined">family_restroom</span>
-						</div>
-						<div class="info-content">
-							<div class="info-label">Guardian</div>
-							<div class="info-value">{studentProfile.guardian || 'Not provided'}</div>
-						</div>
-					</div>
 				</div>
 			{/if}
 		</div>
@@ -339,7 +348,8 @@
 					<p class="profile-loading-text">Loading academic performance...</p>
 				</div>
 			{:else}
-				<div class="info-cards-grid">
+				<!-- Academic Performance Row (2 cards) -->
+				<div class="info-row row-two">
 					<!-- GPA Card -->
 					<div class="info-card">
 						<div class="info-icon">
@@ -358,18 +368,7 @@
 						</div>
 						<div class="info-content">
 							<div class="info-label">Class Rank</div>
-							<div class="info-value">{studentProfile.academicSummary.rank && studentProfile.academicSummary.totalStudents ? `${studentProfile.academicSummary.rank} of ${studentProfile.academicSummary.totalStudents}` : 'Not available'}</div>
-						</div>
-					</div>
-
-					<!-- Attendance Card -->
-					<div class="info-card">
-						<div class="info-icon">
-							<span class="material-symbols-outlined">event_available</span>
-						</div>
-						<div class="info-content">
-							<div class="info-label">Attendance Rate</div>
-							<div class="info-value">{studentProfile.academicSummary.attendance || 'Not available'}</div>
+							<div class="info-value">{studentProfile.academicSummary.rank && studentProfile.academicSummary.totalStudents && studentProfile.academicSummary.rank !== 'Not available' && studentProfile.academicSummary.totalStudents !== 'Not available' ? `${studentProfile.academicSummary.rank} of ${studentProfile.academicSummary.totalStudents}` : 'Not available'}</div>
 						</div>
 					</div>
 				</div>

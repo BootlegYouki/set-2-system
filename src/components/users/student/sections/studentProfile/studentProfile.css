@@ -162,11 +162,56 @@ Student Profile Component Styles
 	margin-bottom: var(--spacing-xl);
 }
 
-.info-cards-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-	gap: var(--spacing-lg);
-	margin-bottom: var(--spacing-xl);
+/* Info Rows Layout */
+.info-row {
+	display: flex;
+	gap: 20px;
+	margin-bottom: 20px;
+	align-items: stretch;
+}
+
+/* Row with 5 cards */
+.row-five {
+	flex-wrap: wrap;
+}
+
+.row-five .info-card {
+	flex: 1 1 calc(20% - 16px);
+	min-width: 180px;
+}
+
+/* Row with 3 cards */
+.row-three {
+	flex-wrap: wrap;
+}
+
+.row-three .info-card {
+	flex: 1 1 calc(33.333% - 14px);
+	min-width: 220px;
+}
+
+/* Row with 1 card */
+.row-one {
+	flex-wrap: nowrap;
+}
+
+.row-one .info-card {
+	flex: 1;
+}
+
+/* Row with 2 cards */
+.row-two {
+	flex-wrap: wrap;
+}
+
+.row-two .info-card {
+	flex: 1 1 calc(50% - 10px);
+	min-width: 250px;
+}
+
+/* Special styling for address card */
+.address-card {
+	min-height: 100px;
 }
 
 /* Contact Information Section */
@@ -322,7 +367,7 @@ Student Profile Component Styles
 
 .info-card {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	gap: var(--spacing-md);
 	padding: var(--spacing-lg);
 	background-color: var(--md-sys-color-surface-container);
@@ -330,6 +375,8 @@ Student Profile Component Styles
 	border: 1px solid var(--md-sys-color-outline-variant);
 	transition: all var(--transition-normal);
 	box-shadow: var(--shadow-sm);
+	height: fit-content;
+	min-height: 80px;
 }
 
 .info-card:hover {
@@ -347,6 +394,7 @@ Student Profile Component Styles
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
+	margin-top: 2px;
 }
 
 .info-icon .material-symbols-outlined {
@@ -374,6 +422,9 @@ Student Profile Component Styles
 	font-weight: 500;
 	color: var(--md-sys-color-on-surface);
 	word-break: break-word;
+	line-height: 1.4;
+	overflow-wrap: break-word;
+	hyphens: auto;
 }
 
 /* Subjects Section */
