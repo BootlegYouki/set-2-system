@@ -55,7 +55,7 @@
 	async function loadSections() {
 		try {
 			isLoading = true;
-			const result = await api.get(`/api/sections?action=section-details&schoolYear=${schoolYear}`);
+			const result = await api.get(`/api/sections?action=section-details&schoolYear=${schoolYear}&_t=${Date.now()}`);
 			
 			if (result.success) {
 				recentSections = result.data.map(section => ({
@@ -69,6 +69,8 @@
 					status: section.status,
 					room: section.room_name ? `${section.room_name} - ${section.room_building}` : 'No Room Assigned',
 					adviser_id: section.adviser_id,
+					adviser_subject: section.adviser_subject,
+					adviser_account_number: section.adviser_account_number,
 					room_id: section.room_id,
 					grade_level: section.grade_level
 				}));
@@ -87,13 +89,36 @@
 			const result = await api.get(`/api/sections?action=available-teachers&schoolYear=${schoolYear}`);
 			
 			if (result.success) {
-				availableAdvisers = result.data.map(teacher => ({
-					id: teacher.id,
-					name: teacher.full_name,
-					employeeId: teacher.account_number,
-					subject: teacher.subject_name || 'No Subject',
-					hasSection: false
-				}));
+				availableAdvisers = result.data.map(teacher => {
+					// Check if this teacher is already assigned to a section
+					// Only check if recentSections array is available
+					const hasSection = recentSections && recentSections.length > 0 ? 
+						recentSections.some(section => section.adviser_id === teacher.id) : false;
+					
+					return {
+						id: teacher.id,
+						name: teacher.full_name,
+						employeeId: teacher.account_number,
+						subject: teacher.subject_name || 'No Subject',
+						hasSection: hasSection
+					};
+				});
+				
+				// Add current section advisers to the list if they're not already there
+				// This ensures that when editing a section, the current adviser appears in the dropdown
+				if (recentSections && recentSections.length > 0) {
+					for (const section of recentSections) {
+						if (section.adviser_id && !availableAdvisers.find(adviser => adviser.id === section.adviser_id)) {
+							availableAdvisers.push({
+								id: section.adviser_id,
+								name: section.adviser,
+								employeeId: section.adviser_account_number || 'N/A',
+								subject: section.adviser_subject || 'No Subject',
+								hasSection: true
+							});
+						}
+					}
+				}
 			}
 		} catch (error) {
 			console.error('Error loading teachers:', error);
@@ -298,7 +323,7 @@
 				studentSearchTerm = '';
 				availableStudents = [];
 
-				// Reload data
+				// Reload data - ensure sections load first, then teachers
 				await loadSections();
 				await loadAvailableTeachers();
 			} else {
@@ -329,8 +354,22 @@
 			// Open the form
 			editingSectionId = section.id;
 			editSectionName = section.name;
-			editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id) || 
-							   { id: section.adviser_id, name: section.adviser, employeeId: '', subject: '', hasSection: true };
+			// Find the adviser by ID from availableAdvisers
+			editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id);
+			
+			// If not found in availableAdvisers, create a placeholder but don't use cached name
+			if (!editSelectedAdviser && section.adviser_id) {
+				editSelectedAdviser = { 
+					id: section.adviser_id, 
+					name: 'Loading...', 
+					employeeId: '', 
+					subject: '', 
+					hasSection: true 
+				};
+				// Reload teachers to get the correct name
+				await loadAvailableTeachers();
+				editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id) || editSelectedAdviser;
+			}
 			
 			// Load students for this section
 			editSelectedStudents = await loadSectionStudents(section.id);
@@ -351,13 +390,15 @@
 		isUpdating = true;
 
 		try {
-			const result = await api.put('/api/sections', {
+			const requestData = {
 				sectionId: editingSectionId,
 				sectionName: editSectionName,
 				adviserId: editSelectedAdviser.id,
 				studentIds: editSelectedStudents.map(s => s.id),
-				roomId: null // Room assignment can be added later
-			});
+				roomId: null
+			};
+
+			const result = await api.put('/api/sections', requestData);
 
 			if (result.success) {
 				// Show success toast
@@ -373,7 +414,7 @@
 				isEditAdviserDropdownOpen = false;
 				isEditStudentDropdownOpen = false;
 
-				// Reload data
+				// Reload data - ensure sections load first, then teachers
 				await loadSections();
 				await loadAvailableTeachers();
 			} else {
@@ -394,10 +435,17 @@
 		isEditStudentDropdownOpen = false;
 	}
 
-	function selectEditAdviser(adviser) {
+	async function selectEditAdviser(adviser) {
+		const selectedAdviserId = adviser.id;
 		editSelectedAdviser = adviser;
 		isEditAdviserDropdownOpen = false;
 		editAdviserSearchTerm = '';
+		
+		// Refresh available advisers to update hasSection status
+		await loadAvailableTeachers();
+		
+		// Re-find the selected adviser in the refreshed list to maintain correct reference
+		editSelectedAdviser = availableAdvisers.find(a => a.id === selectedAdviserId) || adviser;
 	}
 
 	// Handle section removal with modal confirmation
@@ -422,7 +470,7 @@
 	// Handle section removal
 	async function handleRemoveSection(section) {
 		try {
-			const result = await api.delete('/api/sections', { id: section.id });
+			const result = await api.delete(`/api/sections?sectionId=${section.id}`);
 
 			if (result.success) {
 				toastStore.success('Section deleted successfully');
@@ -437,10 +485,13 @@
 	}
 
 	// Edit filtered data
-	$: editFilteredAdvisers = availableAdvisers.filter(adviser => 
-		!adviser.hasSection && 
-		adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase())
-	);
+	$: editFilteredAdvisers = availableAdvisers.filter(adviser => {
+		// Allow advisers without sections OR the current section's adviser
+		const currentSectionAdviser = editingSectionId && recentSections.find(s => s.id === editingSectionId)?.adviser_id;
+		const isAvailable = !adviser.hasSection || adviser.id === currentSectionAdviser;
+		
+		return isAvailable && adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase());
+	});
 	// Store original section students when editing starts
 	let originalSectionStudents = [];
 

@@ -184,6 +184,12 @@ export async function PUT({ request, getClientAddress }) {
         const clientIP = getClientAddress();
         const userAgent = request.headers.get('user-agent');
 
+        console.log('=== PUT REQUEST DEBUG ===');
+        console.log('Received adviserId:', adviserId);
+        console.log('typeof adviserId:', typeof adviserId);
+        console.log('adviserId parsed as int:', parseInt(adviserId));
+        console.log('Full request data:', { sectionId, sectionName, adviserId, studentIds, roomId });
+
         if (!sectionId) {
             return json({ success: false, error: 'Section ID is required' }, { status: 400 });
         }
@@ -203,13 +209,58 @@ export async function PUT({ request, getClientAddress }) {
 
             // Update section basic info
             if (sectionName || adviserId || roomId !== undefined) {
-                await query(`
-                    UPDATE sections 
-                    SET name = COALESCE($1, name),
-                        adviser_id = COALESCE($2, adviser_id),
-                        room_id = $3
-                    WHERE id = $4
-                `, [sectionName, adviserId ? parseInt(adviserId) : null, roomId ? parseInt(roomId) : null, parseInt(sectionId)]);
+                console.log('=== SECTION UPDATE DEBUG ===');
+                console.log('Received adviserId:', adviserId);
+                console.log('Type of adviserId:', typeof adviserId);
+                console.log('Parsed adviserId:', adviserId ? parseInt(adviserId) : null);
+                console.log('sectionName:', sectionName);
+                console.log('roomId:', roomId);
+                console.log('sectionId:', sectionId);
+                
+                // Build dynamic update query based on what fields are provided
+                let updateFields = [];
+                let updateValues = [];
+                let paramIndex = 1;
+                
+                if (sectionName) {
+                    updateFields.push(`name = $${paramIndex}`);
+                    updateValues.push(sectionName);
+                    paramIndex++;
+                }
+                
+                if (adviserId !== undefined) {
+                    console.log('Adding adviser_id to update fields');
+                    updateFields.push(`adviser_id = $${paramIndex}`);
+                    updateValues.push(adviserId ? parseInt(adviserId) : null);
+                    paramIndex++;
+                }
+                
+                if (roomId !== undefined) {
+                    updateFields.push(`room_id = $${paramIndex}`);
+                    updateValues.push(roomId ? parseInt(roomId) : null);
+                    paramIndex++;
+                }
+                
+                if (updateFields.length > 0) {
+                    updateValues.push(parseInt(sectionId)); // Add sectionId as the last parameter
+                    
+                    const updateQuery = `
+                        UPDATE sections 
+                        SET ${updateFields.join(', ')}
+                        WHERE id = $${paramIndex}
+                        RETURNING id, name, adviser_id, room_id
+                    `;
+                    
+                    console.log('Final update query:', updateQuery);
+                    console.log('Final update values:', updateValues);
+                    
+                    const updateResult = await query(updateQuery, updateValues);
+                    console.log('Raw update result:', updateResult.rows[0]);
+                    
+                    // Verify the update actually happened
+                    const verifyResult = await query('SELECT id, name, adviser_id, room_id FROM sections WHERE id = $1', [parseInt(sectionId)]);
+                    console.log('Verification query result:', verifyResult.rows[0]);
+                }
             }
 
             // Handle student changes if provided
@@ -231,8 +282,7 @@ export async function PUT({ request, getClientAddress }) {
                 // Remove students
                 for (const studentId of studentsToRemove) {
                     await query(`
-                        UPDATE section_students 
-                        SET status = 'transferred'
+                        DELETE FROM section_students 
                         WHERE section_id = $1 AND student_id = $2
                     `, [parseInt(sectionId), studentId]);
 
@@ -337,8 +387,8 @@ export async function PUT({ request, getClientAddress }) {
                     const user = await getUserFromRequest(request);
                     
                     // Get old and new adviser details
-                    const oldAdviserResult = await query('SELECT id, full_name, employee_id FROM users WHERE id = $1', [currentSection.adviser_id]);
-                    const newAdviserResult = await query('SELECT id, full_name, employee_id FROM users WHERE id = $1', [parseInt(adviserId)]);
+                    const oldAdviserResult = await query('SELECT id, full_name, account_number FROM users WHERE id = $1', [currentSection.adviser_id]);
+                    const newAdviserResult = await query('SELECT id, full_name, account_number FROM users WHERE id = $1', [parseInt(adviserId)]);
                     
                     const oldAdviser = oldAdviserResult.rows[0];
                     const newAdviser = newAdviserResult.rows[0];
@@ -354,12 +404,12 @@ export async function PUT({ request, getClientAddress }) {
                             old_adviser: {
                                 id: oldAdviser?.id,
                                 name: oldAdviser?.full_name,
-                                employee_id: oldAdviser?.employee_id
+                                account_number: oldAdviser?.account_number
                             },
                             new_adviser: {
                                 id: newAdviser?.id,
                                 name: newAdviser?.full_name,
-                                employee_id: newAdviser?.employee_id
+                                account_number: newAdviser?.account_number
                             }
                         },
                         clientIP,
@@ -370,12 +420,13 @@ export async function PUT({ request, getClientAddress }) {
                 }
             }
 
-            // Log section update only if there are changes other than student modifications
-            const hasNonStudentChanges = (sectionName && sectionName !== currentSection.name) ||
-                                       (adviserId && parseInt(adviserId) !== currentSection.adviser_id) ||
-                                       (roomId !== undefined && parseInt(roomId || 0) !== (currentSection.room_id || 0));
+            // Log general section update only if there are non-adviser changes
+            const hasNameChange = sectionName && sectionName !== currentSection.name;
+            const hasRoomChange = roomId !== undefined && parseInt(roomId || 0) !== (currentSection.room_id || 0);
+            const hasAdviserChange = adviserId && parseInt(adviserId) !== currentSection.adviser_id;
             
-            if (hasNonStudentChanges) {
+            // Only log general section update if there are name or room changes (adviser changes are logged separately)
+            if (hasNameChange || hasRoomChange) {
                 try {
                     const user = await getUserFromRequest(request);
                     await logActivityWithUser(
@@ -387,9 +438,8 @@ export async function PUT({ request, getClientAddress }) {
                             grade_level: currentSection.grade_level,
                             school_year: currentSection.school_year,
                             changes: {
-                                name_changed: sectionName && sectionName !== currentSection.name,
-                                adviser_changed: adviserId && parseInt(adviserId) !== currentSection.adviser_id,
-                                room_changed: roomId !== undefined && parseInt(roomId || 0) !== (currentSection.room_id || 0)
+                                name_changed: hasNameChange,
+                                room_changed: hasRoomChange
                             }
                         },
                         clientIP,
@@ -461,18 +511,16 @@ export async function DELETE({ url, request, getClientAddress }) {
                 `, [section.room_id]);
             }
 
-            // Mark section as archived instead of deleting
+            // Completely delete section_students records first (CASCADE will handle this, but being explicit)
             await query(`
-                UPDATE sections 
-                SET status = 'archived'
-                WHERE id = $1
+                DELETE FROM section_students 
+                WHERE section_id = $1
             `, [parseInt(sectionId)]);
 
-            // Mark all student enrollments as dropped
+            // Completely delete the section
             await query(`
-                UPDATE section_students 
-                SET status = 'dropped'
-                WHERE section_id = $1 AND status = 'active'
+                DELETE FROM sections 
+                WHERE id = $1
             `, [parseInt(sectionId)]);
 
             // Log section deletion with proper user attribution
