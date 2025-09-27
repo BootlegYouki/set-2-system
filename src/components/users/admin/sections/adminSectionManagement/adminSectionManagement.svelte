@@ -998,7 +998,7 @@
 						disabled={isUpdating || !editSectionName || !editSelectedAdviser}
 					>
 						{#if isUpdating}
-							Updating
+							Updating...
 						{:else}
 							Update
 						{/if}

@@ -544,7 +544,7 @@
 										disabled={isUpdating || !editRoomName || !editBuilding || !editFloor}
 									>
 										{#if isUpdating}
-												Updating
+												Updating...
 											{:else}
 												Update
 											{/if}
