@@ -167,14 +167,8 @@
 </script>
 
 <div class="profile-container">
-	<!-- Loading State -->
-	{#if isLoading}
-		<div class="loading-container">
-			<div class="loading-spinner"></div>
-			<p>Loading profile data...</p>
-		</div>
-	{:else if error}
-		<!-- Error State -->
+	<!-- Error State -->
+	{#if error}
 		<div class="error-container">
 			<div class="error-icon">
 				<span class="material-symbols-outlined">error</span>
@@ -186,7 +180,7 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Header Section -->
+		<!-- Header Section - Always visible -->
 		<div class="profile-header">
 			<div class="header-content">
 				<h1 class="page-title">Student Profile</h1>
@@ -202,204 +196,223 @@
 			</div>
 		</div>
 
-	<!-- Student Information Cards -->
-	<div class="profile-info-section">
-		<h2 class="section-title">Student Information</h2>
-		<div class="info-cards-grid">
-			<!-- Student ID Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">badge</span>
+		<!-- Student Information Cards -->
+		<div class="profile-info-section">
+			<h2 class="section-title">Student Information</h2>
+			{#if isLoading}
+				<div class="profile-loading-container">
+					<span class="profile-loader"></span>
+					<p class="profile-loading-text">Loading student information...</p>
 				</div>
-				<div class="info-content">
-					<div class="info-label">Student ID</div>
-					<div class="info-value">{studentProfile.id}</div>
-				</div>
-			</div>
-
-			<!-- Full Name Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">person</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Full Name</div>
-					<div class="info-value">{studentProfile.name}</div>
-				</div>
-			</div>
-
-			<!-- Year Level Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">school</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Year Level</div>
-					<div class="info-value">{studentProfile.yearLevel}</div>
-				</div>
-			</div>
-
-			<!-- Section Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">group</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Section</div>
-					<div class="info-value">{studentProfile.section || 'Not assigned'}</div>
-				</div>
-			</div>
-
-			<!-- Total Subjects Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">menu_book</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Total Subjects</div>
-					<div class="info-value">{totalSubjects || 'Not available'}</div>
-				</div>
-			</div>
-
-			<!-- Email Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">email</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Email</div>
-					<div class="info-value">{studentProfile.email || 'Not provided'}</div>
-				</div>
-			</div>
-
-			<!-- Contact Number Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">phone</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Contact Number</div>
-					<div class="info-value">{studentProfile.phone || 'Not provided'}</div>
-				</div>
-			</div>
-
-			<!-- Address Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">home</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Address</div>
-					<div class="info-value">{studentProfile.address || 'Not provided'}</div>
-				</div>
-			</div>
-
-			<!-- Birth Date Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">cake</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Birth Date</div>
-					<div class="info-value">{studentProfile.birthDate || 'Not provided'}</div>
-				</div>
-			</div>
-
-			<!-- Age Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">person_outline</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Age</div>
-					<div class="info-value">{studentProfile.age ? `${studentProfile.age} years old` : 'Not available'}</div>
-				</div>
-			</div>
-
-			<!-- Guardian Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">family_restroom</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Guardian</div>
-					<div class="info-value">{studentProfile.guardian || 'Not provided'}</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Academic Performance Section -->
-	<div class="profile-academic-section">
-		<h2 class="section-title">Academic Performance</h2>
-		<div class="info-cards-grid">
-			<!-- GPA Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">grade</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">General Average</div>
-					<div class="info-value">{studentProfile.academicSummary.gpa || 'Not available'}</div>
-				</div>
-			</div>
-
-			<!-- Class Rank Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">leaderboard</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Class Rank</div>
-					<div class="info-value">{studentProfile.academicSummary.rank && studentProfile.academicSummary.totalStudents ? `${studentProfile.academicSummary.rank} of ${studentProfile.academicSummary.totalStudents}` : 'Not available'}</div>
-				</div>
-			</div>
-
-			<!-- Attendance Card -->
-			<div class="info-card">
-				<div class="info-icon">
-					<span class="material-symbols-outlined">event_available</span>
-				</div>
-				<div class="info-content">
-					<div class="info-label">Attendance Rate</div>
-					<div class="info-value">{studentProfile.academicSummary.attendance || 'Not available'}</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Subjects Section -->
-	<div class="profile-subjects-section">
-		<h2 class="section-title">Enrolled Subjects</h2>
-		{#if studentProfile.subjects.length > 0}
-			<div class="subjects-grid">
-				{#each studentProfile.subjects as subject (subject.id)}
-					<div class="subject-card">
-						<!-- Subject Icon -->
-						<div class="subject-icon-column">
-							<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
-								<span class="material-symbols-outlined">book</span>
-							</div>
+			{:else}
+				<div class="info-cards-grid">
+					<!-- Student ID Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">badge</span>
 						</div>
-						
-						<!-- Subject Details -->
-						<div class="subject-details-column">
-							<h3 class="subject-name">{subject.name}</h3>
-							<p class="teacher-name">{subject.teacher}</p>
-							<div class="subject-id">
-								<span class="material-symbols-outlined">tag</span>
-								<span class="subject-id-text">{subject.id}</span>
-							</div>
+						<div class="info-content">
+							<div class="info-label">Student ID</div>
+							<div class="info-value">{studentProfile.id}</div>
 						</div>
 					</div>
-				{/each}
-			</div>
-		{:else}
-			<div class="subjects-empty">
-				<span class="material-symbols-outlined">menu_book</span>
-				<p>No subjects enrolled yet</p>
-			</div>
-		{/if}
-	</div>
+
+					<!-- Full Name Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">person</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Full Name</div>
+							<div class="info-value">{studentProfile.name}</div>
+						</div>
+					</div>
+
+					<!-- Year Level Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">school</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Year Level</div>
+							<div class="info-value">{studentProfile.yearLevel}</div>
+						</div>
+					</div>
+
+					<!-- Section Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">group</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Section</div>
+							<div class="info-value">{studentProfile.section || 'Not assigned'}</div>
+						</div>
+					</div>
+
+					<!-- Total Subjects Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">menu_book</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Total Subjects</div>
+							<div class="info-value">{totalSubjects || 'Not available'}</div>
+						</div>
+					</div>
+
+					<!-- Email Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">email</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Email</div>
+							<div class="info-value">{studentProfile.email || 'Not provided'}</div>
+						</div>
+					</div>
+
+					<!-- Contact Number Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">phone</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Contact Number</div>
+							<div class="info-value">{studentProfile.phone || 'Not provided'}</div>
+						</div>
+					</div>
+
+					<!-- Address Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">home</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Address</div>
+							<div class="info-value">{studentProfile.address || 'Not provided'}</div>
+						</div>
+					</div>
+
+					<!-- Birth Date Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">cake</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Birth Date</div>
+							<div class="info-value">{studentProfile.birthDate || 'Not provided'}</div>
+						</div>
+					</div>
+
+					<!-- Age Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">person_outline</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Age</div>
+							<div class="info-value">{studentProfile.age ? `${studentProfile.age} years old` : 'Not available'}</div>
+						</div>
+					</div>
+
+					<!-- Guardian Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">family_restroom</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Guardian</div>
+							<div class="info-value">{studentProfile.guardian || 'Not provided'}</div>
+						</div>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Academic Performance Section -->
+		<div class="profile-academic-section">
+			<h2 class="section-title">Academic Performance</h2>
+			{#if isLoading}
+				<div class="profile-loading-container">
+					<span class="profile-loader"></span>
+					<p class="profile-loading-text">Loading academic performance...</p>
+				</div>
+			{:else}
+				<div class="info-cards-grid">
+					<!-- GPA Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">grade</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">General Average</div>
+							<div class="info-value">{studentProfile.academicSummary.gpa || 'Not available'}</div>
+						</div>
+					</div>
+
+					<!-- Class Rank Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">leaderboard</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Class Rank</div>
+							<div class="info-value">{studentProfile.academicSummary.rank && studentProfile.academicSummary.totalStudents ? `${studentProfile.academicSummary.rank} of ${studentProfile.academicSummary.totalStudents}` : 'Not available'}</div>
+						</div>
+					</div>
+
+					<!-- Attendance Card -->
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">event_available</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Attendance Rate</div>
+							<div class="info-value">{studentProfile.academicSummary.attendance || 'Not available'}</div>
+						</div>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Subjects Section -->
+		<div class="profile-subjects-section">
+			<h2 class="section-title">Enrolled Subjects</h2>
+			{#if isLoading}
+				<div class="profile-loading-container">
+					<span class="profile-loader"></span>
+					<p class="profile-loading-text">Loading enrolled subjects...</p>
+				</div>
+			{:else if studentProfile.subjects.length > 0}
+				<div class="subjects-grid">
+					{#each studentProfile.subjects as subject (subject.id)}
+						<div class="subject-card">
+							<!-- Subject Icon -->
+							<div class="subject-icon-column">
+								<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
+									<span class="material-symbols-outlined">book</span>
+								</div>
+							</div>
+							
+							<!-- Subject Details -->
+							<div class="subject-details-column">
+								<h3 class="subject-name">{subject.name}</h3>
+								<p class="teacher-name">{subject.teacher}</p>
+								<div class="subject-id">
+									<span class="material-symbols-outlined">tag</span>
+									<span class="subject-id-text">{subject.id}</span>
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="subjects-empty">
+					<span class="material-symbols-outlined">menu_book</span>
+					<p>No subjects enrolled yet</p>
+				</div>
+			{/if}
+		</div>
 	{/if}
 </div>

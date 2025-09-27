@@ -493,6 +493,52 @@ Student Profile Component Styles
 	margin: 0;
 }
 
+/* Loading States */
+.profile-loading-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xl);
+	min-height: 200px;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.profile-loader {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background-color: var(--md-sys-color-on-surface-variant);
+	box-shadow: 32px 0 #fff, -32px 0 #fff;
+	position: relative;
+	animation: profile-flash 0.5s ease-out infinite alternate;
+	margin-bottom: var(--spacing-md);
+}
+
+@keyframes profile-flash {
+	0% {
+		background-color: #FFF2;
+		box-shadow: 32px 0 #FFF2, -32px 0 #FFF;
+	}
+	50% {
+		background-color: #FFF;
+		box-shadow: 32px 0 #FFF2, -32px 0 #FFF2;
+	}
+	100% {
+		background-color: #FFF2;
+		box-shadow: 32px 0 #FFF, -32px 0 #FFF2;
+	}
+}
+
+.profile-loading-text {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	font-weight: var(--md-sys-typescale-body-large-weight);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+	text-align: center;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
 	.profile-container {
