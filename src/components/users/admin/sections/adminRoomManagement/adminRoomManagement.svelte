@@ -3,11 +3,14 @@
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { roomManagementStore } from '../../../../../lib/stores/admin/roomManagementStore.js';
 	import { onMount } from 'svelte';
+
+	// Subscribe to room management store
+	$: ({ rooms: existingRooms, availableSections, isLoading, error: storeError } = $roomManagementStore);
 
 	// Room management state
 	let isCreating = false;
-	let isLoading = false;
 
 	// Room creation state
 	let roomName = '';
@@ -27,44 +30,42 @@
 	let isAssigningInline = false;
 	let isAssignSectionDropdownOpen = false;
 
-	// Data arrays
-	let existingRooms = [];
-	let availableSections = [];
-
 	// Load rooms data from API
-	async function loadRooms() {
-		isLoading = true;
+	async function loadRooms(silent = false) {
 		try {
+			if (!silent) {
+				roomManagementStore.setLoading(true);
+			}
+			
 			const data = await api.get('/api/rooms');
 			
 			if (data.success) {
-				existingRooms = data.data || [];
+				roomManagementStore.updateRooms(data.data || []);
 			} else {
 				throw new Error(data.message || 'Failed to load rooms');
 			}
 		} catch (error) {
 			console.error('Error loading rooms:', error);
+			roomManagementStore.setError('Failed to load rooms. Please try again.');
 			toastStore.error('Failed to load rooms. Please try again.');
-			existingRooms = [];
-		} finally {
-			isLoading = false;
 		}
 	}
 
 	// Load available sections from API
-	async function loadAvailableSections() {
+	async function loadAvailableSections(silent = false) {
 		try {
 			const data = await api.get('/api/sections?action=available-sections');
 			
 			if (data.success) {
-				availableSections = data.data || [];
+				roomManagementStore.updateSections(data.data || []);
 			} else {
 				throw new Error(data.message || 'Failed to load sections');
 			}
 		} catch (error) {
 			console.error('Error loading sections:', error);
-			toastStore.error('Failed to load sections. Please try again.');
-			availableSections = [];
+			if (!silent) {
+				toastStore.error('Failed to load sections. Please try again.');
+			}
 		}
 	}
 
@@ -78,8 +79,8 @@
 					const data = await api.delete('/api/rooms', { id: room.id });
 					
 					if (data.success) {
-						// Remove room from the list
-						existingRooms = existingRooms.filter(r => r.id !== room.id);
+						// Remove room from the store
+						roomManagementStore.removeRoom(room.id);
 						toastStore.success(data.message);
 					} else {
 						throw new Error(data.message || 'Failed to remove room');
@@ -112,8 +113,8 @@
 			});
 			
 			if (data.success) {
-				// Add new room to the list
-				existingRooms = [data.data, ...existingRooms];
+				// Add new room to the store
+				roomManagementStore.addRoom(data.data);
 				toastStore.success(data.message);
 				resetRoomForm();
 			} else {
@@ -222,12 +223,8 @@
 			});
 			
 			if (data.success) {
-				// Update room in the array
-				const roomIndex = existingRooms.findIndex(r => r.id === editingRoomId);
-				if (roomIndex !== -1) {
-					existingRooms[roomIndex] = data.data;
-					existingRooms = [...existingRooms];
-				}
+				// Update room in the store
+				roomManagementStore.updateRoom(editingRoomId, data.data);
 				
 				toastStore.success(data.message);
 				
@@ -311,8 +308,26 @@
 
 	// Load rooms and sections when component mounts
 	onMount(() => {
-		loadRooms();
-		loadAvailableSections();
+		// Initialize room management store with cached data (instant load)
+		const cachedData = roomManagementStore.getCachedData();
+		if (cachedData) {
+			roomManagementStore.init(cachedData);
+		}
+		
+		// Fetch fresh data (silent if we have cache, visible loading if not)
+		loadRooms(!!cachedData);
+		loadAvailableSections(!!cachedData);
+		
+		// Set up periodic silent refresh every 30 seconds
+		const refreshInterval = setInterval(() => {
+			loadRooms(true); // Always silent for periodic refresh
+			loadAvailableSections(true); // Always silent for periodic refresh
+		}, 30000);
+		
+		// Cleanup interval on component destroy
+		return () => {
+			clearInterval(refreshInterval);
+		};
 	});
 </script>
 

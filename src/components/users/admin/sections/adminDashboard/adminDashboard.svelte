@@ -2,110 +2,123 @@
 	import './adminDashboard.css';
 	import { onMount } from 'svelte';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { dashboardStore } from '../../../../../lib/stores/admin/dashboardStore.js';
+	import { activityLogsStore } from '../../../../../lib/stores/admin/activityLogsStore.js';
 
-	// Dashboard statistics (will be loaded from API)
-	let dashboardStats = [
-		{ id: 'students', label: 'Total Students', value: '0', icon: 'school', color: 'primary' },
-		{ id: 'teachers', label: 'Total Teachers', value: '0', icon: 'person', color: 'primary' },
-		{ id: 'sections', label: 'Total Sections', value: '0', icon: 'class', color: 'primary' },
-		{ id: 'rooms', label: 'Total Rooms', value: '0', icon: 'meeting_room', color: 'primary' }
-	];
+	// Subscribe to dashboard store
+	$: ({ data: dashboardStats, isLoading: statsLoading, error: statsError } = $dashboardStore);
 
-	let statsLoading = true;
-	let statsError = null;
+	// Subscribe to activity logs store
+	$: ({ 
+		activities: recentActivities, 
+		isLoading: activitiesLoading, 
+		error: activitiesError,
+		hasMoreActivities,
+		activityLimit,
+		loadingMore
+	} = $activityLogsStore);
 
 	// Fetch dashboard statistics from API
-	async function fetchDashboardStats() {
+	async function fetchDashboardStats(silent = false) {
 		try {
-			statsLoading = true;
-			statsError = null;
+			if (!silent) {
+				dashboardStore.setLoading(true);
+			}
 			
 			const data = await api.get('/api/dashboard');
 			
 			if (data.success) {
 				// Update the stats with real data
-				dashboardStats = [
+				const newStats = [
 					{ id: 'students', label: 'Total Students', value: data.data.students.toLocaleString(), icon: 'school', color: 'primary' },
 					{ id: 'teachers', label: 'Total Teachers', value: data.data.teachers.toLocaleString(), icon: 'person', color: 'primary' },
 					{ id: 'sections', label: 'Total Sections', value: data.data.sections.toLocaleString(), icon: 'class', color: 'primary' },
 					{ id: 'rooms', label: 'Total Rooms', value: data.data.rooms.toLocaleString(), icon: 'meeting_room', color: 'primary' }
 				];
+				
+				dashboardStore.updateData(newStats);
 			} else {
 				throw new Error(data.error || 'Failed to fetch dashboard statistics');
 			}
 		} catch (error) {
 			console.error('Error fetching dashboard statistics:', error);
-			statsError = error.message;
-		} finally {
-			statsLoading = false;
+			dashboardStore.setError(error.message);
 		}
 	}
 
 
 
-	// Recent activities (loaded from API)
-	let recentActivities = [];
-	let activitiesLoading = true;
-	let activitiesError = null;
-	let activityLimit = 4;
-	let hasMoreActivities = true;
-	let loadingMore = false;
-
-
-
 	// Fetch recent activities from API
-	async function fetchRecentActivities() {
+	async function fetchRecentActivities(silent = false) {
 		try {
-			activitiesLoading = true;
-			activitiesError = null;
+			if (!silent) {
+				activityLogsStore.setLoading(true);
+			}
+			
 			const response = await fetch(`/api/activity-logs?limit=${activityLimit}`);
 			const data = await response.json();
 			
 			if (data.success) {
-				recentActivities = data.activities;
-				// Check if there are more activities to load
-				hasMoreActivities = data.activities.length === activityLimit;
+				const hasMore = data.activities.length === activityLimit;
+				activityLogsStore.updateActivities(data.activities, activityLimit, hasMore);
 			} else {
 				throw new Error(data.error || 'Failed to fetch activities');
 			}
 		} catch (error) {
 			console.error('Error fetching activities:', error);
-			activitiesError = error.message;
-		} finally {
-			activitiesLoading = false;
+			activityLogsStore.setError(error.message);
 		}
 	}
 
 	// Load more activities
 	async function loadMoreActivities() {
 		try {
-			loadingMore = true;
-			activitiesError = null;
+			activityLogsStore.setLoadingMore(true);
 			
 			const newLimit = activityLimit + 4;
 			const response = await fetch(`/api/activity-logs?limit=${newLimit}`);
 			const data = await response.json();
 			
 			if (data.success) {
-				recentActivities = data.activities;
-				activityLimit = newLimit;
-				// Check if there are more activities to load
-				hasMoreActivities = data.activities.length === newLimit;
+				const hasMore = data.activities.length === newLimit;
+				activityLogsStore.updateActivities(data.activities, newLimit, hasMore);
 			} else {
 				throw new Error(data.error || 'Failed to fetch more activities');
 			}
 		} catch (error) {
 			console.error('Error loading more activities:', error);
-			activitiesError = error.message;
-		} finally {
-			loadingMore = false;
+			activityLogsStore.setError(error.message);
 		}
 	}
 
 	// Load activities and statistics on component mount
 	onMount(() => {
-		fetchRecentActivities();
-		fetchDashboardStats();
+		// Initialize dashboard store with cached data (instant load)
+		const cachedData = dashboardStore.getCachedData();
+		if (cachedData) {
+			dashboardStore.init(cachedData);
+		}
+		
+		// Initialize activity logs store with cached data (instant load)
+		const cachedActivities = activityLogsStore.getCachedData();
+		if (cachedActivities) {
+			activityLogsStore.init(cachedActivities);
+		}
+		
+		// Fetch fresh data (silent if we have cache, visible loading if not)
+		fetchDashboardStats(!!cachedData);
+		fetchRecentActivities(!!cachedActivities);
+		
+		// Set up periodic silent refresh every 30 seconds
+		const refreshInterval = setInterval(() => {
+			fetchDashboardStats(true); // Always silent for periodic refresh
+			fetchRecentActivities(true); // Always silent for periodic refresh
+		}, 30000);
+		
+		// Cleanup interval on component destroy
+		return () => {
+			clearInterval(refreshInterval);
+		};
 	});
 </script>
 
@@ -129,7 +142,7 @@
 			<div class="stats-error">
 				<span class="material-symbols-outlined">error</span>
 				<p>Error loading statistics: {statsError}</p>
-				<button class="retry-button" on:click={fetchDashboardStats}>
+				<button class="retry-button" on:click={() => fetchDashboardStats(false)}>
 					<span class="material-symbols-outlined">refresh</span>
 					Retry
 				</button>
