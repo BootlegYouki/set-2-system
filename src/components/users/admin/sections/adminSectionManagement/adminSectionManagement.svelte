@@ -870,7 +870,7 @@
 				<div class="sectionmgmt-section-details">
 						<div class="sectionmgmt-section-adviser">
 							<span class="material-symbols-outlined">person_book</span>
-							<span>{section.adviser_name}</span>
+							<span>{section.adviser_name || 'No adviser'}</span>
 						</div>
 						<div class="sectionmgmt-section-students">
 							<span class="material-symbols-outlined">group</span>

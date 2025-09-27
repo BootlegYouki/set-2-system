@@ -116,8 +116,8 @@ export async function GET({ url }) {
 					icon = 'edit';
 					break;
 				case 'section_adviser_changed':
-					const oldAdviser = data.old_adviser ? `${data.old_adviser.name} (${data.old_adviser.account_number})` : 'None';
-					const newAdviser = data.new_adviser ? `${data.new_adviser.name} (${data.new_adviser.account_number})` : 'None';
+					const oldAdviser = data.old_adviser ? `${data.old_adviser.name} (${data.old_adviser.account_number})` : 'No adviser';
+					const newAdviser = data.new_adviser ? `${data.new_adviser.name} (${data.new_adviser.account_number})` : 'No adviser';
 					message = `Section adviser changed for ${data.section_name}: ${oldAdviser} → ${newAdviser}`;
 					icon = 'swap_horiz';
 					break;

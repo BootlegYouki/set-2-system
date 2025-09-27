@@ -424,11 +424,13 @@ export async function PUT({ request, getClientAddress }) {
                     const user = await getUserFromRequest(request);
                     
                     // Get old and new adviser details
-                    const oldAdviserResult = await query('SELECT id, full_name, account_number FROM users WHERE id = $1', [currentSection.adviser_id]);
+                    const oldAdviserResult = currentSection.adviser_id ? 
+                        await query('SELECT id, full_name, account_number FROM users WHERE id = $1', [currentSection.adviser_id]) : 
+                        { rows: [] };
                     const newAdviserResult = await query('SELECT id, full_name, account_number FROM users WHERE id = $1', [parseInt(adviserId)]);
                     
-                    const oldAdviser = oldAdviserResult.rows[0];
-                    const newAdviser = newAdviserResult.rows[0];
+                    const oldAdviser = oldAdviserResult.rows[0] || null;
+                    const newAdviser = newAdviserResult.rows[0] || null;
                     
                     await logActivityWithUser(
                         'section_adviser_changed',
@@ -438,16 +440,16 @@ export async function PUT({ request, getClientAddress }) {
                             section_name: sectionName || currentSection.name,
                             grade_level: currentSection.grade_level,
                             school_year: currentSection.school_year,
-                            old_adviser: {
-                                id: oldAdviser?.id,
-                                name: oldAdviser?.full_name,
-                                account_number: oldAdviser?.account_number
-                            },
-                            new_adviser: {
-                                id: newAdviser?.id,
-                                name: newAdviser?.full_name,
-                                account_number: newAdviser?.account_number
-                            }
+                            old_adviser: oldAdviser ? {
+                                id: oldAdviser.id,
+                                name: oldAdviser.full_name,
+                                account_number: oldAdviser.account_number
+                            } : null,
+                            new_adviser: newAdviser ? {
+                                id: newAdviser.id,
+                                name: newAdviser.full_name,
+                                account_number: newAdviser.account_number
+                            } : null
                         },
                         clientIP,
                         userAgent
