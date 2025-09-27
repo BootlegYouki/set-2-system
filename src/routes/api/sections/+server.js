@@ -11,6 +11,40 @@ export async function GET({ url }) {
         const sectionId = url.searchParams.get('sectionId');
 
         switch (action) {
+            case 'available-sections':
+                const sectionsResult = await query(`
+                    SELECT 
+                        id,
+                        name,
+                        grade_level,
+                        school_year,
+                        status,
+                        room_id
+                    FROM sections
+                    WHERE status = 'active' AND room_id IS NULL
+                    ORDER BY grade_level, name
+                `);
+                return json({ success: true, data: sectionsResult.rows });
+
+            case 'available-rooms':
+                const roomsResult = await query(`
+                    SELECT 
+                        r.id,
+                        r.name,
+                        r.building,
+                        r.floor,
+                        r.status,
+                        CASE 
+                            WHEN COUNT(s.id) > 0 THEN false
+                            ELSE true
+                        END as available
+                    FROM rooms r
+                    LEFT JOIN sections s ON r.id = s.room_id AND s.status = 'active'
+                    GROUP BY r.id, r.name, r.building, r.floor, r.status
+                    ORDER BY r.building, r.floor, r.name
+                `);
+                return json({ success: true, data: roomsResult.rows });
+
             case 'available-teachers':
                 const teacherGradeLevel = url.searchParams.get('teacherGradeLevel');
                 const teachersResult = await query('SELECT * FROM get_available_teachers($1, $2)', [schoolYear, teacherGradeLevel ? parseInt(teacherGradeLevel) : null]);
@@ -24,8 +58,8 @@ export async function GET({ url }) {
                 return json({ success: true, data: studentsResult.rows });
 
             case 'section-details':
-                const sectionsResult = await query('SELECT * FROM get_section_details($1, $2)', [sectionId ? parseInt(sectionId) : null, schoolYear]);
-                return json({ success: true, data: sectionsResult.rows });
+                const sectionDetailsResult = await query('SELECT * FROM get_section_details($1, $2)', [sectionId ? parseInt(sectionId) : null, schoolYear]);
+                return json({ success: true, data: sectionDetailsResult.rows });
 
             case 'section-students':
                 if (!sectionId) {

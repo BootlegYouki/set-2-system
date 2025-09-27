@@ -49,6 +49,16 @@
 	onMount(async () => {
 		await loadSections();
 		await loadAvailableTeachers();
+		
+		// Set up periodic refresh to catch room assignments from other components
+		const refreshInterval = setInterval(async () => {
+			await loadSections();
+		}, 30000); // Refresh every 30 seconds
+		
+		// Clean up interval on component destroy
+		return () => {
+			clearInterval(refreshInterval);
+		};
 	});
 
 	// API Functions
@@ -72,6 +82,9 @@
 					adviser_subject: section.adviser_subject,
 					adviser_account_number: section.adviser_account_number,
 					room_id: section.room_id,
+					room_name: section.room_name,
+					room_building: section.room_building,
+					room_floor: section.room_floor,
 					grade_level: section.grade_level
 				}));
 			}
@@ -538,6 +551,17 @@
 			<h1 class="sectionmgmt-page-title">Section Management</h1>
 			<p class="sectionmgmt-page-subtitle">Create and manage class sections, assign students and advisory teachers</p>
 		</div>
+		<div class="sectionmgmt-header-actions">
+			<button 
+				class="sectionmgmt-refresh-btn" 
+				on:click={loadSections}
+				disabled={isLoading}
+				title="Refresh sections to see latest room assignments"
+			>
+				<span class="material-symbols-outlined">refresh</span>
+				{isLoading ? 'Refreshing...' : 'Refresh'}
+			</button>
+		</div>
 	</div>
 
 	<!-- Section Creation Form -->
@@ -863,7 +887,7 @@
 						</div>
 						<div class="sectionmgmt-section-room">
 							<span class="material-symbols-outlined">location_on</span>
-							<span>{section.room}</span>
+							<span>{section.room_name ? `${section.room_name} (${section.room_building}, ${section.room_floor})` : 'No room assigned'}</span>
 						</div>
 						<div class="sectionmgmt-section-created">
 						<span class="material-symbols-outlined">calendar_today</span>

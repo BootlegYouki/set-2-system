@@ -2,6 +2,8 @@
 	import './adminScheduleManagement.css';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { onMount } from 'svelte';
 
 	// Schedule assignment state
 	let isAssigning = false;
@@ -75,6 +77,9 @@
 		'Fri': 'Friday'
 	};
 
+	// Current school year
+	const currentSchoolYear = '2024-2025';
+
 	// Grade levels for Philippines DepEd (Grades 7-10)
 	const years = [
 		{ id: 'grade-7', name: 'Grade 7', description: 'Junior High School - First Year' },
@@ -83,51 +88,90 @@
 		{ id: 'grade-10', name: 'Grade 10', description: 'Junior High School - Fourth Year' }
 	];
 
-	const sections = [
-		{ id: 'grade7-a', name: 'Section A', grade: 'Grade 7', year: 'grade-7' },
-		{ id: 'grade7-b', name: 'Section B', grade: 'Grade 7', year: 'grade-7' },
-		{ id: 'grade8-a', name: 'Section A', grade: 'Grade 8', year: 'grade-8' },
-		{ id: 'grade8-b', name: 'Section B', grade: 'Grade 8', year: 'grade-8' },
-		{ id: 'grade9-a', name: 'Section A', grade: 'Grade 9', year: 'grade-9' },
-		{ id: 'grade9-b', name: 'Section B', grade: 'Grade 9', year: 'grade-9' },
-		{ id: 'grade10-a', name: 'Section A', grade: 'Grade 10', year: 'grade-10' },
-		{ id: 'grade10-b', name: 'Section B', grade: 'Grade 10', year: 'grade-10' }
-	];
+	// Data arrays - will be populated from API
+	let sections = [];
+	let teachers = [];
+	let subjects = [];
+	let timeSlots = [];
+	let scheduleAssignments = [];
 
-	const teachers = [
-		{ id: 'teacher1', name: 'Ms. Maria Santos' },
-		{ id: 'teacher2', name: 'Mr. Juan Dela Cruz' },
-		{ id: 'teacher3', name: 'Ms. Ana Garcia' },
-		{ id: 'teacher4', name: 'Mr. Pedro Rodriguez' },
-		{ id: 'teacher5', name: 'Ms. Carmen Lopez' },
-		{ id: 'teacher6', name: 'Mr. Jose Reyes' },
-		{ id: 'teacher7', name: 'Ms. Rosa Fernandez' },
-		{ id: 'teacher8', name: 'Mr. Miguel Torres' },
-		{ id: 'teacher9', name: 'Ms. Elena Morales' },
-		{ id: 'teacher10', name: 'Mr. Carlos Mendoza' }
-	];
+	// Load data from API on component mount
+	onMount(async () => {
+		await loadInitialData();
+	});
 
-	const subjects = [
-		{ id: 'math', name: 'Mathematics', icon: 'calculate' },
-		{ id: 'science', name: 'Science', icon: 'science' },
-		{ id: 'english', name: 'English', icon: 'menu_book' },
-		{ id: 'filipino', name: 'Filipino', icon: 'translate' },
-		{ id: 'social-studies', name: 'Social Studies', icon: 'public' },
-		{ id: 'pe', name: 'Physical Education', icon: 'sports' },
-		{ id: 'arts', name: 'Arts', icon: 'palette' },
-		{ id: 'tle', name: 'Technology and Livelihood Education', icon: 'engineering' }
-	];
+	async function loadInitialData() {
+		isLoading = true;
+		try {
+			// Load sections
+			const sectionsResponse = await api.get('/api/sections');
+			sections = sectionsResponse.sections || [];
 
-	// Dynamic time slots that can be managed by admin
-	let timeSlots = [
-		{ id: 'slot1', time: '7:30 AM - 8:30 AM', period: '1st Period' },
-		{ id: 'slot2', time: '8:30 AM - 9:30 AM', period: '2nd Period' },
-		{ id: 'slot3', time: '9:30 AM - 10:30 AM', period: '3rd Period' },
-		{ id: 'slot4', time: '10:45 AM - 11:45 AM', period: '4th Period' },
-		{ id: 'slot5', time: '11:45 AM - 12:45 PM', period: '5th Period' },
-		{ id: 'slot6', time: '1:30 PM - 2:30 PM', period: '6th Period' },
-		{ id: 'slot7', time: '2:30 PM - 3:30 PM', period: '7th Period' }
-	];
+			// Load teachers
+			const teachersResponse = await api.get('/api/schedules?action=get-available-teachers&schoolYear=' + currentSchoolYear);
+			teachers = teachersResponse.teachers || [];
+
+			// Load subjects
+			const subjectsResponse = await api.get('/api/subjects');
+			subjects = subjectsResponse.subjects || [];
+
+			// Load time periods
+			const timePeriodsResponse = await api.get('/api/time-periods');
+			timeSlots = timePeriodsResponse.timePeriods?.map(tp => ({
+				id: tp.id,
+				time: formatTimeRange(tp.start_time, tp.end_time),
+				period: tp.name,
+				start_time: tp.start_time,
+				end_time: tp.end_time
+			})) || [];
+
+			// Load existing schedules
+			await loadSchedules();
+
+		} catch (error) {
+			console.error('Error loading initial data:', error);
+			toastStore.error('Failed to load schedule data');
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	async function loadSchedules() {
+		try {
+			const response = await api.get('/api/schedules?schoolYear=' + currentSchoolYear);
+			scheduleAssignments = response.schedules?.map(schedule => ({
+				id: schedule.id,
+				year: `grade-${schedule.section_grade_level}`,
+				grade: `Grade ${schedule.section_grade_level}`,
+				section: schedule.section_name,
+				teacher: schedule.teacher_name,
+				subject: schedule.subject_name,
+				day: schedule.day_name,
+				timeSlot: formatTimeRange(schedule.start_time, schedule.end_time),
+				period: schedule.time_period_name,
+				sectionId: schedule.section_id,
+				subjectId: schedule.subject_id,
+				teacherId: schedule.teacher_id,
+				roomId: schedule.room_id,
+				timePeriodId: schedule.time_period_id,
+				dayOfWeek: schedule.day_of_week
+			})) || [];
+		} catch (error) {
+			console.error('Error loading schedules:', error);
+			toastStore.error('Failed to load schedules');
+		}
+	}
+
+	function formatTimeRange(startTime, endTime) {
+		const formatTime = (time) => {
+			const [hours, minutes] = time.split(':');
+			const hour = parseInt(hours);
+			const ampm = hour >= 12 ? 'PM' : 'AM';
+			const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+			return `${displayHour}:${minutes} ${ampm}`;
+		};
+		return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+	}
 	
 	// Add Schedule State
 	let isAddingSchedule = false;
@@ -172,81 +216,17 @@
 		{ id: 'friday', name: 'Friday' }
 	];
 
-	// Current schedule assignments (mock data)
-	let scheduleAssignments = [
-		{
-			id: 1,
-			year: 'grade-7',
-			grade: 'Grade 7',
-			section: 'Section A',
-			teacher: 'Maria Santos',
-			subject: 'Mathematics',
-			day: 'Monday',
-			timeSlot: '7:30 AM - 8:30 AM',
-			period: '1st Period'
-		},
-		{
-			id: 2,
-			year: 'grade-7',
-			grade: 'Grade 7',
-			section: 'Section A',
-			teacher: 'Juan Dela Cruz',
-			subject: 'Science',
-			day: 'Monday',
-			timeSlot: '8:30 AM - 9:30 AM',
-			period: '2nd Period'
-		},
-		{
-			id: 3,
-			year: 'grade-8',
-			grade: 'Grade 8',
-			section: 'Section A',
-			teacher: 'Ana Garcia',
-			subject: 'English',
-			day: 'Tuesday',
-			timeSlot: '7:30 AM - 8:30 AM',
-			period: '1st Period'
-		},
-		{
-			id: 4,
-			year: 'grade-7',
-			grade: 'Grade 7',
-			section: 'Section B',
-			teacher: 'Pedro Rodriguez',
-			subject: 'Filipino',
-			day: 'Wednesday',
-			timeSlot: '9:30 AM - 10:30 AM',
-			period: '3rd Period'
-		},
-		{
-			id: 5,
-			year: 'grade-9',
-			grade: 'Grade 9',
-			section: 'Section A',
-			teacher: 'Carmen Lopez',
-			subject: 'Social Studies',
-			day: 'Thursday',
-			timeSlot: '10:45 AM - 11:45 AM',
-			period: '4th Period'
-		},
-		{
-			id: 6,
-			year: 'grade-10',
-			grade: 'Grade 10',
-			section: 'Section A',
-			teacher: 'Ana Garcia',
-			subject: 'English',
-			day: 'Friday',
-			timeSlot: '1:30 PM - 2:30 PM',
-			period: '6th Period'
-		}
-	];
-
 	// Filter sections based on selected year
-	$: filteredSections = selectedFilterYear ? sections.filter(section => section.year === selectedFilterYear) : [];
+	$: filteredSections = selectedFilterYear ? sections.filter(section => {
+		const gradeLevel = parseInt(selectedFilterYear.replace('grade-', ''));
+		return section.grade_level === gradeLevel;
+	}) : [];
 
 	// Filter form sections based on selected form year
-	$: filteredFormSections = selectedFormYear ? sections.filter(section => section.year === selectedFormYear) : [];
+	$: filteredFormSections = selectedFormYear ? sections.filter(section => {
+		const gradeLevel = parseInt(selectedFormYear.replace('grade-', ''));
+		return section.grade_level === gradeLevel;
+	}) : [];
 
 	// Get selected objects for form display
 	$: selectedFormYearObj = years.find(y => y.id === selectedFormYear);
@@ -276,11 +256,11 @@
 		// Require year and section selection - if either is not selected, return empty array
 		if (!selectedFilterYear || !selectedFilterSection) return false;
 		
-		const yearMatch = assignment.year === selectedFilterYear;
-		const sectionMatch = (assignment.grade + ' · ' + assignment.section) === selectedFilterSection;
+		// Match by section ID directly
+		const sectionMatch = assignment.section_id === selectedFilterSection;
 		// Use the new day picker for filtering
-		const dayMatch = !selectedAdminDay || assignment.day === dayNameMap[selectedAdminDay];
-		return yearMatch && sectionMatch && dayMatch;
+		const dayMatch = !selectedAdminDay || assignment.day_of_week === selectedAdminDay;
+		return sectionMatch && dayMatch;
 	});
 	
 	// Check if year and section are selected for display logic
@@ -426,27 +406,27 @@
 		isAssigning = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
-
-			// Create new assignment
-			const newAssignment = {
-				id: scheduleAssignments.length + 1,
-				year: selectedFormYear,
-				grade: selectedFormSectionObj.grade,
-				section: selectedFormSectionObj.name,
-				teacher: 'TBD', // Will be assigned later
-				subject: selectedFormSubjectObj.name,
-				day: selectedFormDayObj.name,
-				timeSlot: selectedFormTimeSlotObj.time,
-				period: selectedFormTimeSlotObj.period
+			// Get the selected time slot details
+			const timeSlot = timeSlots.find(t => t.id === selectedFormTimeSlot);
+			
+			// Prepare schedule data
+			const scheduleData = {
+				section_id: selectedFormSection,
+				subject_id: selectedFormSubject,
+				time_period_id: selectedFormTimeSlot,
+				day_of_week: selectedFormDay,
+				school_year: currentSchoolYear,
+				status: 'active'
 			};
 
-			// Add to assignments array
-			scheduleAssignments = [...scheduleAssignments, newAssignment];
+			// Call API to create schedule
+			const response = await api.post('/api/schedules', scheduleData);
+
+			// Reload schedules to show the new assignment
+			await loadSchedules();
 
 			// Show success toast
-			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`);
+			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.name} ${selectedFormSectionObj.section_name}`);
 
 			// Reset only subject and time slot selections to allow adding more subjects
 			selectedFormSubject = '';
@@ -508,43 +488,40 @@
 		isAssigning = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
-
 			// Format display times
 			const displayStartTime = `${newSchedule.startTime} ${newSchedule.startAmPm}`;
 			const displayEndTime = `${newSchedule.endTime} ${newSchedule.endAmPm}`;
 
-			// Create new assignment
-				const newAssignment = {
-					id: scheduleAssignments.length + 1,
-					year: selectedFormYear,
-					grade: selectedFormSectionObj.grade,
-					section: selectedFormSectionObj.name,
-					teacher: selectedFormTeacherObj.name,
-					subject: selectedFormSubjectObj.name,
-					day: selectedFormDayObj.name,
-					timeSlot: `${displayStartTime} - ${displayEndTime}`,
-					period: 'Custom Period'
-				};
+			// First create a time period for this custom schedule
+			const timePeriodData = {
+				name: `Custom ${displayStartTime}-${displayEndTime}`,
+				start_time: displayStartTime,
+				end_time: displayEndTime,
+				duration_minutes: parseInt(newSchedule.calculatedDuration)
+			};
 
-				// Add to assignments array
-				scheduleAssignments = [...scheduleAssignments, newAssignment];
+			const timePeriodResponse = await api.post('/api/time-periods', timePeriodData);
+			const newTimePeriodId = timePeriodResponse.id;
 
-				// Add to saved schedules for current selection
-				const savedSchedule = {
-					id: Date.now(),
-					startTime: displayStartTime,
-					endTime: displayEndTime,
-					duration: newSchedule.calculatedDuration,
-					subject: selectedFormSubjectObj.name,
-					subjectIcon: selectedFormSubjectObj.icon,
-					teacher: selectedFormTeacherObj.name
-				};
-				savedSchedules = [...savedSchedules, savedSchedule];
+			// Now create the schedule with the new time period
+			const scheduleData = {
+				section_id: selectedFormSection,
+				subject_id: selectedFormSubject,
+				teacher_id: selectedFormTeacher,
+				time_period_id: newTimePeriodId,
+				day_of_week: selectedFormDay,
+				school_year: currentSchoolYear,
+				status: 'active'
+			};
+
+			const response = await api.post('/api/schedules', scheduleData);
+
+			// Reload data to show the new assignment
+			await loadSchedules();
+			await loadInitialData(); // Reload time periods to include the new one
 
 			// Show success toast
-			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`);
+			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.name} ${selectedFormSectionObj.section_name}`);
 
 			// Reset form
 			newSchedule = { 
@@ -814,31 +791,39 @@
 	}
 
 	// Delete assignment function
-	function handleDeleteAssignment(assignment) {
+	async function handleDeleteAssignment(assignment) {
 		modalStore.confirm(
 			'Delete Assignment',
 			`<p>Are you sure you want to delete this schedule assignment?</p>`,
-			() => {
-				// Remove assignment from the array
-				scheduleAssignments = scheduleAssignments.filter(a => a.id !== assignment.id);
-				
-				// Show success message
-				toastStore.success(`Assignment for ${assignment.subject} has been deleted successfully`);
-				
-				// Close edit form if it was open for this assignment
-				if (editingAssignmentId === assignment.id) {
-					editingAssignmentId = null;
-					editStartTime = '';
-					editStartAmPm = 'AM';
-					editEndTime = '';
-					editEndAmPm = 'AM';
-					editCalculatedDuration = 0;
-					editAssignmentSubject = '';
-					editSelectedTeacher = null;
-					isEditSubjectDropdownOpen = false;
-					isEditTeacherDropdownOpen = false;
-					isEditStartPeriodDropdownOpen = false;
-					isEditEndPeriodDropdownOpen = false;
+			async () => {
+				try {
+					// Call API to delete the schedule
+					await api.delete(`/api/schedules/${assignment.id}`);
+					
+					// Reload schedules to reflect the deletion
+					await loadSchedules();
+					
+					// Show success message
+					toastStore.success(`Assignment for ${assignment.subject_name} has been deleted successfully`);
+					
+					// Close edit form if it was open for this assignment
+					if (editingAssignmentId === assignment.id) {
+						editingAssignmentId = null;
+						editStartTime = '';
+						editStartAmPm = 'AM';
+						editEndTime = '';
+						editEndAmPm = 'AM';
+						editCalculatedDuration = 0;
+						editAssignmentSubject = '';
+						editSelectedTeacher = null;
+						isEditSubjectDropdownOpen = false;
+						isEditTeacherDropdownOpen = false;
+						isEditStartPeriodDropdownOpen = false;
+						isEditEndPeriodDropdownOpen = false;
+					}
+				} catch (error) {
+					console.error('Error deleting assignment:', error);
+					toastStore.error('Failed to delete assignment. Please try again.');
 				}
 			},
 			() => {
@@ -1639,7 +1624,7 @@
 						<div class="scheduleassign-selected-option">
 							<span class="material-symbols-outlined option-icon">class</span>
 							<div class="option-content">
-								<span class="option-name">{selectedFilterSectionObj.grade} · {selectedFilterSectionObj.name}</span>
+								<span class="option-name">Grade {selectedFilterSectionObj.grade_level} · {selectedFilterSectionObj.section_name}</span>
 							</div>
 						</div>
 					{:else}
@@ -1664,8 +1649,8 @@
 						>
 							<span class="material-symbols-outlined option-icon">class</span>
 							<div class="option-content">
-								<span class="option-name">{section.grade} · {section.name}</span>
-								<span class="option-description">{section.grade} Section</span>
+								<span class="option-name">Grade {section.grade_level} · {section.section_name}</span>
+								<span class="option-description">Grade {section.grade_level} Section</span>
 							</div>
 						</button>
 					{/each}
@@ -1746,7 +1731,7 @@
 					<div class="scheduleassign-assignment-card">
 						<div class="scheduleassign-assignment-header">
 							<div class="scheduleassign-assignment-info">
-								<h3 class="scheduleassign-assignment-title">{assignment.subject}</h3>
+								<h3 class="scheduleassign-assignment-title">{assignment.subject_name}</h3>
 							</div>
 							<div class="scheduleassign-assignment-actions">
 								<button 
@@ -1770,15 +1755,15 @@
 						<div class="scheduleassign-assignment-details">
 							<div class="scheduleassign-detail-item">
 								<span class="material-symbols-outlined scheduleassign-detail-icon">person</span>
-								<span class="scheduleassign-detail-text">{assignment.teacher}</span>
+								<span class="scheduleassign-detail-text">{assignment.teacher_name || 'No teacher assigned'}</span>
 							</div>
 							<div class="scheduleassign-detail-item">
 								<span class="material-symbols-outlined scheduleassign-detail-icon">calendar_today</span>
-								<span class="scheduleassign-detail-text">{assignment.day}</span>
+								<span class="scheduleassign-detail-text">{dayNameMap[assignment.day_of_week] || assignment.day_of_week}</span>
 							</div>
 							<div class="scheduleassign-detail-item">
 								<span class="material-symbols-outlined scheduleassign-detail-icon">schedule</span>
-								<span class="scheduleassign-detail-text">{assignment.timeSlot} ({assignment.period})</span>
+								<span class="scheduleassign-detail-text">{formatTimeRange(assignment.start_time, assignment.end_time)} ({assignment.duration_minutes} min)</span>
 							</div>
 						</div>
 

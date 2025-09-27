@@ -59,7 +59,7 @@ export async function GET({ url }) {
 				u.account_type as user_account_type
 			FROM activity_logs al
 			LEFT JOIN users u ON al.user_id = u.id
-			WHERE u.account_type = 'admin'
+			WHERE (u.account_type = 'admin' OR u.account_type IS NULL)
 		`;
 		
 		const params = [];
@@ -174,6 +174,17 @@ export async function GET({ url }) {
 				case 'room_deleted':
 					message = `Room deleted: ${data.room_name} (${data.building}, Floor ${data.floor})`;
 					icon = 'delete';
+					break;
+				case 'room_sections_assigned':
+					const assignedSectionNames = data.section_names ? data.section_names.join(', ') : 'sections';
+					message = `Sections assigned to room "${data.room_name}": ${assignedSectionNames}`;
+					icon = 'assignment';
+					break;
+				case 'room_sections_unassigned':
+					const unassignedSectionNames = data.unassigned_sections ? 
+						data.unassigned_sections.map(s => s.name).join(', ') : 'all sections';
+					message = `Sections unassigned from room "${data.room_name}": ${unassignedSectionNames}`;
+					icon = 'assignment_return';
 					break;
 				default:
 					message = `${row.activity_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;

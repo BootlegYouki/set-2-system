@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { query } from '../../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
-// GET /api/rooms - Fetch all rooms with optional filtering
+// GET /api/rooms - Fetch all rooms with optional filtering and assigned sections
 export async function GET({ url }) {
   try {
     const searchTerm = url.searchParams.get('search') || '';
@@ -11,15 +11,20 @@ export async function GET({ url }) {
     
     let sqlQuery = `
       SELECT 
-        id,
-        name,
-        building,
-        floor,
-        status,
-        assigned_to,
-        created_at,
-        updated_at
-      FROM rooms
+        r.id,
+        r.name,
+        r.building,
+        r.floor,
+        r.status,
+        r.assigned_to,
+        r.created_at,
+        r.updated_at,
+        s.id as section_id,
+        s.name as section_name,
+        s.grade_level,
+        s.school_year
+      FROM rooms r
+      LEFT JOIN sections s ON r.id = s.room_id AND s.status = 'active'
     `;
     
     const params = [];
@@ -28,7 +33,7 @@ export async function GET({ url }) {
     
     // Add search filter
     if (searchTerm) {
-      sqlQuery += ` WHERE (LOWER(name) LIKE $${paramIndex} OR LOWER(building) LIKE $${paramIndex} OR LOWER(floor) LIKE $${paramIndex})`;
+      sqlQuery += ` WHERE (LOWER(r.name) LIKE $${paramIndex} OR LOWER(r.building) LIKE $${paramIndex} OR LOWER(r.floor) LIKE $${paramIndex})`;
       params.push(`%${searchTerm.toLowerCase()}%`);
       paramIndex++;
       whereAdded = true;
@@ -36,7 +41,7 @@ export async function GET({ url }) {
     
     // Add building filter
     if (building && building !== '') {
-      sqlQuery += whereAdded ? ` AND LOWER(building) = $${paramIndex}` : ` WHERE LOWER(building) = $${paramIndex}`;
+      sqlQuery += whereAdded ? ` AND LOWER(r.building) = $${paramIndex}` : ` WHERE LOWER(r.building) = $${paramIndex}`;
       params.push(building.toLowerCase());
       paramIndex++;
       whereAdded = true;
@@ -44,26 +49,48 @@ export async function GET({ url }) {
     
     // Add status filter
     if (status && status !== '') {
-      sqlQuery += whereAdded ? ` AND status = $${paramIndex}` : ` WHERE status = $${paramIndex}`;
+      sqlQuery += whereAdded ? ` AND r.status = $${paramIndex}` : ` WHERE r.status = $${paramIndex}`;
       params.push(status);
       paramIndex++;
     }
     
-    sqlQuery += ' ORDER BY created_at DESC';
+    sqlQuery += ' ORDER BY r.created_at DESC';
     
     const result = await query(sqlQuery, params);
     
-    // Format the data to match the component's expected structure
-    const rooms = result.rows.map(room => ({
-      id: room.id,
-      name: room.name,
-      building: room.building,
-      floor: room.floor,
-      status: room.status,
-      assignedTo: room.assigned_to,
-      createdDate: new Date(room.created_at).toLocaleDateString('en-US'),
-      updatedDate: new Date(room.updated_at).toLocaleDateString('en-US')
-    }));
+    // Group rooms with their assigned sections
+    const roomsMap = new Map();
+    
+    result.rows.forEach(row => {
+      const roomId = row.id;
+      
+      if (!roomsMap.has(roomId)) {
+        roomsMap.set(roomId, {
+          id: row.id,
+          name: row.name,
+          building: row.building,
+          floor: row.floor,
+          status: row.status,
+          assignedTo: row.assigned_to,
+          createdDate: new Date(row.created_at).toLocaleDateString('en-US'),
+          updatedDate: new Date(row.updated_at).toLocaleDateString('en-US'),
+          assignedSections: []
+        });
+      }
+      
+      // Add section if it exists
+      if (row.section_id) {
+        roomsMap.get(roomId).assignedSections.push({
+          id: row.section_id,
+          name: row.section_name,
+          gradeLevel: row.grade_level,
+          schoolYear: row.school_year
+        });
+      }
+    });
+    
+    // Convert map to array
+    const rooms = Array.from(roomsMap.values());
     
     return json({
       success: true,
@@ -150,20 +177,173 @@ export async function POST({ request, getClientAddress }) {
       status: newRoom.status,
       assignedTo: newRoom.assigned_to,
       createdDate: new Date(newRoom.created_at).toLocaleDateString('en-US'),
-      updatedDate: new Date(newRoom.updated_at).toLocaleDateString('en-US')
+      updatedDate: new Date(newRoom.updated_at).toLocaleDateString('en-US'),
+      assignedSections: []
     };
     
     return json({
       success: true,
       message: `Room "${name}" created successfully`,
       data: formattedRoom
-    }, { status: 201 });
+    });
     
   } catch (error) {
     console.error('Error creating room:', error);
     return json({
       success: false,
       message: 'Failed to create room: ' + error.message
+    }, { status: 500 });
+  }
+}
+
+// PATCH /api/rooms - Assign or unassign sections to/from rooms
+export async function PATCH({ request, getClientAddress }) {
+  try {
+    const data = await request.json();
+    const { roomId, sectionIds, action } = data;
+    
+    // Validation
+    if (!roomId || !action) {
+      return json({
+        success: false,
+        message: 'Room ID and action are required'
+      }, { status: 400 });
+    }
+    
+    if (action === 'assign' && (!sectionIds || !Array.isArray(sectionIds) || sectionIds.length === 0)) {
+      return json({
+        success: false,
+        message: 'Section IDs are required for assignment'
+      }, { status: 400 });
+    }
+    
+    // Check if room exists
+    const roomCheck = await query('SELECT id, name FROM rooms WHERE id = $1', [roomId]);
+    if (roomCheck.rows.length === 0) {
+      return json({
+        success: false,
+        message: 'Room not found'
+      }, { status: 404 });
+    }
+    
+    const room = roomCheck.rows[0];
+    
+    if (action === 'assign') {
+      // Check if sections exist and are not already assigned to other rooms
+      const sectionCheck = await query(
+        'SELECT id, name, room_id FROM sections WHERE id = ANY($1) AND status = $2',
+        [sectionIds, 'active']
+      );
+      
+      if (sectionCheck.rows.length !== sectionIds.length) {
+        return json({
+          success: false,
+          message: 'One or more sections not found or inactive'
+        }, { status: 404 });
+      }
+      
+      // Check for conflicts with other rooms
+      const conflictingSections = sectionCheck.rows.filter(section => 
+        section.room_id && section.room_id !== roomId
+      );
+      
+      if (conflictingSections.length > 0) {
+        return json({
+          success: false,
+          message: `Some sections are already assigned to other rooms: ${conflictingSections.map(s => s.name).join(', ')}`
+        }, { status: 409 });
+      }
+      
+      // Assign sections to room
+      await query(
+        'UPDATE sections SET room_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = ANY($2)',
+        [roomId, sectionIds]
+      );
+      
+      // Update room status to assigned
+      await query(
+        'UPDATE rooms SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        ['assigned', roomId]
+      );
+      
+      // Log the assignment activity
+      try {
+        const user = await getUserFromRequest(request);
+        const ip_address = getClientAddress();
+        const user_agent = request.headers.get('user-agent');
+        
+        await logActivityWithUser(
+          'room_sections_assigned',
+          user,
+          {
+            room_id: roomId,
+            room_name: room.name,
+            section_ids: sectionIds,
+            section_names: sectionCheck.rows.map(s => s.name)
+          },
+          ip_address,
+          user_agent
+        );
+      } catch (logError) {
+        console.error('Error logging room assignment activity:', logError);
+      }
+      
+      return json({
+        success: true,
+        message: `Sections assigned to room "${room.name}" successfully`
+      });
+      
+    } else if (action === 'unassign') {
+      // Unassign all sections from the room
+      const unassignResult = await query(
+        'UPDATE sections SET room_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE room_id = $1 RETURNING id, name',
+        [roomId]
+      );
+      
+      // Update room status to available
+      await query(
+        'UPDATE rooms SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        ['available', roomId]
+      );
+      
+      // Log the unassignment activity
+      try {
+        const user = await getUserFromRequest(request);
+        const ip_address = getClientAddress();
+        const user_agent = request.headers.get('user-agent');
+        
+        await logActivityWithUser(
+          'room_sections_unassigned',
+          user,
+          {
+            room_id: roomId,
+            room_name: room.name,
+            unassigned_sections: unassignResult.rows.map(s => ({ id: s.id, name: s.name }))
+          },
+          ip_address,
+          user_agent
+        );
+      } catch (logError) {
+        console.error('Error logging room unassignment activity:', logError);
+      }
+      
+      return json({
+        success: true,
+        message: `All sections unassigned from room "${room.name}" successfully`
+      });
+      
+    } else {
+      return json({
+        success: false,
+        message: 'Invalid action. Use "assign" or "unassign"'
+      }, { status: 400 });
+    }
+    
+  } catch (error) {
+    console.error('Error managing room-section assignment:', error);
+    return json({
+      success: false,
+      message: 'Failed to manage room-section assignment: ' + error.message
     }, { status: 500 });
   }
 }
