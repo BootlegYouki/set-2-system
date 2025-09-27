@@ -242,9 +242,9 @@ export async function DELETE({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if subject exists and get its name
+    // Check if subject exists and get its code and name
     const existingSubject = await query(
-      'SELECT id, name FROM subjects WHERE id = $1',
+      'SELECT id, name, code FROM subjects WHERE id = $1',
       [id]
     );
     
@@ -274,6 +274,7 @@ export async function DELETE({ request, getClientAddress }) {
         'subject_deleted',
         user,
         {
+          subject_code: existingSubject.rows[0].code,
           subject_name: existingSubject.rows[0].name,
           subject_id: id
         },
@@ -287,7 +288,7 @@ export async function DELETE({ request, getClientAddress }) {
     
     return json({
       success: true,
-      message: `Subject "${existingSubject.rows[0].name}" has been removed successfully`
+      message: `Subject "${existingSubject.rows[0].name} (${existingSubject.rows[0].code})" has been removed successfully`
     });
     
   } catch (error) {

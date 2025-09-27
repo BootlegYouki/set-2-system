@@ -144,7 +144,7 @@ export async function GET({ url }) {
 					icon = 'restore';
 					break;
 				case 'subject_deleted':
-					message = `Subject deleted: ${data.subject_name}`;
+					message = `Subject deleted: ${data.subject_name} (${data.subject_code})`;
 					icon = 'delete';
 					break;
 				default:
@@ -167,8 +167,7 @@ export async function GET({ url }) {
 
 			// Format timestamp as YYYY/MM/DD - HH:MM (24hr format) in local timezone
 			// Use toLocaleString to get proper local time formatting and add 8 minutes offset
-			const adjustedTime = new Date(activityTime.getTime() + (8 * 60 * 1000)); // Add 8 minutes
-			const localTimeString = adjustedTime.toLocaleString('en-CA', {
+			const localTimeString = activityTime.toLocaleString('en-CA', {
 				timeZone: 'Asia/Singapore',
 				year: 'numeric',
 				month: '2-digit',
