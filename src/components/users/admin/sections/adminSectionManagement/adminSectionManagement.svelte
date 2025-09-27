@@ -83,10 +83,11 @@
 		}
 	}
 
-	async function loadAvailableTeachers() {
+	async function loadAvailableTeachers(teacherGradeLevel = null) {
 		try {
 			isLoadingAdvisers = true;
-			const result = await api.get(`/api/sections?action=available-teachers&schoolYear=${schoolYear}`);
+			const gradeParam = teacherGradeLevel ? `&teacherGradeLevel=${teacherGradeLevel}` : '';
+			const result = await api.get(`/api/sections?action=available-teachers&schoolYear=${schoolYear}${gradeParam}`);
 			
 			if (result.success) {
 				availableAdvisers = result.data.map(teacher => {
@@ -99,7 +100,8 @@
 						id: teacher.id,
 						name: teacher.full_name,
 						employeeId: teacher.account_number,
-						subject: teacher.subject_name || 'No Subject',
+						subject: teacher.subject_code || 'No Subject',
+						subject_grade_level: teacher.subject_grade_level,
 						hasSection: hasSection
 					};
 				});
@@ -114,6 +116,7 @@
 								name: section.adviser,
 								employeeId: section.adviser_account_number || 'N/A',
 								subject: section.adviser_subject || 'No Subject',
+								subject_grade_level: section.grade_level, // Use section's grade level for existing advisers
 								hasSection: true
 							});
 						}
@@ -247,6 +250,8 @@
 		selectedStudents = [];
 		// Load available students for the selected grade
 		loadAvailableStudents(grade.id);
+		// Load available teachers for the selected grade level
+		loadAvailableTeachers(grade.id);
 	}
 
 	function selectAdviser(adviser) {
@@ -366,8 +371,8 @@
 					subject: '', 
 					hasSection: true 
 				};
-				// Reload teachers to get the correct name
-				await loadAvailableTeachers();
+				// Reload teachers for the section's grade level to get the correct name
+				await loadAvailableTeachers(section.grade_level);
 				editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id) || editSelectedAdviser;
 			}
 			
@@ -490,7 +495,14 @@
 		const currentSectionAdviser = editingSectionId && recentSections.find(s => s.id === editingSectionId)?.adviser_id;
 		const isAvailable = !adviser.hasSection || adviser.id === currentSectionAdviser;
 		
-		return isAvailable && adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase());
+		// Get the current section's grade level for filtering
+		const currentSection = editingSectionId && recentSections.find(s => s.id === editingSectionId);
+		const sectionGradeLevel = currentSection?.grade_level;
+		
+		// Filter by grade level if we have the section's grade level and adviser has subject_grade_level
+		const gradeMatches = !sectionGradeLevel || !adviser.subject_grade_level || adviser.subject_grade_level === sectionGradeLevel;
+		
+		return isAvailable && gradeMatches && adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase());
 	});
 	// Store original section students when editing starts
 	let originalSectionStudents = [];
