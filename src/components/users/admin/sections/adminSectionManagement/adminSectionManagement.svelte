@@ -672,7 +672,7 @@
 										<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
 										<div class="sectionmgmt-option-content">
 											<span class="sectionmgmt-option-name">{adviser.name}</span>
-											<span class="sectionmgmt-option-description">{adviser.employeeId} • {adviser.subject}</span>
+											<span class="sectionmgmt-option-description">{adviser.employeeId}</span>
 										</div>
 									</button>
 								{/each}
@@ -958,7 +958,7 @@
 													<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
 													<div class="sectionmgmt-option-content">
 														<span class="sectionmgmt-option-name">{adviser.name}</span>
-														<span class="sectionmgmt-option-description">{adviser.subject} • {adviser.employeeId}</span>
+														<span class="sectionmgmt-option-description">{adviser.employeeId}</span>
 													</div>
 												</button>
 											{/each}

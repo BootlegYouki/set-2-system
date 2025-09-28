@@ -1775,6 +1775,53 @@
 	opacity: 0.6;
 }
 
+/* Loading Container Styles */
+.dept-mgmt-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xl);
+	min-height: 200px;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.dept-mgmt-loading p {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	font-weight: var(--md-sys-typescale-body-large-weight);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+	text-align: center;
+}
+
+/* Department Loader Animation */
+.dept-loader {
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background-color: var(--md-sys-color-on-surface-variant);
+	box-shadow: 32px 0 #fff, -32px 0 #fff;
+	position: relative;
+	animation: flash 0.5s ease-out infinite alternate;
+	margin-bottom: var(--spacing-md);
+}
+
+@keyframes flash {
+	0% {
+		background-color: #FFF2;
+		box-shadow: 32px 0 #FFF2, -32px 0 #FFF;
+	}
+	50% {
+		background-color: #FFF;
+		box-shadow: 32px 0 #FFF2, -32px 0 #FFF2;
+	}
+	100% {
+		background-color: #FFF2;
+		box-shadow: 32px 0 #FFF, -32px 0 #FFF2;
+	}
+}
+
 /* Form Select Styles */
 .dept-mgmt-form-select {
 	width: 100%;

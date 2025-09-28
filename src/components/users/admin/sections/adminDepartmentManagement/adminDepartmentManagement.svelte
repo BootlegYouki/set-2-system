@@ -656,7 +656,12 @@
 
 		<!-- Departments Grid -->
 		<div class="dept-mgmt-departments-grid">
-			{#if filteredDepartments.length === 0}
+			{#if isLoadingDepartments}
+				<div class="dept-mgmt-loading">
+					<span class="dept-loader"></span>
+					<p>Loading departments...</p>
+				</div>
+			{:else if filteredDepartments.length === 0}
 				<div class="dept-mgmt-empty-state">
 					<span class="material-symbols-outlined dept-mgmt-empty-icon">corporate_fare</span>
 					<h3 class="dept-mgmt-empty-title">

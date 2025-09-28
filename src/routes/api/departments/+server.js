@@ -273,11 +273,11 @@ export async function DELETE({ request, getClientAddress }) {
             SELECT COUNT(*) as count FROM subjects WHERE department_id = $1
         `, [id]);
 
+        // If department has subjects, set their department_id to NULL instead of blocking deletion
         if (parseInt(subjectsCount.rows[0].count) > 0) {
-            return json({ 
-                success: false, 
-                error: 'Cannot delete department with assigned subjects. Please reassign subjects first.' 
-            }, { status: 400 });
+            await query(`
+                UPDATE subjects SET department_id = NULL WHERE department_id = $1
+            `, [id]);
         }
 
         // Delete teacher assignments first (due to foreign key constraints)

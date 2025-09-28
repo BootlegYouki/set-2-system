@@ -47,7 +47,7 @@ export async function GET({ url }) {
 
             case 'available-teachers':
                 const teacherGradeLevel = url.searchParams.get('teacherGradeLevel');
-                const teachersResult = await query('SELECT * FROM get_available_teachers($1, $2)', [schoolYear, teacherGradeLevel ? parseInt(teacherGradeLevel) : null]);
+                const teachersResult = await query('SELECT * FROM get_available_teachers($1, $2)', [teacherGradeLevel ? parseInt(teacherGradeLevel) : null, schoolYear]);
                 return json({ success: true, data: teachersResult.rows });
 
             case 'available-students':
