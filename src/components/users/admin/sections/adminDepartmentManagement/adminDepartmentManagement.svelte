@@ -510,10 +510,18 @@
 			// Update local state to reflect the changes
 			departments = departments.map(dept => {
 				if (dept.id === assigningDepartmentId) {
+					// Get full objects for subjects and teachers based on selected IDs
+					const assignedSubjects = availableSubjects.filter(subject => 
+						selectedSubjects.includes(subject.id)
+					);
+					const assignedTeachers = availableTeachers.filter(teacher => 
+						selectedTeachers.includes(teacher.id)
+					);
+					
 					return {
 						...dept,
-						subjects: [...selectedSubjects],
-						teachers: [...selectedTeachers]
+						subjects: assignedSubjects,
+						teachers: assignedTeachers
 					};
 				}
 				return dept;
