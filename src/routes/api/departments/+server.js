@@ -208,7 +208,14 @@ export async function POST({ request, getClientAddress }) {
     } catch (error) {
         console.error('Error creating department:', error);
         if (error.code === '23505') { // Unique constraint violation
-            return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+            // Check which constraint was violated by examining the error detail
+            if (error.detail && error.detail.includes('name')) {
+                return json({ success: false, error: 'Department name already exists' }, { status: 400 });
+            } else if (error.detail && error.detail.includes('code')) {
+                return json({ success: false, error: 'Department code already exists' }, { status: 400 });
+            } else {
+                return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+            }
         }
         return json({ success: false, error: 'Failed to create department' }, { status: 500 });
     }
@@ -228,6 +235,16 @@ export async function PUT({ request, getClientAddress }) {
 
         if (!id || !name || !code) {
             return json({ success: false, error: 'Department ID, name and code are required' }, { status: 400 });
+        }
+
+        // Validate department code length (database limit is 20 characters)
+        if (code.length > 20) {
+            return json({ success: false, error: 'Department code cannot exceed 20 characters' }, { status: 400 });
+        }
+
+        // Validate department name length (database limit is 100 characters)
+        if (name.length > 100) {
+            return json({ success: false, error: 'Department name cannot exceed 100 characters' }, { status: 400 });
         }
 
         // Update the department in the database
@@ -410,7 +427,14 @@ export async function PUT({ request, getClientAddress }) {
     } catch (error) {
         console.error('Error updating department:', error);
         if (error.code === '23505') { // Unique constraint violation
-            return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+            // Check which constraint was violated by examining the error detail
+            if (error.detail && error.detail.includes('name')) {
+                return json({ success: false, error: 'Department name already exists' }, { status: 400 });
+            } else if (error.detail && error.detail.includes('code')) {
+                return json({ success: false, error: 'Department code already exists' }, { status: 400 });
+            } else {
+                return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+            }
         }
         return json({ success: false, error: 'Failed to update department' }, { status: 500 });
     }

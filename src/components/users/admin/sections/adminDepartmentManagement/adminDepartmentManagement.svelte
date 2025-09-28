@@ -239,28 +239,52 @@
 
 
 
-	async function handleUpdateDepartment() {
-		if (!editDepartmentName.trim() || !editDepartmentCode.trim()) {
-			toastStore.error('Please fill in all required fields');
-			return;
-		}
-
-		// Check if department code already exists (excluding current department)
-		if (departments.some(dept => 
-			dept.id !== editingDepartmentId && 
-			dept.code.toLowerCase() === editDepartmentCode.toLowerCase()
-		)) {
-			toastStore.error('Department code already exists');
-			return;
-		}
-
+	async function handleUpdateDepartment(event) {
+		event.preventDefault();
+		
+		if (isUpdating) return;
 		isUpdating = true;
 
 		try {
+			// Validate input
+			if (!editDepartmentName.trim() || !editDepartmentCode.trim()) {
+				toastStore.error('Department name and code are required');
+				return;
+			}
+
+			// Validate department code length (database limit is 20 characters)
+			if (editDepartmentCode.trim().length > 20) {
+				toastStore.error('Department code cannot exceed 20 characters');
+				return;
+			}
+
+			// Check if department code already exists (excluding current department)
+			const existingDepartment = departments.find(dept => 
+				dept.code.toLowerCase() === editDepartmentCode.trim().toLowerCase() && 
+				dept.id !== editingDepartmentId
+			);
+			
+			if (existingDepartment) {
+				toastStore.error('Department code already exists');
+				return;
+			}
+
+			// Find the current department to preserve existing assignments
+			const currentDepartment = departments.find(dept => dept.id === editingDepartmentId);
+			if (!currentDepartment) {
+				throw new Error('Department not found');
+			}
+
+			// Extract current teacher and subject IDs to preserve assignments
+			const currentTeacherIds = currentDepartment.teachers ? currentDepartment.teachers.map(teacher => teacher.id) : [];
+			const currentSubjectIds = currentDepartment.subjects ? currentDepartment.subjects.map(subject => subject.id) : [];
+
 			const result = await api.put('/api/departments', {
 				id: editingDepartmentId,
 				name: editDepartmentName.trim(),
-				code: editDepartmentCode.trim().toUpperCase()
+				code: editDepartmentCode.trim().toUpperCase(),
+				teachers: currentTeacherIds,
+				subjects: currentSubjectIds
 			});
 
 			if (result.success) {
