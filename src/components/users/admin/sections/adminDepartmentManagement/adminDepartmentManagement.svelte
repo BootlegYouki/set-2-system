@@ -118,8 +118,7 @@
 				availableTeachers = result.data.map(teacher => ({
 					id: teacher.id,
 					name: teacher.full_name || `${teacher.first_name} ${teacher.last_name}`,
-					email: teacher.email,
-					subject: 'General' // Since we don't have subject assignment in the user table
+					accountNumber: teacher.account_number
 				}));
 			} else {
 				toastStore.error('Failed to load teachers');
@@ -154,7 +153,7 @@
 
 	$: filteredTeachers = availableTeachers.filter(teacher =>
 		teacher.name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
-		teacher.subject.toLowerCase().includes(teacherSearchTerm.toLowerCase())
+		teacher.accountNumber.toLowerCase().includes(teacherSearchTerm.toLowerCase())
 	);
 
 	// Functions
@@ -952,7 +951,7 @@
 											<span class="material-symbols-outlined dept-mgmt-option-icon">person</span>
 											<div class="dept-mgmt-option-content">
 												<span class="dept-mgmt-option-name">{teacher.name}</span>
-												<span class="dept-mgmt-option-description">{teacher.subject} • {teacher.email}</span>
+												<span class="dept-mgmt-option-description">{teacher.accountNumber}</span>
 											</div>
 										</button>
 									{/each}
@@ -978,7 +977,7 @@
 											{#if teacher}
 												<div class="dept-mgmt-selected-teacher-chip">
 													<span class="dept-mgmt-teacher-name">{teacher.name}</span>
-													<span class="dept-mgmt-teacher-subject">{teacher.subject}</span>
+													<span class="dept-mgmt-teacher-subject">{teacher.accountNumber}</span>
 													<button 
 														type="button" 
 														class="dept-mgmt-remove-teacher"
