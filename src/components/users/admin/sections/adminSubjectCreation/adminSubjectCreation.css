@@ -371,6 +371,7 @@
 	min-width: 180px;
 	min-height: 56px;
 	box-shadow: var(--elevation-1);
+	justify-content: center;
 }
 
 .admin-create-button:hover:not(:disabled) {
@@ -387,10 +388,6 @@
 	background-color: var(--md-sys-color-surface-variant);
 	color: var(--md-sys-color-on-surface-variant);
 	cursor: not-allowed;
-}
-
-.admin-create-button.loading .admin-loading-icon {
-	animation: admin-spin 1s linear infinite;
 }
 
 @keyframes admin-spin {

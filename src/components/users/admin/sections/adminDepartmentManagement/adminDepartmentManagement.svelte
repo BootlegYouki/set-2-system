@@ -2,6 +2,7 @@
 	import './adminDepartmentManagement.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
 
 	// State variables
@@ -54,16 +55,16 @@
 	// Filter options
 	const filterOptions = [
 		{ id: 'all', name: 'All Departments', icon: 'corporate_fare' },
-		{ id: 'active', name: 'Active Departments', icon: 'check_circle' },
-		{ id: 'recent', name: 'Recently Created', icon: 'schedule' }
+		{ id: 'with_subjects', name: 'With Subjects', icon: 'book' },
+		{ id: 'with_teachers', name: 'With Teachers', icon: 'person' },
+		{ id: 'empty', name: 'Empty Departments', icon: 'folder_open' }
 	];
 
 	// API functions
 	async function fetchDepartments() {
 		isLoadingDepartments = true;
 		try {
-			const response = await fetch('/api/departments?action=departments');
-			const result = await response.json();
+			const result = await authenticatedFetch('/api/departments?action=departments');
 			
 			if (result.success) {
 				departments = result.data.map(dept => ({
@@ -88,8 +89,7 @@
 	async function fetchSubjects() {
 		isLoadingSubjects = true;
 		try {
-			const response = await fetch('/api/departments?action=subjects');
-			const result = await response.json();
+			const result = await authenticatedFetch('/api/departments?action=subjects');
 			
 			if (result.success) {
 				availableSubjects = result.data.map(subject => ({
@@ -112,8 +112,7 @@
 	async function fetchTeachers() {
 		isLoadingTeachers = true;
 		try {
-			const response = await fetch('/api/departments?action=teachers');
-			const result = await response.json();
+			const result = await authenticatedFetch('/api/departments?action=teachers');
 			
 			if (result.success) {
 				availableTeachers = result.data.map(teacher => ({
@@ -145,7 +144,7 @@
 
 	// Computed properties
 	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
-	$: filterDepartments();
+	$: if (departments) filterDepartments(departments, selectedFilter, searchTerm);
 
 	// Filtered arrays for dropdowns
 	$: filteredSubjects = availableSubjects.filter(subject =>
@@ -159,25 +158,26 @@
 	);
 
 	// Functions
-	function filterDepartments() {
-		let filtered = [...departments];
+	function filterDepartments(depts = departments, filter = selectedFilter, search = searchTerm) {
+		let filtered = [...depts];
 		
 		// Apply type filter
-		if (selectedFilter === 'recent') {
-			// Show departments created in the last 7 days
-			const sevenDaysAgo = new Date();
-			sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-			filtered = filtered.filter(dept => new Date(dept.createdAt) >= sevenDaysAgo);
-		} else if (selectedFilter === 'active') {
-			// Show departments with assigned subjects or teachers
-			filtered = filtered.filter(dept => dept.subjects.length > 0 || dept.teachers.length > 0);
+		if (filter === 'with_subjects') {
+			// Show departments with assigned subjects
+			filtered = filtered.filter(dept => dept.subjects.length > 0);
+		} else if (filter === 'with_teachers') {
+			// Show departments with assigned teachers
+			filtered = filtered.filter(dept => dept.teachers.length > 0);
+		} else if (filter === 'empty') {
+			// Show departments without subjects or teachers
+			filtered = filtered.filter(dept => dept.subjects.length === 0 && dept.teachers.length === 0);
 		}
 		
 		// Apply search filter
-		if (searchTerm.trim() !== '') {
+		if (search.trim() !== '') {
 			filtered = filtered.filter(dept =>
-				dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				dept.code.toLowerCase().includes(searchTerm.toLowerCase())
+				dept.name.toLowerCase().includes(search.toLowerCase()) ||
+				dept.code.toLowerCase().includes(search.toLowerCase())
 			);
 		}
 		
@@ -210,11 +210,8 @@
 		isCreating = true;
 
 		try {
-			const response = await fetch('/api/departments', {
+			const result = await authenticatedFetch('/api/departments', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
 				body: JSON.stringify({
 					name: departmentName.trim(),
 					code: departmentCode.trim().toUpperCase(),
@@ -222,8 +219,6 @@
 					teachers: []
 				})
 			});
-
-			const result = await response.json();
 
 			if (result.success) {
 				// Refresh departments list
@@ -265,19 +260,14 @@
 		isUpdating = true;
 
 		try {
-			const response = await fetch('/api/departments', {
+			const result = await authenticatedFetch('/api/departments', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
 				body: JSON.stringify({
 					id: editingDepartmentId,
 					name: editDepartmentName.trim(),
 					code: editDepartmentCode.trim().toUpperCase()
 				})
 			});
-
-			const result = await response.json();
 
 			if (result.success) {
 				// Refresh departments list
@@ -332,18 +322,13 @@
 			 <p class="warning-text">This action will also remove all subject and teacher assignments.</p>`,
 			async () => {
 				try {
-					const response = await fetch('/api/departments', {
+					const result = await authenticatedFetch('/api/departments', {
 						method: 'DELETE',
-						headers: {
-							'Content-Type': 'application/json'
-						},
 						body: JSON.stringify({
 							id: department.id,
 							name: department.name
 						})
 					});
-
-					const result = await response.json();
 
 					if (result.success) {
 						// Refresh departments list

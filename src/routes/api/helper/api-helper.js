@@ -28,13 +28,14 @@ export async function authenticatedFetch(url, options = {}) {
   
   const response = await fetch(url, enhancedOptions);
   
-  // Parse JSON response
-  const data = await response.json();
-  
   // Throw error if response is not ok
   if (!response.ok) {
-    throw new Error(data.message || data.error || 'Request failed');
+    const errorData = await response.json();
+    throw new Error(errorData.message || errorData.error || 'Request failed');
   }
+  
+  // Parse JSON response
+  const data = await response.json();
   
   return data;
 }

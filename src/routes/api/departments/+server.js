@@ -11,82 +11,99 @@ export async function GET({ url }) {
             case 'subjects':
                 const subjectsResult = await query(`
                     SELECT 
-                        id,
-                        name,
-                        code,
-                        grade_level,
-                        status,
-                        created_at
-                    FROM subjects
-                    WHERE status = 'active'
-                    ORDER BY grade_level, name
+                        s.id,
+                        s.name,
+                        s.code,
+                        s.grade_level,
+                        s.created_at,
+                        s.department_id,
+                        d.name as department_name,
+                        d.code as department_code
+                    FROM subjects s
+                    LEFT JOIN departments d ON s.department_id = d.id
+                    ORDER BY s.grade_level, s.name
                 `);
                 return json({ success: true, data: subjectsResult.rows });
 
             case 'teachers':
                 const teachersResult = await query(`
                     SELECT 
-                        id,
-                        account_number,
-                        first_name,
-                        last_name,
-                        full_name,
-                        email,
-                        status
-                    FROM users
-                    WHERE account_type = 'teacher' AND status = 'active'
-                    ORDER BY full_name
+                        u.id,
+                        u.account_number,
+                        u.first_name,
+                        u.last_name,
+                        u.full_name,
+                        u.email,
+                        u.status,
+                        COALESCE(
+                            json_agg(
+                                CASE WHEN d.id IS NOT NULL THEN
+                                    json_build_object(
+                                        'id', d.id,
+                                        'name', d.name,
+                                        'code', d.code
+                                    )
+                                END
+                            ) FILTER (WHERE d.id IS NOT NULL), 
+                            '[]'::json
+                        ) as departments
+                    FROM users u
+                    LEFT JOIN teacher_departments td ON u.id = td.teacher_id
+                    LEFT JOIN departments d ON td.department_id = d.id
+                    WHERE u.account_type = 'teacher' AND u.status = 'active'
+                    GROUP BY u.id, u.account_number, u.first_name, u.last_name, u.full_name, u.email, u.status
+                    ORDER BY u.full_name
                 `);
                 return json({ success: true, data: teachersResult.rows });
 
             case 'departments':
             default:
-                // Get departments by grouping subjects by grade level and creating logical departments
+                // Get departments from the real departments table with their subjects and teachers
                 const departmentsResult = await query(`
-                    WITH department_subjects AS (
-                        SELECT 
-                            CASE 
-                                WHEN name ILIKE '%math%' OR name ILIKE '%algebra%' OR name ILIKE '%geometry%' THEN 'Mathematics Department'
-                                WHEN name ILIKE '%science%' OR name ILIKE '%biology%' OR name ILIKE '%chemistry%' OR name ILIKE '%physics%' THEN 'Science Department'
-                                WHEN name ILIKE '%english%' OR name ILIKE '%filipino%' OR name ILIKE '%literature%' THEN 'Language Arts Department'
-                                WHEN name ILIKE '%araling%' OR name ILIKE '%history%' OR name ILIKE '%social%' THEN 'Social Studies Department'
-                                WHEN name ILIKE '%mapeh%' OR name ILIKE '%pe%' OR name ILIKE '%arts%' OR name ILIKE '%music%' THEN 'MAPEH Department'
-                                WHEN name ILIKE '%tle%' OR name ILIKE '%technology%' OR name ILIKE '%livelihood%' THEN 'TLE Department'
-                                ELSE 'General Department'
-                            END as department_name,
-                            CASE 
-                                WHEN name ILIKE '%math%' OR name ILIKE '%algebra%' OR name ILIKE '%geometry%' THEN 'MATH-DEPT'
-                                WHEN name ILIKE '%science%' OR name ILIKE '%biology%' OR name ILIKE '%chemistry%' OR name ILIKE '%physics%' THEN 'SCI-DEPT'
-                                WHEN name ILIKE '%english%' OR name ILIKE '%filipino%' OR name ILIKE '%literature%' THEN 'LANG-DEPT'
-                                WHEN name ILIKE '%araling%' OR name ILIKE '%history%' OR name ILIKE '%social%' THEN 'SOCIAL-DEPT'
-                                WHEN name ILIKE '%mapeh%' OR name ILIKE '%pe%' OR name ILIKE '%arts%' OR name ILIKE '%music%' THEN 'MAPEH-DEPT'
-                                WHEN name ILIKE '%tle%' OR name ILIKE '%technology%' OR name ILIKE '%livelihood%' THEN 'TLE-DEPT'
-                                ELSE 'GEN-DEPT'
-                            END as department_code,
-                            json_agg(
-                                json_build_object(
-                                    'id', id,
-                                    'name', name,
-                                    'code', code,
-                                    'grade_level', grade_level
-                                )
-                            ) as subjects,
-                            COUNT(*) as subject_count,
-                            MIN(created_at) as created_at
-                        FROM subjects
-                        WHERE status = 'active'
-                        GROUP BY department_name, department_code
-                    )
                     SELECT 
-                        ROW_NUMBER() OVER (ORDER BY department_name) as id,
-                        department_name as name,
-                        department_code as code,
-                        subjects,
-                        subject_count,
-                        created_at,
-                        '[]'::json as teachers
-                    FROM department_subjects
-                    ORDER BY department_name
+                        d.id,
+                        d.name,
+                        d.code,
+                        d.status,
+                        d.created_at,
+                        COALESCE(
+                            json_agg(
+                                CASE WHEN s.id IS NOT NULL THEN
+                                    json_build_object(
+                                        'id', s.id,
+                                        'name', s.name,
+                                        'code', s.code,
+                                        'grade_level', s.grade_level
+                                    )
+                                END
+                            ) FILTER (WHERE s.id IS NOT NULL), 
+                            '[]'::json
+                        ) as subjects,
+                        (
+                            SELECT COUNT(DISTINCT s2.id) 
+                            FROM subjects s2 
+                            WHERE s2.department_id = d.id
+                        ) as subject_count,
+                        COALESCE(
+                            (
+                                SELECT json_agg(
+                                    json_build_object(
+                                        'id', u.id,
+                                        'full_name', u.full_name,
+                                        'account_number', u.account_number
+                                    )
+                                )
+                                FROM teacher_departments td
+                                JOIN users u ON td.teacher_id = u.id
+                                WHERE td.department_id = d.id AND u.status = 'active'
+                            ),
+                            '[]'::json
+                        ) as teachers
+                    FROM departments d
+                    LEFT JOIN subjects s ON d.id = s.department_id
+                    WHERE d.status = 'active'
+                    GROUP BY d.id, d.name, d.code, d.status, d.created_at
+                    ORDER BY d.name
                 `);
                 return json({ success: true, data: departmentsResult.rows });
         }
@@ -96,7 +113,7 @@ export async function GET({ url }) {
     }
 }
 
-// POST - Create new department (actually creates subjects grouped as a department)
+// POST - Create new department
 export async function POST({ request, getClientAddress }) {
     try {
         const user = await getUserFromRequest(request);
@@ -104,36 +121,56 @@ export async function POST({ request, getClientAddress }) {
             return json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { name, code, subjects = [], teachers = [] } = await request.json();
+        const { name, code, teachers = [] } = await request.json();
 
         if (!name || !code) {
             return json({ success: false, error: 'Department name and code are required' }, { status: 400 });
         }
 
-        // For now, we'll just log the department creation since we don't have a departments table
-        // In a real implementation, you might want to create a departments table
+        // Create the department in the database
+        const departmentResult = await query(`
+            INSERT INTO departments (name, code, status)
+            VALUES ($1, $2, 'active')
+            RETURNING id, name, code, status, created_at
+        `, [name, code]);
+
+        const newDepartment = departmentResult.rows[0];
+
+        // Assign teachers to the department if provided
+        if (teachers.length > 0) {
+            for (const teacherId of teachers) {
+                await query(`
+                    INSERT INTO teacher_departments (teacher_id, department_id)
+                    VALUES ($1, $2)
+                    ON CONFLICT (teacher_id, department_id) DO NOTHING
+                `, [teacherId, newDepartment.id]);
+            }
+        }
+
+        // Log the department creation
         await logActivityWithUser(
             user.id,
             'department_created',
             `Created department: ${name} (${code})`,
-            { department_name: name, department_code: code, subjects, teachers },
+            { department_id: newDepartment.id, department_name: name, department_code: code, teachers },
             getClientAddress()
         );
 
         return json({ 
             success: true, 
-            message: 'Department concept created successfully',
+            message: 'Department created successfully',
             data: {
-                id: Date.now(),
-                name,
-                code,
+                ...newDepartment,
                 subjects: [],
                 teachers: [],
-                created_at: new Date().toISOString()
+                subject_count: 0
             }
         });
     } catch (error) {
         console.error('Error creating department:', error);
+        if (error.code === '23505') { // Unique constraint violation
+            return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+        }
         return json({ success: false, error: 'Failed to create department' }, { status: 500 });
     }
 }
@@ -146,10 +183,41 @@ export async function PUT({ request, getClientAddress }) {
             return json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id, name, code, subjects = [], teachers = [] } = await request.json();
+        const { id, name, code, teachers = [] } = await request.json();
 
         if (!id || !name || !code) {
             return json({ success: false, error: 'Department ID, name and code are required' }, { status: 400 });
+        }
+
+        // Update the department in the database
+        const departmentResult = await query(`
+            UPDATE departments 
+            SET name = $1, code = $2, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3 AND status = 'active'
+            RETURNING id, name, code, status, created_at, updated_at
+        `, [name, code, id]);
+
+        if (departmentResult.rows.length === 0) {
+            return json({ success: false, error: 'Department not found' }, { status: 404 });
+        }
+
+        const updatedDepartment = departmentResult.rows[0];
+
+        // Update teacher assignments
+        // First, remove all existing assignments for this department
+        await query(`
+            DELETE FROM teacher_departments 
+            WHERE department_id = $1
+        `, [id]);
+
+        // Then add the new assignments
+        if (teachers.length > 0) {
+            for (const teacherId of teachers) {
+                await query(`
+                    INSERT INTO teacher_departments (teacher_id, department_id)
+                    VALUES ($1, $2)
+                `, [teacherId, id]);
+            }
         }
 
         // Log the department update
@@ -157,24 +225,20 @@ export async function PUT({ request, getClientAddress }) {
             user.id,
             'department_updated',
             `Updated department: ${name} (${code})`,
-            { department_id: id, department_name: name, department_code: code, subjects, teachers },
+            { department_id: id, department_name: name, department_code: code, teachers },
             getClientAddress()
         );
 
         return json({ 
             success: true, 
             message: 'Department updated successfully',
-            data: {
-                id,
-                name,
-                code,
-                subjects,
-                teachers,
-                updated_at: new Date().toISOString()
-            }
+            data: updatedDepartment
         });
     } catch (error) {
         console.error('Error updating department:', error);
+        if (error.code === '23505') { // Unique constraint violation
+            return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+        }
         return json({ success: false, error: 'Failed to update department' }, { status: 500 });
     }
 }
@@ -187,18 +251,51 @@ export async function DELETE({ request, getClientAddress }) {
             return json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id, name } = await request.json();
+        const { id } = await request.json();
 
         if (!id) {
             return json({ success: false, error: 'Department ID is required' }, { status: 400 });
         }
 
+        // Get department info before deletion for logging
+        const departmentInfo = await query(`
+            SELECT name, code FROM departments WHERE id = $1
+        `, [id]);
+
+        if (departmentInfo.rows.length === 0) {
+            return json({ success: false, error: 'Department not found' }, { status: 404 });
+        }
+
+        const department = departmentInfo.rows[0];
+
+        // Check if department has subjects assigned
+        const subjectsCount = await query(`
+            SELECT COUNT(*) as count FROM subjects WHERE department_id = $1
+        `, [id]);
+
+        if (parseInt(subjectsCount.rows[0].count) > 0) {
+            return json({ 
+                success: false, 
+                error: 'Cannot delete department with assigned subjects. Please reassign subjects first.' 
+            }, { status: 400 });
+        }
+
+        // Delete teacher assignments first (due to foreign key constraints)
+        await query(`
+            DELETE FROM teacher_departments WHERE department_id = $1
+        `, [id]);
+
+        // Hard delete the department from the database
+        await query(`
+            DELETE FROM departments WHERE id = $1
+        `, [id]);
+
         // Log the department deletion
         await logActivityWithUser(
             user.id,
             'department_deleted',
-            `Deleted department: ${name || 'Unknown'}`,
-            { department_id: id },
+            `Deleted department: ${department.name} (${department.code})`,
+            { department_id: id, department_name: department.name, department_code: department.code },
             getClientAddress()
         );
 

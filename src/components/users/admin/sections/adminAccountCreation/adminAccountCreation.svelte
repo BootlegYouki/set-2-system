@@ -972,7 +972,7 @@
 				<div class="form-actions">
 					<button 
 						type="submit" 
-						class="create-button"
+						class="account-create-button"
 						class:loading={isCreating}
 						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email) || (selectedAccountType === 'student' && (!birthdate || !address || !guardian || !contactNumber))}
 					>

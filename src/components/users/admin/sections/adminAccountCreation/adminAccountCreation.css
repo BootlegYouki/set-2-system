@@ -468,7 +468,7 @@
   margin-top: var(--spacing-xl);
 }
 
-.create-button {
+.account-create-button {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -485,19 +485,19 @@
   min-height: 56px;
 }
 
-.create-button:hover:not(:disabled) {
+.account-create-button:hover:not(:disabled) {
   background-color: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
   box-shadow: var(--shadow-md);
 }
 
-.create-button:disabled {
+.account-create-button:disabled {
   background-color: var(--md-sys-color-surface-variant);
   color: var(--md-sys-color-on-surface-variant);
   cursor: not-allowed;
 }
 
-.create-button.loading {
+.account-create-button.loading {
   pointer-events: none;
 }
 

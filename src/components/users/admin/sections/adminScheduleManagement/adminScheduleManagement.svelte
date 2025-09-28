@@ -252,6 +252,18 @@
 						newSchedule.calculatedDuration &&
 						!isInvalidTimeRange;
 
+	// Filter teachers based on selected subject's department
+	$: filteredTeachers = selectedFormSubject ? 
+		teachers.filter(teacher => {
+			const selectedSubject = subjects.find(s => s.id === selectedFormSubject);
+			if (!selectedSubject || !selectedSubject.department_id) {
+				// If no department info, show all teachers
+				return true;
+			}
+			// Show teachers who are assigned to the same department as the selected subject
+			return teacher.departments && teacher.departments.some(dept => dept.id === selectedSubject.department_id);
+		}) : teachers;
+
 	// Clear saved schedules when selection changes
 	$: if (selectedFormYear || selectedFormSection || selectedFormDay) {
 		savedSchedules = [];
@@ -390,6 +402,8 @@
 
 	function selectFormSubject(subject) {
 		selectedFormSubject = subject ? subject.id : '';
+		// Reset teacher selection when subject changes to force reselection with filtered teachers
+		selectedFormTeacher = '';
 		// Reset subsequent selections
 		selectedFormTimeSlot = '';
 		isFormSubjectDropdownOpen = false;
@@ -1524,7 +1538,7 @@
 											<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 										</button>
 										<div class="scheduleassign-dropdown-menu">
-											{#each teachers as teacher (teacher.id)}
+											{#each filteredTeachers as teacher (teacher.id)}
 												<button 
 													type="button"
 													class="scheduleassign-dropdown-item" 
