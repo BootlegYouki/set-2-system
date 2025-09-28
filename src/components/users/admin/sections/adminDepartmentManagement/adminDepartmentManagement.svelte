@@ -2,7 +2,7 @@
 	import './adminDepartmentManagement.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
-	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
 
 	// State variables
@@ -67,7 +67,7 @@
 	async function fetchDepartments() {
 		isLoadingDepartments = true;
 		try {
-			const result = await authenticatedFetch('/api/departments?action=departments');
+			const result = await api.get('/api/departments?action=departments');
 			
 			if (result.success) {
 				departments = result.data.map(dept => ({
@@ -92,7 +92,7 @@
 	async function fetchSubjects() {
 		isLoadingSubjects = true;
 		try {
-			const result = await authenticatedFetch('/api/departments?action=subjects');
+			const result = await api.get('/api/departments?action=subjects');
 			
 			if (result.success) {
 				availableSubjects = result.data.map(subject => ({
@@ -115,7 +115,7 @@
 	async function fetchTeachers() {
 		isLoadingTeachers = true;
 		try {
-			const result = await authenticatedFetch('/api/departments?action=teachers');
+			const result = await api.get('/api/departments?action=teachers');
 			
 			if (result.success) {
 				availableTeachers = result.data.map(teacher => ({
@@ -212,12 +212,9 @@
 		isCreating = true;
 
 		try {
-			const result = await authenticatedFetch('/api/departments', {
-				method: 'POST',
-				body: JSON.stringify({
-					name: departmentName.trim(),
-					code: departmentCode.trim().toUpperCase()
-				})
+			const result = await api.post('/api/departments', {
+				name: departmentName.trim(),
+				code: departmentCode.trim().toUpperCase()
 			});
 
 			if (result.success) {
@@ -260,13 +257,10 @@
 		isUpdating = true;
 
 		try {
-			const result = await authenticatedFetch('/api/departments', {
-				method: 'PUT',
-				body: JSON.stringify({
-					id: editingDepartmentId,
-					name: editDepartmentName.trim(),
-					code: editDepartmentCode.trim().toUpperCase()
-				})
+			const result = await api.put('/api/departments', {
+				id: editingDepartmentId,
+				name: editDepartmentName.trim(),
+				code: editDepartmentCode.trim().toUpperCase()
 			});
 
 			if (result.success) {
@@ -322,12 +316,9 @@
 			 <p class="warning-text">This action will also remove all subject and teacher assignments.</p>`,
 			async () => {
 				try {
-					const result = await authenticatedFetch('/api/departments', {
-						method: 'DELETE',
-						body: JSON.stringify({
-							id: department.id,
-							name: department.name
-						})
+					const result = await api.delete('/api/departments', {
+						id: department.id,
+						name: department.name
 					});
 
 					if (result.success) {
@@ -482,10 +473,7 @@
 			};
 
 			// Make API call to update department assignments
-			const result = await authenticatedFetch('/api/departments', {
-				method: 'PUT',
-				body: JSON.stringify(requestData)
-			});
+			const result = await api.put('/api/departments', requestData);
 
 			if (!result.success) {
 				throw new Error(result.error || 'Failed to update assignments');
