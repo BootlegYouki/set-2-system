@@ -374,8 +374,8 @@
 			}
 			// Open assign form and populate with current assignments
 			assigningDepartmentId = department.id;
-			selectedSubjects = [...department.subjects];
-			selectedTeachers = [...department.teachers];
+			selectedSubjects = department.subjects ? department.subjects.map(subject => subject.id) : [];
+			selectedTeachers = department.teachers ? department.teachers.map(teacher => teacher.id) : [];
 			// Reset dropdown states
 			isSubjectDropdownOpen = false;
 			isTeacherDropdownOpen = false;
