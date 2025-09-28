@@ -247,6 +247,20 @@ export async function PUT({ request, getClientAddress }) {
             return json({ success: false, error: 'Department name cannot exceed 100 characters' }, { status: 400 });
         }
 
+        // Get current department info to check if name or code changed
+        const currentDeptResult = await query(`
+            SELECT name, code FROM departments WHERE id = $1 AND status = 'active'
+        `, [id]);
+
+        if (currentDeptResult.rows.length === 0) {
+            return json({ success: false, error: 'Department not found' }, { status: 404 });
+        }
+
+        const currentDept = currentDeptResult.rows[0];
+        const nameChanged = currentDept.name !== name;
+        const codeChanged = currentDept.code !== code;
+        const basicInfoChanged = nameChanged || codeChanged;
+
         // Update the department in the database
         const departmentResult = await query(`
             UPDATE departments 
@@ -254,10 +268,6 @@ export async function PUT({ request, getClientAddress }) {
             WHERE id = $3 AND status = 'active'
             RETURNING id, name, code, status, created_at, updated_at
         `, [name, code, id]);
-
-        if (departmentResult.rows.length === 0) {
-            return json({ success: false, error: 'Department not found' }, { status: 404 });
-        }
 
         const updatedDepartment = departmentResult.rows[0];
 
@@ -406,17 +416,19 @@ export async function PUT({ request, getClientAddress }) {
             }
         }
 
-        // Log the department update
-        try {
-            await logActivityWithUser(
-                'department_updated',
-                user,
-                { department_id: id, department_name: name, department_code: code, teachers, subjects },
-                getClientAddress(),
-                request.headers.get('user-agent')
-            );
-        } catch (logError) {
-            console.error('Error logging department update activity:', logError);
+        // Log the department update only if basic info (name or code) changed
+        if (basicInfoChanged) {
+            try {
+                await logActivityWithUser(
+                    'department_updated',
+                    user,
+                    { department_id: id, department_name: name, department_code: code },
+                    getClientAddress(),
+                    request.headers.get('user-agent')
+                );
+            } catch (logError) {
+                console.error('Error logging department update activity:', logError);
+            }
         }
 
         return json({ 

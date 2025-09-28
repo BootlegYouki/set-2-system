@@ -231,7 +231,9 @@
 			}
 		} catch (error) {
 			console.error('Error creating department:', error);
-			toastStore.error('Failed to create department. Please try again.');
+			// Extract the error message from the thrown error
+			const errorMessage = error.message || 'Failed to create department. Please try again.';
+			toastStore.error(errorMessage);
 		} finally {
 			isCreating = false;
 		}
@@ -302,7 +304,9 @@
 			}
 		} catch (error) {
 			console.error('Error updating department:', error);
-			toastStore.error('Failed to update department. Please try again.');
+			// Extract the error message from the thrown error
+			const errorMessage = error.message || 'Failed to update department. Please try again.';
+			toastStore.error(errorMessage);
 		} finally {
 			isUpdating = false;
 		}
