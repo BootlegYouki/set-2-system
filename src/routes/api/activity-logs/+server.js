@@ -176,16 +176,40 @@ export async function GET({ url }) {
 					icon = 'edit';
 					break;
 				case 'department_created':
-					message = `Created department: ${activity.activity_data.department_name} (${activity.activity_data.department_code})`;
-					icon = 'plus';
+					message = `Created department: ${data.department_name} (${data.department_code})`;
+					icon = 'corporate_fare';
 					break;
 				case 'department_updated':
-					message = `Updated department: ${activity.activity_data.department_name} (${activity.activity_data.department_code})`;
+					message = `Updated department: ${data.department_name} (${data.department_code})`;
 					icon = 'edit';
 					break;
 				case 'department_deleted':
-					message = `Deleted department: ${activity.activity_data.department_name} (${activity.activity_data.department_code})`;
-					icon = 'trash';
+					message = `Deleted department: ${data.department_name} (${data.department_code})`;
+					icon = 'delete';
+					break;
+				case 'department_teacher_assigned':
+					const assignedTeachers = data.teachers && data.teachers.length > 0 ? 
+						data.teachers.map(t => t.name || t.full_name).join(', ') : 'teachers';
+					message = `Assigned teachers to department "${data.department_name}": ${assignedTeachers}`;
+					icon = 'person_add';
+					break;
+				case 'department_teacher_removed':
+					const removedTeachers = data.teachers && data.teachers.length > 0 ? 
+						data.teachers.map(t => t.name || t.full_name).join(', ') : 'teachers';
+					message = `Removed teachers from department "${data.department_name}": ${removedTeachers}`;
+					icon = 'person_remove';
+					break;
+				case 'department_subject_assigned':
+					const assignedSubjects = data.subjects && data.subjects.length > 0 ? 
+						data.subjects.map(s => s.name).join(', ') : 'subjects';
+					message = `Assigned subjects to department "${data.department_name}": ${assignedSubjects}`;
+					icon = 'book';
+					break;
+				case 'department_subject_removed':
+					const removedSubjects = data.subjects && data.subjects.length > 0 ? 
+						data.subjects.map(s => s.name).join(', ') : 'subjects';
+					message = `Removed subjects from department "${data.department_name}": ${removedSubjects}`;
+					icon = 'book';
 					break;
 				case 'room_deleted':
 					message = `Room deleted: ${data.room_name} (${data.building}, Floor ${data.floor})`;

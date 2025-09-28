@@ -10,7 +10,7 @@
 	let isAuthInitialized = $state(false);
 	
 	// Initialize auth store
-	onMount(() => {
+	onMount(() => {		
 		// Small delay to let app loading show, then initialize auth
 		setTimeout(() => {
 			authStore.initialize();

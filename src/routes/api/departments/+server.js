@@ -144,23 +144,52 @@ export async function POST({ request, getClientAddress }) {
 
         // Assign teachers to the department if provided
         if (teachers.length > 0) {
+            const assignedTeachers = [];
             for (const teacherId of teachers) {
                 await query(`
                     INSERT INTO teacher_departments (teacher_id, department_id)
                     VALUES ($1, $2)
                     ON CONFLICT (teacher_id, department_id) DO NOTHING
                 `, [teacherId, newDepartment.id]);
+                
+                // Get teacher info for logging
+                const teacherInfo = await query(`
+                    SELECT id, full_name, account_number FROM users WHERE id = $1
+                `, [teacherId]);
+                if (teacherInfo.rows.length > 0) {
+                    assignedTeachers.push(teacherInfo.rows[0]);
+                }
+            }
+
+            // Log teacher assignments if any were made
+            if (assignedTeachers.length > 0) {
+                try {
+                    await logActivityWithUser(
+                        'department_teacher_assigned',
+                        user,
+                        { 
+                            department_id: newDepartment.id, 
+                            department_name: name, 
+                            department_code: code,
+                            teachers: assignedTeachers
+                        },
+                        getClientAddress(),
+                        request.headers.get('user-agent')
+                    );
+                } catch (logError) {
+                    console.error('Error logging teacher assignment activity:', logError);
+                }
             }
         }
 
         // Log the department creation
         try {
             await logActivityWithUser(
-                user.id,
                 'department_created',
-                `Created department: ${name} (${code})`,
+                user,
                 { department_id: newDepartment.id, department_name: name, department_code: code, teachers },
-                getClientAddress()
+                getClientAddress(),
+                request.headers.get('user-agent')
             );
         } catch (logError) {
             console.error('Error logging department creation activity:', logError);
@@ -216,49 +245,158 @@ export async function PUT({ request, getClientAddress }) {
         const updatedDepartment = departmentResult.rows[0];
 
         // Update teacher assignments
-        // First, remove all existing teacher assignments for this department
+        // First, get current teacher assignments for logging
+        const currentTeachersResult = await query(`
+            SELECT u.id, u.full_name, u.account_number
+            FROM teacher_departments td
+            JOIN users u ON td.teacher_id = u.id
+            WHERE td.department_id = $1
+        `, [id]);
+        const currentTeachers = currentTeachersResult.rows;
+
+        // Remove all existing teacher assignments for this department
         await query(`
             DELETE FROM teacher_departments 
             WHERE department_id = $1
         `, [id]);
 
+        // Log teacher removals if any existed
+        if (currentTeachers.length > 0) {
+            try {
+                await logActivityWithUser(
+                    'department_teacher_removed',
+                    user,
+                    { 
+                        department_id: id, 
+                        department_name: name, 
+                        department_code: code,
+                        teachers: currentTeachers
+                    },
+                    getClientAddress(),
+                    request.headers.get('user-agent')
+                );
+            } catch (logError) {
+                console.error('Error logging teacher removal activity:', logError);
+            }
+        }
+
         // Then add the new teacher assignments
         if (teachers.length > 0) {
+            const newTeachers = [];
             for (const teacherId of teachers) {
                 await query(`
                     INSERT INTO teacher_departments (teacher_id, department_id)
                     VALUES ($1, $2)
                 `, [teacherId, id]);
+                
+                // Get teacher info for logging
+                const teacherInfo = await query(`
+                    SELECT id, full_name, account_number FROM users WHERE id = $1
+                `, [teacherId]);
+                if (teacherInfo.rows.length > 0) {
+                    newTeachers.push(teacherInfo.rows[0]);
+                }
+            }
+
+            // Log teacher assignments
+            try {
+                await logActivityWithUser(
+                    'department_teacher_assigned',
+                    user,
+                    { 
+                        department_id: id, 
+                        department_name: name, 
+                        department_code: code,
+                        teachers: newTeachers
+                    },
+                    getClientAddress(),
+                    request.headers.get('user-agent')
+                );
+            } catch (logError) {
+                console.error('Error logging teacher assignment activity:', logError);
             }
         }
 
         // Update subject assignments
-        // First, update all subjects that were previously assigned to this department to have no department
+        // First, get current subject assignments for logging
+        const currentSubjectsResult = await query(`
+            SELECT id, name, code FROM subjects WHERE department_id = $1
+        `, [id]);
+        const currentSubjects = currentSubjectsResult.rows;
+
+        // Update all subjects that were previously assigned to this department to have no department
         await query(`
             UPDATE subjects 
             SET department_id = NULL 
             WHERE department_id = $1
         `, [id]);
 
+        // Log subject removals if any existed
+        if (currentSubjects.length > 0) {
+            try {
+                await logActivityWithUser(
+                    'department_subject_removed',
+                    user,
+                    { 
+                        department_id: id, 
+                        department_name: name, 
+                        department_code: code,
+                        subjects: currentSubjects
+                    },
+                    getClientAddress(),
+                    request.headers.get('user-agent')
+                );
+            } catch (logError) {
+                console.error('Error logging subject removal activity:', logError);
+            }
+        }
+
         // Then assign the selected subjects to this department
         if (subjects.length > 0) {
+            const newSubjects = [];
             for (const subjectId of subjects) {
                 await query(`
                     UPDATE subjects 
                     SET department_id = $1 
                     WHERE id = $2
                 `, [id, subjectId]);
+                
+                // Get subject info for logging
+                const subjectInfo = await query(`
+                    SELECT id, name, code FROM subjects WHERE id = $1
+                `, [subjectId]);
+                if (subjectInfo.rows.length > 0) {
+                    newSubjects.push(subjectInfo.rows[0]);
+                }
+            }
+
+            // Log subject assignments
+            try {
+                await logActivityWithUser(
+                    'department_subject_assigned',
+                    user,
+                    { 
+                        department_id: id, 
+                        department_name: name, 
+                        department_code: code,
+                        subjects: newSubjects
+                    },
+                    getClientAddress(),
+                    request.headers.get('user-agent')
+                );
+            } catch (logError) {
+                console.error('Error logging subject assignment activity:', logError);
             }
         }
 
         // Log the department update
         try {
             await logActivityWithUser(
-                user.id,
                 'department_updated',
-                `Updated department: ${name} (${code})`,
+                user,
                 { department_id: id, department_name: name, department_code: code, teachers, subjects },
-                getClientAddress()
+                getClientAddress(),
+                request.headers.get('user-agent')
             );
         } catch (logError) {
             console.error('Error logging department update activity:', logError);
@@ -328,11 +466,11 @@ export async function DELETE({ request, getClientAddress }) {
         // Log the department deletion
         try {
             await logActivityWithUser(
-                user.id,
                 'department_deleted',
-                `Deleted department: ${department.name} (${department.code})`,
+                user,
                 { department_id: id, department_name: department.name, department_code: department.code },
-                getClientAddress()
+                getClientAddress(),
+                request.headers.get('user-agent')
             );
         } catch (logError) {
             console.error('Error logging department deletion activity:', logError);

@@ -3,20 +3,17 @@
 	import { onMount } from 'svelte';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { dashboardStore } from '../../../../../lib/stores/admin/dashboardStore.js';
-	import { activityLogsStore } from '../../../../../lib/stores/admin/activityLogsStore.js';
 
 	// Subscribe to dashboard store
 	$: ({ data: dashboardStats, isLoading: statsLoading, error: statsError } = $dashboardStore);
 
-	// Subscribe to activity logs store
-	$: ({ 
-		activities: recentActivities, 
-		isLoading: activitiesLoading, 
-		error: activitiesError,
-		hasMoreActivities,
-		activityLimit,
-		loadingMore
-	} = $activityLogsStore);
+	// Local state for activity logs (replacing activityLogsStore)
+	let recentActivities = [];
+	let activitiesLoading = false;
+	let activitiesError = null;
+	let hasMoreActivities = true;
+	let activityLimit = 4;
+	let loadingMore = false;
 
 	// Fetch dashboard statistics from API
 	async function fetchDashboardStats(silent = false) {
@@ -52,42 +49,48 @@
 	async function fetchRecentActivities(silent = false) {
 		try {
 			if (!silent) {
-				activityLogsStore.setLoading(true);
+				activitiesLoading = true;
+				activitiesError = null;
 			}
 			
 			const response = await fetch(`/api/activity-logs?limit=${activityLimit}`);
 			const data = await response.json();
 			
 			if (data.success) {
-				const hasMore = data.activities.length === activityLimit;
-				activityLogsStore.updateActivities(data.activities, activityLimit, hasMore);
+				recentActivities = data.activities;
+				hasMoreActivities = data.activities.length === activityLimit;
 			} else {
 				throw new Error(data.error || 'Failed to fetch activities');
 			}
 		} catch (error) {
 			console.error('Error fetching activities:', error);
-			activityLogsStore.setError(error.message);
+			activitiesError = error.message;
+		} finally {
+			activitiesLoading = false;
 		}
 	}
 
 	// Load more activities
 	async function loadMoreActivities() {
 		try {
-			activityLogsStore.setLoadingMore(true);
+			loadingMore = true;
 			
 			const newLimit = activityLimit + 4;
 			const response = await fetch(`/api/activity-logs?limit=${newLimit}`);
 			const data = await response.json();
 			
 			if (data.success) {
-				const hasMore = data.activities.length === newLimit;
-				activityLogsStore.updateActivities(data.activities, newLimit, hasMore);
+				recentActivities = data.activities;
+				activityLimit = newLimit;
+				hasMoreActivities = data.activities.length === newLimit;
 			} else {
 				throw new Error(data.error || 'Failed to fetch more activities');
 			}
 		} catch (error) {
 			console.error('Error loading more activities:', error);
-			activityLogsStore.setError(error.message);
+			activitiesError = error.message;
+		} finally {
+			loadingMore = false;
 		}
 	}
 
@@ -99,15 +102,9 @@
 			dashboardStore.init(cachedData);
 		}
 		
-		// Initialize activity logs store with cached data (instant load)
-		const cachedActivities = activityLogsStore.getCachedData();
-		if (cachedActivities) {
-			activityLogsStore.init(cachedActivities);
-		}
-		
 		// Fetch fresh data (silent if we have cache, visible loading if not)
 		fetchDashboardStats(!!cachedData);
-		fetchRecentActivities(!!cachedActivities);
+		fetchRecentActivities(false); // Always show loading for activity logs
 		
 		// Set up periodic silent refresh every 30 seconds
 		const refreshInterval = setInterval(() => {
