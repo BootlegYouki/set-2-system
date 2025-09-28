@@ -213,9 +213,7 @@
 				method: 'POST',
 				body: JSON.stringify({
 					name: departmentName.trim(),
-					code: departmentCode.trim().toUpperCase(),
-					subjects: [],
-					teachers: []
+					code: departmentCode.trim().toUpperCase()
 				})
 			});
 
@@ -341,7 +339,9 @@
 					toastStore.error('Failed to remove department. Please try again.');
 				}
 			},
-			null,
+			() => {
+				// Cancel callback
+			},
 			{ size: 'small' }
 		);
 	}
@@ -461,15 +461,34 @@
 	}
 
 	async function handleAssignDepartment() {
-		if (!assigningDepartmentId) return;
+		isAssigning = true;
 
 		try {
-			isAssigning = true;
+			// Find the department to get its current details
+			const department = departments.find(dept => dept.id === assigningDepartmentId);
+			if (!department) {
+				throw new Error('Department not found');
+			}
 
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			const requestData = {
+				id: assigningDepartmentId,
+				name: department.name,
+				code: department.code,
+				teachers: selectedTeachers,
+				subjects: selectedSubjects
+			};
 
-			// Update department assignments
+			// Make API call to update department assignments
+			const result = await authenticatedFetch('/api/departments', {
+				method: 'PUT',
+				body: JSON.stringify(requestData)
+			});
+
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to update assignments');
+			}
+
+			// Update local state to reflect the changes
 			departments = departments.map(dept => {
 				if (dept.id === assigningDepartmentId) {
 					return {

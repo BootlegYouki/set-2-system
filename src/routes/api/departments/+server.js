@@ -148,13 +148,17 @@ export async function POST({ request, getClientAddress }) {
         }
 
         // Log the department creation
-        await logActivityWithUser(
-            user.id,
-            'department_created',
-            `Created department: ${name} (${code})`,
-            { department_id: newDepartment.id, department_name: name, department_code: code, teachers },
-            getClientAddress()
-        );
+        try {
+            await logActivityWithUser(
+                user.id,
+                'department_created',
+                `Created department: ${name} (${code})`,
+                { department_id: newDepartment.id, department_name: name, department_code: code, teachers },
+                getClientAddress()
+            );
+        } catch (logError) {
+            console.error('Error logging department creation activity:', logError);
+        }
 
         return json({ 
             success: true, 
@@ -183,7 +187,9 @@ export async function PUT({ request, getClientAddress }) {
             return json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { id, name, code, teachers = [] } = await request.json();
+        const requestBody = await request.json();
+        
+        const { id, name, code, teachers = [], subjects = [] } = requestBody;
 
         if (!id || !name || !code) {
             return json({ success: false, error: 'Department ID, name and code are required' }, { status: 400 });
@@ -204,13 +210,13 @@ export async function PUT({ request, getClientAddress }) {
         const updatedDepartment = departmentResult.rows[0];
 
         // Update teacher assignments
-        // First, remove all existing assignments for this department
+        // First, remove all existing teacher assignments for this department
         await query(`
             DELETE FROM teacher_departments 
             WHERE department_id = $1
         `, [id]);
 
-        // Then add the new assignments
+        // Then add the new teacher assignments
         if (teachers.length > 0) {
             for (const teacherId of teachers) {
                 await query(`
@@ -220,14 +226,37 @@ export async function PUT({ request, getClientAddress }) {
             }
         }
 
+        // Update subject assignments
+        // First, update all subjects that were previously assigned to this department to have no department
+        await query(`
+            UPDATE subjects 
+            SET department_id = NULL 
+            WHERE department_id = $1
+        `, [id]);
+
+        // Then assign the selected subjects to this department
+        if (subjects.length > 0) {
+            for (const subjectId of subjects) {
+                await query(`
+                    UPDATE subjects 
+                    SET department_id = $1 
+                    WHERE id = $2
+                `, [id, subjectId]);
+            }
+        }
+
         // Log the department update
-        await logActivityWithUser(
-            user.id,
-            'department_updated',
-            `Updated department: ${name} (${code})`,
-            { department_id: id, department_name: name, department_code: code, teachers },
-            getClientAddress()
-        );
+        try {
+            await logActivityWithUser(
+                user.id,
+                'department_updated',
+                `Updated department: ${name} (${code})`,
+                { department_id: id, department_name: name, department_code: code, teachers, subjects },
+                getClientAddress()
+            );
+        } catch (logError) {
+            console.error('Error logging department update activity:', logError);
+        }
 
         return json({ 
             success: true, 
@@ -291,13 +320,17 @@ export async function DELETE({ request, getClientAddress }) {
         `, [id]);
 
         // Log the department deletion
-        await logActivityWithUser(
-            user.id,
-            'department_deleted',
-            `Deleted department: ${department.name} (${department.code})`,
-            { department_id: id, department_name: department.name, department_code: department.code },
-            getClientAddress()
-        );
+        try {
+            await logActivityWithUser(
+                user.id,
+                'department_deleted',
+                `Deleted department: ${department.name} (${department.code})`,
+                { department_id: id, department_name: department.name, department_code: department.code },
+                getClientAddress()
+            );
+        } catch (logError) {
+            console.error('Error logging department deletion activity:', logError);
+        }
 
         return json({ 
             success: true, 

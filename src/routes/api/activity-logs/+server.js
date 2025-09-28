@@ -172,8 +172,20 @@ export async function GET({ url }) {
 					icon = 'delete';
 					break;
 				case 'room_updated':
-					message = `Room updated: ${data.name} (${data.building}, Floor ${data.floor})`;
+					message = `Updated room: ${activity.activity_data.room_name}`;
 					icon = 'edit';
+					break;
+				case 'department_created':
+					message = `Created department: ${activity.activity_data.department_name} (${activity.activity_data.department_code})`;
+					icon = 'plus';
+					break;
+				case 'department_updated':
+					message = `Updated department: ${activity.activity_data.department_name} (${activity.activity_data.department_code})`;
+					icon = 'edit';
+					break;
+				case 'department_deleted':
+					message = `Deleted department: ${activity.activity_data.department_name} (${activity.activity_data.department_code})`;
+					icon = 'trash';
 					break;
 				case 'room_deleted':
 					message = `Room deleted: ${data.room_name} (${data.building}, Floor ${data.floor})`;
