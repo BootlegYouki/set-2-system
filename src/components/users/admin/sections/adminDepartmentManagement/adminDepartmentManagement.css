@@ -1,0 +1,904 @@
+/* Department Management Styles */
+.dept-mgmt-container {
+	color: var(--md-sys-color-on-surface);
+	box-sizing: border-box;
+	overflow-y: auto;
+	overflow-x: hidden;
+	scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+.dept-mgmt-container::-webkit-scrollbar {
+	width: 8px;
+}
+
+.dept-mgmt-container::-webkit-scrollbar-track {
+	background: var(--md-sys-color-surface-variant);
+	border-radius: var(--radius-sm);
+}
+
+.dept-mgmt-container::-webkit-scrollbar-thumb {
+	background: var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-sm);
+	transition: background-color var(--transition-normal);
+}
+
+.dept-mgmt-container::-webkit-scrollbar-thumb:hover {
+	background: var(--md-sys-color-outline);
+}
+
+/* Header */
+.dept-mgmt-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--spacing-xl);
+	gap: var(--spacing-md);
+}
+
+.dept-mgmt-header-content {
+	flex: 1;
+}
+
+.dept-mgmt-page-title {
+	font-family: var(--md-sys-typescale-headline-large-font);
+	font-size: var(--md-sys-typescale-headline-large-size);
+	font-weight: var(--md-sys-typescale-headline-large-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-xs) 0;
+}
+
+.dept-mgmt-page-subtitle {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+/* Sections */
+.dept-mgmt-create-section,
+.dept-mgmt-search-section,
+.dept-mgmt-departments-section {
+	background-color: var(--md-sys-color-surface-container-low);
+	border-radius: var(--radius-xl);
+	padding: var(--spacing-xl);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	margin-bottom: var(--spacing-xl);
+}
+
+.dept-mgmt-section-title {
+	font-family: var(--md-sys-typescale-title-large-font);
+	font-size: var(--md-sys-typescale-title-large-size);
+	font-weight: var(--md-sys-typescale-title-large-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-sm) 0;
+}
+
+.dept-mgmt-section-subtitle {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0 0 var(--spacing-lg) 0;
+}
+
+/* Form Styles */
+.dept-mgmt-create-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-lg);
+}
+
+.dept-mgmt-form-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--spacing-lg);
+}
+
+.dept-mgmt-form-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.dept-mgmt-form-label {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+	color: var(--md-sys-color-on-surface);
+}
+
+.dept-mgmt-form-input,
+.dept-mgmt-form-textarea {
+	width: 100%;
+	padding: var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all var(--transition-normal);
+	box-sizing: border-box;
+	min-height: 58px;
+	margin-bottom: var(--spacing-md);
+}
+
+.dept-mgmt-form-input:focus,
+.dept-mgmt-form-textarea:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.dept-mgmt-form-input:disabled,
+.dept-mgmt-form-textarea:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.dept-mgmt-form-textarea {
+	resize: vertical;
+	min-height: 100px;
+	font-family: inherit;
+}
+
+/* Buttons */
+.dept-mgmt-btn {
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
+	border-radius: var(--radius-md);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+}
+
+/* Primary Button */
+.dept-mgmt-btn-primary {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
+	border-radius: var(--radius-full);
+	background: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	min-height: 56px;
+	min-width: 160px;
+	justify-content: center;
+}
+
+.dept-mgmt-btn-primary:hover {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dept-mgmt-btn-primary:disabled {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+/* Secondary Button */
+.dept-mgmt-btn-secondary {
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm) var(--spacing-lg);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	min-width: 80px;
+	height: 40px;
+}
+
+.dept-mgmt-btn-secondary:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+	box-shadow: var(--elevation-1);
+}
+
+.dept-mgmt-btn-secondary:active {
+	background-color: var(--md-sys-color-surface-container-high);
+	transform: scale(0.98);
+	box-shadow: none;
+}
+
+.dept-mgmt-btn-outline {
+	background-color: transparent;
+	color: var(--md-sys-color-primary);
+	border: 1px solid var(--md-sys-color-outline);
+}
+
+.dept-mgmt-btn-outline:hover {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+/* Small Action Buttons */
+.dept-mgmt-btn-small {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.dept-mgmt-btn-small:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	border-color: var(--md-sys-color-outline);
+	color: var(--md-sys-color-on-surface);
+	box-shadow: var(--elevation-1);
+}
+
+.dept-mgmt-btn-small:active {
+	background-color: var(--md-sys-color-surface-container-high);
+	box-shadow: none;
+	transform: scale(0.95);
+}
+
+.dept-mgmt-btn-small .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+/* Danger Button */
+.dept-mgmt-btn-danger {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-error);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.dept-mgmt-btn-danger:hover {
+	background-color: var(--md-sys-color-error-container);
+	border-color: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error-container);
+	box-shadow: var(--elevation-1);
+}
+
+.dept-mgmt-btn-danger:active {
+	background-color: var(--md-sys-color-error-container);
+	box-shadow: none;
+	transform: scale(0.95);
+}
+
+.dept-mgmt-btn-danger .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+.dept-mgmt-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.create-button,
+.save-button,
+.cancel-button,
+.assignment-button,
+.action-button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: none;
+	border-radius: var(--md-sys-shape-corner-full);
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-decoration: none;
+}
+
+.create-button,
+.save-button {
+	background-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+}
+
+.create-button:hover,
+.save-button:hover {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	box-shadow: var(--md-sys-elevation-level1);
+}
+
+.create-button:disabled,
+.save-button:disabled {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: not-allowed;
+}
+
+.cancel-button {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.cancel-button:hover {
+	background-color: var(--md-sys-color-surface-container-high);
+}
+
+.assignment-button {
+	background-color: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
+	padding: var(--spacing-sm) var(--spacing-md);
+	font-size: var(--md-sys-typescale-body-medium-size);
+}
+
+.assignment-button:hover {
+	background-color: var(--md-sys-color-secondary);
+	color: var(--md-sys-color-on-secondary);
+}
+
+.action-button {
+	padding: var(--spacing-sm);
+	border-radius: var(--md-sys-shape-corner-small);
+	background-color: transparent;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.action-button:hover {
+	background-color: var(--md-sys-color-surface-container-high);
+}
+
+.action-button.edit:hover {
+	background-color: var(--md-sys-color-tertiary-container);
+	color: var(--md-sys-color-on-tertiary-container);
+}
+
+.action-button.delete:hover {
+	background-color: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+}
+
+/* Form Actions */
+.dept-mgmt-form-actions {
+	display: flex;
+	justify-content: end;
+}
+
+/* Loading States */
+.dept-mgmt-loading-icon {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
+/* Department Statistics */
+.dept-mgmt-department-stats {
+	display: flex;
+	gap: var(--spacing-lg);
+	margin-top: var(--spacing-lg);
+	padding-top: var(--spacing-lg);
+	border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.dept-mgmt-stat-item {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.dept-mgmt-stat-item .material-symbols-outlined {
+	font-size: 18px;
+}
+
+/* Assignment Actions */
+.dept-mgmt-assignment-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	margin-top: var(--spacing-md);
+}
+
+/* Current Assignments */
+.dept-mgmt-current-assignments {
+	margin-top: var(--spacing-lg);
+}
+
+.dept-mgmt-assignments-title {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-md) 0;
+}
+
+.dept-mgmt-assignments-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.dept-mgmt-assignment-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--spacing-sm) var(--spacing-md);
+	background-color: var(--md-sys-color-surface-container-highest);
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.dept-mgmt-assignment-info {
+	flex: 1;
+}
+
+.dept-mgmt-assignment-name {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface);
+	margin: 0;
+}
+
+.dept-mgmt-assignment-type {
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+}
+
+/* Search Section */
+.dept-mgmt-search-section {
+	margin-bottom: var(--spacing-lg);
+}
+
+.dept-mgmt-search-container {
+	position: relative;
+	max-width: 500px;
+}
+
+.dept-mgmt-search-icon {
+	position: absolute;
+	left: var(--spacing-md);
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--md-sys-color-on-surface-variant);
+	font-size: 20px;
+}
+
+.dept-mgmt-search-input {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) 48px;
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--md-sys-shape-corner-full);
+	background-color: var(--md-sys-color-surface-container-highest);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	box-sizing: border-box;
+}
+
+.dept-mgmt-search-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+/* Search Bar */
+.dept-mgmt-search-bar {
+	width: 100%;
+	padding: var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all var(--transition-normal);
+	box-sizing: border-box;
+	min-height: 58px;
+	margin-bottom: var(--spacing-md);
+}
+
+.dept-mgmt-search-bar:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+
+/* Empty State */
+.dept-mgmt-empty-state {
+	text-align: center;
+	padding: var(--spacing-xxl);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.dept-mgmt-empty-icon {
+	font-size: 64px;
+	margin-bottom: var(--spacing-lg);
+	opacity: 0.6;
+}
+
+.dept-mgmt-empty-title {
+	font-family: var(--md-sys-typescale-headline-small-font);
+	font-size: var(--md-sys-typescale-headline-small-size);
+	font-weight: var(--md-sys-typescale-headline-small-weight);
+	margin: 0 0 var(--spacing-sm) 0;
+}
+
+.dept-mgmt-empty-description {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	margin: 0;
+}
+
+/* Departments Grid */
+.dept-mgmt-departments-grid {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+/* Department Card - Following existing card pattern */
+.dept-mgmt-department-card {
+	background-color: var(--md-sys-color-surface-container);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-lg);
+	transition: all var(--transition-normal);
+	cursor: pointer;
+	color: var(--md-sys-color-on-surface);
+}
+
+.dept-mgmt-department-card:hover:not(.editing) {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dept-mgmt-department-card.editing {
+	cursor: default;
+}
+
+.dept-mgmt-department-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: var(--spacing-md);
+}
+
+.dept-mgmt-department-info {
+	flex: 1;
+}
+
+.dept-mgmt-department-name {
+	font-family: var(--md-sys-typescale-title-large-font);
+	font-size: var(--md-sys-typescale-title-large-size);
+	font-weight: var(--md-sys-typescale-title-large-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0;
+}
+
+.dept-mgmt-department-code {
+	background: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border-radius: var(--radius-sm);
+	font-family: var(--md-sys-typescale-label-small-font);
+	font-size: var(--md-sys-typescale-label-small-size);
+	font-weight: var(--md-sys-typescale-label-small-weight);
+	margin: 0;
+}
+
+.dept-mgmt-department-description {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+	line-height: 1.4;
+}
+
+.dept-mgmt-department-actions {
+	display: flex;
+	gap: var(--spacing-xs);
+	align-items: center;
+}
+
+/* Edit Form */
+.edit-form {
+	background-color: var(--md-sys-color-surface-container-low);
+	border-radius: var(--md-sys-shape-corner-medium);
+	padding: var(--spacing-lg);
+	margin-bottom: var(--spacing-lg);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.edit-actions {
+	display: flex;
+	gap: var(--spacing-md);
+	margin-top: var(--spacing-lg);
+}
+
+/* Department Stats */
+.department-stats {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: var(--spacing-lg);
+	padding: var(--spacing-md);
+	background-color: var(--md-sys-color-surface-container-low);
+	border-radius: var(--md-sys-shape-corner-medium);
+}
+
+.stat-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--spacing-xs);
+	text-align: center;
+}
+
+.stat-icon {
+	font-size: 20px;
+	color: var(--md-sys-color-primary);
+}
+
+.stat-value {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface);
+}
+
+.stat-label {
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Assignment Actions */
+.assignment-actions {
+	display: flex;
+	gap: var(--spacing-md);
+	margin-bottom: var(--spacing-lg);
+}
+
+/* Current Assignments */
+.current-assignments {
+	border-top: 1px solid var(--md-sys-color-outline-variant);
+	padding-top: var(--spacing-lg);
+}
+
+.assignment-group {
+	margin-bottom: var(--spacing-md);
+}
+
+.assignment-group:last-child {
+	margin-bottom: 0;
+}
+
+.assignment-title {
+	font-family: var(--md-sys-typescale-title-small-font);
+	font-size: var(--md-sys-typescale-title-small-size);
+	font-weight: var(--md-sys-typescale-title-small-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0 0 var(--spacing-sm) 0;
+}
+
+.assignment-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-xs);
+}
+
+.assignment-tag {
+	display: inline-block;
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border-radius: var(--md-sys-shape-corner-full);
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	font-weight: 500;
+}
+
+.subject-tag {
+	background-color: var(--md-sys-color-tertiary-container);
+	color: var(--md-sys-color-on-tertiary-container);
+}
+
+.teacher-tag {
+	background-color: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+/* Modal Styles */
+.dept-mgmt-modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+	padding: var(--spacing-lg);
+	box-sizing: border-box;
+}
+
+.dept-mgmt-modal-content {
+	background-color: var(--md-sys-color-surface-container-high);
+	border-radius: var(--md-sys-shape-corner-large);
+	max-width: 600px;
+	width: 100%;
+	max-height: 80vh;
+	overflow-y: auto;
+	box-shadow: var(--md-sys-elevation-level3);
+}
+
+.dept-mgmt-modal-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--spacing-lg);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.dept-mgmt-modal-title {
+	font-family: var(--md-sys-typescale-headline-small-font);
+	font-size: var(--md-sys-typescale-headline-small-size);
+	font-weight: var(--md-sys-typescale-headline-small-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0;
+}
+
+.dept-mgmt-modal-close {
+	background: none;
+	border: none;
+	padding: var(--spacing-sm);
+	border-radius: var(--md-sys-shape-corner-small);
+	cursor: pointer;
+	color: var(--md-sys-color-on-surface-variant);
+	transition: background-color 0.2s ease;
+}
+
+.dept-mgmt-modal-close:hover {
+	background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.dept-mgmt-modal-body {
+	padding: var(--spacing-lg);
+}
+
+.dept-mgmt-modal-description {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0 0 var(--spacing-lg) 0;
+}
+
+.dept-mgmt-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--spacing-md);
+	padding: var(--spacing-lg);
+	border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* Selection Lists */
+.dept-mgmt-subject-selection,
+.dept-mgmt-teacher-selection {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	max-height: 300px;
+	overflow-y: auto;
+}
+
+.dept-mgmt-checkbox-item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-sm);
+	border-radius: var(--md-sys-shape-corner-small);
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.dept-mgmt-checkbox-item:hover {
+	background-color: var(--md-sys-color-surface-container-low);
+}
+
+.dept-mgmt-checkbox-item input[type="checkbox"] {
+	margin: 0;
+	accent-color: var(--md-sys-color-primary);
+}
+
+.dept-mgmt-checkbox-label {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-xs);
+	flex: 1;
+}
+
+.dept-mgmt-subject-grade,
+.dept-mgmt-teacher-email,
+.dept-mgmt-teacher-subject {
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Warning text */
+.warning-text {
+	color: var(--md-sys-color-error);
+	font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.department-management-container {
+		padding: var(--spacing-md);
+	}
+
+	.form-row {
+		grid-template-columns: 1fr;
+	}
+
+	.departments-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.department-stats {
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.stat-item {
+		flex-direction: row;
+		justify-content: space-between;
+		text-align: left;
+	}
+
+	.assignment-actions {
+		flex-direction: column;
+	}
+
+	.edit-actions {
+		flex-direction: column;
+	}
+
+	.modal-actions {
+		flex-direction: column;
+	}
+}

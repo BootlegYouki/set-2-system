@@ -26,7 +26,7 @@
   import AdminSectionManagement from '../components/users/admin/sections/adminSectionManagement/adminSectionManagement.svelte';
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
   import AdminSubjectCreation from '../components/users/admin/sections/adminSubjectCreation/adminSubjectCreation.svelte';
-  import DepartmentCreation from '../components/users/admin/sections/DepartmentCreation/DepartmentCreation.svelte';
+  import DepartmentCreation from '../components/users/admin/sections/adminDepartmentManagement/adminDepartmentManagement.svelte';
   import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
   import AdminSettings from '../components/users/admin/sections/adminSettings/adminSettings.svelte';
   import '../lib/styles/+page.css';
