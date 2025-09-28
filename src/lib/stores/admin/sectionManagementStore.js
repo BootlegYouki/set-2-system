@@ -111,15 +111,8 @@ export const sectionManagementStore = (() => {
                 adviser: section.adviser || null
             }));
             
-            // Update stores
-            sections.set(processedSections);
-            setSectionsError(null);
-            
-            // Cache the sections
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('cached_sections', JSON.stringify(processedSections));
-                localStorage.setItem('sections_cache_timestamp', Date.now().toString());
-            }
+            // Update stores and cache using the modern caching system
+            updateSections(processedSections, silent);
             
         } catch (error) {
             console.error('Error loading sections:', error);

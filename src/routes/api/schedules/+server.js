@@ -188,7 +188,17 @@ async function getAvailableTeachers(schoolYear) {
         ORDER BY u.full_name
     `);
     
-    return json({ teachers: result.rows });
+    // Format teachers to match expected structure
+    const teachers = result.rows.map(teacher => ({
+        id: teacher.id,
+        name: teacher.full_name,
+        full_name: teacher.full_name,
+        account_number: teacher.account_number,
+        subject_name: teacher.subject_name,
+        subject_code: teacher.subject_code
+    }));
+    
+    return json({ teachers });
 }
 
 async function getAvailableRooms() {

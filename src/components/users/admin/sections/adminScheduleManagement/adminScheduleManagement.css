@@ -904,6 +904,16 @@
 	width: 100%;
 }
 
+.option-code {
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	width: 100%;
+	margin-top: 2px;
+}
+
 .option-description {
 	font-size: var(--md-sys-typescale-body-small-size);
 	color: var(--md-sys-color-on-surface-variant);

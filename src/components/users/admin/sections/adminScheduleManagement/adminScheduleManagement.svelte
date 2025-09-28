@@ -105,7 +105,7 @@
 		try {
 			// Load sections
 			const sectionsResponse = await api.get('/api/sections');
-			sections = sectionsResponse.sections || [];
+			sections = sectionsResponse.data || [];
 
 			// Load teachers
 			const teachersResponse = await api.get('/api/schedules?action=get-available-teachers&schoolYear=' + currentSchoolYear);
@@ -113,7 +113,7 @@
 
 			// Load subjects
 			const subjectsResponse = await api.get('/api/subjects');
-			subjects = subjectsResponse.subjects || [];
+			subjects = subjectsResponse.data || [];
 
 			// Load time periods
 			const timePeriodsResponse = await api.get('/api/time-periods');
@@ -226,6 +226,12 @@
 	$: filteredFormSections = selectedFormYear ? sections.filter(section => {
 		const gradeLevel = parseInt(selectedFormYear.replace('grade-', ''));
 		return section.grade_level === gradeLevel;
+	}) : [];
+
+	// Filter subjects based on selected form year (grade level)
+	$: filteredFormSubjects = selectedFormYear ? subjects.filter(subject => {
+		const gradeLevel = parseInt(selectedFormYear.replace('grade-', ''));
+		return subject.grade_level === gradeLevel;
 	}) : [];
 
 	// Get selected objects for form display
@@ -1185,7 +1191,7 @@
 						<div class="scheduleassign-selected-option">
 							<span class="material-symbols-outlined option-icon">class</span>
 							<div class="option-content">
-								<span class="option-name">{selectedFormSectionObj.grade} · {selectedFormSectionObj.name}</span>
+								<span class="option-name">Grade {selectedFormSectionObj.grade_level} · {selectedFormSectionObj.name}</span>
 							</div>
 						</div>
 					{:else}
@@ -1203,8 +1209,8 @@
 							>
 								<span class="material-symbols-outlined option-icon">class</span>
 								<div class="option-content">
-									<span class="option-name">{section.grade} · {section.name}</span>
-									<span class="option-description">{section.grade} Section</span>
+									<span class="option-name">Grade {section.grade_level} · {section.name}</span>
+									<span class="option-description">Grade {section.grade_level} Section</span>
 								</div>
 							</button>
 						{/each}
@@ -1461,6 +1467,7 @@
 											class="scheduleassign-dropdown-button" 
 											class:selected={selectedFormSubject}
 											on:click={toggleFormSubjectDropdown}
+											disabled={!selectedFormYear}
 										>
 											{#if selectedFormSubjectObj}
 												<div class="scheduleassign-selected-option">
@@ -1470,12 +1477,12 @@
 													</div>
 												</div>
 											{:else}
-												<span class="placeholder">Select subject</span>
+												<span class="placeholder">{selectedFormYear ? 'Select subject' : 'Select year level first'}</span>
 											{/if}
 											<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 										</button>
 										<div class="scheduleassign-dropdown-menu">
-											{#each subjects as subject (subject.id)}
+											{#each filteredFormSubjects as subject (subject.id)}
 												<button 
 													type="button"
 													class="scheduleassign-dropdown-item" 
@@ -1485,6 +1492,7 @@
 													<span class="material-symbols-outlined option-icon">{subject.icon}</span>
 													<div class="option-content">
 														<span class="option-name">{subject.name}</span>
+														<span class="option-code">{subject.code}</span>
 													</div>
 												</button>
 											{/each}
@@ -1937,6 +1945,7 @@
 															<span class="material-symbols-outlined option-icon">{subject.icon}</span>
 															<div class="option-content">
 																<span class="option-name">{subject.name}</span>
+																<span class="option-code">{subject.code}</span>
 															</div>
 														</button>
 													{/each}

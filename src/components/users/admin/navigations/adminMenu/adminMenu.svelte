@@ -35,6 +35,11 @@
 					id: 'schedule-management',
 					label: 'Schedule Management',
 					icon: 'schedule'
+				},
+				{
+					id: 'department-creation',
+					label: 'Department Creation',
+					icon: 'corporate_fare'
 				}
 			]
 		},

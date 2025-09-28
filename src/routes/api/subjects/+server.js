@@ -47,7 +47,9 @@ export async function GET({ url }) {
       id: subject.id,
       name: subject.name,
       code: subject.code,
-      gradeLevel: `Grade ${subject.grade_level}`,
+      grade_level: subject.grade_level, // Keep the original numeric grade_level for filtering
+      gradeLevel: `Grade ${subject.grade_level}`, // Formatted version for display
+      icon: 'book', // Default icon for subjects
       createdDate: new Date(subject.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(subject.updated_at).toLocaleDateString('en-US')
     }));
