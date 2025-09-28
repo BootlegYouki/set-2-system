@@ -685,7 +685,9 @@
 				</div>
 			{:else}
 				{#each filteredDepartments as department (department.id)}
-					<div class="dept-mgmt-department-card">
+					<div class="dept-mgmt-department-card" 
+						 class:editing={editingDepartmentId === department.id}
+						 class:assigning={assigningDepartmentId === department.id}>
 						<div class="dept-mgmt-department-header">
 							<div class="dept-mgmt-department-title">
 								<h3 class="dept-mgmt-department-name">{department.name}</h3>
