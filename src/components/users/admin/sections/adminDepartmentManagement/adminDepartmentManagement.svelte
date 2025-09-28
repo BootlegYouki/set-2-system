@@ -4,15 +4,27 @@
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { onMount } from 'svelte';
 
-	// Department creation state
+	// State variables
+	let selectedDepartment = null;
+	let isEditing = false;
 	let isCreating = false;
+	let selectedSubjects = [];
+	let selectedTeachers = [];
+
+	// Search terms
+	let searchTerm = '';
+
+	// Department creation state
 	let departmentName = '';
 	let departmentCode = '';
 
 	// Department management state
 	let departments = [];
 	let filteredDepartments = [];
-	let searchTerm = '';
+
+	// Filter state
+	let selectedFilter = 'all';
+	let isFilterDropdownOpen = false;
 
 	// Edit department state
 	let editingDepartmentId = null;
@@ -20,17 +32,19 @@
 	let editDepartmentCode = '';
 	let isUpdating = false;
 
-	// Subject assignment state
-	let selectedDepartmentForSubjects = null;
-	let availableSubjects = [];
-	let selectedSubjects = [];
-	let isSubjectDropdownOpen = false;
+	// Assign department state
+	let assigningDepartmentId = null;
+	let isAssigning = false;
 
-	// Teacher assignment state
-	let selectedDepartmentForTeachers = null;
+	// Available data for dropdowns
+	let availableSubjects = [];
 	let availableTeachers = [];
-	let selectedTeachers = [];
+
+	// Dropdown state variables
+	let isSubjectDropdownOpen = false;
 	let isTeacherDropdownOpen = false;
+	let subjectSearchTerm = '';
+	let teacherSearchTerm = '';
 
 	// Mock data
 	const mockSubjects = [
@@ -84,6 +98,13 @@
 		}
 	];
 
+	// Filter options
+	const filterOptions = [
+		{ id: 'all', name: 'All Departments', icon: 'corporate_fare' },
+		{ id: 'active', name: 'Active Departments', icon: 'check_circle' },
+		{ id: 'recent', name: 'Recently Created', icon: 'schedule' }
+	];
+
 	// Initialize data
 	onMount(() => {
 		departments = [...mockDepartments];
@@ -93,18 +114,54 @@
 	});
 
 	// Computed properties
+	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
 	$: filterDepartments();
+
+	// Filtered arrays for dropdowns
+	$: filteredSubjects = availableSubjects.filter(subject =>
+		subject.name.toLowerCase().includes(subjectSearchTerm.toLowerCase()) ||
+		subject.code.toLowerCase().includes(subjectSearchTerm.toLowerCase())
+	);
+
+	$: filteredTeachers = availableTeachers.filter(teacher =>
+		teacher.name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+		teacher.subject.toLowerCase().includes(teacherSearchTerm.toLowerCase())
+	);
 
 	// Functions
 	function filterDepartments() {
-		if (searchTerm.trim() === '') {
-			filteredDepartments = [...departments];
-		} else {
-			filteredDepartments = departments.filter(dept =>
+		let filtered = [...departments];
+		
+		// Apply type filter
+		if (selectedFilter === 'recent') {
+			// Show departments created in the last 7 days
+			const sevenDaysAgo = new Date();
+			sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+			filtered = filtered.filter(dept => new Date(dept.createdAt) >= sevenDaysAgo);
+		} else if (selectedFilter === 'active') {
+			// Show departments with assigned subjects or teachers
+			filtered = filtered.filter(dept => dept.subjects.length > 0 || dept.teachers.length > 0);
+		}
+		
+		// Apply search filter
+		if (searchTerm.trim() !== '') {
+			filtered = filtered.filter(dept =>
 				dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				dept.code.toLowerCase().includes(searchTerm.toLowerCase())
 			);
 		}
+		
+		filteredDepartments = filtered;
+	}
+
+	// Filter functions
+	function toggleFilterDropdown() {
+		isFilterDropdownOpen = !isFilterDropdownOpen;
+	}
+
+	function selectFilter(filter) {
+		selectedFilter = filter.id;
+		isFilterDropdownOpen = false;
 	}
 
 	// Department CRUD operations
@@ -150,19 +207,7 @@
 		}
 	}
 
-	function toggleEditForm(department) {
-		if (editingDepartmentId === department.id) {
-			// Close the form
-			editingDepartmentId = null;
-			editDepartmentName = '';
-		editDepartmentCode = '';
-		} else {
-			// Open the form
-			editingDepartmentId = department.id;
-			editDepartmentName = department.name;
-			editDepartmentCode = department.code;
-		}
-	}
+
 
 	async function handleUpdateDepartment() {
 		if (!editDepartmentName.trim() || !editDepartmentCode.trim()) {
@@ -210,6 +255,31 @@
 		}
 	}
 
+	function toggleEditForm(department) {
+		if (editingDepartmentId === department.id) {
+			// Close edit form
+			editingDepartmentId = null;
+			editDepartmentName = '';
+			editDepartmentCode = '';
+		} else {
+			// Close assign form if it's open for this department
+			if (assigningDepartmentId === department.id) {
+				assigningDepartmentId = null;
+				selectedSubjects = [];
+				selectedTeachers = [];
+				// Reset dropdown states
+				isSubjectDropdownOpen = false;
+				isTeacherDropdownOpen = false;
+				subjectSearchTerm = '';
+				teacherSearchTerm = '';
+			}
+			// Open edit form and populate with current values
+			editingDepartmentId = department.id;
+			editDepartmentName = department.name;
+			editDepartmentCode = department.code;
+		}
+	}
+
 	function handleRemoveDepartment(department) {
 		modalStore.confirm(
 			'Remove Department',
@@ -232,97 +302,158 @@
 		);
 	}
 
-	// Subject assignment functions
-	function openSubjectAssignment(department) {
-		selectedDepartmentForSubjects = department;
-		selectedSubjects = department.subjects.map(subjectId => 
-			availableSubjects.find(subject => subject.id === subjectId)
-		).filter(Boolean);
+
+
+
+
+	// Assign functions
+	function toggleAssignForm(department) {
+		if (assigningDepartmentId === department.id) {
+			// Close assign form
+			assigningDepartmentId = null;
+			selectedSubjects = [];
+			selectedTeachers = [];
+			// Reset dropdown states
+			isSubjectDropdownOpen = false;
+			isTeacherDropdownOpen = false;
+			subjectSearchTerm = '';
+			teacherSearchTerm = '';
+		} else {
+			// Close edit form if it's open for this department
+			if (editingDepartmentId === department.id) {
+				editingDepartmentId = null;
+				editDepartmentName = '';
+				editDepartmentCode = '';
+			}
+			// Open assign form and populate with current assignments
+			assigningDepartmentId = department.id;
+			selectedSubjects = [...department.subjects];
+			selectedTeachers = [...department.teachers];
+			// Reset dropdown states
+			isSubjectDropdownOpen = false;
+			isTeacherDropdownOpen = false;
+			subjectSearchTerm = '';
+			teacherSearchTerm = '';
+		}
 	}
 
-	function closeSubjectAssignment() {
-		selectedDepartmentForSubjects = null;
-		selectedSubjects = [];
-		isSubjectDropdownOpen = false;
+	// Dropdown toggle functions
+	function toggleSubjectDropdown() {
+		isSubjectDropdownOpen = !isSubjectDropdownOpen;
+		if (isSubjectDropdownOpen) {
+			isTeacherDropdownOpen = false;
+		}
+	}
+
+	function toggleTeacherDropdown() {
+		isTeacherDropdownOpen = !isTeacherDropdownOpen;
+		if (isTeacherDropdownOpen) {
+			isSubjectDropdownOpen = false;
+		}
 	}
 
 	function toggleSubjectSelection(subject) {
-		const index = selectedSubjects.findIndex(s => s.id === subject.id);
+		const index = selectedSubjects.findIndex(id => id === subject.id);
 		if (index > -1) {
-			selectedSubjects = selectedSubjects.filter(s => s.id !== subject.id);
+			selectedSubjects = selectedSubjects.filter(id => id !== subject.id);
 		} else {
-			selectedSubjects = [...selectedSubjects, subject];
+			selectedSubjects = [...selectedSubjects, subject.id];
 		}
-	}
-
-	async function saveSubjectAssignments() {
-		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 500));
-
-			departments = departments.map(dept => {
-				if (dept.id === selectedDepartmentForSubjects.id) {
-					return {
-						...dept,
-						subjects: selectedSubjects.map(s => s.id)
-					};
-				}
-				return dept;
-			});
-
-			toastStore.success('Subject assignments updated successfully');
-			closeSubjectAssignment();
-		} catch (error) {
-			console.error('Error updating subject assignments:', error);
-			toastStore.error('Failed to update subject assignments. Please try again.');
-		}
-	}
-
-	// Teacher assignment functions
-	function openTeacherAssignment(department) {
-		selectedDepartmentForTeachers = department;
-		selectedTeachers = department.teachers.map(teacherId => 
-			availableTeachers.find(teacher => teacher.id === teacherId)
-		).filter(Boolean);
-	}
-
-	function closeTeacherAssignment() {
-		selectedDepartmentForTeachers = null;
-		selectedTeachers = [];
-		isTeacherDropdownOpen = false;
 	}
 
 	function toggleTeacherSelection(teacher) {
-		const index = selectedTeachers.findIndex(t => t.id === teacher.id);
+		const index = selectedTeachers.findIndex(id => id === teacher.id);
 		if (index > -1) {
-			selectedTeachers = selectedTeachers.filter(t => t.id !== teacher.id);
+			selectedTeachers = selectedTeachers.filter(id => id !== teacher.id);
 		} else {
-			selectedTeachers = [...selectedTeachers, teacher];
+			selectedTeachers = [...selectedTeachers, teacher.id];
 		}
 	}
 
-	async function saveTeacherAssignments() {
-		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 500));
+	function toggleSelectAllSubjects() {
+		const allFilteredSelected = filteredSubjects.every(subject => 
+			selectedSubjects.some(id => id === subject.id)
+		);
+		
+		if (allFilteredSelected) {
+			// Remove all filtered subjects from selection
+			selectedSubjects = selectedSubjects.filter(id => 
+				!filteredSubjects.some(subject => subject.id === id)
+			);
+		} else {
+			// Add all filtered subjects to selection
+			const newSelections = filteredSubjects
+				.filter(subject => !selectedSubjects.some(id => id === subject.id))
+				.map(subject => subject.id);
+			selectedSubjects = [...selectedSubjects, ...newSelections];
+		}
+	}
 
+	function toggleSelectAllTeachers() {
+		const allFilteredSelected = filteredTeachers.every(teacher => 
+			selectedTeachers.some(id => id === teacher.id)
+		);
+		
+		if (allFilteredSelected) {
+			// Remove all filtered teachers from selection
+			selectedTeachers = selectedTeachers.filter(id => 
+				!filteredTeachers.some(teacher => teacher.id === id)
+			);
+		} else {
+			// Add all filtered teachers to selection
+			const newSelections = filteredTeachers
+				.filter(teacher => !selectedTeachers.some(id => id === teacher.id))
+				.map(teacher => teacher.id);
+			selectedTeachers = [...selectedTeachers, ...newSelections];
+		}
+	}
+
+	function removeSubject(subjectId) {
+		selectedSubjects = selectedSubjects.filter(id => id !== subjectId);
+	}
+
+	function removeTeacher(teacherId) {
+		selectedTeachers = selectedTeachers.filter(id => id !== teacherId);
+	}
+
+	async function handleAssignDepartment() {
+		if (!assigningDepartmentId) return;
+
+		try {
+			isAssigning = true;
+
+			// Simulate API call
+			await new Promise(resolve => setTimeout(resolve, 1000));
+
+			// Update department assignments
 			departments = departments.map(dept => {
-				if (dept.id === selectedDepartmentForTeachers.id) {
+				if (dept.id === assigningDepartmentId) {
 					return {
 						...dept,
-						teachers: selectedTeachers.map(t => t.id)
+						subjects: [...selectedSubjects],
+						teachers: [...selectedTeachers]
 					};
 				}
 				return dept;
 			});
 
-			toastStore.success('Teacher assignments updated successfully');
-			closeTeacherAssignment();
+			toastStore.success('Department assignments updated successfully');
+			
+			// Close assign form
+			assigningDepartmentId = null;
+			selectedSubjects = [];
+			selectedTeachers = [];
 		} catch (error) {
-			console.error('Error updating teacher assignments:', error);
-			toastStore.error('Failed to update teacher assignments. Please try again.');
+			console.error('Error assigning department:', error);
+			toastStore.error('Failed to update assignments. Please try again.');
+		} finally {
+			isAssigning = false;
 		}
 	}
+
+
+
+
 
 	// Utility functions
 	function getDepartmentSubjects(department) {
@@ -339,12 +470,7 @@
 
 	// Handle click outside to close dropdowns
 	function handleClickOutside(event) {
-		if (!event.target.closest('.subject-dropdown-container')) {
-			isSubjectDropdownOpen = false;
-		}
-		if (!event.target.closest('.teacher-dropdown-container')) {
-			isTeacherDropdownOpen = false;
-		}
+		// No longer needed for simple select elements
 	}
 </script>
 
@@ -409,93 +535,441 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Departments List Section -->
+	<div class="dept-mgmt-departments-section">
+		<div class="dept-mgmt-section-header">
+			<div class="section-title-group">
+				<h2 class="dept-mgmt-section-title">All Departments</h2>
+				<p class="dept-mgmt-section-subtitle">Manage existing departments, assign subjects and teachers</p>
+			</div>
+		</div>
+
+		<!-- Search and Filter Container -->
+		<div class="search-filter-container">
+			<!-- Search Input -->
+			<div class="search-container">
+				<div class="search-input-wrapper">
+					<span class="material-symbols-outlined search-icon">search</span>
+					<input 
+						type="text" 
+						class="search-input" 
+						placeholder="Search departments by name or code..."
+						bind:value={searchTerm}
+					/>
+					{#if searchTerm}
+						<button 
+							type="button" 
+							class="clear-search-button"
+							on:click={() => searchTerm = ''}
+						>
+							<span class="material-symbols-outlined">close</span>
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Filter Dropdown -->
+			<div class="filter-container">
+				<div class="custom-dropdown" class:open={isFilterDropdownOpen}>
+					<button 
+						type="button"
+						class="dropdown-trigger filter-trigger" 
+						class:selected={selectedFilter !== 'all'}
+						on:click={toggleFilterDropdown}
+					>
+						{#if selectedFilterObj}
+							<div class="selected-option">
+								<span class="material-symbols-outlined option-icon">{selectedFilterObj.icon}</span>
+								<div class="option-content">
+									<span class="option-name">{selectedFilterObj.name}</span>
+								</div>
+							</div>
+						{:else}
+							<span class="placeholder">Filter by type</span>
+						{/if}
+						<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+					</button>
+					<div class="dropdown-menu">
+						{#each filterOptions as filter (filter.id)}
+							<button 
+								type="button"
+								class="dropdown-option" 
+								class:selected={selectedFilter === filter.id}
+								on:click={() => selectFilter(filter)}
+							>
+								<span class="material-symbols-outlined option-icon">{filter.icon}</span>
+								<div class="option-content">
+									<span class="option-name">{filter.name}</span>
+								</div>
+							</button>
+						{/each}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Departments Grid -->
+		<div class="dept-mgmt-departments-grid">
+			{#if filteredDepartments.length === 0}
+				<div class="dept-mgmt-empty-state">
+					<span class="material-symbols-outlined dept-mgmt-empty-icon">corporate_fare</span>
+					<h3 class="dept-mgmt-empty-title">
+						{searchTerm ? 'No departments found' : 'No departments created yet'}
+					</h3>
+					<p class="dept-mgmt-empty-description">
+						{searchTerm ? 'Try adjusting your search terms' : 'Create your first department to get started'}
+					</p>
+				</div>
+			{:else}
+				{#each filteredDepartments as department (department.id)}
+					<div class="dept-mgmt-department-card">
+						<div class="dept-mgmt-department-header">
+							<div class="dept-mgmt-department-title">
+								<h3 class="dept-mgmt-department-name">{department.name}</h3>
+							</div>
+							<div class="dept-mgmt-action-buttons">
+								<button 
+									type="button"
+									class="dept-mgmt-assign-button"
+									on:click={() => toggleAssignForm(department)}
+									title="{assigningDepartmentId === department.id ? 'Cancel Assign' : 'Assign'}"
+								>
+									<span class="material-symbols-outlined">{assigningDepartmentId === department.id ? 'close' : 'add_circle'}</span>
+								</button>
+								<button 
+									type="button"
+									class="dept-mgmt-edit-button"
+									on:click={() => toggleEditForm(department)}
+									title="{editingDepartmentId === department.id ? 'Cancel Edit' : 'Edit Department'}"
+								>
+									<span class="material-symbols-outlined">{editingDepartmentId === department.id ? 'close' : 'edit'}</span>
+								</button>
+								<button 
+									type="button"
+									class="dept-mgmt-remove-button"
+									on:click={() => handleRemoveDepartment(department)}
+									title="Remove Department"
+								>
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
+						</div>
+					
+						<div class="dept-mgmt-department-details">
+							<div class="dept-mgmt-department-code">
+								<span class="material-symbols-outlined">tag</span>
+								<span>{department.code}</span>
+							</div>
+							<div class="dept-mgmt-department-subjects">
+								<span class="material-symbols-outlined">subject</span>
+								<span>{getDepartmentSubjects(department).length} Subjects</span>
+							</div>
+							<div class="dept-mgmt-department-teachers">
+								<span class="material-symbols-outlined">person</span>
+								<span>{getDepartmentTeachers(department).length} Teachers</span>
+							</div>
+							<div class="dept-mgmt-department-created">
+								<span class="material-symbols-outlined">calendar_today</span>
+								<span>Created: {department.createdAt}</span>
+							</div>
+						</div>
+
+						<!-- Inline Edit Form -->
+						{#if editingDepartmentId === department.id}
+							<div class="dept-mgmt-edit-form-section">
+								<div class="dept-mgmt-edit-form-container">
+									<div class="dept-mgmt-edit-form-header">
+										<h2 class="dept-mgmt-edit-form-title">Edit Department</h2>
+										<p class="dept-mgmt-edit-form-subtitle">Update department information</p>
+									</div>
+									
+									<form class="dept-mgmt-edit-form-content" on:submit|preventDefault={handleUpdateDepartment}>
+										<!-- Department Info -->
+										<div class="dept-mgmt-edit-info-row">
+											<div class="dept-mgmt-form-group">
+												<label class="dept-mgmt-form-label" for="edit-department-name">
+													Department Name *
+												</label>
+												<input 
+													type="text" 
+													id="edit-department-name"
+													class="dept-mgmt-form-input" 
+													bind:value={editDepartmentName}
+													placeholder="Enter department name"
+													required
+												/>
+											</div>
+
+											<div class="dept-mgmt-form-group">
+												<label class="dept-mgmt-form-label" for="edit-department-code">
+													Department Code *
+												</label>
+												<input 
+													type="text" 
+													id="edit-department-code"
+													class="dept-mgmt-form-input" 
+													bind:value={editDepartmentCode}
+													placeholder="Enter department code"
+													required
+												/>
+											</div>
+										</div>
+
+										<!-- Form Actions -->
+										<div class="dept-mgmt-edit-form-actions">
+											<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleEditForm(department)}>
+												Cancel
+											</button>
+											<button 
+												type="submit" 
+												class="dept-mgmt-update-button"
+												disabled={isUpdating || !editDepartmentName || !editDepartmentCode}
+											>
+												{#if isUpdating}
+													Updating...
+												{:else}
+													Update Department
+												{/if}
+											</button>
+										</div>
+									</form>
+								</div>
+							</div>
+						{/if}
+
+						<!-- Inline Assign Form -->
+						{#if assigningDepartmentId === department.id}
+		<div class="dept-mgmt-assign-form-section">
+			<div class="dept-mgmt-assign-form-container">
+				<div class="dept-mgmt-assign-form-header">
+					<h2 class="dept-mgmt-assign-form-title">Assign Subjects & Teachers</h2>
+					<p class="dept-mgmt-assign-form-subtitle">Select subjects and teachers for this department</p>
+				</div>
+				
+				<form class="dept-mgmt-assign-form-content" on:submit|preventDefault={handleAssignDepartment}>
+					<!-- Subjects Selection -->
+					<div class="dept-mgmt-assign-info-row">
+						<div class="dept-mgmt-form-group">
+							<label class="dept-mgmt-form-label" for="subjects">Select Subjects</label>
+							
+							<!-- Subject Selection Dropdown -->
+							<div class="dept-mgmt-custom-dropdown" class:open={isSubjectDropdownOpen}>
+								<button 
+									type="button"
+									class="dept-mgmt-dropdown-trigger" 
+									class:selected={selectedSubjects.length > 0}
+									on:click={toggleSubjectDropdown}
+									id="subjects"
+								>
+									<span class="dept-mgmt-placeholder">Add subjects to department</span>
+									<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
+								</button>
+								<div class="dept-mgmt-dropdown-menu">
+									<div class="dept-mgmt-search-container">
+										{#if filteredSubjects.length > 0}
+											{@const allFilteredSelected = filteredSubjects.every(subject => selectedSubjects.some(id => id === subject.id))}
+											<button 
+												type="button"
+												class="dept-mgmt-select-all-btn"
+												on:click={toggleSelectAllSubjects}
+												title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredSubjects.length})"
+											>
+												<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+											</button>
+										{/if}
+										<input 
+											type="text" 
+											class="dept-mgmt-search-input"
+											placeholder="Search subjects..."
+											bind:value={subjectSearchTerm}
+										/>
+										<span class="material-symbols-outlined" 
+											class:dept-mgmt-search-icon-create={filteredSubjects.length > 0}
+											class:dept-mgmt-search-icon={filteredSubjects.length === 0}>search</span>
+									</div>
+									{#each filteredSubjects as subject (subject.id)}
+										<button 
+											type="button"
+											class="dept-mgmt-dropdown-option dept-mgmt-subject-option" 
+											class:selected={selectedSubjects.some(id => id === subject.id)}
+											on:click={() => toggleSubjectSelection(subject)}
+										>
+											<div class="dept-mgmt-subject-checkbox">
+												<span class="material-symbols-outlined">
+													{selectedSubjects.some(id => id === subject.id) ? 'check_box' : 'check_box_outline_blank'}
+												</span>
+											</div>
+											<span class="material-symbols-outlined dept-mgmt-option-icon">subject</span>
+											<div class="dept-mgmt-option-content">
+												<span class="dept-mgmt-option-name">{subject.name}</span>
+												<span class="dept-mgmt-option-description">{subject.code} • {subject.gradeLevel}</span>
+											</div>
+										</button>
+									{/each}
+									{#if filteredSubjects.length === 0}
+										<div class="dept-mgmt-no-results">
+											<span class="material-symbols-outlined">subject</span>
+											<span>No subjects found</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+							<p class="dept-mgmt-form-help">Select subjects that will be managed by this department.</p>
+							
+							<!-- Selected Subjects Display -->
+							{#if selectedSubjects.length > 0}
+								<div class="dept-mgmt-selected-subjects">
+									<div class="dept-mgmt-selected-subjects-header">
+										<span class="dept-mgmt-selected-count">{selectedSubjects.length} subject{selectedSubjects.length !== 1 ? 's' : ''} selected</span>
+									</div>
+									<div class="dept-mgmt-selected-subjects-list">
+										{#each selectedSubjects as subjectId (subjectId)}
+											{@const subject = availableSubjects.find(s => s.id === subjectId)}
+											{#if subject}
+												<div class="dept-mgmt-selected-subject-chip">
+													<span class="dept-mgmt-subject-name">{subject.name}</span>
+													<span class="dept-mgmt-subject-code">{subject.code}</span>
+													<button 
+														type="button" 
+														class="dept-mgmt-remove-subject"
+														on:click={() => removeSubject(subjectId)}
+														aria-label="Remove {subject.name}"
+													>
+														<span class="material-symbols-outlined">close</span>
+													</button>
+												</div>
+											{/if}
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<!-- Teachers Selection -->
+					<div class="dept-mgmt-assign-info-row">
+						<div class="dept-mgmt-form-group">
+							<label class="dept-mgmt-form-label" for="teachers">Select Teachers</label>
+							
+							<!-- Teacher Selection Dropdown -->
+							<div class="dept-mgmt-custom-dropdown" class:open={isTeacherDropdownOpen}>
+								<button 
+									type="button"
+									class="dept-mgmt-dropdown-trigger" 
+									class:selected={selectedTeachers.length > 0}
+									on:click={toggleTeacherDropdown}
+									id="teachers"
+								>
+									<span class="dept-mgmt-placeholder">Add teachers to department</span>
+									<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
+								</button>
+								<div class="dept-mgmt-dropdown-menu">
+									<div class="dept-mgmt-search-container">
+										{#if filteredTeachers.length > 0}
+											{@const allFilteredSelected = filteredTeachers.every(teacher => selectedTeachers.some(id => id === teacher.id))}
+											<button 
+												type="button"
+												class="dept-mgmt-select-all-btn"
+												on:click={toggleSelectAllTeachers}
+												title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredTeachers.length})"
+											>
+												<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+											</button>
+										{/if}
+										<input 
+											type="text" 
+											class="dept-mgmt-search-input"
+											placeholder="Search teachers..."
+											bind:value={teacherSearchTerm}
+										/>
+										<span class="material-symbols-outlined" 
+											class:dept-mgmt-search-icon-create={filteredTeachers.length > 0}
+											class:dept-mgmt-search-icon={filteredTeachers.length === 0}>search</span>
+									</div>
+									{#each filteredTeachers as teacher (teacher.id)}
+										<button 
+											type="button"
+											class="dept-mgmt-dropdown-option dept-mgmt-teacher-option" 
+											class:selected={selectedTeachers.some(id => id === teacher.id)}
+											on:click={() => toggleTeacherSelection(teacher)}
+										>
+											<div class="dept-mgmt-teacher-checkbox">
+												<span class="material-symbols-outlined">
+													{selectedTeachers.some(id => id === teacher.id) ? 'check_box' : 'check_box_outline_blank'}
+												</span>
+											</div>
+											<span class="material-symbols-outlined dept-mgmt-option-icon">person</span>
+											<div class="dept-mgmt-option-content">
+												<span class="dept-mgmt-option-name">{teacher.name}</span>
+												<span class="dept-mgmt-option-description">{teacher.subject} • {teacher.email}</span>
+											</div>
+										</button>
+									{/each}
+									{#if filteredTeachers.length === 0}
+										<div class="dept-mgmt-no-results">
+											<span class="material-symbols-outlined">person_off</span>
+											<span>No teachers found</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+							<p class="dept-mgmt-form-help">Select teachers who will be part of this department.</p>
+							
+							<!-- Selected Teachers Display -->
+							{#if selectedTeachers.length > 0}
+								<div class="dept-mgmt-selected-teachers">
+									<div class="dept-mgmt-selected-teachers-header">
+										<span class="dept-mgmt-selected-count">{selectedTeachers.length} teacher{selectedTeachers.length !== 1 ? 's' : ''} selected</span>
+									</div>
+									<div class="dept-mgmt-selected-teachers-list">
+										{#each selectedTeachers as teacherId (teacherId)}
+											{@const teacher = availableTeachers.find(t => t.id === teacherId)}
+											{#if teacher}
+												<div class="dept-mgmt-selected-teacher-chip">
+													<span class="dept-mgmt-teacher-name">{teacher.name}</span>
+													<span class="dept-mgmt-teacher-subject">{teacher.subject}</span>
+													<button 
+														type="button" 
+														class="dept-mgmt-remove-teacher"
+														on:click={() => removeTeacher(teacherId)}
+														aria-label="Remove {teacher.name}"
+													>
+														<span class="material-symbols-outlined">close</span>
+													</button>
+												</div>
+											{/if}
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+	
+						<!-- Form Actions -->
+						<div class="dept-mgmt-assign-actions">
+							<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleAssignForm(department)}>
+								Cancel
+							</button>
+							<button 
+								type="submit" 
+								class="dept-mgmt-assign-submit-button"
+								disabled={isAssigning}
+							>
+								{#if isAssigning}
+									Assigning...
+								{:else}
+									Update Assignments
+								{/if}
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		{/if}
+					</div>
+				{/each}
+			{/if}
+		</div>
+	</div>
 </div>
-
-<!-- Subject Assignment Modal -->
-{#if selectedDepartmentForSubjects}
-	<div class="dept-mgmt-modal-overlay" on:click={closeSubjectAssignment}>
-		<div class="dept-mgmt-modal-content" on:click|stopPropagation>
-			<div class="dept-mgmt-modal-header">
-				<h3 class="dept-mgmt-modal-title">Assign Subjects to {selectedDepartmentForSubjects.name}</h3>
-				<button class="dept-mgmt-modal-close" on:click={closeSubjectAssignment}>
-					<span class="material-symbols-outlined">close</span>
-				</button>
-			</div>
-
-			<div class="dept-mgmt-modal-body">
-				<p class="dept-mgmt-modal-description">Select subjects to assign to this department</p>
-				
-				<div class="dept-mgmt-subject-selection">
-					{#each availableSubjects as subject}
-						<label class="dept-mgmt-checkbox-item">
-							<input
-								type="checkbox"
-								checked={selectedSubjects.some(s => s.id === subject.id)}
-								on:change={() => toggleSubjectSelection(subject)}
-							/>
-							<span class="dept-mgmt-checkbox-label">
-								<strong>{subject.name}</strong> ({subject.code})
-								<span class="dept-mgmt-subject-grade">{subject.gradeLevel}</span>
-							</span>
-						</label>
-					{/each}
-				</div>
-			</div>
-
-			<div class="dept-mgmt-modal-actions">
-				<button class="dept-mgmt-btn dept-mgmt-btn-primary" on:click={saveSubjectAssignments}>
-					<span class="material-symbols-outlined">save</span>
-					Save Assignments
-				</button>
-				<button class="dept-mgmt-btn dept-mgmt-btn-outline" on:click={closeSubjectAssignment}>
-					Cancel
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Teacher Assignment Modal -->
-{#if selectedDepartmentForTeachers}
-	<div class="dept-mgmt-modal-overlay" on:click={closeTeacherAssignment}>
-		<div class="dept-mgmt-modal-content" on:click|stopPropagation>
-			<div class="dept-mgmt-modal-header">
-				<h3 class="dept-mgmt-modal-title">Assign Teachers to {selectedDepartmentForTeachers.name}</h3>
-				<button class="dept-mgmt-modal-close" on:click={closeTeacherAssignment}>
-					<span class="material-symbols-outlined">close</span>
-				</button>
-			</div>
-
-			<div class="dept-mgmt-modal-body">
-				<p class="dept-mgmt-modal-description">Select teachers to assign to this department</p>
-				
-				<div class="dept-mgmt-teacher-selection">
-					{#each availableTeachers as teacher}
-						<label class="dept-mgmt-checkbox-item">
-							<input
-								type="checkbox"
-								checked={selectedTeachers.some(t => t.id === teacher.id)}
-								on:change={() => toggleTeacherSelection(teacher)}
-							/>
-							<span class="dept-mgmt-checkbox-label">
-								<strong>{teacher.name}</strong>
-								<span class="dept-mgmt-teacher-email">{teacher.email}</span>
-								<span class="dept-mgmt-teacher-subject">Subject: {teacher.subject}</span>
-							</span>
-						</label>
-					{/each}
-				</div>
-			</div>
-
-			<div class="dept-mgmt-modal-actions">
-				<button class="dept-mgmt-btn dept-mgmt-btn-primary" on:click={saveTeacherAssignments}>
-					<span class="material-symbols-outlined">save</span>
-					Save Assignments
-				</button>
-				<button class="dept-mgmt-btn dept-mgmt-btn-outline" on:click={closeTeacherAssignment}>
-					Cancel
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}

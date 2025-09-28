@@ -6,7 +6,7 @@ import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.j
 // POST /api/accounts - Create a new account
 export async function POST({ request, getClientAddress }) {
   try {
-    const { accountType, gender, subjectId, gradeLevel, firstName, lastName, middleInitial, email, birthdate, address, guardian, contactNumber, createdBy } = await request.json();
+    const { accountType, gender, gradeLevel, firstName, lastName, middleInitial, email, birthdate, address, guardian, contactNumber, createdBy } = await request.json();
     
     // Validate required fields
     if (!accountType || !gender || !firstName || !lastName) {
@@ -16,11 +16,6 @@ export async function POST({ request, getClientAddress }) {
     // Validate email for students and teachers
     if ((accountType === 'student' || accountType === 'teacher') && !email) {
       return json({ error: 'Email is required for students and teachers' }, { status: 400 });
-    }
-    
-    // Validate subject for teachers
-    if (accountType === 'teacher' && !subjectId) {
-      return json({ error: 'Subject is required for teachers' }, { status: 400 });
     }
     
     // Validate grade level for students
@@ -67,7 +62,6 @@ export async function POST({ request, getClientAddress }) {
         full_name,
         gender, 
         email, 
-        subject_id, 
         grade_level,
         birthdate,
         address,
@@ -76,7 +70,7 @@ export async function POST({ request, getClientAddress }) {
         contact_number,
         password_hash,
         created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
       RETURNING id, account_number, full_name, account_type, created_at, updated_at
     `;
     
@@ -89,7 +83,6 @@ export async function POST({ request, getClientAddress }) {
       fullName,
       gender,
       email || null,
-      subjectId || null,
       gradeLevel || null,
       birthdate || null,
       address || null,
@@ -190,18 +183,15 @@ export async function GET({ url }) {
         u.middle_initial,
         u.email,
         u.account_type,
-        u.subject_id,
         u.grade_level,
         u.birthdate,
         u.address,
         u.age,
         u.guardian,
         u.contact_number,
-        s.code as subject_code,
         u.created_at,
         u.updated_at
       FROM users u
-      LEFT JOIN subjects s ON u.subject_id = s.id
     `;
     
     const queryParams = [parseInt(limit)];
@@ -228,8 +218,6 @@ export async function GET({ url }) {
       email: account.email,
       type: account.account_type === 'student' ? 'Student' : account.account_type === 'teacher' ? 'Teacher' : 'Admin',
       number: account.account_number,
-      subject: account.subject_code || '',
-      subjectId: account.subject_id,
       gradeLevel: account.grade_level,
       birthdate: account.birthdate,
       address: account.address,
@@ -264,7 +252,7 @@ export async function GET({ url }) {
 // PUT /api/accounts - Update an existing account
 export async function PUT({ request, getClientAddress }) {
   try {
-    const { id, firstName, lastName, middleInitial, subject, gradeLevel, birthdate, address, guardian, contactNumber } = await request.json();
+    const { id, firstName, lastName, middleInitial, gradeLevel, birthdate, address, guardian, contactNumber } = await request.json();
     
     // Validate required fields
     if (!id || !firstName || !lastName) {
@@ -304,22 +292,12 @@ export async function PUT({ request, getClientAddress }) {
     // Construct full name
     const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
     
-    // Find subject_id if subject name is provided for teacher accounts
-    let subjectId = null;
-    if (accountType === 'teacher' && subject) {
-      const subjectQuery = `SELECT id FROM subjects WHERE name = $1`;
-      const subjectResult = await query(subjectQuery, [subject]);
-      if (subjectResult.rows.length > 0) {
-        subjectId = subjectResult.rows[0].id;
-      }
-    }
-    
     // Prepare update query based on account type
     let updateQuery;
     let values;
-    
+
     if (accountType === 'teacher') {
-      // Update with subject_id for teacher accounts
+      // Update teacher accounts (subject functionality removed)
       updateQuery = `
         UPDATE users 
         SET 
@@ -327,17 +305,15 @@ export async function PUT({ request, getClientAddress }) {
           last_name = $2,
           middle_initial = $3,
           full_name = $4,
-          subject_id = $5,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $6
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
+        WHERE id = $5
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
       `;
       values = [
         firstName,
         lastName,
         middleInitial || null,
         fullName,
-        subjectId,
         id
       ];
     } else if (accountType === 'student') {
@@ -357,7 +333,7 @@ export async function PUT({ request, getClientAddress }) {
           contact_number = $10,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $11
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
       `;
       values = [
         firstName,
@@ -373,7 +349,7 @@ export async function PUT({ request, getClientAddress }) {
         id
       ];
     } else {
-      // Update without subject_id or grade_level for admin accounts
+      // Update without grade_level for admin accounts
       updateQuery = `
         UPDATE users 
         SET 
@@ -383,7 +359,7 @@ export async function PUT({ request, getClientAddress }) {
           full_name = $4,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $5
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, subject_id, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
+        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
       `;
       values = [
         firstName,
@@ -423,16 +399,6 @@ export async function PUT({ request, getClientAddress }) {
       // Don't fail the update if logging fails
     }
     
-    // Get subject name if subject_id exists
-    let subjectName = '';
-    if (updatedAccount.subject_id) {
-      const subjectQuery = `SELECT name FROM subjects WHERE id = $1`;
-      const subjectResult = await query(subjectQuery, [updatedAccount.subject_id]);
-      if (subjectResult.rows.length > 0) {
-        subjectName = subjectResult.rows[0].name;
-      }
-    }
-    
     // Format response to match frontend expectations
     const response = {
       id: updatedAccount.id,
@@ -442,8 +408,6 @@ export async function PUT({ request, getClientAddress }) {
       middleInitial: updatedAccount.middle_initial,
       type: updatedAccount.account_type === 'student' ? 'Student' : updatedAccount.account_type === 'teacher' ? 'Teacher' : 'Admin',
       number: updatedAccount.account_number,
-      subject: subjectName,
-      subjectId: updatedAccount.subject_id,
       gradeLevel: updatedAccount.grade_level,
       birthdate: updatedAccount.birthdate,
       address: updatedAccount.address,

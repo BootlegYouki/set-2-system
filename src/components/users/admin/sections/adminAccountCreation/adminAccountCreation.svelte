@@ -10,7 +10,6 @@
 	let isCreating = false;
 	let selectedAccountType = '';
 	let selectedGender = '';
-	let selectedSubject = '';
 	let selectedGradeLevel = '';
 	let firstName = '';
 	let lastName = '';
@@ -27,7 +26,6 @@
 	// Custom dropdown state
 	let isDropdownOpen = false;
 	let isGenderDropdownOpen = false;
-	let isSubjectDropdownOpen = false;
 	let isGradeLevelDropdownOpen = false;
 	let isFilterDropdownOpen = false;
 
@@ -39,10 +37,7 @@
 	let editFirstName = '';
 	let editLastName = '';
 	let editMiddleInitial = '';
-	let editSubject = '';
-	let editSubjectId = null;
 	let editGradeLevel = '';
-	let isEditSubjectDropdownOpen = false;
 	let isEditGradeLevelDropdownOpen = false;
 	let isUpdating = false;
 	
@@ -183,10 +178,6 @@
 		{ id: '10', name: 'Grade 10', icon: 'looks_4' }
 	];
 
-	// Subject options for teachers (loaded from database)
-	let subjectOptions = [];
-	let isLoadingSubjects = false;
-
 	// Recent account creations (loaded from database)
 	let recentAccounts = [];
 	let isLoadingAccounts = false;
@@ -201,9 +192,7 @@
 		if (!event.target.closest('.custom-dropdown')) {
 			isDropdownOpen = false;
 			isGenderDropdownOpen = false;
-			isSubjectDropdownOpen = false;
 			isGradeLevelDropdownOpen = false;
-			isEditSubjectDropdownOpen = false;
 			isEditGradeLevelDropdownOpen = false;
 			isFilterDropdownOpen = false;
 		}
@@ -255,15 +244,12 @@
 			editFirstName = '';
 			editLastName = '';
 			editMiddleInitial = '';
-			editSubject = '';
-			editSubjectId = null;
 			editGradeLevel = '';
 			editBirthdate = '';
 			editAddress = '';
 			editGuardian = '';
 			editContactNumber = '';
 			editCalculatedAge = 0;
-			isEditSubjectDropdownOpen = false;
 			isEditGradeLevelDropdownOpen = false;
 		} else {
 			// Open the form and populate with current values
@@ -273,8 +259,6 @@
 				editFirstName = account.firstName;
 				editLastName = account.lastName;
 				editMiddleInitial = account.middleInitial || '';
-				editSubject = account.subject || '';
-				editSubjectId = account.subjectId || null;
 				editGradeLevel = account.gradeLevel || '';
 				// Format birthdate for date input (YYYY-MM-DD) - timezone safe
 				if (account.birthdate) {
@@ -304,8 +288,6 @@
 						editMiddleInitial = '';
 					}
 				}
-				editSubject = account.subject || '';
-				editSubjectId = account.subjectId || null;
 				editGradeLevel = account.gradeLevel || '';
 				// Format birthdate for date input (YYYY-MM-DD) - timezone safe
 				if (account.birthdate) {
@@ -355,13 +337,6 @@
 				middleInitial: editMiddleInitial ? editMiddleInitial.trim() : null
 			};
 
-			// Add subject only for teacher accounts
-			if (currentAccount && currentAccount.type.toLowerCase() === 'teacher') {
-				// Use the subject name from the selected subject for the API
-				const selectedSubjectObj = subjectOptions.find(subject => subject.id === editSubjectId);
-				requestBody.subject = selectedSubjectObj ? selectedSubjectObj.name : null;
-			}
-
 			// Add grade level and additional info for student accounts
 			if (currentAccount && currentAccount.type.toLowerCase() === 'student') {
 				requestBody.gradeLevel = editGradeLevel || null;
@@ -390,7 +365,6 @@
 				editFirstName = '';
 				editLastName = '';
 				editMiddleInitial = '';
-				editSubject = '';
 				editGradeLevel = '';
 				editBirthdate = '';
 				editAddress = '';
@@ -418,10 +392,6 @@
 	function selectAccountType(type) {
 		selectedAccountType = type.id;
 		isDropdownOpen = false;
-		// Clear subject selection when switching account types
-		if (type.id !== 'teacher') {
-			selectedSubject = '';
-		}
 		// Clear grade level selection when switching account types
 		if (type.id !== 'student') {
 			selectedGradeLevel = '';
@@ -439,17 +409,6 @@
 		isGenderDropdownOpen = false;
 	}
 
-	// Toggle subject dropdown
-	function toggleSubjectDropdown() {
-		isSubjectDropdownOpen = !isSubjectDropdownOpen;
-	}
-
-	// Select subject and close dropdown
-	function selectSubject(subject) {
-		selectedSubject = subject.id;
-		isSubjectDropdownOpen = false;
-	}
-
 	// Toggle grade level dropdown
 	function toggleGradeLevelDropdown() {
 		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
@@ -459,18 +418,6 @@
 	function selectGradeLevel(gradeLevel) {
 		selectedGradeLevel = gradeLevel.id;
 		isGradeLevelDropdownOpen = false;
-	}
-
-	// Toggle edit subject dropdown
-	function toggleEditSubjectDropdown() {
-		isEditSubjectDropdownOpen = !isEditSubjectDropdownOpen;
-	}
-
-	// Select edit subject and close dropdown
-	function selectEditSubject(subject) {
-		editSubjectId = subject.id;
-		editSubject = subject.displayName;
-		isEditSubjectDropdownOpen = false;
 	}
 
 	// Toggle edit grade level dropdown
@@ -528,12 +475,6 @@
 				}
 		}
 
-		// Check if teacher account requires subject selection
-		if (selectedAccountType === 'teacher' && !selectedSubject) {
-			toastStore.error('Please select a subject for the teacher account.');
-			return;
-		}
-
 		isCreating = true;
 
 		try {
@@ -544,7 +485,6 @@
 			const data = await api.post('/api/accounts', {
 				accountType: selectedAccountType,
 				gender: selectedGender,
-				subjectId: selectedSubject,
 				gradeLevel: selectedGradeLevel,
 				firstName,
 				lastName,
@@ -571,7 +511,6 @@
 			// Reset form
 			selectedAccountType = '';
 			selectedGender = '';
-			selectedSubject = '';
 			selectedGradeLevel = '';
 			firstName = '';
 			lastName = '';
@@ -596,9 +535,6 @@
 
 	// Get selected gender object
 	$: selectedGenderObj = genderOptions.find(gender => gender.id === selectedGender);
-
-	// Get selected subject object
-	$: selectedSubjectObj = subjectOptions.find(subject => subject.id === selectedSubject);
 
 	// Get selected grade level object
 	$: selectedGradeLevelObj = gradeLevelOptions.find(gradeLevel => gradeLevel.id === selectedGradeLevel);
@@ -681,31 +617,6 @@
 		return `${prefix}-2025-${nextNumber.toString().padStart(4, '0')}`;
 	}
 
-	// Load subjects from database
-	async function loadSubjects() {
-		isLoadingSubjects = true;
-		try {
-			const data = await api.get('/api/subjects');
-			if (!data.success) {
-				throw new Error('Failed to load subjects');
-			}
-			
-			// Format subjects for the dropdown (include year level and code)
-			subjectOptions = data.data.map(subject => ({
-				id: subject.id,
-				name: subject.name,
-				code: subject.code,
-				gradeLevel: subject.gradeLevel,
-				displayName: `${subject.name} (${subject.code}) - ${subject.gradeLevel}`
-			}));
-		} catch (error) {
-			console.error('Error loading subjects:', error);
-			toastStore.error('Failed to load subjects');
-		} finally {
-			isLoadingSubjects = false;
-		}
-	}
-
 	// Load existing accounts from database
 	async function loadAccounts() {
 		isLoadingAccounts = true;
@@ -749,10 +660,9 @@
 		}
 	}
 
-	// Load accounts and subjects when component mounts
+	// Load accounts when component mounts
 	onMount(() => {
 		loadAccounts();
-		loadSubjects();
 	});
 </script>
 
@@ -861,47 +771,6 @@
 							</div>
 						</div>
 					</div>
-
-					<!-- Subject Selection (only for teachers) -->
-					{#if selectedAccountType === 'teacher'}
-						<div class="form-group">
-							<label class="form-label" for="subject">Subject *</label>
-							<div class="custom-dropdown" class:open={isSubjectDropdownOpen}>
-								<button 
-									type="button"
-									class="dropdown-trigger" 
-									class:selected={selectedSubject}
-									on:click={toggleSubjectDropdown}
-									id="subject"
-								>
-									{#if selectedSubjectObj}
-										<div class="selected-option">
-											<div class="option-content">
-												<span class="option-name">{selectedSubjectObj.displayName}</span>
-											</div>
-										</div>
-									{:else}
-										<span class="placeholder">Select subject</span>
-									{/if}
-									<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-								</button>
-								<div class="dropdown-menu">
-									{#each subjectOptions as subject (subject.id)}
-										<button 
-											type="button"
-											class="dropdown-option" 
-											class:selected={selectedSubject === subject.id}
-											on:click={() => selectSubject(subject)}
-										>
-											<div class="option-content">
-												<span class="option-name">{subject.displayName}</span>
-											</div>
-										</button>
-									{/each}
-								</div>
-							</div>
-						</div>
-					{/if}
 
 					<!-- Grade Level Selection (only for students) -->
 					{#if selectedAccountType === 'student'}
@@ -1327,47 +1196,6 @@
 										/>
 									</div>
 								</div>
-
-								<!-- Subject field for teacher accounts only -->
-								{#if account.type.toLowerCase() === 'teacher'}
-									<div class="form-group">
-										<label class="form-label" for="edit-subject-{account.id}">Subject</label>
-										<div class="custom-dropdown" class:open={isEditSubjectDropdownOpen}>
-											<button 
-												type="button"
-												class="dropdown-trigger" 
-												class:selected={editSubjectId}
-												on:click={toggleEditSubjectDropdown}
-												id="edit-subject-{account.id}"
-											>
-												{#if editSubject}
-													<div class="selected-option">
-														<div class="option-content">
-															<span class="option-name">{editSubject}</span>
-														</div>
-													</div>
-												{:else}
-													<span class="placeholder">Select subject</span>
-												{/if}
-												<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-											</button>
-											<div class="dropdown-menu">
-												{#each subjectOptions as subject (subject.id)}
-													<button 
-														type="button"
-														class="dropdown-option" 
-														class:selected={editSubjectId === subject.id}
-														on:click={() => selectEditSubject(subject)}
-													>
-														<div class="option-content">
-															<span class="option-name">{subject.displayName}</span>
-														</div>
-													</button>
-												{/each}
-											</div>
-										</div>
-									</div>
-								{/if}
 
 								<!-- Grade Level field for student accounts only -->
 								{#if account.type.toLowerCase() === 'student'}

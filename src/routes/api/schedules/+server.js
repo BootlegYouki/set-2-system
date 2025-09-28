@@ -179,12 +179,10 @@ async function getTimePeriods() {
 
 async function getAvailableTeachers(schoolYear) {
     const result = await query(`
-        SELECT DISTINCT u.id, u.full_name, u.account_number, s.name as subject_name, s.code as subject_code
+        SELECT DISTINCT u.id, u.full_name, u.account_number
         FROM users u
-        JOIN subjects s ON u.subject_id = s.id
         WHERE u.account_type = 'teacher' 
             AND u.status = 'active'
-            AND s.status = 'active'
         ORDER BY u.full_name
     `);
     

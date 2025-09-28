@@ -23,22 +23,22 @@
 			items: [
 				{
 					id: 'room-management',
-					label: 'Room Management',
+					label: 'Room',
 					icon: 'meeting_room'
 				},
 				{
 					id: 'section-management',
-					label: 'Section Management',
+					label: 'Section',
 					icon: 'class'
 				},
 				{
 					id: 'schedule-management',
-					label: 'Schedule Management',
+					label: 'Schedule',
 					icon: 'schedule'
 				},
 				{
-					id: 'department-creation',
-					label: 'Department Creation',
+					id: 'department-management',
+					label: 'Department',
 					icon: 'corporate_fare'
 				}
 			]

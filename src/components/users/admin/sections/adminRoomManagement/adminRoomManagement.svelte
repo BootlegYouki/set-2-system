@@ -194,6 +194,12 @@
 			editBuilding = '';
 			editFloor = '';
 		} else {
+			// Close assign form if it's open for this room
+			if (assigningRoomId === room.id) {
+				assigningRoomId = null;
+				assignSelectedSection = '';
+				isAssignSectionDropdownOpen = false;
+			}
 			// Open the form
 			editingRoomId = room.id;
 			editRoomName = room.name;
@@ -252,12 +258,17 @@
 			assignSelectedSection = '';
 			isAssignSectionDropdownOpen = false;
 		} else {
+			// Close edit form if it's open for this room
+			if (editingRoomId === room.id) {
+				editingRoomId = null;
+				editRoomName = '';
+				editBuilding = '';
+				editFloor = '';
+			}
 			// Open the form
 			assigningRoomId = room.id;
 			assignSelectedSection = '';
 			isAssignSectionDropdownOpen = false;
-			// Close edit form if open
-			editingRoomId = null;
 		}
 	}
 
