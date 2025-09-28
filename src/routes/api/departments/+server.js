@@ -98,7 +98,13 @@ export async function GET({ url }) {
                                 WHERE td.department_id = d.id AND u.status = 'active'
                             ),
                             '[]'::json
-                        ) as teachers
+                        ) as teachers,
+                        (
+                            SELECT COUNT(DISTINCT td2.teacher_id) 
+                            FROM teacher_departments td2
+                            JOIN users u2 ON td2.teacher_id = u2.id
+                            WHERE td2.department_id = d.id AND u2.status = 'active'
+                        ) as teacher_count
                     FROM departments d
                     LEFT JOIN subjects s ON d.id = s.department_id
                     WHERE d.status = 'active'

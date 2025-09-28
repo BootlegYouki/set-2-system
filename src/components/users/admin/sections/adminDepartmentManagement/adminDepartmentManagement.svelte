@@ -37,6 +37,9 @@
 	let assigningDepartmentId = null;
 	let isAssigning = false;
 
+	// Department details view state
+	let expandedDepartmentId = null;
+
 	// Available data for dropdowns
 	let availableSubjects = [];
 	let availableTeachers = [];
@@ -520,15 +523,18 @@
 
 	// Utility functions
 	function getDepartmentSubjects(department) {
-		return department.subjects.map(subjectId => 
-			availableSubjects.find(subject => subject.id === subjectId)
-		).filter(Boolean);
+		// The API returns subject objects directly, not just IDs
+		return department.subjects || [];
 	}
 
 	function getDepartmentTeachers(department) {
-		return department.teachers.map(teacherId => 
-			availableTeachers.find(teacher => teacher.id === teacherId)
-		).filter(Boolean);
+		// The API returns teacher objects directly, not just IDs
+		return department.teachers || [];
+	}
+
+	// Toggle department details view
+	function toggleDepartmentDetails(departmentId) {
+		expandedDepartmentId = expandedDepartmentId === departmentId ? null : departmentId;
 	}
 
 	// Handle click outside to close dropdowns
