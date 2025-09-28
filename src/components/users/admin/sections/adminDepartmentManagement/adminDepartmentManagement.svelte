@@ -46,57 +46,10 @@
 	let subjectSearchTerm = '';
 	let teacherSearchTerm = '';
 
-	// Mock data
-	const mockSubjects = [
-		{ id: 1, name: 'Mathematics', code: 'MATH', gradeLevel: 'Grade 7' },
-		{ id: 2, name: 'Science', code: 'SCI', gradeLevel: 'Grade 7' },
-		{ id: 3, name: 'English', code: 'ENG', gradeLevel: 'Grade 7' },
-		{ id: 4, name: 'Filipino', code: 'FIL', gradeLevel: 'Grade 7' },
-		{ id: 5, name: 'Araling Panlipunan', code: 'AP', gradeLevel: 'Grade 7' },
-		{ id: 6, name: 'Technology and Livelihood Education', code: 'TLE', gradeLevel: 'Grade 7' },
-		{ id: 7, name: 'Music, Arts, Physical Education, and Health', code: 'MAPEH', gradeLevel: 'Grade 7' },
-		{ id: 8, name: 'Values Education', code: 'VE', gradeLevel: 'Grade 7' },
-		{ id: 9, name: 'Algebra', code: 'ALG', gradeLevel: 'Grade 8' },
-		{ id: 10, name: 'Biology', code: 'BIO', gradeLevel: 'Grade 8' }
-	];
-
-	const mockTeachers = [
-		{ id: 1, name: 'Maria Santos', email: 'maria.santos@school.edu', subject: 'Mathematics' },
-		{ id: 2, name: 'Juan Dela Cruz', email: 'juan.delacruz@school.edu', subject: 'Science' },
-		{ id: 3, name: 'Ana Rodriguez', email: 'ana.rodriguez@school.edu', subject: 'English' },
-		{ id: 4, name: 'Carlos Mendoza', email: 'carlos.mendoza@school.edu', subject: 'Filipino' },
-		{ id: 5, name: 'Elena Reyes', email: 'elena.reyes@school.edu', subject: 'Araling Panlipunan' },
-		{ id: 6, name: 'Roberto Garcia', email: 'roberto.garcia@school.edu', subject: 'TLE' },
-		{ id: 7, name: 'Sofia Villanueva', email: 'sofia.villanueva@school.edu', subject: 'MAPEH' },
-		{ id: 8, name: 'Miguel Torres', email: 'miguel.torres@school.edu', subject: 'Values Education' }
-	];
-
-	const mockDepartments = [
-		{
-			id: 1,
-			name: 'Mathematics Department',
-			code: 'MATH-DEPT',
-			subjects: [1, 9], // Math and Algebra
-			teachers: [1], // Maria Santos
-			createdAt: '2024-01-15'
-		},
-		{
-			id: 2,
-			name: 'Science Department',
-			code: 'SCI-DEPT',
-			subjects: [2, 10], // Science and Biology
-			teachers: [2], // Juan Dela Cruz
-			createdAt: '2024-01-16'
-		},
-		{
-			id: 3,
-			name: 'Language Arts Department',
-			code: 'LANG-DEPT',
-			subjects: [3, 4], // English and Filipino
-			teachers: [3, 4], // Ana Rodriguez, Carlos Mendoza
-			createdAt: '2024-01-17'
-		}
-	];
+	// Loading states
+	let isLoadingDepartments = false;
+	let isLoadingSubjects = false;
+	let isLoadingTeachers = false;
 
 	// Filter options
 	const filterOptions = [
@@ -105,11 +58,88 @@
 		{ id: 'recent', name: 'Recently Created', icon: 'schedule' }
 	];
 
+	// API functions
+	async function fetchDepartments() {
+		isLoadingDepartments = true;
+		try {
+			const response = await fetch('/api/departments?action=departments');
+			const result = await response.json();
+			
+			if (result.success) {
+				departments = result.data.map(dept => ({
+					id: dept.id,
+					name: dept.name,
+					code: dept.code,
+					subjects: dept.subjects || [],
+					teachers: dept.teachers || [],
+					createdAt: dept.created_at ? dept.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+				}));
+			} else {
+				toastStore.error('Failed to load departments');
+			}
+		} catch (error) {
+			console.error('Error fetching departments:', error);
+			toastStore.error('Failed to load departments');
+		} finally {
+			isLoadingDepartments = false;
+		}
+	}
+
+	async function fetchSubjects() {
+		isLoadingSubjects = true;
+		try {
+			const response = await fetch('/api/departments?action=subjects');
+			const result = await response.json();
+			
+			if (result.success) {
+				availableSubjects = result.data.map(subject => ({
+					id: subject.id,
+					name: subject.name,
+					code: subject.code,
+					gradeLevel: `Grade ${subject.grade_level}`
+				}));
+			} else {
+				toastStore.error('Failed to load subjects');
+			}
+		} catch (error) {
+			console.error('Error fetching subjects:', error);
+			toastStore.error('Failed to load subjects');
+		} finally {
+			isLoadingSubjects = false;
+		}
+	}
+
+	async function fetchTeachers() {
+		isLoadingTeachers = true;
+		try {
+			const response = await fetch('/api/departments?action=teachers');
+			const result = await response.json();
+			
+			if (result.success) {
+				availableTeachers = result.data.map(teacher => ({
+					id: teacher.id,
+					name: teacher.full_name || `${teacher.first_name} ${teacher.last_name}`,
+					email: teacher.email,
+					subject: 'General' // Since we don't have subject assignment in the user table
+				}));
+			} else {
+				toastStore.error('Failed to load teachers');
+			}
+		} catch (error) {
+			console.error('Error fetching teachers:', error);
+			toastStore.error('Failed to load teachers');
+		} finally {
+			isLoadingTeachers = false;
+		}
+	}
+
 	// Initialize data
-	onMount(() => {
-		departments = [...mockDepartments];
-		availableSubjects = [...mockSubjects];
-		availableTeachers = [...mockTeachers];
+	onMount(async () => {
+		await Promise.all([
+			fetchDepartments(),
+			fetchSubjects(),
+			fetchTeachers()
+		]);
 		filterDepartments();
 	});
 
@@ -180,25 +210,33 @@
 		isCreating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			const response = await fetch('/api/departments', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					name: departmentName.trim(),
+					code: departmentCode.trim().toUpperCase(),
+					subjects: [],
+					teachers: []
+				})
+			});
 
-			const newDepartment = {
-				id: Date.now(),
-				name: departmentName.trim(),
-				code: departmentCode.trim().toUpperCase(),
-				subjects: [],
-				teachers: [],
-				createdAt: new Date().toISOString().split('T')[0]
-			};
+			const result = await response.json();
 
-			departments = [...departments, newDepartment];
+			if (result.success) {
+				// Refresh departments list
+				await fetchDepartments();
+				
+				// Reset form
+				departmentName = '';
+				departmentCode = '';
 
-			// Reset form
-		departmentName = '';
-		departmentCode = '';
-
-			toastStore.success('Department created successfully');
+				toastStore.success('Department created successfully');
+			} else {
+				toastStore.error(result.error || 'Failed to create department');
+			}
 		} catch (error) {
 			console.error('Error creating department:', error);
 			toastStore.error('Failed to create department. Please try again.');
@@ -227,26 +265,33 @@
 		isUpdating = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
-
-			departments = departments.map(dept => {
-				if (dept.id === editingDepartmentId) {
-					return {
-						...dept,
-						name: editDepartmentName.trim(),
-						code: editDepartmentCode.trim().toUpperCase()
-					};
-				}
-				return dept;
+			const response = await fetch('/api/departments', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					id: editingDepartmentId,
+					name: editDepartmentName.trim(),
+					code: editDepartmentCode.trim().toUpperCase()
+				})
 			});
 
-			// Close edit form
-			editingDepartmentId = null;
-			editDepartmentName = '';
-			editDepartmentCode = '';
+			const result = await response.json();
 
-			toastStore.success('Department updated successfully');
+			if (result.success) {
+				// Refresh departments list
+				await fetchDepartments();
+				
+				// Close edit form
+				editingDepartmentId = null;
+				editDepartmentName = '';
+				editDepartmentCode = '';
+
+				toastStore.success('Department updated successfully');
+			} else {
+				toastStore.error(result.error || 'Failed to update department');
+			}
 		} catch (error) {
 			console.error('Error updating department:', error);
 			toastStore.error('Failed to update department. Please try again.');
@@ -287,11 +332,26 @@
 			 <p class="warning-text">This action will also remove all subject and teacher assignments.</p>`,
 			async () => {
 				try {
-					// Simulate API call
-					await new Promise(resolve => setTimeout(resolve, 500));
+					const response = await fetch('/api/departments', {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							id: department.id,
+							name: department.name
+						})
+					});
 
-					departments = departments.filter(dept => dept.id !== department.id);
-					toastStore.success('Department removed successfully');
+					const result = await response.json();
+
+					if (result.success) {
+						// Refresh departments list
+						await fetchDepartments();
+						toastStore.success('Department removed successfully');
+					} else {
+						toastStore.error(result.error || 'Failed to remove department');
+					}
 				} catch (error) {
 					console.error('Error removing department:', error);
 					toastStore.error('Failed to remove department. Please try again.');

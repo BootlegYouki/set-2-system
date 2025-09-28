@@ -110,8 +110,7 @@ export async function POST({ request, getClientAddress }) {
           JSON.stringify({
             account_type: accountType,
             full_name: fullName,
-            grade_level: gradeLevel,
-            subject_id: subjectId
+            grade_level: gradeLevel
           }),
           ip_address, // Now capturing actual IP address
           user_agent  // Now capturing actual user agent

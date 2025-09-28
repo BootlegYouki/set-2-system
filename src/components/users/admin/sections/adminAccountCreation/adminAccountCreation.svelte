@@ -591,9 +591,8 @@
 		const query = searchQuery.toLowerCase().trim();
 		const nameMatches = account.name.toLowerCase().includes(query);
 		const numberMatches = account.number.toString().includes(query);
-		const subjectMatches = account.subject && account.subject.toLowerCase().includes(query);
 		
-		return typeMatches && (nameMatches || numberMatches || subjectMatches);
+		return typeMatches && (nameMatches || numberMatches);
 	});
 
 	// Generate next account number for the selected type
@@ -975,7 +974,7 @@
 						type="submit" 
 						class="create-button"
 						class:loading={isCreating}
-						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || (selectedAccountType === 'teacher' && !selectedSubject) || ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email) || (selectedAccountType === 'student' && (!birthdate || !address || !guardian || !contactNumber))}
+						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email) || (selectedAccountType === 'student' && (!birthdate || !address || !guardian || !contactNumber))}
 					>
 						{#if isCreating}
 							Creating Account...
@@ -1007,7 +1006,7 @@
 							<input 
 								type="text" 
 								class="search-input" 
-								placeholder="Search accounts by name, number, or subject..."
+								placeholder="Search accounts by name or number..."
 								bind:value={searchQuery}
 							/>
 							{#if searchQuery}
@@ -1128,12 +1127,6 @@
 						<div class="account-detail-item">
 							<span class="material-symbols-outlined">phone</span>
 							<span>Contact: {account.contactNumber}</span>
-						</div>
-					{/if}
-					{#if account.type === 'Teacher' && account.subject}
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">subject</span>
-							<span>{account.subject}</span>
 						</div>
 					{/if}
 					<div class="account-detail-item">
