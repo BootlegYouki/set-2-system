@@ -1074,101 +1074,108 @@
 
 						<!-- Edit Form (shown when editing) -->
 						{#if editingActivityId === activity.id}
-							<div class="adminsubject-edit-form">
-								<form on:submit|preventDefault={handleEditActivity}>
-									<div class="admin-form-row">
-										<!-- Activity Name -->
-										<div class="admin-form-group admin-form-group-half">
-											<label class="admin-form-label" for="edit-activity-name">Activity Name</label>
-											<input
-												type="text"
-												class="admin-form-input"
-												id="edit-activity-name"
-												bind:value={editActivityName}
-												placeholder="e.g., Flag Ceremony"
-												required
-											/>
-										</div>
-
-										<!-- Activity Code -->
-										<div class="admin-form-group admin-form-group-half">
-											<label class="admin-form-label" for="edit-activity-code">Activity Code</label>
-											<input
-												type="text"
-												class="admin-form-input"
-												id="edit-activity-code"
-												bind:value={editActivityCode}
-												placeholder="e.g., FLAG"
-												required
-											/>
-										</div>
+							<div class="adminsubject-edit-form-section">
+								<div class="adminsubject-edit-form-container">
+									<div class="adminsubject-edit-form-header">
+										<h2 class="adminsubject-edit-form-title">Edit Activity Type</h2>
+										<p class="adminsubject-edit-form-subtitle">Update activity type information</p>
 									</div>
+									
+									<form class="adminsubject-edit-form-content" on:submit|preventDefault={handleEditActivity}>
+										<!-- Activity Name and Activity Code Row -->
+										<div class="adminsubject-edit-form-row">
+											<!-- Activity Name -->
+											<div class="adminsubject-form-group adminsubject-form-group-third">
+												<label class="adminsubject-form-label" for="edit-activity-name">Activity Name *</label>
+												<input
+													type="text"
+													class="adminsubject-form-input"
+													id="edit-activity-name"
+													bind:value={editActivityName}
+													placeholder="e.g., Flag Ceremony"
+													required
+												/>
+											</div>
 
-									<div class="admin-form-row">
-										<!-- Icon -->
-										<div class="admin-form-group admin-form-group-full">
-											<label class="admin-form-label" for="edit-activity-icon">Icon</label>
-											<div class="adminsubject-custom-dropdown" class:open={isEditIconDropdownOpen}>
-												<button
-													type="button"
-													class="adminsubject-dropdown-trigger"
-													class:selected={editActivityIcon}
-													on:click={toggleEditIconDropdown}
-													id="edit-activity-icon"
-												>
-													{#if editActivityIcon}
-														<div class="adminsubject-selected-option">
-															<span class="material-symbols-outlined adminsubject-option-icon">{editActivityIcon}</span>
-															<div class="adminsubject-option-content">
-																<span class="adminsubject-option-name">{getIconName(editActivityIcon)}</span>
+											<!-- Activity Code -->
+											<div class="adminsubject-form-group adminsubject-form-group-third">
+												<label class="adminsubject-form-label" for="edit-activity-code">Activity Code *</label>
+												<input
+													type="text"
+													class="adminsubject-form-input"
+													id="edit-activity-code"
+													bind:value={editActivityCode}
+													placeholder="e.g., FLAG"
+													required
+												/>
+											</div>
+
+											<!-- Icon -->
+											<div class="adminsubject-form-group adminsubject-form-group-third">
+												<label class="adminsubject-form-label" for="edit-activity-icon">Icon</label>
+												<div class="adminsubject-custom-dropdown" class:open={isEditIconDropdownOpen}>
+													<button
+														type="button"
+														class="adminsubject-dropdown-trigger"
+														class:selected={editActivityIcon}
+														on:click={toggleEditIconDropdown}
+														id="edit-activity-icon"
+													>
+														{#if editActivityIcon}
+															<div class="adminsubject-selected-option">
+																<span class="material-symbols-outlined adminsubject-option-icon">{editActivityIcon}</span>
+																<div class="adminsubject-option-content">
+																	<span class="adminsubject-option-name">{getIconName(editActivityIcon)}</span>
+																</div>
 															</div>
-														</div>
-													{:else}
-														<span class="adminsubject-placeholder">Select icon</span>
-													{/if}
-													<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
-												</button>
-												<div class="adminsubject-dropdown-menu">
-													{#each iconOptions as icon (icon.value)}
-														<button
-															type="button"
-															class="adminsubject-dropdown-option"
-															class:selected={editActivityIcon === icon.value}
-															on:click={() => selectEditIcon(icon.value)}
-														>
-															<span class="material-symbols-outlined adminsubject-option-icon">{icon.value}</span>
-															<div class="adminsubject-option-content">
-																<span class="adminsubject-option-name">{icon.name}</span>
-															</div>
-														</button>
-													{/each}
+														{:else}
+															<span class="adminsubject-placeholder">Select icon</span>
+														{/if}
+														<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
+													</button>
+													<div class="adminsubject-dropdown-menu">
+														{#each iconOptions as icon (icon.value)}
+															<button
+																type="button"
+																class="adminsubject-dropdown-option"
+																class:selected={editActivityIcon === icon.value}
+																on:click={() => selectEditIcon(icon.value)}
+															>
+																<span class="material-symbols-outlined adminsubject-option-icon">{icon.value}</span>
+																<div class="adminsubject-option-content">
+																	<span class="adminsubject-option-name">{icon.name}</span>
+																</div>
+															</button>
+														{/each}
+													</div>
 												</div>
 											</div>
 										</div>
-									</div>
 
-									<div class="adminsubject-edit-actions">
-										<button
-											type="button"
-											class="adminsubject-cancel-button"
-											on:click={() => toggleEditActivityForm(activity)}
-										>
-											Cancel
-										</button>
-										<button
-											type="submit"
-											class="adminsubject-save-button"
-											class:loading={isUpdatingActivity}
-											disabled={isUpdatingActivity || !editActivityName.trim() || !editActivityCode.trim()}
-										>
-											{#if isUpdatingActivity}
-												Saving...
-											{:else}
-												Save Changes
-											{/if}
-										</button>
-									</div>
-								</form>
+										<!-- Form Actions -->
+										<div class="adminsubject-edit-form-actions">
+											<button
+												type="button"
+												class="adminsubject-cancel-button"
+												on:click={() => toggleEditActivityForm(activity)}
+											>
+												Cancel
+											</button>
+											<button
+												type="submit"
+												class="adminsubject-submit-button"
+												class:loading={isUpdatingActivity}
+												disabled={isUpdatingActivity || !editActivityName.trim() || !editActivityCode.trim()}
+											>
+												{#if isUpdatingActivity}
+													Updating...
+												{:else}
+													Update Activity Type
+												{/if}
+											</button>
+										</div>
+									</form>
+								</div>
 							</div>
 						{/if}
 					</div>
