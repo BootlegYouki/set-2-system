@@ -175,7 +175,7 @@
 			<h2 class="section-title">Activity Logs</h2>
 			<button 
 				class="refresh-button" 
-				on:click={fetchRecentActivities}
+				on:click={() => fetchRecentActivities(false)}
 				disabled={activitiesLoading}
 				title="Refresh activity logs"
 			>
