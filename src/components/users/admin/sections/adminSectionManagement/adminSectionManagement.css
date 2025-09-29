@@ -1098,7 +1098,6 @@
 	align-items: center;
 	justify-content: center;
 	padding: var(--spacing-xl);
-	min-height: 200px;
 	color: var(--md-sys-color-on-surface-variant);
 }
 

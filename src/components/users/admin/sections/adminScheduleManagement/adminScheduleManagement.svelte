@@ -30,9 +30,12 @@
 	let selectedFilterSectionObj = null;
 	let isFilterYearDropdownOpen = false;
 	let isFilterSectionDropdownOpen = false;
+	let filterSectionSearchTerm = '';
+	let formSectionSearchTerm = '';
 	
 	// Data loading state
 	let isLoading = false;
+	let isLoadingSections = true;
 	
 	// Day picker states (similar to student schedule)
 	let isAdminDayDropdownOpen = false;
@@ -219,13 +222,17 @@
 	// Filter sections based on selected year
 	$: filteredSections = selectedFilterYear ? sections.filter(section => {
 		const gradeLevel = parseInt(selectedFilterYear.replace('grade-', ''));
-		return section.grade_level === gradeLevel;
+		const matchesGrade = section.grade_level === gradeLevel;
+		const matchesSearch = section.section_name ? section.section_name.toLowerCase().includes(filterSectionSearchTerm.toLowerCase()) : true;
+		return matchesGrade && matchesSearch;
 	}) : [];
 
 	// Filter form sections based on selected form year
 	$: filteredFormSections = selectedFormYear ? sections.filter(section => {
 		const gradeLevel = parseInt(selectedFormYear.replace('grade-', ''));
-		return section.grade_level === gradeLevel;
+		const matchesGrade = section.grade_level === gradeLevel;
+		const matchesSearch = section.name ? section.name.toLowerCase().includes(formSectionSearchTerm.toLowerCase()) : true;
+		return matchesGrade && matchesSearch;
 	}) : [];
 
 	// Filter subjects based on selected form year (grade level)
@@ -1214,9 +1221,31 @@
 								<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 							</button>
 							<div class="scheduleassign-dropdown-menu">
-								{#each filteredFormSections as section (section.id)}
+								<!-- Search Container -->
+								<div class="scheduleassign-search-container">
+									<span class="material-symbols-outlined scheduleassign-search-icon">search</span>
+									<input 
+										type="text" 
+										class="scheduleassign-search-input"
+										placeholder="Search sections..."
+										bind:value={formSectionSearchTerm}
+									/>
+								</div>
+								
+								{#if isLoadingSections}
+						<div class="adminschedule-loading-container">
+							<span class="section-loader"></span>
+							<p class="adminschedule-loading-text">Loading sections...</p>
+						</div>
+					{:else if filteredFormSections.length === 0 && selectedFormYear}
+						<div class="scheduleassign-no-results">
+							<span class="material-symbols-outlined">info</span>
+							<span>No sections found for {selectedFormYearObj?.name}</span>
+						</div>
+					{:else}
+						{#each filteredFormSections as section (section.id)}
 							<button 
-								type="button"
+								type="button" 
 								class="scheduleassign-dropdown-item" 
 								class:selected={selectedFormSection === section.id}
 								on:click={() => selectFormSection(section)}
@@ -1228,6 +1257,7 @@
 								</div>
 							</button>
 						{/each}
+					{/if}
 							</div>
 						</div>
 					</div>
@@ -1655,6 +1685,15 @@
 					<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 				</button>
 				<div class="scheduleassign-dropdown-menu">
+					<div class="scheduleassign-search-container">
+						<input 
+							type="text" 
+							class="scheduleassign-search-input"
+							placeholder="Search sections..."
+							bind:value={filterSectionSearchTerm}
+						/>
+						<span class="material-symbols-outlined scheduleassign-search-icon">search</span>
+					</div>
 					<button 
 						type="button" 
 						class="scheduleassign-dropdown-item" 
@@ -1662,20 +1701,32 @@
 					>
 						<span class="placeholder">Select section</span>
 					</button>
-					{#each filteredSections as section (section.id)}
-						<button 
-							type="button" 
-							class="scheduleassign-dropdown-item" 
-							class:selected={selectedFilterSection === section.id}
-							on:click={() => selectFilterSection(section)}
-						>
-							<span class="material-symbols-outlined option-icon">class</span>
-							<div class="option-content">
-								<span class="option-name">Grade {section.grade_level} · {section.section_name}</span>
-								<span class="option-description">Grade {section.grade_level} Section</span>
-							</div>
-						</button>
-					{/each}
+					{#if isLoadingSections}
+						<div class="adminschedule-loading-container">
+							<span class="section-loader"></span>
+							<p class="adminschedule-loading-text">Loading sections...</p>
+						</div>
+					{:else if filteredSections.length === 0 && selectedFilterYear}
+						<div class="scheduleassign-no-results">
+							<span class="material-symbols-outlined">info</span>
+							<span>No sections found for {selectedFilterYearObj?.name}</span>
+						</div>
+					{:else}
+						{#each filteredSections as section (section.id)}
+							<button 
+								type="button" 
+								class="scheduleassign-dropdown-item" 
+								class:selected={selectedFilterSection === section.id}
+								on:click={() => selectFilterSection(section)}
+							>
+								<span class="material-symbols-outlined option-icon">class</span>
+								<div class="option-content">
+									<span class="option-name">Grade {section.grade_level} · {section.section_name}</span>
+									<span class="option-description">Grade {section.grade_level} Section</span>
+								</div>
+							</button>
+						{/each}
+					{/if}
 				</div>
 			</div>
 		</div>

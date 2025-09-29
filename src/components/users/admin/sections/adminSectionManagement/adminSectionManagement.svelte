@@ -661,6 +661,11 @@
 									<span class="section-loader"></span>
 									<p>Loading teachers...</p>
 								</div>
+							{:else if filteredAdvisers.length === 0}
+								<div class="sectionmgmt-no-results">
+									<span class="material-symbols-outlined">person_off</span>
+									<span>No available teachers found</span>
+								</div>
 							{:else}
 								{#each filteredAdvisers as adviser (adviser.id)}
 									<button 
@@ -676,12 +681,6 @@
 										</div>
 									</button>
 								{/each}
-							{/if}
-							{#if filteredAdvisers.length === 0}
-								<div class="sectionmgmt-no-results">
-									<span class="material-symbols-outlined">person_off</span>
-									<span>No available teachers found</span>
-								</div>
 							{/if}
 						</div>
 					</div>
@@ -740,6 +739,11 @@
 									<span class="section-loader"></span>
 									<p>Loading students...</p>
 								</div>
+							{:else if filteredStudents.length === 0}
+								<div class="sectionmgmt-no-results">
+									<span class="material-symbols-outlined">person_off</span>
+									<span>No available students found for this grade level</span>
+								</div>
 							{:else}
 								{#each filteredStudents as student (student.id)}
 									<button 
@@ -760,12 +764,6 @@
 										</div>
 									</button>
 								{/each}
-								{#if filteredStudents.length === 0}
-									<div class="sectionmgmt-no-results">
-										<span class="material-symbols-outlined">person_off</span>
-										<span>No available students found for this grade level</span>
-									</div>
-								{/if}
 							{/if}
 						</div>
 					</div>
