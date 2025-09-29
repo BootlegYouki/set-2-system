@@ -25,7 +25,7 @@
   import AdminRoomManagement from '../components/users/admin/sections/adminRoomManagement/adminRoomManagement.svelte';
   import AdminSectionManagement from '../components/users/admin/sections/adminSectionManagement/adminSectionManagement.svelte';
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
-  import AdminSubjectCreation from '../components/users/admin/sections/adminSubjectCreation/adminSubjectCreation.svelte';
+  import AdminCurriculumManagement from '../components/users/admin/sections/adminCurriculumManagement/adminCurriculumManagement.svelte';
   import AdminDepartmentManagement from '../components/users/admin/sections/adminDepartmentManagement/adminDepartmentManagement.svelte';
   import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
   import AdminSettings from '../components/users/admin/sections/adminSettings/adminSettings.svelte';
@@ -247,8 +247,8 @@
           <AdminScheduleManagement />
         {:else if adminActiveSection === 'department-management'}
           <AdminDepartmentManagement />
-        {:else if adminActiveSection === 'subject-creation'}
-          <AdminSubjectCreation />
+        {:else if adminActiveSection === 'curriculum-management'}
+          <AdminCurriculumManagement />
         {:else if adminActiveSection === 'document-requests'}
           <AdminDocumentRequests />
         {:else if adminActiveSection === 'settings'}

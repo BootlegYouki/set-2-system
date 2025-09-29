@@ -178,25 +178,40 @@ async function getTimePeriods() {
 }
 
 async function getAvailableTeachers(schoolYear) {
-    const result = await query(`
-        SELECT DISTINCT u.id, u.full_name, u.account_number
-        FROM users u
-        WHERE u.account_type = 'teacher' 
-            AND u.status = 'active'
-        ORDER BY u.full_name
-    `);
-    
-    // Format teachers to match expected structure
-    const teachers = result.rows.map(teacher => ({
-        id: teacher.id,
-        name: teacher.full_name,
-        full_name: teacher.full_name,
-        account_number: teacher.account_number,
-        subject_name: teacher.subject_name,
-        subject_code: teacher.subject_code
-    }));
-    
-    return json({ teachers });
+    try {
+        // First get all teachers
+        const teachersResult = await query(`
+            SELECT DISTINCT u.id, u.full_name, u.account_number
+            FROM users u
+            WHERE u.account_type = 'teacher' 
+                AND u.status = 'active'
+            ORDER BY u.full_name
+        `);
+        
+        // Then get department information for each teacher
+        const teachers = [];
+        for (const teacher of teachersResult.rows) {
+            const departmentsResult = await query(`
+                SELECT d.id, d.name, d.code
+                FROM teacher_departments td
+                JOIN departments d ON td.department_id = d.id
+                WHERE td.teacher_id = $1 AND d.status = 'active'
+            `, [teacher.id]);
+            
+            teachers.push({
+                id: teacher.id,
+                name: teacher.full_name,
+                full_name: teacher.full_name,
+                account_number: teacher.account_number,
+                departments: departmentsResult.rows || []
+            });
+        }
+        
+        return json({ teachers });
+    } catch (error) {
+        console.error('Error in getAvailableTeachers:', error);
+        return json({ error: 'Failed to load teachers' }, { status: 500 });
+    }
 }
 
 async function getAvailableRooms() {

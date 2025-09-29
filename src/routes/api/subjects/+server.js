@@ -10,13 +10,17 @@ export async function GET({ url }) {
     
     let sqlQuery = `
       SELECT 
-        id,
-        name,
-        code,
-        grade_level,
-        created_at,
-        updated_at
-      FROM subjects
+        s.id,
+        s.name,
+        s.code,
+        s.grade_level,
+        s.department_id,
+        s.created_at,
+        s.updated_at,
+        d.name as department_name,
+        d.code as department_code
+      FROM subjects s
+      LEFT JOIN departments d ON s.department_id = d.id
     `;
     
     const params = [];
@@ -49,6 +53,9 @@ export async function GET({ url }) {
       code: subject.code,
       grade_level: subject.grade_level, // Keep the original numeric grade_level for filtering
       gradeLevel: `Grade ${subject.grade_level}`, // Formatted version for display
+      department_id: subject.department_id,
+      department_name: subject.department_name,
+      department_code: subject.department_code,
       icon: 'book', // Default icon for subjects
       createdDate: new Date(subject.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(subject.updated_at).toLocaleDateString('en-US')

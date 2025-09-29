@@ -1,5 +1,5 @@
 <script>
-	import './adminSubjectCreation.css';
+	import './adminCurriculumManagement.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
@@ -29,6 +29,31 @@
 	// Edit dropdown states
 	let isEditGradeDropdownOpen = false;
 
+	// Tab state for curriculum management
+	let activeTab = 'subjects'; // 'subjects' or 'activities'
+
+	// Activity types state
+	let activityTypes = [];
+	let isCreatingActivity = false;
+	let activityName = '';
+	let activityCode = '';
+	let activityColor = 'blue';
+	let activityIcon = 'event';
+	let activityRequiresTeacher = false;
+
+	// Activity dropdown states
+	let isColorDropdownOpen = false;
+	let isIconDropdownOpen = false;
+
+	// Activity types edit state
+	let editingActivityId = null;
+	let editActivityName = '';
+	let editActivityCode = '';
+	let editActivityColor = 'blue';
+	let editActivityIcon = 'event';
+	let editActivityRequiresTeacher = false;
+	let isUpdatingActivity = false;
+
 	// Data loading state
 	let isLoading = false;
 	let recentSubjects = [];
@@ -39,6 +64,32 @@
 		{ value: 8, label: 'Grade 8', description: 'Junior High School - Second Year' },
 		{ value: 9, label: 'Grade 9', description: 'Junior High School - Third Year' },
 		{ value: 10, label: 'Grade 10', description: 'Junior High School - Fourth Year' }
+	];
+
+	// Color options for activity types
+	const colorOptions = [
+		{ value: 'blue', name: 'Blue', hex: '#3b82f6' },
+		{ value: 'green', name: 'Green', hex: '#10b981' },
+		{ value: 'orange', name: 'Orange', hex: '#f59e0b' },
+		{ value: 'purple', name: 'Purple', hex: '#8b5cf6' },
+		{ value: 'yellow', name: 'Yellow', hex: '#eab308' },
+		{ value: 'teal', name: 'Teal', hex: '#14b8a6' },
+		{ value: 'pink', name: 'Pink', hex: '#ec4899' },
+		{ value: 'red', name: 'Red', hex: '#ef4444' },
+		{ value: 'gray', name: 'Gray', hex: '#6b7280' }
+	];
+
+	// Icon options for activity types
+	const iconOptions = [
+		{ value: 'event', name: 'Event' },
+		{ value: 'flag', name: 'Flag' },
+		{ value: 'coffee', name: 'Coffee' },
+		{ value: 'restaurant', name: 'Restaurant' },
+		{ value: 'groups', name: 'Groups' },
+		{ value: 'home', name: 'Home' },
+		{ value: 'book', name: 'Book' },
+		{ value: 'group_work', name: 'Group Work' },
+		{ value: 'schedule', name: 'Schedule' }
 	];
 
 	// Computed properties
@@ -175,10 +226,48 @@
 		if (!event.target.closest('.adminsubject-custom-dropdown')) {
 			isGradeDropdownOpen = false;
 			isEditGradeDropdownOpen = false;
+			isColorDropdownOpen = false;
+			isIconDropdownOpen = false;
 		}
 		if (!event.target.closest('.adminsubject-grade-filter')) {
 			isGradeFilterDropdownOpen = false;
 		}
+	}
+
+	// Activity types dropdown functions
+	function toggleColorDropdown() {
+		isColorDropdownOpen = !isColorDropdownOpen;
+		isIconDropdownOpen = false;
+	}
+
+	function selectColor(color) {
+		activityColor = color;
+		isColorDropdownOpen = false;
+	}
+
+	function toggleIconDropdown() {
+		isIconDropdownOpen = !isIconDropdownOpen;
+		isColorDropdownOpen = false;
+	}
+
+	function selectIcon(icon) {
+		activityIcon = icon;
+		isIconDropdownOpen = false;
+	}
+
+	// Helper functions for activity types
+	function capitalizeFirst(str) {
+		return str.charAt(0).toUpperCase() + str.slice(1);
+	}
+
+	function getColorValue(colorName) {
+		const color = colorOptions.find(c => c.value === colorName);
+		return color ? color.hex : '#3b82f6';
+	}
+
+	function getIconName(iconValue) {
+		const icon = iconOptions.find(i => i.value === iconValue);
+		return icon ? icon.name : iconValue;
 	}
 
 	// Edit subject functions
@@ -258,6 +347,56 @@
 	// Computed properties for edit form
 	$: editSelectedGradeLevelObj = gradeLevels.find(grade => grade.value === editSelectedGradeLevel);
 
+	// Activity types functions
+	async function handleCreateActivity() {
+		if (!activityName.trim() || !activityCode.trim()) {
+			toastStore.error('Please fill in all required fields');
+			return;
+		}
+
+		isCreatingActivity = true;
+
+		try {
+			// For now, just add to local array (will be replaced with API call later)
+			const newActivity = {
+				id: Date.now(),
+				name: activityName.trim(),
+				code: activityCode.trim(),
+				color: activityColor,
+				icon: activityIcon,
+				requiresTeacher: activityRequiresTeacher,
+				createdAt: new Date().toISOString()
+			};
+
+			activityTypes = [newActivity, ...activityTypes];
+
+			// Reset form
+			activityName = '';
+			activityCode = '';
+			activityColor = 'blue';
+			activityIcon = 'event';
+			activityRequiresTeacher = false;
+
+			toastStore.success('Activity type created successfully');
+
+		} catch (error) {
+			console.error('Error creating activity type:', error);
+			toastStore.error('Failed to create activity type. Please try again.');
+		} finally {
+			isCreatingActivity = false;
+		}
+	}
+
+	function toggleEditActivityForm(activity) {
+		// Placeholder for edit functionality
+		toastStore.info('Edit functionality will be implemented soon');
+	}
+
+	function handleDeleteActivity(activityId) {
+		// Placeholder for delete functionality
+		toastStore.info('Delete functionality will be implemented soon');
+	}
+
 	// Remove auto-generation of subject code
 </script>
 
@@ -267,11 +406,33 @@
 	<!-- Header -->
 	<div class="admin-subject-header">
 		<div class="admin-header-content">
-			<h1 class="admin-page-title">Subject Creation</h1>
-			<p class="admin-page-subtitle">Create and manage subjects for the curriculum</p>
+			<h1 class="admin-page-title">Curriculum Management</h1>
+			<p class="admin-page-subtitle">Manage subjects and activity types for the curriculum</p>
+		</div>
+		
+		<!-- Tab Navigation -->
+		<div class="admin-tab-navigation">
+			<button 
+				class="admin-tab-button" 
+				class:active={activeTab === 'subjects'}
+				on:click={() => activeTab = 'subjects'}
+			>
+				<span class="material-icons">subject</span>
+				Subjects
+			</button>
+			<button 
+				class="admin-tab-button" 
+				class:active={activeTab === 'activities'}
+				on:click={() => activeTab = 'activities'}
+			>
+				<span class="material-icons">event</span>
+				Activity Types
+			</button>
 		</div>
 	</div>
 
+	<!-- Subjects Tab Content -->
+	{#if activeTab === 'subjects'}
 	<div class="admin-creation-layout">
 		<!-- Left Column: Creation Form -->
 		<div class="admin-creation-form-section">
@@ -606,4 +767,210 @@
 			</div>
 		</div>
 	</div>
+	{/if}
+
+	<!-- Activity Types Tab Content -->
+	{#if activeTab === 'activities'}
+	<div class="admin-creation-layout">
+		<!-- Left Column: Creation Form -->
+		<div class="admin-creation-form-section">
+			<div class="admin-section-header">
+				<h2 class="admin-section-title">Create New Activity Type</h2>
+				<p class="admin-section-subtitle">Define activity types for non-academic periods</p>
+			</div>
+
+			<div class="admin-form-container">
+				<form on:submit|preventDefault={handleCreateActivity}>
+					<!-- Activity Name, Code, and Color Row -->
+					<div class="admin-form-row">
+						<!-- Activity Name -->
+						<div class="admin-form-group admin-form-group-third">
+							<label class="admin-form-label" for="activity-name">Activity Name *</label>
+							<input
+								id="activity-name"
+								type="text"
+								class="admin-form-input"
+								bind:value={activityName}
+								placeholder="e.g., Flag Ceremony, Break Time"
+								required
+							/>
+						</div>
+
+						<!-- Activity Code -->
+						<div class="admin-form-group admin-form-group-third">
+							<label class="admin-form-label" for="activity-code">Activity Code *</label>
+							<input
+								id="activity-code"
+								type="text"
+								class="admin-form-input"
+								bind:value={activityCode}
+								placeholder="e.g., FLAG, BREAK"
+								required
+							/>
+						</div>
+
+						<!-- Color -->
+						<div class="admin-form-group admin-form-group-third">
+							<label class="admin-form-label" for="activity-color">Color</label>
+							<div class="adminsubject-custom-dropdown" class:open={isColorDropdownOpen}>
+								<button
+									type="button"
+									class="adminsubject-dropdown-trigger"
+									class:selected={activityColor}
+									on:click={toggleColorDropdown}
+									id="activity-color"
+								>
+									{#if activityColor}
+										<div class="adminsubject-selected-option">
+											<span class="material-symbols-outlined adminsubject-option-icon" style="color: {getColorValue(activityColor)}">palette</span>
+											<div class="adminsubject-option-content">
+												<span class="adminsubject-option-name">{capitalizeFirst(activityColor)}</span>
+											</div>
+										</div>
+									{:else}
+										<span class="adminsubject-placeholder">Select color</span>
+									{/if}
+									<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
+								</button>
+								<div class="adminsubject-dropdown-menu">
+									{#each colorOptions as color (color.value)}
+										<button
+											type="button"
+											class="adminsubject-dropdown-option"
+											class:selected={activityColor === color.value}
+											on:click={() => selectColor(color.value)}
+										>
+											<span class="material-symbols-outlined adminsubject-option-icon" style="color: {color.hex}">palette</span>
+											<div class="adminsubject-option-content">
+												<span class="adminsubject-option-name">{color.name}</span>
+											</div>
+										</button>
+									{/each}
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Icon and Requires Teacher Row -->
+					<div class="admin-form-row">
+						<!-- Icon -->
+						<div class="admin-form-group admin-form-group-half">
+							<label class="admin-form-label" for="activity-icon">Icon</label>
+							<div class="adminsubject-custom-dropdown" class:open={isIconDropdownOpen}>
+								<button
+									type="button"
+									class="adminsubject-dropdown-trigger"
+									class:selected={activityIcon}
+									on:click={toggleIconDropdown}
+									id="activity-icon"
+								>
+									{#if activityIcon}
+										<div class="adminsubject-selected-option">
+											<span class="material-symbols-outlined adminsubject-option-icon">{activityIcon}</span>
+											<div class="adminsubject-option-content">
+												<span class="adminsubject-option-name">{getIconName(activityIcon)}</span>
+											</div>
+										</div>
+									{:else}
+										<span class="adminsubject-placeholder">Select icon</span>
+									{/if}
+									<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
+								</button>
+								<div class="adminsubject-dropdown-menu">
+									{#each iconOptions as icon (icon.value)}
+										<button
+											type="button"
+											class="adminsubject-dropdown-option"
+											class:selected={activityIcon === icon.value}
+											on:click={() => selectIcon(icon.value)}
+										>
+											<span class="material-symbols-outlined adminsubject-option-icon">{icon.value}</span>
+											<div class="adminsubject-option-content">
+												<span class="adminsubject-option-name">{icon.name}</span>
+											</div>
+										</button>
+									{/each}
+								</div>
+							</div>
+						</div>
+
+						<!-- Requires Teacher -->
+						<div class="admin-form-group admin-form-group-half">
+							<label class="admin-form-label">Options</label>
+							<div class="admin-checkbox-group">
+								<label class="admin-checkbox-label">
+									<input
+										type="checkbox"
+										class="admin-checkbox"
+										bind:checked={activityRequiresTeacher}
+									/>
+									<span class="admin-checkbox-text">Requires Teacher</span>
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<!-- Submit Button -->
+					<div class="admin-form-actions">
+						<button 
+							type="submit" 
+							class="admin-submit-button"
+							disabled={isCreatingActivity || !activityName.trim() || !activityCode.trim()}
+						>
+							{#if isCreatingActivity}
+								Creating...
+							{:else}
+								Create Activity Type
+							{/if}
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Right Column: Activity Types List -->
+		<div class="admin-list-section">
+			<div class="admin-section-header">
+				<h2 class="admin-section-title">Activity Types</h2>
+				<p class="admin-section-subtitle">Manage existing activity types</p>
+			</div>
+
+			<div class="admin-list-container">
+				{#if activityTypes.length > 0}
+					{#each activityTypes as activity (activity.id)}
+					<div class="admin-list-item">
+						<div class="admin-item-content">
+							<div class="admin-item-header">
+								<div class="admin-item-info">
+									<span class="material-icons admin-item-icon" style="color: var(--{activity.color}-500)">{activity.icon}</span>
+									<div class="admin-item-details">
+										<h3 class="admin-item-title">{activity.name}</h3>
+										<p class="admin-item-subtitle">Code: {activity.code}</p>
+										{#if activity.description}
+											<p class="admin-item-description">{activity.description}</p>
+										{/if}
+									</div>
+								</div>
+								<div class="admin-item-actions">
+									<button class="admin-edit-button" on:click={() => toggleEditActivityForm(activity)}>
+										<span class="material-symbols-outlined">edit</span>
+									</button>
+									<button class="admin-delete-button" on:click={() => handleDeleteActivity(activity.id)}>
+										<span class="material-symbols-outlined">delete</span>
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+					{/each}
+				{:else}
+					<div class="admin-empty-state">
+						<span class="material-icons admin-empty-icon">event_note</span>
+						<p>No activity types created yet.</p>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+	{/if}
 </div>

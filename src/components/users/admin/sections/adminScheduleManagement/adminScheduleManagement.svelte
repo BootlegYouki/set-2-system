@@ -263,6 +263,7 @@
 	$: filteredTeachers = selectedFormSubject ? 
 		teachers.filter(teacher => {
 			const selectedSubject = subjects.find(s => s.id === selectedFormSubject);
+			
 			if (!selectedSubject || !selectedSubject.department_id) {
 				// If no department info, show all teachers
 				return true;
@@ -1535,7 +1536,7 @@
 												>
 													<span class="material-symbols-outlined option-icon">{subject.icon}</span>
 													<div class="option-content">
-														<span class="option-name">{subject.name}</span>
+														<span class="option-name">{subject.name.replace(/\s+\d+$/, '')} - Grade {subject.grade_level}</span>
 														<span class="option-code">{subject.code}</span>
 													</div>
 												</button>
@@ -1568,19 +1569,26 @@
 											<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
 										</button>
 										<div class="scheduleassign-dropdown-menu">
-											{#each filteredTeachers as teacher (teacher.id)}
-												<button 
-													type="button"
-													class="scheduleassign-dropdown-item" 
-													class:selected={selectedFormTeacher === teacher.id}
-													on:click={() => selectFormTeacher(teacher)}
-												>
-													<span class="material-symbols-outlined option-icon">person</span>
-													<div class="option-content">
-														<span class="option-name">{teacher.name}</span>
-													</div>
-												</button>
-											{/each}
+											{#if selectedFormSubject && subjects.find(s => s.id === selectedFormSubject) && !subjects.find(s => s.id === selectedFormSubject).department_id}
+												<div class="no-department-message">
+													<span class="material-symbols-outlined">info</span>
+													<p>This subject is not assigned to any department, so no teachers are available for selection.</p>
+												</div>
+											{:else}
+												{#each filteredTeachers as teacher (teacher.id)}
+													<button 
+														type="button"
+														class="scheduleassign-dropdown-item" 
+														class:selected={selectedFormTeacher === teacher.id}
+														on:click={() => selectFormTeacher(teacher)}
+													>
+														<span class="material-symbols-outlined option-icon">person</span>
+														<div class="option-content">
+															<span class="option-name">{teacher.name}</span>
+														</div>
+													</button>
+												{/each}
+											{/if}
 										</div>
 									</div>
 								</div>
@@ -2009,7 +2017,7 @@
 														>
 															<span class="material-symbols-outlined option-icon">{subject.icon}</span>
 															<div class="option-content">
-																<span class="option-name">{subject.name}</span>
+																<span class="option-name">{subject.name.replace(/\s+\d+$/, '')} - Grade {subject.grade_level}</span>
 																<span class="option-code">{subject.code}</span>
 															</div>
 														</button>

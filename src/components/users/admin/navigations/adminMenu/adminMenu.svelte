@@ -74,9 +74,9 @@
 			type: 'item'
 		},
 		{
-			id: 'subject-creation',
-			label: 'Subject Creation',
-			icon: 'subject'
+			id: 'curriculum-management',
+			label: 'Curriculum Management',
+			icon: 'school'
 		},
 	];
 
