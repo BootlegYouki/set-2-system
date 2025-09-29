@@ -1038,9 +1038,11 @@
 									type="button" 
 									class="adminactivity-edit-button" 
 									on:click={() => toggleEditActivityForm(activity)}
-									title="Edit Activity Type"
+									title="{editingActivityId === activity.id ? 'Cancel Edit' : 'Edit Activity Type'}"
 								>
-									<span class="material-symbols-outlined">edit</span>
+									<span class="material-symbols-outlined">
+										{editingActivityId === activity.id ? 'close' : 'edit'}
+									</span>
 								</button>
 								<button 
 									type="button" 
