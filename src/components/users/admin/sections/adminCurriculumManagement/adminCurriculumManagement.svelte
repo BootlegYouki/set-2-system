@@ -119,9 +119,26 @@
 		}
 	}
 
+	// Load activity types from database
+	async function loadActivityTypes() {
+		try {
+			const result = await api.get('/api/activity-types');
+			
+			if (result.success) {
+				activityTypes = result.data;
+			} else {
+				toastStore.error('Failed to load activity types: ' + result.message);
+			}
+		} catch (error) {
+			console.error('Error loading activity types:', error);
+			toastStore.error('Failed to load activity types. Please try again.');
+		}
+	}
+
 	// Initialize component
 	onMount(() => {
 		loadSubjects();
+		loadActivityTypes();
 	});
 
 	// Handle form submission
@@ -336,24 +353,25 @@
 		isCreatingActivity = true;
 
 		try {
-			// For now, just add to local array (will be replaced with API call later)
-			const newActivity = {
-				id: Date.now(),
+			const result = await api.post('/api/activity-types', {
 				name: activityName.trim(),
 				code: activityCode.trim(),
-				color: getRandomColor(),
-				icon: activityIcon,
-				createdAt: new Date().toISOString()
-			};
+				icon: activityIcon
+			});
 
-			activityTypes = [newActivity, ...activityTypes];
+			if (result.success) {
+				// Add the new activity type to the list
+				activityTypes = [result.data, ...activityTypes];
 
-			// Reset form
-			activityName = '';
-			activityCode = '';
-			activityIcon = 'event';
+				// Reset form
+				activityName = '';
+				activityCode = '';
+				activityIcon = 'event';
 
-			toastStore.success('Activity type created successfully');
+				toastStore.success('Activity type created successfully');
+			} else {
+				toastStore.error(result.message);
+			}
 
 		} catch (error) {
 			console.error('Error creating activity type:', error);
@@ -363,14 +381,85 @@
 		}
 	}
 
-	function toggleEditActivityForm(activity) {
-		// Placeholder for edit functionality
-		toastStore.info('Edit functionality will be implemented soon');
+	async function toggleEditActivityForm(activity) {
+		if (editingActivityId === activity.id) {
+			// Cancel editing
+			editingActivityId = null;
+			editActivityName = '';
+			editActivityCode = '';
+			editActivityIcon = 'event';
+		} else {
+			// Start editing
+			editingActivityId = activity.id;
+			editActivityName = activity.name;
+			editActivityCode = activity.code;
+			editActivityIcon = activity.icon;
+		}
 	}
 
-	function handleDeleteActivity(activityId) {
-		// Placeholder for delete functionality
-		toastStore.info('Delete functionality will be implemented soon');
+	async function handleUpdateActivity() {
+		if (!editActivityName.trim() || !editActivityCode.trim()) {
+			toastStore.error('Please fill in all required fields');
+			return;
+		}
+
+		isUpdatingActivity = true;
+
+		try {
+			const result = await api.put('/api/activity-types', {
+				id: editingActivityId,
+				name: editActivityName.trim(),
+				code: editActivityCode.trim(),
+				icon: editActivityIcon
+			});
+
+			if (result.success) {
+				// Update the activity type in the list
+				activityTypes = activityTypes.map(activity => 
+					activity.id === editingActivityId ? result.data : activity
+				);
+
+				// Reset edit form
+				editingActivityId = null;
+				editActivityName = '';
+				editActivityCode = '';
+				editActivityIcon = 'event';
+
+				toastStore.success('Activity type updated successfully');
+			} else {
+				toastStore.error(result.message);
+			}
+
+		} catch (error) {
+			console.error('Error updating activity type:', error);
+			toastStore.error('Failed to update activity type. Please try again.');
+		} finally {
+			isUpdatingActivity = false;
+		}
+	}
+
+	async function handleDeleteActivity(activityId) {
+		if (!confirm('Are you sure you want to delete this activity type?')) {
+			return;
+		}
+
+		try {
+			const result = await api.delete('/api/activity-types', {
+				id: activityId
+			});
+
+			if (result.success) {
+				// Remove the activity type from the list
+				activityTypes = activityTypes.filter(activity => activity.id !== activityId);
+				toastStore.success('Activity type deleted successfully');
+			} else {
+				toastStore.error(result.message);
+			}
+
+		} catch (error) {
+			console.error('Error deleting activity type:', error);
+			toastStore.error('Failed to delete activity type. Please try again.');
+		}
 	}
 
 	// Remove auto-generation of subject code
