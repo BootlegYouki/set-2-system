@@ -459,7 +459,7 @@
 	function openRemoveModal(section) {
 		modalStore.confirm(
 			'Delete Section',
-			`<p>Are you sure you want to permanently delete section <strong>"${section.name}"</strong> (${section.grade})?</p>
+			`<p>Are you sure you want to permanently delete section <strong>"${section.name}"</strong> (Grade ${section.grade_level})?</p>
 			<p class="sectionmgmt-warning">This action will:</p>
 			<ul class="sectionmgmt-warning-list">
 				<li>Permanently delete the section and all its data</li>

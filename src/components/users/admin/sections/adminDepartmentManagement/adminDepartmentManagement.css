@@ -227,6 +227,7 @@
 	box-sizing: border-box;
 	min-height: 58px;
 	margin-bottom: var(--spacing-md);
+	transition: background-color var(--transition-normal) !important;
 }
 
 .dept-mgmt-form-input:focus,

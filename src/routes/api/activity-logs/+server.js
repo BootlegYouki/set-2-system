@@ -131,6 +131,10 @@ export async function GET({ url }) {
 					message = `Student removed from ${data.section_name}: ${data.student ? data.student.name || data.student.full_name : 'Unknown Student'} ${data.student ? `(${data.student.account_number})` : ''}`;
 					icon = 'person_remove';
 					break;
+				case 'student_enrolled_to_section':
+					message = `Student enrolled to ${data.section_name}: ${data.student ? data.student.name || data.student.full_name : 'Unknown Student'} ${data.student ? `(${data.student.account_number})` : ''}`;
+					icon = 'person_add';
+					break;
 				case 'user_login':
 					message = `User logged in: ${data.full_name || row.user_account_number}`;
 					icon = 'login';
@@ -225,6 +229,10 @@ export async function GET({ url }) {
 						data.unassigned_sections.map(s => s.name).join(', ') : 'all sections';
 					message = `Sections unassigned from room "${data.room_name}": ${unassignedSectionNames}`;
 					icon = 'assignment_return';
+					break;
+				case 'section_deleted':
+					message = `Section deleted: ${data.section_name} (Grade ${data.grade_level})`;
+					icon = 'delete';
 					break;
 				default:
 					message = `${row.activity_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;

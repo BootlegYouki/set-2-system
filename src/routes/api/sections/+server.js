@@ -582,22 +582,9 @@ export async function DELETE({ url, request, getClientAddress }) {
                     userAgent
                 );
 
-                // Log student removals
-                for (const studentRow of studentsResult.rows) {
-                    await logActivityWithUser(
-                        'student_removed_from_section',
-                        user,
-                        {
-                            section_id: parseInt(sectionId),
-                            section_name: section.name,
-                            grade_level: section.grade_level,
-                            school_year: section.school_year,
-                            action: 'section_deleted'
-                        },
-                        clientIP,
-                        userAgent
-                    );
-                }
+                // Note: Student removal logs are not generated when deleting entire sections
+                // as this would create unnecessary noise in the activity log.
+                // The section deletion log already indicates that all students were removed.
             } catch (logError) {
                 console.error('Error logging section deletion activity:', logError);
                 // Don't fail the deletion if logging fails

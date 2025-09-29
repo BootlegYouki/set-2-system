@@ -44,7 +44,3 @@
 
 <!-- Global modal container -->
 <ModalContainer />
-
-<style>
-	/* Layout styles can be added here if needed */
-</style>
