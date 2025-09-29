@@ -35,7 +35,7 @@
 	
 	// Data loading state
 	let isLoading = false;
-	let isLoadingSections = true;
+	let isLoadingSections = false;
 	
 	// Day picker states (similar to student schedule)
 	let isAdminDayDropdownOpen = false;
