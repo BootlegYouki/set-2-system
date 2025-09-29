@@ -18,6 +18,7 @@ Thumbs.db
 !.env.test
 
 database-schema.sql
+activity-types-schema.sql
 
 # Vite
 vite.config.js.timestamp-*

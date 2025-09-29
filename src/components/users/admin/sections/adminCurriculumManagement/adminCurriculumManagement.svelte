@@ -37,21 +37,16 @@
 	let isCreatingActivity = false;
 	let activityName = '';
 	let activityCode = '';
-	let activityColor = 'blue';
 	let activityIcon = 'event';
-	let activityRequiresTeacher = false;
 
 	// Activity dropdown states
-	let isColorDropdownOpen = false;
 	let isIconDropdownOpen = false;
 
 	// Activity types edit state
 	let editingActivityId = null;
 	let editActivityName = '';
 	let editActivityCode = '';
-	let editActivityColor = 'blue';
 	let editActivityIcon = 'event';
-	let editActivityRequiresTeacher = false;
 	let isUpdatingActivity = false;
 
 	// Data loading state
@@ -226,7 +221,6 @@
 		if (!event.target.closest('.adminsubject-custom-dropdown')) {
 			isGradeDropdownOpen = false;
 			isEditGradeDropdownOpen = false;
-			isColorDropdownOpen = false;
 			isIconDropdownOpen = false;
 		}
 		if (!event.target.closest('.adminsubject-grade-filter')) {
@@ -235,19 +229,8 @@
 	}
 
 	// Activity types dropdown functions
-	function toggleColorDropdown() {
-		isColorDropdownOpen = !isColorDropdownOpen;
-		isIconDropdownOpen = false;
-	}
-
-	function selectColor(color) {
-		activityColor = color;
-		isColorDropdownOpen = false;
-	}
-
 	function toggleIconDropdown() {
 		isIconDropdownOpen = !isIconDropdownOpen;
-		isColorDropdownOpen = false;
 	}
 
 	function selectIcon(icon) {
@@ -256,18 +239,14 @@
 	}
 
 	// Helper functions for activity types
-	function capitalizeFirst(str) {
-		return str.charAt(0).toUpperCase() + str.slice(1);
-	}
-
-	function getColorValue(colorName) {
-		const color = colorOptions.find(c => c.value === colorName);
-		return color ? color.hex : '#3b82f6';
-	}
-
 	function getIconName(iconValue) {
 		const icon = iconOptions.find(i => i.value === iconValue);
 		return icon ? icon.name : iconValue;
+	}
+
+	function getRandomColor() {
+		const colors = ['blue', 'green', 'orange', 'purple', 'yellow', 'teal', 'pink', 'red', 'gray'];
+		return colors[Math.floor(Math.random() * colors.length)];
 	}
 
 	// Edit subject functions
@@ -362,9 +341,8 @@
 				id: Date.now(),
 				name: activityName.trim(),
 				code: activityCode.trim(),
-				color: activityColor,
+				color: getRandomColor(),
 				icon: activityIcon,
-				requiresTeacher: activityRequiresTeacher,
 				createdAt: new Date().toISOString()
 			};
 
@@ -373,9 +351,7 @@
 			// Reset form
 			activityName = '';
 			activityCode = '';
-			activityColor = 'blue';
 			activityIcon = 'event';
-			activityRequiresTeacher = false;
 
 			toastStore.success('Activity type created successfully');
 
@@ -776,12 +752,12 @@
 		<div class="admin-creation-form-section">
 			<div class="admin-section-header">
 				<h2 class="admin-section-title">Create New Activity Type</h2>
-				<p class="admin-section-subtitle">Define activity types for non-academic periods</p>
+				<p class="admin-section-subtitle">Fill in the details below to create a new activity type</p>
 			</div>
 
 			<div class="admin-form-container">
 				<form on:submit|preventDefault={handleCreateActivity}>
-					<!-- Activity Name, Code, and Color Row -->
+					<!-- Activity Name, Code, and Icon Row -->
 					<div class="admin-form-row">
 						<!-- Activity Name -->
 						<div class="admin-form-group admin-form-group-third">
@@ -809,52 +785,8 @@
 							/>
 						</div>
 
-						<!-- Color -->
-						<div class="admin-form-group admin-form-group-third">
-							<label class="admin-form-label" for="activity-color">Color</label>
-							<div class="adminsubject-custom-dropdown" class:open={isColorDropdownOpen}>
-								<button
-									type="button"
-									class="adminsubject-dropdown-trigger"
-									class:selected={activityColor}
-									on:click={toggleColorDropdown}
-									id="activity-color"
-								>
-									{#if activityColor}
-										<div class="adminsubject-selected-option">
-											<span class="material-symbols-outlined adminsubject-option-icon" style="color: {getColorValue(activityColor)}">palette</span>
-											<div class="adminsubject-option-content">
-												<span class="adminsubject-option-name">{capitalizeFirst(activityColor)}</span>
-											</div>
-										</div>
-									{:else}
-										<span class="adminsubject-placeholder">Select color</span>
-									{/if}
-									<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
-								</button>
-								<div class="adminsubject-dropdown-menu">
-									{#each colorOptions as color (color.value)}
-										<button
-											type="button"
-											class="adminsubject-dropdown-option"
-											class:selected={activityColor === color.value}
-											on:click={() => selectColor(color.value)}
-										>
-											<span class="material-symbols-outlined adminsubject-option-icon" style="color: {color.hex}">palette</span>
-											<div class="adminsubject-option-content">
-												<span class="adminsubject-option-name">{color.name}</span>
-											</div>
-										</button>
-									{/each}
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<!-- Icon and Requires Teacher Row -->
-					<div class="admin-form-row">
 						<!-- Icon -->
-						<div class="admin-form-group admin-form-group-half">
+						<div class="admin-form-group admin-form-group-third">
 							<label class="admin-form-label" for="activity-icon">Icon</label>
 							<div class="adminsubject-custom-dropdown" class:open={isIconDropdownOpen}>
 								<button
@@ -893,33 +825,20 @@
 								</div>
 							</div>
 						</div>
-
-						<!-- Requires Teacher -->
-						<div class="admin-form-group admin-form-group-half">
-							<label class="admin-form-label">Options</label>
-							<div class="admin-checkbox-group">
-								<label class="admin-checkbox-label">
-									<input
-										type="checkbox"
-										class="admin-checkbox"
-										bind:checked={activityRequiresTeacher}
-									/>
-									<span class="admin-checkbox-text">Requires Teacher</span>
-								</label>
-							</div>
-						</div>
 					</div>
 
 					<!-- Submit Button -->
 					<div class="admin-form-actions">
-						<button 
-							type="submit" 
-							class="admin-submit-button"
+						<button
+							type="submit"
+							class="admin-create-button"
+							class:loading={isCreatingActivity}
 							disabled={isCreatingActivity || !activityName.trim() || !activityCode.trim()}
 						>
 							{#if isCreatingActivity}
 								Creating...
 							{:else}
+								<span class="material-symbols-outlined">add_circle</span>
 								Create Activity Type
 							{/if}
 						</button>
@@ -929,43 +848,63 @@
 		</div>
 
 		<!-- Right Column: Activity Types List -->
-		<div class="admin-list-section">
+		<div class="admin-recent-subjects-section">
 			<div class="admin-section-header">
-				<h2 class="admin-section-title">Activity Types</h2>
-				<p class="admin-section-subtitle">Manage existing activity types</p>
+				<h2 class="admin-section-title">Recent Activity Types</h2>
+				<p class="admin-section-subtitle">Activity types created recently</p>
 			</div>
 
-			<div class="admin-list-container">
+			<div class="adminactivity-activities-grid">
 				{#if activityTypes.length > 0}
 					{#each activityTypes as activity (activity.id)}
-					<div class="admin-list-item">
-						<div class="admin-item-content">
-							<div class="admin-item-header">
-								<div class="admin-item-info">
-									<span class="material-icons admin-item-icon" style="color: var(--{activity.color}-500)">{activity.icon}</span>
-									<div class="admin-item-details">
-										<h3 class="admin-item-title">{activity.name}</h3>
-										<p class="admin-item-subtitle">Code: {activity.code}</p>
-										{#if activity.description}
-											<p class="admin-item-description">{activity.description}</p>
-										{/if}
-									</div>
-								</div>
-								<div class="admin-item-actions">
-									<button class="admin-edit-button" on:click={() => toggleEditActivityForm(activity)}>
-										<span class="material-symbols-outlined">edit</span>
-									</button>
-									<button class="admin-delete-button" on:click={() => handleDeleteActivity(activity.id)}>
-										<span class="material-symbols-outlined">delete</span>
-									</button>
-								</div>
+					<div class="adminactivity-activity-card">
+						<div class="adminactivity-activity-header">
+							<div class="adminactivity-activity-title">
+								<h3 class="adminactivity-activity-name">{activity.name}</h3>
+							</div>
+							<div class="adminactivity-action-buttons">
+								<button 
+									type="button" 
+									class="adminactivity-edit-button" 
+									on:click={() => toggleEditActivityForm(activity)}
+									title="Edit Activity Type"
+								>
+									<span class="material-symbols-outlined">edit</span>
+								</button>
+								<button 
+									type="button" 
+									class="adminactivity-remove-button" 
+									title="Remove Activity Type"
+									on:click={() => handleDeleteActivity(activity.id)}
+								>
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
+						</div>
+
+						<div class="adminactivity-activity-details">
+							<div class="adminactivity-activity-item-detail">
+								<span class="material-symbols-outlined">qr_code_2</span>
+								<span>{activity.code}</span>
+							</div>
+							<div class="adminactivity-activity-item-detail">
+								<span class="material-symbols-outlined" style="color: var(--{activity.color}-500)">{activity.icon}</span>
+								<span>Icon: {activity.icon}</span>
+							</div>
+							<div class="adminactivity-activity-item-detail">
+								<span class="material-symbols-outlined">palette</span>
+								<span>Color: {activity.color}</span>
+							</div>
+							<div class="adminactivity-activity-item-detail">
+								<span class="material-symbols-outlined">calendar_today</span>
+								<span>Created: {new Date().toLocaleDateString()}</span>
 							</div>
 						</div>
 					</div>
 					{/each}
 				{:else}
-					<div class="admin-empty-state">
-						<span class="material-icons admin-empty-icon">event_note</span>
+					<div class="adminsubject-no-results">
+						<span class="material-symbols-outlined adminsubject-no-results-icon">event_note</span>
 						<p>No activity types created yet.</p>
 					</div>
 				{/if}
