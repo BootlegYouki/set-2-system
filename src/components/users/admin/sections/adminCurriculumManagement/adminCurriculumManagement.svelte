@@ -49,6 +49,9 @@
 	let editActivityIcon = 'event';
 	let isUpdatingActivity = false;
 
+	// Activity edit dropdown states
+	let isEditIconDropdownOpen = false;
+
 	// Data loading state
 	let isLoading = false;
 	let recentSubjects = [];
@@ -210,6 +213,16 @@
 		);
 	}
 
+	// Edit dropdown functions
+	function toggleEditGradeDropdown() {
+		isEditGradeDropdownOpen = !isEditGradeDropdownOpen;
+	}
+
+	function selectEditGradeLevel(grade) {
+		editSelectedGradeLevel = grade.value;
+		isEditGradeDropdownOpen = false;
+	}
+
 	// Functions
 	function toggleGradeDropdown() {
 		isGradeDropdownOpen = !isGradeDropdownOpen;
@@ -239,6 +252,7 @@
 			isGradeDropdownOpen = false;
 			isEditGradeDropdownOpen = false;
 			isIconDropdownOpen = false;
+			isEditIconDropdownOpen = false;
 		}
 		if (!event.target.closest('.adminsubject-grade-filter')) {
 			isGradeFilterDropdownOpen = false;
@@ -330,14 +344,78 @@
 		}
 	}
 
-	// Edit dropdown functions
-	function toggleEditGradeDropdown() {
-		isEditGradeDropdownOpen = !isEditGradeDropdownOpen;
+	// Edit activity functions
+	function toggleEditActivityForm(activity) {
+		if (editingActivityId === activity.id) {
+			// Close the form
+			editingActivityId = null;
+			editActivityName = '';
+			editActivityCode = '';
+			editActivityIcon = 'event';
+			isEditIconDropdownOpen = false;
+		} else {
+			// Open the form
+			editingActivityId = activity.id;
+			editActivityName = activity.name;
+			editActivityCode = activity.code;
+			editActivityIcon = activity.icon;
+		}
 	}
 
-	function selectEditGradeLevel(grade) {
-		editSelectedGradeLevel = grade.value;
-		isEditGradeDropdownOpen = false;
+	async function handleEditActivity() {
+		if (!editActivityName.trim() || !editActivityCode.trim()) {
+			toastStore.error('Please fill in all required fields');
+			return;
+		}
+
+		isUpdatingActivity = true;
+
+		try {
+			const result = await api.put('/api/activity-types', {
+				id: editingActivityId,
+				name: editActivityName.trim(),
+				code: editActivityCode.trim(),
+				icon: editActivityIcon
+			});
+
+			if (result.success) {
+				// Update activity in the array
+				recentActivityTypes = recentActivityTypes.map(activity => {
+					if (activity.id === editingActivityId) {
+						return result.data;
+					}
+					return activity;
+				});
+
+				// Show success toast
+				toastStore.success(result.message);
+
+				// Close edit form
+				editingActivityId = null;
+				editActivityName = '';
+				editActivityCode = '';
+				editActivityIcon = 'event';
+				isEditIconDropdownOpen = false;
+			} else {
+				toastStore.error(result.message);
+			}
+
+		} catch (error) {
+			console.error('Error updating activity type:', error);
+			toastStore.error('Failed to update activity type. Please try again.');
+		} finally {
+			isUpdatingActivity = false;
+		}
+	}
+
+	// Edit icon dropdown functions
+	function toggleEditIconDropdown() {
+		isEditIconDropdownOpen = !isEditIconDropdownOpen;
+	}
+
+	function selectEditIcon(icon) {
+		editActivityIcon = icon;
+		isEditIconDropdownOpen = false;
 	}
 
 	// Computed properties for edit form
@@ -381,21 +459,21 @@
 		}
 	}
 
-	async function toggleEditActivityForm(activity) {
-		if (editingActivityId === activity.id) {
-			// Cancel editing
-			editingActivityId = null;
-			editActivityName = '';
-			editActivityCode = '';
-			editActivityIcon = 'event';
-		} else {
-			// Start editing
-			editingActivityId = activity.id;
-			editActivityName = activity.name;
-			editActivityCode = activity.code;
-			editActivityIcon = activity.icon;
-		}
-	}
+	// async function toggleEditActivityForm(activity) {
+	// 	if (editingActivityId === activity.id) {
+	// 		// Cancel editing
+	// 		editingActivityId = null;
+	// 		editActivityName = '';
+	// 		editActivityCode = '';
+	// 		editActivityIcon = 'event';
+	// 	} else {
+	// 		// Start editing
+	// 		editingActivityId = activity.id;
+	// 		editActivityName = activity.name;
+	// 		editActivityCode = activity.code;
+	// 		editActivityIcon = activity.icon;
+	// 	}
+	// }
 
 	async function handleUpdateActivity() {
 		if (!editActivityName.trim() || !editActivityCode.trim()) {
@@ -438,28 +516,32 @@
 		}
 	}
 
-	async function handleDeleteActivity(activityId) {
-		if (!confirm('Are you sure you want to delete this activity type?')) {
-			return;
-		}
+	// Handle activity type removal with modal
+	async function handleDeleteActivity(activity) {
+		modalStore.confirm(
+			'Remove Activity Type',
+			`<p>Are you sure you want to remove the activity type <strong>"${activity.name}"</strong>?</p>`,
+			async () => {
+				try {
+					const result = await api.delete('/api/activity-types', {
+						id: activity.id
+					});
 
-		try {
-			const result = await api.delete('/api/activity-types', {
-				id: activityId
-			});
-
-			if (result.success) {
-				// Remove the activity type from the list
-				activityTypes = activityTypes.filter(activity => activity.id !== activityId);
-				toastStore.success('Activity type deleted successfully');
-			} else {
-				toastStore.error(result.message);
-			}
-
-		} catch (error) {
-			console.error('Error deleting activity type:', error);
-			toastStore.error('Failed to delete activity type. Please try again.');
-		}
+					if (result.success) {
+						// Remove the activity type from the list
+						activityTypes = activityTypes.filter(a => a.id !== activity.id);
+						toastStore.success(result.message);
+					} else {
+						toastStore.error(result.message);
+					}
+				} catch (error) {
+					console.error('Error removing activity type:', error);
+					toastStore.error('Failed to remove activity type. Please try again.');
+				}
+			},
+			null, // onCancel - no action needed
+			{ size: 'small' }
+		);
 	}
 
 	// Remove auto-generation of subject code
@@ -964,7 +1046,7 @@
 									type="button" 
 									class="adminactivity-remove-button" 
 									title="Remove Activity Type"
-									on:click={() => handleDeleteActivity(activity.id)}
+									on:click={() => handleDeleteActivity(activity)}
 								>
 									<span class="material-symbols-outlined">delete</span>
 								</button>
@@ -989,6 +1071,106 @@
 								<span>Created: {new Date().toLocaleDateString()}</span>
 							</div>
 						</div>
+
+						<!-- Edit Form (shown when editing) -->
+						{#if editingActivityId === activity.id}
+							<div class="adminsubject-edit-form">
+								<form on:submit|preventDefault={handleEditActivity}>
+									<div class="admin-form-row">
+										<!-- Activity Name -->
+										<div class="admin-form-group admin-form-group-half">
+											<label class="admin-form-label" for="edit-activity-name">Activity Name</label>
+											<input
+												type="text"
+												class="admin-form-input"
+												id="edit-activity-name"
+												bind:value={editActivityName}
+												placeholder="e.g., Flag Ceremony"
+												required
+											/>
+										</div>
+
+										<!-- Activity Code -->
+										<div class="admin-form-group admin-form-group-half">
+											<label class="admin-form-label" for="edit-activity-code">Activity Code</label>
+											<input
+												type="text"
+												class="admin-form-input"
+												id="edit-activity-code"
+												bind:value={editActivityCode}
+												placeholder="e.g., FLAG"
+												required
+											/>
+										</div>
+									</div>
+
+									<div class="admin-form-row">
+										<!-- Icon -->
+										<div class="admin-form-group admin-form-group-full">
+											<label class="admin-form-label" for="edit-activity-icon">Icon</label>
+											<div class="adminsubject-custom-dropdown" class:open={isEditIconDropdownOpen}>
+												<button
+													type="button"
+													class="adminsubject-dropdown-trigger"
+													class:selected={editActivityIcon}
+													on:click={toggleEditIconDropdown}
+													id="edit-activity-icon"
+												>
+													{#if editActivityIcon}
+														<div class="adminsubject-selected-option">
+															<span class="material-symbols-outlined adminsubject-option-icon">{editActivityIcon}</span>
+															<div class="adminsubject-option-content">
+																<span class="adminsubject-option-name">{getIconName(editActivityIcon)}</span>
+															</div>
+														</div>
+													{:else}
+														<span class="adminsubject-placeholder">Select icon</span>
+													{/if}
+													<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
+												</button>
+												<div class="adminsubject-dropdown-menu">
+													{#each iconOptions as icon (icon.value)}
+														<button
+															type="button"
+															class="adminsubject-dropdown-option"
+															class:selected={editActivityIcon === icon.value}
+															on:click={() => selectEditIcon(icon.value)}
+														>
+															<span class="material-symbols-outlined adminsubject-option-icon">{icon.value}</span>
+															<div class="adminsubject-option-content">
+																<span class="adminsubject-option-name">{icon.name}</span>
+															</div>
+														</button>
+													{/each}
+												</div>
+											</div>
+										</div>
+									</div>
+
+									<div class="adminsubject-edit-actions">
+										<button
+											type="button"
+											class="adminsubject-cancel-button"
+											on:click={() => toggleEditActivityForm(activity)}
+										>
+											Cancel
+										</button>
+										<button
+											type="submit"
+											class="adminsubject-save-button"
+											class:loading={isUpdatingActivity}
+											disabled={isUpdatingActivity || !editActivityName.trim() || !editActivityCode.trim()}
+										>
+											{#if isUpdatingActivity}
+												Saving...
+											{:else}
+												Save Changes
+											{/if}
+										</button>
+									</div>
+								</form>
+							</div>
+						{/if}
 					</div>
 					{/each}
 				{:else}
