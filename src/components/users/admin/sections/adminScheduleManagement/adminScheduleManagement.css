@@ -1,5 +1,50 @@
 /* Schedule Assignment Page Styles */
 
+/* Search Container Styles */
+.scheduleassign-search-container {
+	position: relative;
+	padding: var(--spacing-sm);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+	position: sticky;
+	top: 0;
+	left: 0;
+	right: 0;
+	background-color: var(--md-sys-color-surface-container);
+	z-index: 1000;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.scheduleassign-search-input {
+	flex: 1;
+	padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 30px;
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	transition: all var(--transition-normal);
+	box-sizing: border-box;
+}
+
+.scheduleassign-search-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.scheduleassign-search-icon {
+	position: absolute;
+	left: calc(var(--spacing-sm) + var(--spacing-sm));
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 18px;
+	color: var(--md-sys-color-on-surface-variant);
+	pointer-events: none;
+}
+
 .scheduleassign-container {
 	color: var(--md-sys-color-on-surface);
 	box-sizing: border-box;
@@ -461,11 +506,22 @@
 	letter-spacing: 0.5px;
 }
 
+.scheduleassign-calculated-time .error-text {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+	letter-spacing: normal;
+}
+
 /* Responsive Design for Time Inputs */
 @media (max-width: 768px) {
 	.scheduleassign-time-row {
-		grid-template-columns: 1fr 1fr;
+		flex-wrap: wrap;
 		gap: var(--spacing-sm);
+	}
+	
+	.scheduleassign-input-group {
+		flex: 1 1 calc(50% - var(--spacing-sm));
+		min-width: 120px;
 	}
 	
 	.scheduleassign-time-input {
@@ -480,8 +536,13 @@
 
 @media (max-width: 480px) {
 	.scheduleassign-time-row {
-		grid-template-columns: 1fr;
+		flex-direction: column;
 		gap: var(--spacing-sm);
+	}
+	
+	.scheduleassign-input-group {
+		flex: 1;
+		min-width: unset;
 	}
 	
 	.scheduleassign-time-section {
@@ -1667,6 +1728,7 @@
 	transform: translateY(1px);
 }
 
+.scheduleassign-import-button:disabled,
 .scheduleassign-export-button:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
