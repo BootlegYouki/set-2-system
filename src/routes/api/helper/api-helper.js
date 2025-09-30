@@ -31,7 +31,10 @@ export async function authenticatedFetch(url, options = {}) {
   // Throw error if response is not ok
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.message || errorData.error || 'Request failed');
+    const error = new Error(errorData.message || errorData.error || 'Request failed');
+    error.response = errorData; // Attach the full error response
+    error.status = response.status;
+    throw error;
   }
   
   // Parse JSON response

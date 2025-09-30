@@ -64,10 +64,12 @@ function parsePostgreSQLStatements(sql) {
 
 async function applySchema() {
   try {
-    console.log('🔄 Applying activity logs schema to your database...');
+    // Get the SQL file from command line argument or default to database-schema.sql
+    const sqlFile = process.argv[2] || './database-schema.sql';
+    console.log(`🔄 Applying SQL from ${sqlFile} to your database...`);
     
     // Read the schema file
-    const schema = fs.readFileSync('./database-schema.sql', 'utf8');
+    const schema = fs.readFileSync(sqlFile, 'utf8');
     
     // Parse statements properly handling PostgreSQL functions
     const statements = parsePostgreSQLStatements(schema);
