@@ -10,7 +10,7 @@
 	let selectedFormSection = '';
 	let selectedFormDay = 'monday'; // Auto-select Monday by default
 	let selectedFormSubject = '';
-	let selectedFormTimeSlot = '';
+
 
 
 	// Form dropdown states
@@ -19,7 +19,7 @@
 	let isFormDayDropdownOpen = false;
 	let isScheduleTypeDropdownOpen = false;
 	let isFormSubjectDropdownOpen = false;
-	let isFormTimeSlotDropdownOpen = false;
+
 
 	// Search states for dropdowns
 	let sectionSearchTerm = '';
@@ -61,15 +61,6 @@
 	const todayIndex = today.getDay();
 	let selectedAdminDay = dayIndexToAbbrev[todayIndex] || 'Mon'; // Default to Monday if weekend
 	
-	// Week days for day picker
-	const weekDays = [
-		{ day: 'Mon' },
-		{ day: 'Tue' },
-		{ day: 'Wed' },
-		{ day: 'Thu' },
-		{ day: 'Fri' }
-	];
-	
 	// Map abbreviated days to full day names
 	const dayNameMap = {
 		'Mon': 'Monday',
@@ -87,40 +78,111 @@
 		{ id: 'grade-10', name: 'Grade 10', description: 'Junior High School - Fourth Year' }
 	];
 
-	const sections = [
-		{ id: 'grade7-a', name: 'Section A', grade: 'Grade 7', year: 'grade-7' },
-		{ id: 'grade7-b', name: 'Section B', grade: 'Grade 7', year: 'grade-7' },
-		{ id: 'grade8-a', name: 'Section A', grade: 'Grade 8', year: 'grade-8' },
-		{ id: 'grade8-b', name: 'Section B', grade: 'Grade 8', year: 'grade-8' },
-		{ id: 'grade9-a', name: 'Section A', grade: 'Grade 9', year: 'grade-9' },
-		{ id: 'grade9-b', name: 'Section B', grade: 'Grade 9', year: 'grade-9' },
-		{ id: 'grade10-a', name: 'Section A', grade: 'Grade 10', year: 'grade-10' },
-		{ id: 'grade10-b', name: 'Section B', grade: 'Grade 10', year: 'grade-10' }
-	];
+	// Dynamic sections loaded from API
+	let sections = [];
 
-	const teachers = [
-		{ id: 'teacher1', name: 'Ms. Maria Santos' },
-		{ id: 'teacher2', name: 'Mr. Juan Dela Cruz' },
-		{ id: 'teacher3', name: 'Ms. Ana Garcia' },
-		{ id: 'teacher4', name: 'Mr. Pedro Rodriguez' },
-		{ id: 'teacher5', name: 'Ms. Carmen Lopez' },
-		{ id: 'teacher6', name: 'Mr. Jose Reyes' },
-		{ id: 'teacher7', name: 'Ms. Rosa Fernandez' },
-		{ id: 'teacher8', name: 'Mr. Miguel Torres' },
-		{ id: 'teacher9', name: 'Ms. Elena Morales' },
-		{ id: 'teacher10', name: 'Mr. Carlos Mendoza' }
-	];
+	// Load sections from API
+	async function loadSections() {
+		try {
+			const response = await fetch('/api/sections?action=available-sections');
+			const result = await response.json();
+			
+			if (result.success) {
+				sections = result.data.map(section => ({
+					id: section.id,
+					name: section.name,
+					grade: `Grade ${section.grade_level}`,
+					year: `grade-${section.grade_level}`,
+					grade_level: section.grade_level,
+					school_year: section.school_year,
+					status: section.status
+				}));
+			}
+		} catch (error) {
+			console.error('Error loading sections:', error);
+		}
+	}
+	// Dynamic teachers loaded from API
+	let teachers = [];
+	let allTeachers = []; // Store all teachers for filtering
 
-	const subjects = [
-		{ id: 'math', name: 'Mathematics', icon: 'calculate' },
-		{ id: 'science', name: 'Science', icon: 'science' },
-		{ id: 'english', name: 'English', icon: 'menu_book' },
-		{ id: 'filipino', name: 'Filipino', icon: 'translate' },
-		{ id: 'social-studies', name: 'Social Studies', icon: 'public' },
-		{ id: 'pe', name: 'Physical Education', icon: 'sports' },
-		{ id: 'arts', name: 'Arts', icon: 'palette' },
-		{ id: 'tle', name: 'Technology and Livelihood Education', icon: 'engineering' }
-	];
+	// Load teachers from API
+	async function loadTeachers() {
+		try {
+			const response = await fetch('/api/departments?action=teachers');
+			const result = await response.json();
+			
+			if (result.success) {
+				allTeachers = result.data.map(teacher => ({
+					id: teacher.id,
+					name: teacher.full_name,
+					email: teacher.email,
+					departments: teacher.departments || []
+				}));
+				teachers = [...allTeachers]; // Initially show all teachers
+			}
+		} catch (error) {
+			console.error('Error loading teachers:', error);
+		}
+	}
+
+
+
+	// Dynamic subjects loaded from API
+	let subjects = [];
+	let allSubjects = []; // Store all subjects for filtering
+
+	// Load subjects from API with optional grade level filtering
+	async function loadSubjects(gradeLevel = null) {
+		try {
+			let url = '/api/subjects';
+			if (gradeLevel) {
+				// Extract numeric grade level from format like 'grade-7' -> 7
+				const numericGrade = gradeLevel.replace('grade-', '');
+				url += `?grade_level=${numericGrade}`;
+			}
+			
+			const response = await fetch(url);
+			const result = await response.json();
+			
+			if (result.success) {
+				const mappedSubjects = result.data.map(subject => ({
+					id: subject.id,
+					name: subject.name,
+					code: subject.code,
+					grade_level: subject.grade_level,
+					department_id: subject.department_id,
+					department_name: subject.department_name,
+					icon: getSubjectIcon(subject.name) // Helper function to get icon
+				}));
+				
+				if (gradeLevel) {
+					// If filtering by grade level, update subjects array
+					subjects = mappedSubjects;
+				} else {
+					// If loading all subjects, store in both arrays
+					allSubjects = mappedSubjects;
+					subjects = [...allSubjects];
+				}
+			}
+		} catch (error) {
+			console.error('Error loading subjects:', error);
+		}
+	}
+
+	// Helper function to get subject icon based on name
+	function getSubjectIcon(subjectName) {
+		const name = subjectName.toLowerCase();
+		if (name.includes('math')) return 'calculate';
+		if (name.includes('science')) return 'science';
+		if (name.includes('english')) return 'menu_book';
+		if (name.includes('filipino')) return 'translate';
+		if (name.includes('social')) return 'public';
+		if (name.includes('physical') || name.includes('pe')) return 'sports';
+		if (name.includes('art')) return 'palette';
+		if (name.includes('technology') || name.includes('tle')) return 'engineering';
+		return 'book'; // Default icon
+	}
 
 	// Activity types for non-subject schedule entries
 	let activityTypes = [];
@@ -142,17 +204,6 @@
 			console.error('Error loading activity types:', error);
 		}
 	}
-
-	// Dynamic time slots that can be managed by admin
-	let timeSlots = [
-		{ id: 'slot1', time: '7:30 AM - 8:30 AM', period: '1st Period' },
-		{ id: 'slot2', time: '8:30 AM - 9:30 AM', period: '2nd Period' },
-		{ id: 'slot3', time: '9:30 AM - 10:30 AM', period: '3rd Period' },
-		{ id: 'slot4', time: '10:45 AM - 11:45 AM', period: '4th Period' },
-		{ id: 'slot5', time: '11:45 AM - 12:45 PM', period: '5th Period' },
-		{ id: 'slot6', time: '1:30 PM - 2:30 PM', period: '6th Period' },
-		{ id: 'slot7', time: '2:30 PM - 3:30 PM', period: '7th Period' }
-	];
 	
 	// Add Schedule State
 	let isAddingSchedule = false;
@@ -192,75 +243,7 @@
 		{ id: 'friday', name: 'Friday' }
 	];
 
-	// Current schedule assignments (mock data)
-	let scheduleAssignments = [
-		{
-			id: 1,
-			year: 'grade-7',
-			grade: 'Grade 7',
-			section: 'Section A',
-			teacher: 'Maria Santos',
-			subject: 'Mathematics',
-			day: 'Monday',
-			timeSlot: '7:30 AM - 8:30 AM',
-			period: '1st Period'
-		},
-		{
-			id: 2,
-			year: 'grade-7',
-			grade: 'Grade 7',
-			section: 'Section A',
-			teacher: 'Juan Dela Cruz',
-			subject: 'Science',
-			day: 'Monday',
-			timeSlot: '8:30 AM - 9:30 AM',
-			period: '2nd Period'
-		},
-		{
-			id: 3,
-			year: 'grade-8',
-			grade: 'Grade 8',
-			section: 'Section A',
-			teacher: 'Ana Garcia',
-			subject: 'English',
-			day: 'Tuesday',
-			timeSlot: '7:30 AM - 8:30 AM',
-			period: '1st Period'
-		},
-		{
-			id: 4,
-			year: 'grade-7',
-			grade: 'Grade 7',
-			section: 'Section B',
-			teacher: 'Pedro Rodriguez',
-			subject: 'Filipino',
-			day: 'Wednesday',
-			timeSlot: '9:30 AM - 10:30 AM',
-			period: '3rd Period'
-		},
-		{
-			id: 5,
-			year: 'grade-9',
-			grade: 'Grade 9',
-			section: 'Section A',
-			teacher: 'Carmen Lopez',
-			subject: 'Social Studies',
-			day: 'Thursday',
-			timeSlot: '10:45 AM - 11:45 AM',
-			period: '4th Period'
-		},
-		{
-			id: 6,
-			year: 'grade-10',
-			grade: 'Grade 10',
-			section: 'Section A',
-			teacher: 'Ana Garcia',
-			subject: 'English',
-			day: 'Friday',
-			timeSlot: '1:30 PM - 2:30 PM',
-			period: '6th Period'
-		}
-	];
+	let scheduleAssignments = [];
 
 	// Filter sections based on selected year
 	$: filteredSections = selectedFilterYear ? sections.filter(section => section.year === selectedFilterYear) : [];
@@ -289,7 +272,7 @@
 	$: selectedFormSubjectObj = newSchedule.scheduleType === 'subject' 
 		? subjects.find(s => s.id === selectedFormSubject)
 		: activityTypes.find(a => a.id === selectedFormSubject);
-	$: selectedFormTimeSlotObj = timeSlots.find(t => t.id === selectedFormTimeSlot);
+
 	$: selectedFormTeacherObj = teachers.find(t => t.id === selectedFormTeacher);
 
 	// Clear saved schedules when selection changes
@@ -325,7 +308,6 @@
 			isFormDayDropdownOpen = false;
 			isScheduleTypeDropdownOpen = false;
 			isFormSubjectDropdownOpen = false;
-			isFormTimeSlotDropdownOpen = false;
 			isFormTeacherDropdownOpen = false;
 			isStartPeriodDropdownOpen = false;
 			isEndPeriodDropdownOpen = false;
@@ -399,10 +381,7 @@
 		isFormSubjectDropdownOpen = !isFormSubjectDropdownOpen;
 	}
 
-	function toggleFormTimeSlotDropdown() {
-		if (!selectedFormSubject) return; // Disabled if no subject selected
-		isFormTimeSlotDropdownOpen = !isFormTimeSlotDropdownOpen;
-	}
+
 
 	// New form selection functions with cascading reset
 	function selectFormYear(year) {
@@ -410,7 +389,15 @@
 		// Reset all subsequent selections except day (keep Monday selected)
 		selectedFormSection = '';
 		selectedFormSubject = '';
-		selectedFormTimeSlot = '';
+		
+		// Filter subjects based on selected grade level
+		if (year && year.id) {
+			loadSubjects(year.id);
+		} else {
+			// If no year selected, show all subjects
+			subjects = [...allSubjects];
+		}
+		
 		isFormYearDropdownOpen = false;
 	}
 
@@ -418,7 +405,6 @@
 		selectedFormSection = section ? section.id : '';
 		// Reset all subsequent selections except day (keep Monday selected)
 		selectedFormSubject = '';
-		selectedFormTimeSlot = '';
 		isFormSectionDropdownOpen = false;
 	}
 
@@ -427,7 +413,6 @@
 		// Reset all subsequent selections
 		newSchedule.scheduleType = 'subject'; // Reset to default
 		selectedFormSubject = '';
-		selectedFormTimeSlot = '';
 		isFormDayDropdownOpen = false;
 	}
 
@@ -435,29 +420,34 @@
 		newSchedule.scheduleType = type;
 		// Reset subsequent selections
 		selectedFormSubject = '';
-		selectedFormTimeSlot = '';
 		selectedFormTeacher = '';
 		isScheduleTypeDropdownOpen = false;
 	}
 
 	function selectFormSubject(subject) {
 		selectedFormSubject = subject ? subject.id : '';
+		
+		// Filter teachers based on selected subject's department
+		if (subject && subject.department_id) {
+			teachers = allTeachers.filter(teacher => 
+				teacher.departments.some(dept => dept.id === subject.department_id)
+			);
+		} else {
+			// If no subject selected or subject has no department, show all teachers
+			teachers = [...allTeachers];
+		}
+		
+		// Reset teacher selection since the list has changed
+		selectedFormTeacher = '';
+		
 		// Reset subsequent selections
-		selectedFormTimeSlot = '';
 		isFormSubjectDropdownOpen = false;
 	}
 
-	function selectFormTimeSlot(timeSlot) {
-		selectedFormTimeSlot = timeSlot ? timeSlot.id : '';
-		isFormTimeSlotDropdownOpen = false;
-	}
-
-
-
 	// Handle form submission for new card-based approach
 	async function handleAssignSchedule() {
-		if (!selectedFormYear || !selectedFormSection || !selectedFormDay || !selectedFormSubject || !selectedFormTimeSlot) {
-			toastStore.warning('Please select year level, section, day, subject, and time slot');
+		if (!selectedFormYear || !selectedFormSection || !selectedFormDay || !selectedFormSubject) {
+			toastStore.warning('Please select year level, section, day, and subject');
 			return;
 		}
 
@@ -476,8 +466,7 @@
 				teacher: 'TBD', // Will be assigned later
 				subject: selectedFormSubjectObj.name,
 				day: selectedFormDayObj.name,
-				timeSlot: selectedFormTimeSlotObj.time,
-				period: selectedFormTimeSlotObj.period
+				timeSlot: 'TBD' // Will be set based on manual time input
 			};
 
 			// Add to assignments array
@@ -486,9 +475,8 @@
 			// Show success toast
 			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`);
 
-			// Reset only subject and time slot selections to allow adding more subjects
+			// Reset only subject selection to allow adding more subjects
 			selectedFormSubject = '';
-			selectedFormTimeSlot = '';
 			
 			// Close any open dropdowns
 			isFormSubjectDropdownOpen = false;
@@ -575,8 +563,7 @@
 					teacher: newSchedule.scheduleType === 'subject' ? selectedFormTeacherObj.name : 'N/A',
 					subject: selectedFormSubjectObj.name,
 					day: selectedFormDayObj.name,
-					timeSlot: `${newSchedule.calculatedStartTime} - ${newSchedule.calculatedEndTime}`,
-					period: 'Custom Period'
+					timeSlot: `${newSchedule.calculatedStartTime} - ${newSchedule.calculatedEndTime}`
 				};
 
 				// Add to assignments array
@@ -1010,6 +997,9 @@
 	// Load data on component mount
 	onMount(() => {
 		loadActivityTypes();
+		loadSections();
+		loadTeachers();
+		loadSubjects();
 	});
 </script>
 
@@ -1125,20 +1115,27 @@
 									/>
 									<span class="material-icons scheduleassign-search-icon">search</span>
 								</div>
-								{#each filteredSectionsWithSearch as section (section.id)}
-							<button 
-								type="button"
-								class="scheduleassign-dropdown-item" 
-								class:selected={selectedFormSection === section.id}
-								on:click={() => selectFormSection(section)}
-							>
-								<span class="material-symbols-outlined option-icon">class</span>
-								<div class="option-content">
-									<span class="option-name">{section.grade} · {section.name}</span>
-									<span class="option-description">{section.grade} Section</span>
-								</div>
-							</button>
-						{/each}
+								{#if filteredSectionsWithSearch.length > 0}
+									{#each filteredSectionsWithSearch as section (section.id)}
+										<button 
+											type="button"
+											class="scheduleassign-dropdown-item" 
+											class:selected={selectedFormSection === section.id}
+											on:click={() => selectFormSection(section)}
+										>
+											<span class="material-symbols-outlined option-icon">class</span>
+											<div class="option-content">
+												<span class="option-name">{section.grade} · {section.name}</span>
+												<span class="option-description">{section.grade} Section</span>
+											</div>
+										</button>
+									{/each}
+								{:else}
+									<div class="scheduleassign-empty-state">
+										<span class="material-symbols-outlined empty-icon">inbox</span>
+										<span class="empty-text">No sections available</span>
+									</div>
+								{/if}
 							</div>
 						</div>
 					</div>
@@ -1477,33 +1474,47 @@
 												<span class="material-icons scheduleassign-search-icon">search</span>
 											</div>
 											{#if newSchedule.scheduleType === 'subject'}
-												{#each filteredSubjectsWithSearch as subject (subject.id)}
-													<button 
-														type="button"
-														class="scheduleassign-dropdown-item" 
-														class:selected={selectedFormSubject === subject.id}
-														on:click={() => selectFormSubject(subject)}
-													>
-														<span class="material-symbols-outlined option-icon">{subject.icon}</span>
-														<div class="option-content">
-															<span class="option-name">{subject.name}</span>
-														</div>
-													</button>
-												{/each}
+												{#if filteredSubjectsWithSearch.length > 0}
+													{#each filteredSubjectsWithSearch as subject (subject.id)}
+														<button 
+															type="button"
+															class="scheduleassign-dropdown-item" 
+															class:selected={selectedFormSubject === subject.id}
+															on:click={() => selectFormSubject(subject)}
+														>
+															<span class="material-symbols-outlined option-icon">{subject.icon}</span>
+															<div class="option-content">
+																<span class="option-name">{subject.name}</span>
+															</div>
+														</button>
+													{/each}
+												{:else}
+													<div class="scheduleassign-empty-state">
+														<span class="material-symbols-outlined empty-icon">school</span>
+														<span class="empty-text">No subjects available</span>
+													</div>
+												{/if}
 											{:else if newSchedule.scheduleType === 'activity'}
-												{#each filteredSubjectsWithSearch as activity (activity.id)}
-													<button 
-														type="button"
-														class="scheduleassign-dropdown-item" 
-														class:selected={selectedFormSubject === activity.id}
-														on:click={() => selectFormSubject(activity)}
-													>
-														<span class="material-symbols-outlined option-icon">{activity.icon}</span>
-														<div class="option-content">
-															<span class="option-name">{activity.name}</span>
-														</div>
-													</button>
-												{/each}
+												{#if filteredSubjectsWithSearch.length > 0}
+													{#each filteredSubjectsWithSearch as activity (activity.id)}
+														<button 
+															type="button"
+															class="scheduleassign-dropdown-item" 
+															class:selected={selectedFormSubject === activity.id}
+															on:click={() => selectFormSubject(activity)}
+														>
+															<span class="material-symbols-outlined option-icon">{activity.icon}</span>
+															<div class="option-content">
+																<span class="option-name">{activity.name}</span>
+															</div>
+														</button>
+													{/each}
+												{:else}
+													<div class="scheduleassign-empty-state">
+														<span class="material-symbols-outlined empty-icon">event</span>
+														<span class="empty-text">No activities available</span>
+													</div>
+												{/if}
 											{/if}
 										</div>
 									</div>
@@ -1511,8 +1522,7 @@
 							</div>
 							
 							<!-- Teacher Selection Row (only for subjects) -->
-							{#if newSchedule.scheduleType === 'subject'}
-								<div class="scheduleassign-input-group">
+							<div class="scheduleassign-input-group" style="opacity: {newSchedule.scheduleType === 'subject' ? '1' : '0'}; pointer-events: {newSchedule.scheduleType === 'subject' ? 'auto' : 'none'};">
 									<label class="scheduleassign-form-label" for="teacher-selection">Teacher *</label>
 									<div class="scheduleassign-custom-dropdown" class:open={isFormTeacherDropdownOpen}>
 										<button 
@@ -1545,23 +1555,29 @@
 												/>
 												<span class="material-icons scheduleassign-search-icon">search</span>
 											</div>
-											{#each filteredTeachersWithSearch as teacher (teacher.id)}
-												<button 
-													type="button"
-													class="scheduleassign-dropdown-item" 
-													class:selected={selectedFormTeacher === teacher.id}
-													on:click={() => selectFormTeacher(teacher)}
-												>
-													<span class="material-symbols-outlined option-icon">person</span>
-													<div class="option-content">
-														<span class="option-name">{teacher.name}</span>
-													</div>
-												</button>
-											{/each}
+											{#if filteredTeachersWithSearch.length > 0}
+												{#each filteredTeachersWithSearch as teacher (teacher.id)}
+													<button 
+														type="button"
+														class="scheduleassign-dropdown-item" 
+														class:selected={selectedFormTeacher === teacher.id}
+														on:click={() => selectFormTeacher(teacher)}
+													>
+														<span class="material-symbols-outlined option-icon">person</span>
+														<div class="option-content">
+															<span class="option-name">{teacher.name}</span>
+														</div>
+													</button>
+												{/each}
+											{:else}
+												<div class="scheduleassign-empty-state">
+													<span class="material-symbols-outlined empty-icon">person_off</span>
+													<span class="empty-text">No teachers available</span>
+												</div>
+											{/if}
 										</div>
 									</div>
 								</div>
-							{/if}
 						</div>
 						
 						<!-- Form Actions -->
