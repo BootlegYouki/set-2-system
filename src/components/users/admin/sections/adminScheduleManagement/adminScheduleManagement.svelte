@@ -235,6 +235,9 @@
 	];
 
 	let scheduleAssignments = [];
+	
+	// Export schedule storage - stores the current day's schedule for export
+	let exportSchedule = [];
 
 	// Filter sections based on selected year
 	$: filteredSections = selectedFilterYear ? sections.filter(section => section.year === selectedFilterYear) : [];
@@ -287,7 +290,26 @@
 	$: isYearSelected = !!selectedFilterYear;
 	$: isSectionSelected = !!selectedFilterSection;
 
-	// Get current day assignments for the add schedule form
+	// Function to convert time string to minutes for comparison
+	function timeToMinutes(timeString) {
+		if (!timeString) return 0;
+		
+		const [time, period] = timeString.split(' ');
+		const [hours, minutes] = time.split(':').map(Number);
+		
+		let totalMinutes = minutes;
+		if (period === 'PM' && hours !== 12) {
+			totalMinutes += (hours + 12) * 60;
+		} else if (period === 'AM' && hours === 12) {
+			totalMinutes += 0; // 12 AM is 0 hours
+		} else {
+			totalMinutes += hours * 60;
+		}
+		
+		return totalMinutes;
+	}
+
+	// Get current day assignments for the add schedule form, sorted by start time
 	$: currentDayAssignments = scheduleAssignments.filter(assignment => {
 		if (!selectedFormYear || !selectedFormSection || !selectedFormDay) return false;
 		
@@ -296,7 +318,15 @@
 		const dayMatch = assignment.day === selectedFormDayObj?.name;
 		
 		return yearMatch && sectionMatch && dayMatch;
+	}).sort((a, b) => {
+		// Sort by start time in ascending order
+		const aStartTime = timeToMinutes(a.startTime);
+		const bStartTime = timeToMinutes(b.startTime);
+		return aStartTime - bStartTime;
 	});
+
+	// Update export schedule when day selection changes
+	$: exportSchedule = filteredAssignments.length > 0 ? [...filteredAssignments] : [];
 
 	function handleClickOutside(event) {
 		if (!event.target.closest('.scheduleassign-custom-dropdown') && !event.target.closest('.admin-mobile-dropdown') && !event.target.closest('.scheduleassign-period-dropdown')) {
@@ -567,12 +597,6 @@
 		isAssigning = true;
 
 		try {
-			// Debug logging
-			console.log('selectedFormDay:', selectedFormDay);
-			console.log('selectedFormDayObj:', selectedFormDayObj);
-			console.log('selectedFormDayObj.name:', selectedFormDayObj?.name);
-			console.log('selectedFormDayObj.name.toLowerCase():', selectedFormDayObj?.name?.toLowerCase());
-
 			// Prepare API request data
 			const scheduleData = {
 				sectionId: parseInt(selectedFormSection),
@@ -585,8 +609,6 @@
 				teacherId: newSchedule.scheduleType === 'subject' && selectedFormTeacher ? parseInt(selectedFormTeacher) : null,
 				schoolYear: selectedFormSectionObj.school_year || '2024-2025'
 			};
-
-			console.log('Sending schedule data:', scheduleData);
 
 			// Make API call to create schedule
 			const response = await fetch('/api/schedules', {
@@ -735,15 +757,15 @@
 	let fileInput;
 
 	function exportSchedules() {
-		if (savedSchedules.length === 0) return;
+		if (scheduleAssignments.length === 0) return;
 		
 		const exportData = {
 			version: '1.0',
 			exportDate: new Date().toISOString(),
-			grade: selectedFormSectionObj.grade,
-			section: selectedFormSectionObj.name,
-			day: selectedFormDayObj.name,
-			schedules: savedSchedules
+			grade: selectedFormSectionObj?.grade || 'All Grades',
+			section: selectedFormSectionObj?.name || 'All Sections',
+			day: selectedFormDayObj?.name || 'All Days',
+			schedules: scheduleAssignments
 		};
 		
 		const dataStr = JSON.stringify(exportData, null, 2);
@@ -752,25 +774,57 @@
 		
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `schedule_${selectedFormSectionObj.grade}_${selectedFormSectionObj.name}_${selectedFormDayObj.name}_${new Date().toISOString().split('T')[0]}.json`;
+		link.download = `schedule_${exportData.grade.replace(' ', '')}_${exportData.section}_${exportData.day}_${new Date().toISOString().split('T')[0]}.json`;
 		link.click();
 		
 		URL.revokeObjectURL(url);
 		
 		// Show success toast
-		toastStore.success(`Successfully exported ${savedSchedules.length} schedule(s)`);
+		toastStore.success(`Successfully exported ${scheduleAssignments.length} schedule(s)`);
+	}
+
+	// Export current day's schedule
+	function exportCurrentDaySchedule() {
+		if (exportSchedule.length === 0) {
+			toastStore.error('No schedule data available for export. Please select a year, section, and day.');
+			return;
+		}
+		
+		const exportData = {
+			version: '1.0',
+			exportDate: new Date().toISOString(),
+			grade: selectedFilterYearObj?.name || 'Unknown Grade',
+			section: selectedFilterSectionObj?.name || 'Unknown Section',
+			day: dayNameMap[selectedAdminDay] || 'Unknown Day',
+			schedules: exportSchedule
+		};
+		
+		const dataStr = JSON.stringify(exportData, null, 2);
+		const dataBlob = new Blob([dataStr], { type: 'application/json' });
+		const url = URL.createObjectURL(dataBlob);
+		
+		const link = document.createElement('a');
+		link.href = url;
+		const fileName = `current_schedule_${exportData.grade.replace(' ', '')}_${exportData.section}_${exportData.day}_${new Date().toISOString().split('T')[0]}.json`;
+		link.download = fileName;
+		link.click();
+		
+		URL.revokeObjectURL(url);
+		
+		// Show success toast
+		toastStore.success(`Successfully exported ${exportSchedule.length} schedule(s) for ${exportData.day}`);
 	}
 
 	function importSchedules() {
 		fileInput.click();
 	}
 
-	function handleFileImport(event) {
+	async function handleFileImport(event) {
 		const file = event.target.files[0];
 		if (!file) return;
 		
 		const reader = new FileReader();
-		reader.onload = (e) => {
+		reader.onload = async (e) => {
 			try {
 				const importData = JSON.parse(e.target.result);
 				
@@ -782,7 +836,7 @@
 				
 				// Validate each schedule has required fields
 				const validSchedules = importData.schedules.filter(schedule => 
-					schedule.id && schedule.subject && schedule.teacher && 
+					schedule.subject && schedule.teacher && 
 					schedule.startTime && schedule.endTime
 				);
 				
@@ -791,17 +845,91 @@
 					return;
 				}
 				
-				// Generate new IDs to avoid conflicts
-				const importedSchedules = validSchedules.map(schedule => ({
-					...schedule,
-					id: Date.now() + Math.random()
-				}));
+				// Check if section is selected
+				if (!selectedFormSectionObj) {
+					toastStore.error('Please select a section before importing schedules.');
+					return;
+				}
 				
-				// Add to existing schedules
-				savedSchedules = [...savedSchedules, ...importedSchedules];
+				// Check if day is selected
+				if (!selectedFormDayObj) {
+					toastStore.error('Please select a day before importing schedules.');
+					return;
+				}
 				
-				// Show success toast
-				toastStore.success(`Successfully imported ${importedSchedules.length} schedule(s)`);
+				let successCount = 0;
+				let errorCount = 0;
+				
+				// Import each schedule to the database
+				for (const schedule of validSchedules) {
+					try {
+						// Prepare schedule data for API
+						const scheduleData = {
+							sectionId: selectedFormSectionObj.id,
+							dayOfWeek: selectedFormDayObj.name.toLowerCase(),
+							startTime: schedule.startTime,
+							endTime: schedule.endTime,
+							scheduleType: schedule.type || 'subject',
+							subjectId: schedule.subjectId || null,
+							activityTypeId: schedule.activityTypeId || null,
+							teacherId: schedule.teacherId || null,
+							schoolYear: selectedFormSectionObj.school_year || '2024-2025'
+						};
+						
+						// Make API call to create schedule
+						const response = await fetch('/api/schedules', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'x-user-id': $authStore.userData?.id?.toString() || '',
+								'x-user-account-number': $authStore.userData?.accountNumber || '',
+								'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+							},
+							body: JSON.stringify(scheduleData)
+						});
+						
+						const result = await response.json();
+						
+						if (result.success) {
+							successCount++;
+							
+							// Add to local scheduleAssignments array for immediate display
+							const newAssignment = {
+								id: result.data.id,
+								year: `grade-${selectedFormSectionObj.grade_level}`,
+								grade: `Grade ${selectedFormSectionObj.grade_level}`,
+								section: selectedFormSectionObj.name,
+								teacher: schedule.teacher,
+								subject: schedule.subject,
+								day: selectedFormDayObj.name,
+								time: `${schedule.startTime} - ${schedule.endTime}`,
+								type: schedule.type || 'subject',
+								startTime: schedule.startTime,
+								endTime: schedule.endTime,
+								subjectId: schedule.subjectId,
+								activityTypeId: schedule.activityTypeId,
+								teacherId: schedule.teacherId,
+								sectionId: selectedFormSectionObj.id,
+								schoolYear: selectedFormSectionObj.school_year || '2024-2025'
+							};
+							
+							scheduleAssignments = [...scheduleAssignments, newAssignment];
+						} else {
+							errorCount++;
+							console.error('Failed to import schedule:', result.error);
+						}
+					} catch (error) {
+						errorCount++;
+						console.error('Error importing schedule:', error);
+					}
+				}
+				
+				// Show result toast
+				if (successCount > 0) {
+					toastStore.success(`Successfully imported ${successCount} schedule(s)${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+				} else {
+					toastStore.error('Failed to import any schedules. Please check the file format.');
+				}
 				
 			} catch (error) {
 				toastStore.error('Error reading file. Please make sure it\'s a valid JSON file.');
@@ -839,8 +967,6 @@
 				}
 			},
 			() => {
-				// Cancel callback (optional)
-				console.log('Delete cancelled');
 			}
 		);
 	}
@@ -1018,7 +1144,6 @@
 			const result = await response.json();
 			
 			if (result.success) {
-				console.log('Loaded schedules:', result.data);
 				// Transform API data to match the component's expected format
 				scheduleAssignments = result.data.map(schedule => ({
 					id: schedule.id,
@@ -1235,7 +1360,7 @@
 							class="scheduleassign-export-button"
 							on:click={exportSchedules}
 							title="Export schedules to file"
-							disabled={savedSchedules.length === 0}
+							disabled={!selectedFormSectionObj || scheduleAssignments.length === 0}
 						>
 							<span class="material-symbols-outlined">upload</span>
 							Export
