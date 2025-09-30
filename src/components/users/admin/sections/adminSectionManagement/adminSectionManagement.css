@@ -109,7 +109,7 @@
   font-size: var(--md-sys-typescale-title-large-size);
   font-weight: var(--md-sys-typescale-title-large-weight);
   color: var(--md-sys-color-on-surface);
-  margin: 0;
+  margin: 0 0 var(--spacing-sm) 0;
   flex: 1;
 }
 
@@ -691,10 +691,6 @@
   display: flex;
   justify-content: space-between;
   margin-bottom: var(--spacing-md);
-}
-
-.sectionmgmt-section-title {
-  display: block;
 }
 
 .sectionmgmt-section-name {

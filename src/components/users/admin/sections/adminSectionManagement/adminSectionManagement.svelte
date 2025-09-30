@@ -55,22 +55,10 @@
 	onMount(async () => {
 		// Initialize sections from cache (instant load if available)
 		const hasCachedSections = sectionManagementStore.initSections();
-		
 		// Load sections using store method (silent if we have cache, visible loading if not)
 		await sectionManagementStore.loadSections(hasCachedSections);
-		
 		// Always load teachers and students with normal loading
 		await loadAvailableTeachers();
-		
-		// Set up periodic refresh for sections only
-		const refreshInterval = setInterval(async () => {
-			await sectionManagementStore.loadSections(true); // Always silent for periodic refresh
-		}, 30000); // Refresh every 30 seconds
-		
-		// Clean up interval on component destroy
-		return () => {
-			clearInterval(refreshInterval);
-		};
 	});
 
 	async function loadAvailableTeachers(teacherGradeLevel = null) {
@@ -818,16 +806,7 @@
 	<div class="sectionmgmt-recent-sections-section">
 		<div class="sectionmgmt-section-header">
 			<div class="sectionmgmt-title-with-refresh">
-				<h2 class="sectionmgmt-section-title">Recent Sections</h2>
-				<button 
-					class="sectionmgmt-refresh-btn" 
-					on:click={() => sectionManagementStore.loadSections(true)}
-					disabled={isLoading}
-					title="Refresh sections to see latest room assignments"
-				>
-					<span class="material-symbols-outlined">refresh</span>
-					{isLoading ? 'Refreshing...' : 'Refresh'}
-				</button>
+				<h2 class="sectionmgmt-section-title">All Sections</h2>
 			</div>
 			<p class="sectionmgmt-section-subtitle">Recently created sections in the system</p>
 		</div>

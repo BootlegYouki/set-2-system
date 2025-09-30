@@ -9,11 +9,11 @@
 	let filteredStudents = [];
 	let isLoading = true;
 	let searchQuery = '';
-	let selectedYearLevel = '';
+	let selectedGradeLevel = '';
 	let selectedSection = '';
 
 	// Dropdown states
-	let isYearLevelDropdownOpen = false;
+	let isGradeLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
 
 	// Grade level options
@@ -36,7 +36,7 @@
 	];
 
 	// Computed values
-	$: selectedYearLevelObj = gradeLevelOptions.find(level => level.id === selectedYearLevel);
+	$: selectedGradeLevelObj = gradeLevelOptions.find(level => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
 
 	// Load archived students data
@@ -74,38 +74,38 @@
 		}
 	}
 
-	// Filter students based on search query, year level, and section
+	// Filter students based on search query, grade level, and section
 	function filterStudents() {
 		filteredStudents = students.filter(student => {
 			const matchesSearch = !searchQuery || 
 				student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(student.number && student.number.toLowerCase().includes(searchQuery.toLowerCase()));
-			
-			const matchesYearLevel = !selectedYearLevel || 
-				student.yearLevel === selectedYearLevel;
-			
+        
+			const matchesGradeLevel = !selectedGradeLevel || 
+				student.gradeLevel === selectedGradeLevel;
+        
 			const matchesSection = !selectedSection || 
 				student.section === selectedSection;
-			
-			return matchesSearch && matchesYearLevel && matchesSection;
+        
+			return matchesSearch && matchesGradeLevel && matchesSection;
 		});
 	}
 
 	// Dropdown functions
-	function toggleYearLevelDropdown() {
-		isYearLevelDropdownOpen = !isYearLevelDropdownOpen;
+	function toggleGradeLevelDropdown() {
+		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
 		isSectionDropdownOpen = false;
 	}
 
 	function toggleSectionDropdown() {
 		isSectionDropdownOpen = !isSectionDropdownOpen;
-		isYearLevelDropdownOpen = false;
+		isGradeLevelDropdownOpen = false;
 	}
 
-	function selectYearLevel(yearLevel) {
-		selectedYearLevel = yearLevel.id;
-		isYearLevelDropdownOpen = false;
+	function selectGradeLevel(gradeLevel) {
+		selectedGradeLevel = gradeLevel.id;
+		isGradeLevelDropdownOpen = false;
 		filterStudents();
 	}
 
@@ -169,7 +169,7 @@
 	// Clear all filters
 	function clearFilters() {
 		searchQuery = '';
-		selectedYearLevel = '';
+		selectedGradeLevel = '';
 		selectedSection = '';
 		filterStudents();
 	}
@@ -179,8 +179,8 @@
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.aas-custom-dropdown')) {
-			isYearLevelDropdownOpen = false;
+		if (!event.target.closest('.custom-dropdown')) {
+			isGradeLevelDropdownOpen = false;
 			isSectionDropdownOpen = false;
 		}
 	}
@@ -205,22 +205,23 @@
 	</div>
 
 	<!-- Filters Section -->
-	<div class="aas-filters-section">
-		<div class="aas-search-filter-container">
+
+	<div class="filters-section">
+		<div class="search-filter-container">
 			<!-- Search Bar -->
-			<div class="aas-search-container">
-				<div class="aas-search-input-wrapper">
-					<span class="material-symbols-outlined aas-search-icon">search</span>
+			<div class="search-container">
+				<div class="search-input-wrapper">
+					<span class="material-symbols-outlined search-icon">search</span>
 					<input 
 						type="text" 
-						class="aas-search-input" 
+						class="search-input" 
 						placeholder="Search archived students by name, email, or ID..."
 						bind:value={searchQuery}
 					/>
 					{#if searchQuery}
 						<button 
 							type="button" 
-							class="aas-clear-search-button"
+							class="clear-search-button"
 							on:click={() => searchQuery = ''}
 						>
 							<span class="material-symbols-outlined">close</span>
@@ -230,37 +231,37 @@
 			</div>
 
 			<!-- Filter Dropdowns -->
-			<div class="aas-filter-container">
-				<!-- Year Level Filter -->
-				<div class="aas-filter-group">
-					<label class="aas-filter-label">Year Level</label>
-					<div class="aas-custom-dropdown" class:open={isYearLevelDropdownOpen}>
+			<div class="filter-container">
+				<!-- Grade Level Filter -->
+				<div class="filter-group">
+					<label class="filter-label">Grade Level</label>
+					<div class="custom-dropdown" class:open={isGradeLevelDropdownOpen}>
 						<button 
 							type="button"
-							class="aas-dropdown-trigger aas-filter-trigger" 
-							on:click={toggleYearLevelDropdown}
+							class="dropdown-trigger filter-trigger" 
+							on:click={toggleGradeLevelDropdown}
 						>
-							{#if selectedYearLevelObj && selectedYearLevel}
-								<div class="aas-selected-option">
-									<span class="material-symbols-outlined aas-option-icon">{selectedYearLevelObj.icon}</span>
-									<span class="aas-option-name">{selectedYearLevelObj.name}</span>
+							{#if selectedGradeLevelObj && selectedGradeLevel}
+								<div class="selected-option">
+									<span class="material-symbols-outlined option-icon">{selectedGradeLevelObj.icon}</span>
+									<span class="option-name">{selectedGradeLevelObj.name}</span>
 								</div>
 							{:else}
-								<span class="aas-placeholder">All Year Levels</span>
+								<span class="placeholder">All Grade Levels</span>
 							{/if}
-							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
+							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
 						</button>
-						<div class="aas-dropdown-menu">
-							{#each gradeLevelOptions as yearLevel (yearLevel.id)}
+						<div class="dropdown-menu">
+							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
 								<button 
 									type="button"
-									class="aas-dropdown-option" 
-									class:selected={selectedYearLevel === yearLevel.id}
-									on:click={() => selectYearLevel(yearLevel)}
+									class="dropdown-option" 
+									class:selected={selectedGradeLevel === gradeLevel.id}
+									on:click={() => selectGradeLevel(gradeLevel)}
 								>
-									<span class="material-symbols-outlined aas-option-icon">{yearLevel.icon}</span>
-									<div class="aas-option-content">
-										<span class="aas-option-name">{yearLevel.name}</span>
+									<span class="material-symbols-outlined option-icon">{gradeLevel.icon}</span>
+									<div class="option-content">
+										<span class="option-name">{gradeLevel.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -269,33 +270,33 @@
 				</div>
 
 				<!-- Section Filter -->
-				<div class="aas-filter-group">
-					<label class="aas-filter-label">Section</label>
-					<div class="aas-custom-dropdown" class:open={isSectionDropdownOpen}>
+				<div class="filter-group">
+					<label class="filter-label">Section</label>
+					<div class="custom-dropdown" class:open={isSectionDropdownOpen}>
 						<button 
 							type="button"
-							class="aas-dropdown-trigger aas-filter-trigger" 
+							class="dropdown-trigger filter-trigger" 
 							on:click={toggleSectionDropdown}
 						>
 							{#if selectedSectionObj && selectedSection}
-								<div class="aas-selected-option">
-									<span class="aas-option-name">{selectedSectionObj.name}</span>
+								<div class="selected-option">
+									<span class="option-name">{selectedSectionObj.name}</span>
 								</div>
 							{:else}
-								<span class="aas-placeholder">All Sections</span>
+								<span class="placeholder">All Sections</span>
 							{/if}
-							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
+							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
 						</button>
-						<div class="aas-dropdown-menu">
+						<div class="dropdown-menu">
 							{#each sectionOptions as section (section.id)}
 								<button 
 									type="button"
-									class="aas-dropdown-option" 
+									class="dropdown-option" 
 									class:selected={selectedSection === section.id}
 									on:click={() => selectSection(section)}
 								>
-									<div class="aas-option-content">
-										<span class="aas-option-name">{section.name}</span>
+									<div class="option-content">
+										<span class="option-name">{section.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -304,10 +305,10 @@
 				</div>
 
 				<!-- Clear Filters Button -->
-				{#if searchQuery || selectedYearLevel || selectedSection}
+				{#if searchQuery || selectedGradeLevel || selectedSection}
 					<button 
 						type="button" 
-						class="aas-clear-filters-button"
+						class="clear-filters-button"
 						on:click={clearFilters}
 					>
 						<span class="material-symbols-outlined">filter_alt_off</span>

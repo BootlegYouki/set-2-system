@@ -639,7 +639,7 @@
 		</div>
 
 		<!-- Search and Filter Container -->
-		<div class="search-filter-container">
+		<div class="dept-mgmt-search-filter-container">
 			<!-- Search Input -->
 			<div class="search-container">
 				<div class="search-input-wrapper">

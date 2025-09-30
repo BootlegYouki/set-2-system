@@ -197,6 +197,18 @@ export async function GET({ url }) {
 					message = `Assigned teachers to department "${data.department_name}": ${assignedTeachers}`;
 					icon = 'person_add';
 					break;
+				case 'activity_type_created':
+					message = `Activity type created: ${data.name} (${data.code})`;
+					icon = 'add';
+					break;
+				case 'activity_type_updated':
+					message = `Activity type updated: ${data.name} (${data.code})`;
+					icon = 'edit';
+					break;
+				case 'activity_type_deleted':
+					message = `Activity type deleted: ${data.name} (${data.code})`;
+					icon = 'delete';
+					break;
 				case 'department_teacher_removed':
 					const removedTeachers = data.teachers && data.teachers.length > 0 ? 
 						data.teachers.map(t => t.name || t.full_name).join(', ') : 'teachers';
@@ -235,7 +247,7 @@ export async function GET({ url }) {
 					icon = 'delete';
 					break;
 				default:
-					message = `${row.activity_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+					message = `${row.activity_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
 					icon = 'info';
 			}
 

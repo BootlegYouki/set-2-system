@@ -77,7 +77,7 @@
 	font-family: var(--md-sys-typescale-body-medium-font);
 	font-size: var(--md-sys-typescale-body-medium-size);
 	color: var(--md-sys-color-on-surface-variant);
-	margin: 0 0 var(--spacing-lg) 0;
+	margin: 0 0 var(--spacing-md) 0;
 }
 
 .dept-mgmt-section-header {
@@ -92,10 +92,10 @@
 }
 
 /* Search and Filter Container */
-.search-filter-container {
+.dept-mgmt-search-filter-container {
 	display: flex;
 	gap: var(--spacing-md);
-	align-items: center;
+	align-items: end;
 	flex-wrap: wrap;
 	margin-bottom: var(--spacing-lg);
 }
@@ -211,6 +211,7 @@
 	font-size: var(--md-sys-typescale-body-medium-size);
 	font-weight: var(--md-sys-typescale-body-medium-weight);
 	color: var(--md-sys-color-on-surface);
+	margin-bottom: var(--spacing-xs);
 }
 
 .dept-mgmt-form-input,
@@ -1459,19 +1460,6 @@
 		grid-template-columns: 1fr 1fr;
 		gap: var(--spacing-md);
 		margin-bottom: var(--spacing-md);
-	}
-
-	.dept-mgmt-form-group {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xs);
-	}
-
-	.dept-mgmt-form-label {
-		font-family: var(--md-sys-typescale-body-medium-font);
-		font-size: var(--md-sys-typescale-body-medium-size);
-		font-weight: var(--md-sys-typescale-body-medium-weight);
-		color: var(--md-sys-color-on-surface);
 	}
 
 	.dept-mgmt-form-input {
