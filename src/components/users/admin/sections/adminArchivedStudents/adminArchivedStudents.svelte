@@ -179,7 +179,7 @@
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.custom-dropdown')) {
+		if (!event.target.closest('.aas-custom-dropdown')) {
 			isGradeLevelDropdownOpen = false;
 			isSectionDropdownOpen = false;
 		}
@@ -235,33 +235,33 @@
 				<!-- Grade Level Filter -->
 				<div class="filter-group">
 					<label class="filter-label">Grade Level</label>
-					<div class="custom-dropdown" class:open={isGradeLevelDropdownOpen}>
+					<div class="aas-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
 						<button 
 							type="button"
-							class="dropdown-trigger filter-trigger" 
+							class="aas-dropdown-trigger aas-filter-trigger" 
 							on:click={toggleGradeLevelDropdown}
 						>
 							{#if selectedGradeLevelObj && selectedGradeLevel}
-								<div class="selected-option">
-									<span class="material-symbols-outlined option-icon">{selectedGradeLevelObj.icon}</span>
-									<span class="option-name">{selectedGradeLevelObj.name}</span>
+								<div class="aas-selected-option">
+									<span class="material-symbols-outlined aas-option-icon">{selectedGradeLevelObj.icon}</span>
+									<span class="aas-option-name">{selectedGradeLevelObj.name}</span>
 								</div>
 							{:else}
-								<span class="placeholder">All Grade Levels</span>
+								<span class="aas-placeholder">All Grade Levels</span>
 							{/if}
-							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
 						</button>
-						<div class="dropdown-menu">
+						<div class="aas-dropdown-menu">
 							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
 								<button 
 									type="button"
-									class="dropdown-option" 
+									class="aas-dropdown-option" 
 									class:selected={selectedGradeLevel === gradeLevel.id}
 									on:click={() => selectGradeLevel(gradeLevel)}
 								>
-									<span class="material-symbols-outlined option-icon">{gradeLevel.icon}</span>
-									<div class="option-content">
-										<span class="option-name">{gradeLevel.name}</span>
+									<span class="material-symbols-outlined aas-option-icon">{gradeLevel.icon}</span>
+									<div class="aas-option-content">
+										<span class="aas-option-name">{gradeLevel.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -272,31 +272,31 @@
 				<!-- Section Filter -->
 				<div class="filter-group">
 					<label class="filter-label">Section</label>
-					<div class="custom-dropdown" class:open={isSectionDropdownOpen}>
+					<div class="aas-custom-dropdown" class:open={isSectionDropdownOpen}>
 						<button 
 							type="button"
-							class="dropdown-trigger filter-trigger" 
+							class="aas-dropdown-trigger aas-filter-trigger" 
 							on:click={toggleSectionDropdown}
 						>
 							{#if selectedSectionObj && selectedSection}
-								<div class="selected-option">
-									<span class="option-name">{selectedSectionObj.name}</span>
+								<div class="aas-selected-option">
+									<span class="aas-option-name">{selectedSectionObj.name}</span>
 								</div>
 							{:else}
-								<span class="placeholder">All Sections</span>
+								<span class="aas-placeholder">All Sections</span>
 							{/if}
-							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
 						</button>
-						<div class="dropdown-menu">
+						<div class="aas-dropdown-menu">
 							{#each sectionOptions as section (section.id)}
 								<button 
 									type="button"
-									class="dropdown-option" 
+									class="aas-dropdown-option" 
 									class:selected={selectedSection === section.id}
 									on:click={() => selectSection(section)}
 								>
-									<div class="option-content">
-										<span class="option-name">{section.name}</span>
+									<div class="aas-option-content">
+										<span class="aas-option-name">{section.name}</span>
 									</div>
 								</button>
 							{/each}
@@ -405,16 +405,16 @@
 		{:else}
 			<div class="aas-no-results">
 				<span class="material-symbols-outlined aas-no-results-icon">
-					{searchQuery || selectedYearLevel || selectedSection ? 'search_off' : 'archive'}
+					{searchQuery || selectedGradeLevel || selectedSection ? 'search_off' : 'archive'}
 				</span>
 				<p>
-					{#if searchQuery || selectedYearLevel || selectedSection}
+					{#if searchQuery || selectedGradeLevel || selectedSection}
 						No archived students found matching your search criteria.
 					{:else}
 						No archived students found in the system.
 					{/if}
 				</p>
-				{#if searchQuery || selectedYearLevel || selectedSection}
+				{#if searchQuery || selectedGradeLevel || selectedSection}
 					<button 
 						type="button" 
 						class="aas-clear-search-button-inline"
