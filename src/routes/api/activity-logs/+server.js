@@ -1,6 +1,22 @@
 import { json } from '@sveltejs/kit';
 import { query } from '../../../database/db.js';
 
+// Helper function to format time from 24-hour to 12-hour AM/PM format
+function formatTime(timeString) {
+	if (!timeString) return timeString;
+	
+	// Handle both HH:MM:SS and HH:MM formats
+	const timeParts = timeString.split(':');
+	let hours = parseInt(timeParts[0]);
+	const minutes = timeParts[1];
+	
+	const ampm = hours >= 12 ? 'PM' : 'AM';
+	hours = hours % 12;
+	hours = hours ? hours : 12; // 0 should be 12
+	
+	return `${hours}:${minutes} ${ampm}`;
+}
+
 // POST - Log a new activity
 export async function POST({ request, getClientAddress }) {
 	try {
@@ -75,7 +91,7 @@ export async function GET({ url }) {
 		const result = await query(sqlQuery, params);
 
 		// Transform the data for frontend consumption
-		const activities = result.rows.map(row => {
+		const activities = await Promise.all(result.rows.map(async (row) => {
 			const data = row.activity_data;
 			let message = '';
 			let icon = 'info';
@@ -102,6 +118,56 @@ export async function GET({ url }) {
 				case 'schedule_assigned':
 					message = `Schedule assigned to ${data.section} for ${data.room}`;
 					icon = 'schedule';
+					break;
+				case 'schedule_created':
+					// Get section name if section_id is available
+					let sectionInfoCreated = '';
+					if (data.section_id) {
+						try {
+							const sectionResult = await query('SELECT name FROM sections WHERE id = $1', [data.section_id]);
+							if (sectionResult.rows.length > 0) {
+								sectionInfoCreated = ` for section ${sectionResult.rows[0].name}`;
+							}
+						} catch (error) {
+							console.error('Error fetching section name:', error);
+						}
+					}
+					
+					// Format the times to AM/PM format
+					const formattedStartTimeCreated = formatTime(data.start_time);
+					const formattedEndTimeCreated = formatTime(data.end_time);
+					
+					// Capitalize the schedule type and day of week
+					const scheduleTypeCreated = data.schedule_type ? data.schedule_type.charAt(0).toUpperCase() + data.schedule_type.slice(1) : 'Class';
+					const dayOfWeekCreated = data.day_of_week ? data.day_of_week.charAt(0).toUpperCase() + data.day_of_week.slice(1) : '';
+					
+					message = `Schedule created${sectionInfoCreated} - ${scheduleTypeCreated} on ${dayOfWeekCreated} (${formattedStartTimeCreated} - ${formattedEndTimeCreated})`;
+					icon = 'add_circle';
+					break;
+				case 'schedule_deleted':
+					// Get section name if section_id is available
+					let sectionInfo = '';
+					if (data.section_id) {
+						try {
+							const sectionResult = await query('SELECT name FROM sections WHERE id = $1', [data.section_id]);
+							if (sectionResult.rows.length > 0) {
+								sectionInfo = ` for Section ${sectionResult.rows[0].name}`;
+							}
+						} catch (error) {
+							console.error('Error fetching section name:', error);
+						}
+					}
+					
+					// Format the times to AM/PM format
+					const formattedStartTime = formatTime(data.start_time);
+					const formattedEndTime = formatTime(data.end_time);
+					
+					// Capitalize the schedule type and day of week
+					const scheduleType = data.schedule_type ? data.schedule_type.charAt(0).toUpperCase() + data.schedule_type.slice(1) : 'Class';
+					const dayOfWeek = data.day_of_week ? data.day_of_week.charAt(0).toUpperCase() + data.day_of_week.slice(1) : '';
+					
+					message = `Schedule deleted${sectionInfo} - ${scheduleType} on ${dayOfWeek} (${formattedStartTime} - ${formattedEndTime})`;
+					icon = 'delete';
 					break;
 				case 'room_created':
 					message = `New room created: ${data.room_name} (${data.building}, Floor ${data.floor})`;
@@ -162,10 +228,6 @@ export async function GET({ url }) {
 				case 'subject_updated':
 					message = `Subject updated: ${data.name} (${data.code})`;
 					icon = 'edit';
-					break;
-				case 'account_deleted':
-					message = `Account deleted: ${data.full_name || row.user_account_number}`;
-					icon = 'delete';
 					break;
 				case 'account_restored':
 					message = `Student restored: ${data.full_name || row.user_account_number}`;
@@ -291,7 +353,7 @@ export async function GET({ url }) {
 				user_account_number: row.user_account_number,
 				performed_by: performedBy
 			};
-		});
+		}));
 
 		return json({
 			success: true,

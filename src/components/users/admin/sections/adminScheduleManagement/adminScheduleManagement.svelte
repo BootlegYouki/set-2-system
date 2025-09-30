@@ -2,6 +2,8 @@
 	import './adminScheduleManagement.css';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { authStore } from '../../../../login/js/auth.js';
 	import { onMount } from 'svelte';
 
 	// Schedule assignment state
@@ -475,7 +477,27 @@
 
 		} catch (error) {
 			console.error('Error assigning schedule:', error);
-			toastStore.error('Failed to assign schedule. Please try again.');
+			
+			// Check for specific error types and show appropriate toast messages
+			const errorMessage = error.message || 'Unknown error';
+			
+			if (errorMessage.toLowerCase().includes('time conflict') || 
+				errorMessage.toLowerCase().includes('conflict') ||
+				errorMessage.toLowerCase().includes('overlapping') ||
+				errorMessage.toLowerCase().includes('already exists')) {
+				toastStore.error('Time conflict detected with existing schedule. Please choose a different time slot.');
+			} else if (errorMessage.toLowerCase().includes('invalid time') ||
+					   errorMessage.toLowerCase().includes('time format')) {
+				toastStore.error('Invalid time format. Please check your time inputs.');
+			} else if (errorMessage.toLowerCase().includes('section') ||
+					   errorMessage.toLowerCase().includes('not found')) {
+				toastStore.error('Selected section or resource not found. Please refresh and try again.');
+			} else if (errorMessage.toLowerCase().includes('permission') ||
+					   errorMessage.toLowerCase().includes('unauthorized')) {
+				toastStore.error('You do not have permission to create schedules.');
+			} else {
+				toastStore.error(`Failed to assign schedule: ${errorMessage}`);
+			}
 		} finally {
 			isAssigning = false;
 		}
@@ -570,7 +592,10 @@
 			const response = await fetch('/api/schedules', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'x-user-id': $authStore.userData?.id?.toString() || '',
+					'x-user-account-number': $authStore.userData?.accountNumber || '',
+					'x-user-name': encodeURIComponent($authStore.userData?.name || '')
 				},
 				body: JSON.stringify(scheduleData)
 			});
@@ -630,7 +655,27 @@
 
 		} catch (error) {
 			console.error('Error assigning schedule:', error);
-			toastStore.error('Failed to assign schedule. Please try again.');
+			
+			// Check for specific error types and show appropriate toast messages
+			const errorMessage = error.message || 'Unknown error';
+			
+			if (errorMessage.toLowerCase().includes('time conflict') || 
+				errorMessage.toLowerCase().includes('conflict') ||
+				errorMessage.toLowerCase().includes('overlapping') ||
+				errorMessage.toLowerCase().includes('already exists')) {
+				toastStore.error('Time conflict detected with existing schedule. Please choose a different time slot.');
+			} else if (errorMessage.toLowerCase().includes('invalid time') ||
+					   errorMessage.toLowerCase().includes('time format')) {
+				toastStore.error('Invalid time format. Please check your time inputs.');
+			} else if (errorMessage.toLowerCase().includes('section') ||
+					   errorMessage.toLowerCase().includes('not found')) {
+				toastStore.error('Selected section or resource not found. Please refresh and try again.');
+			} else if (errorMessage.toLowerCase().includes('permission') ||
+					   errorMessage.toLowerCase().includes('unauthorized')) {
+				toastStore.error('You do not have permission to create schedules.');
+			} else {
+				toastStore.error(`Failed to assign schedule: ${errorMessage}`);
+			}
 		} finally {
 			isAssigning = false;
 		}
@@ -776,14 +821,7 @@
 			async () => {
 				try {
 					// Make API call to delete the schedule
-					const response = await fetch(`/api/schedules?id=${assignment.id}`, {
-						method: 'DELETE',
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					});
-
-					const result = await response.json();
+					const result = await api.delete(`/api/schedules?id=${assignment.id}`);
 
 					if (result.success) {
 						// Remove assignment from the local array only after successful API call

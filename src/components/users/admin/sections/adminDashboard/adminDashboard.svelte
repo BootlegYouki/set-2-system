@@ -53,8 +53,7 @@
 				activitiesError = null;
 			}
 			
-			const response = await fetch(`/api/activity-logs?limit=${activityLimit}`);
-			const data = await response.json();
+			const data = await api.get(`/api/activity-logs?limit=${activityLimit}`);
 			
 			if (data.success) {
 				recentActivities = data.activities;
@@ -76,8 +75,7 @@
 			loadingMore = true;
 			
 			const newLimit = activityLimit + 4;
-			const response = await fetch(`/api/activity-logs?limit=${newLimit}`);
-			const data = await response.json();
+			const data = await api.get(`/api/activity-logs?limit=${newLimit}`);
 			
 			if (data.success) {
 				recentActivities = data.activities;
