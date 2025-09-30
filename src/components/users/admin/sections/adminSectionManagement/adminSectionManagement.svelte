@@ -408,8 +408,9 @@
 				isEditAdviserDropdownOpen = false;
 				isEditStudentDropdownOpen = false;
 
-				// Update section in store and reload teachers
+				// Update section in store, reload sections to refresh all details, and reload teachers
 				sectionManagementStore.updateSection(editingSectionId, result.data);
+				await sectionManagementStore.loadSections(true); // Silent reload to refresh all section details
 				await loadAvailableTeachers();
 			} else {
 				toastStore.error(result.error || 'Failed to update section');
