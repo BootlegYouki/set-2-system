@@ -224,17 +224,6 @@
 	let isStartPeriodDropdownOpen = false;
 	let isEndPeriodDropdownOpen = false;
 
-	// Edit assignment states
-	let editingAssignmentId = null;
-	let editAssignmentTime = '';
-	let editAssignmentSubject = '';
-	let editSelectedTeacher = null;
-	let isUpdating = false;
-
-	// Edit dropdown states
-	let isEditSubjectDropdownOpen = false;
-	let isEditTeacherDropdownOpen = false;
-
 	const days = [
 		{ id: 'monday', name: 'Monday' },
 		{ id: 'tuesday', name: 'Tuesday' },
@@ -296,6 +285,17 @@
 	$: isYearSelected = !!selectedFilterYear;
 	$: isSectionSelected = !!selectedFilterSection;
 
+	// Get current day assignments for the add schedule form
+	$: currentDayAssignments = scheduleAssignments.filter(assignment => {
+		if (!selectedFormYear || !selectedFormSection || !selectedFormDay) return false;
+		
+		const yearMatch = assignment.year === selectedFormYear;
+		const sectionMatch = assignment.section === selectedFormSectionObj?.name;
+		const dayMatch = assignment.day === selectedFormDayObj?.name;
+		
+		return yearMatch && sectionMatch && dayMatch;
+	});
+
 	function handleClickOutside(event) {
 		if (!event.target.closest('.scheduleassign-custom-dropdown') && !event.target.closest('.admin-mobile-dropdown') && !event.target.closest('.scheduleassign-period-dropdown')) {
 			// Filter dropdowns
@@ -311,15 +311,8 @@
 			isFormTeacherDropdownOpen = false;
 			isStartPeriodDropdownOpen = false;
 			isEndPeriodDropdownOpen = false;
-			// Edit dropdowns
-			isEditSubjectDropdownOpen = false;
-			isEditTeacherDropdownOpen = false;
 		}
 	}
-
-
-
-
 
 	// Filter dropdown toggle functions
 	function toggleFilterYearDropdown() {
@@ -465,8 +458,7 @@
 				section: selectedFormSectionObj.name,
 				teacher: 'TBD', // Will be assigned later
 				subject: selectedFormSubjectObj.name,
-				day: selectedFormDayObj.name,
-				timeSlot: 'TBD' // Will be set based on manual time input
+				day: selectedFormDayObj.name
 			};
 
 			// Add to assignments array
@@ -500,6 +492,8 @@
 		selectedFormTeacher = teacher ? teacher.id : '';
 		isFormTeacherDropdownOpen = false;
 	}
+
+
 
 	// Add schedule functions
 	async function handleAddSchedule() {
@@ -551,37 +545,71 @@
 		isAssigning = true;
 
 		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			// Debug logging
+			console.log('selectedFormDay:', selectedFormDay);
+			console.log('selectedFormDayObj:', selectedFormDayObj);
+			console.log('selectedFormDayObj.name:', selectedFormDayObj?.name);
+			console.log('selectedFormDayObj.name.toLowerCase():', selectedFormDayObj?.name?.toLowerCase());
 
-			// Create new assignment
-				const newAssignment = {
-					id: scheduleAssignments.length + 1,
-					year: selectedFormYear,
-					grade: selectedFormSectionObj.grade,
-					section: selectedFormSectionObj.name,
-					teacher: newSchedule.scheduleType === 'subject' ? selectedFormTeacherObj.name : 'N/A',
-					subject: selectedFormSubjectObj.name,
-					day: selectedFormDayObj.name,
-					timeSlot: `${newSchedule.calculatedStartTime} - ${newSchedule.calculatedEndTime}`
-				};
+			// Prepare API request data
+			const scheduleData = {
+				sectionId: parseInt(selectedFormSection),
+				dayOfWeek: selectedFormDayObj.name.toLowerCase(),
+				startTime: newSchedule.calculatedStartTime,
+				endTime: newSchedule.calculatedEndTime,
+				scheduleType: newSchedule.scheduleType,
+				subjectId: newSchedule.scheduleType === 'subject' ? parseInt(selectedFormSubject) : null,
+				activityTypeId: newSchedule.scheduleType === 'activity' ? parseInt(selectedFormSubject) : null,
+				teacherId: newSchedule.scheduleType === 'subject' && selectedFormTeacher ? parseInt(selectedFormTeacher) : null,
+				schoolYear: selectedFormSectionObj.school_year || '2024-2025'
+			};
 
-				// Add to assignments array
-				scheduleAssignments = [...scheduleAssignments, newAssignment];
+			console.log('Sending schedule data:', scheduleData);
 
-				// Add to saved schedules for current selection
-				const savedSchedule = {
-					id: Date.now(),
-					startTime: newSchedule.calculatedStartTime,
-					endTime: newSchedule.calculatedEndTime,
-					subject: selectedFormSubjectObj.name,
-					subjectIcon: selectedFormSubjectObj.icon,
-					teacher: newSchedule.scheduleType === 'subject' ? selectedFormTeacherObj?.name : 'N/A'
-				};
-				savedSchedules = [...savedSchedules, savedSchedule];
+			// Make API call to create schedule
+			const response = await fetch('/api/schedules', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(scheduleData)
+			});
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to create schedule');
+			}
+
+			// Create new assignment for local display
+			const newAssignment = {
+				id: result.data.id,
+				year: selectedFormYear,
+				grade: selectedFormSectionObj.grade,
+				section: selectedFormSectionObj.name,
+				teacher: newSchedule.scheduleType === 'subject' ? selectedFormTeacherObj?.name : 'N/A',
+				subject: selectedFormSubjectObj.name,
+				day: selectedFormDayObj.name,
+				startTime: newSchedule.calculatedStartTime,
+				endTime: newSchedule.calculatedEndTime
+			};
+
+			// Add to assignments array
+			scheduleAssignments = [...scheduleAssignments, newAssignment];
+
+			// Add to saved schedules for current selection
+			const savedSchedule = {
+				id: result.data.id,
+				startTime: newSchedule.calculatedStartTime,
+				endTime: newSchedule.calculatedEndTime,
+				subject: selectedFormSubjectObj.name,
+				subjectIcon: selectedFormSubjectObj.icon,
+				teacher: newSchedule.scheduleType === 'subject' ? selectedFormTeacherObj?.name : 'N/A'
+			};
+			savedSchedules = [...savedSchedules, savedSchedule];
 
 			// Show success toast
-			toastStore.success(`Schedule assigned successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`);
+			toastStore.success(`Schedule created successfully for ${selectedFormSectionObj.grade} ${selectedFormSectionObj.name}`);
 
 			// Reset form
 			newSchedule = { 
@@ -651,6 +679,8 @@
 		isEndPeriodDropdownOpen = false;
 		calculateDuration();
 	}
+
+
 
 	function removeSchedule(scheduleId) {
 		savedSchedules = savedSchedules.filter(schedule => schedule.id !== scheduleId);
@@ -738,89 +768,36 @@
 		event.target.value = '';
 	}
 
-	// Edit assignment functions
-	function toggleEditForm(assignment) {
-		if (editingAssignmentId === assignment.id) {
-			// Close the form
-			editingAssignmentId = null;
-			editAssignmentTime = '';
-			editAssignmentSubject = '';
-			editSelectedTeacher = null;
-			isEditSubjectDropdownOpen = false;
-			isEditTeacherDropdownOpen = false;
-		} else {
-			// Open the form
-			editingAssignmentId = assignment.id;
-			editAssignmentTime = assignment.timeSlot || '';
-			editAssignmentSubject = assignment.subject || '';
-			editSelectedTeacher = teachers.find(teacher => teacher.name === assignment.teacher) || null;
-		}
-	}
-
-	async function handleEditAssignment() {
-		if (!editAssignmentTime.trim() || !editAssignmentSubject.trim() || !editSelectedTeacher) {
-			toastStore.warning('Please fill in all required fields');
-			return;
-		}
-
-		isUpdating = true;
-
-		try {
-			// Simulate API call
-			await new Promise(resolve => setTimeout(resolve, 1500));
-
-			// Update assignment in the array
-			scheduleAssignments = scheduleAssignments.map(assignment => {
-				if (assignment.id === editingAssignmentId) {
-					return {
-						...assignment,
-						timeSlot: editAssignmentTime,
-						subject: editAssignmentSubject,
-						teacher: editSelectedTeacher.name
-					};
-				}
-				return assignment;
-			});
-
-			// Show success message
-			toastStore.success(`Assignment updated successfully! Time: ${editAssignmentTime}, Subject: ${editAssignmentSubject}, Teacher: ${editSelectedTeacher.name}`);
-
-			// Close edit form
-			editingAssignmentId = null;
-			editAssignmentTime = '';
-			editAssignmentSubject = '';
-			editSelectedTeacher = null;
-			isEditSubjectDropdownOpen = false;
-			isEditTeacherDropdownOpen = false;
-
-		} catch (error) {
-			console.error('Error updating assignment:', error);
-			toastStore.error('Failed to update assignment. Please try again.');
-		} finally {
-			isUpdating = false;
-		}
-	}
-
 	// Delete assignment function
-	function handleDeleteAssignment(assignment) {
+	async function handleDeleteAssignment(assignment) {
 		modalStore.confirm(
 			'Delete Assignment',
 			`<p>Are you sure you want to delete this schedule assignment?</p>`,
-			() => {
-				// Remove assignment from the array
-				scheduleAssignments = scheduleAssignments.filter(a => a.id !== assignment.id);
-				
-				// Show success message
-				toastStore.success(`Assignment for ${assignment.subject} has been deleted successfully`);
-				
-				// Close edit form if it was open for this assignment
-				if (editingAssignmentId === assignment.id) {
-					editingAssignmentId = null;
-					editAssignmentTime = '';
-					editAssignmentSubject = '';
-					editSelectedTeacher = null;
-					isEditSubjectDropdownOpen = false;
-					isEditTeacherDropdownOpen = false;
+			async () => {
+				try {
+					// Make API call to delete the schedule
+					const response = await fetch(`/api/schedules?id=${assignment.id}`, {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					});
+
+					const result = await response.json();
+
+					if (result.success) {
+						// Remove assignment from the local array only after successful API call
+						scheduleAssignments = scheduleAssignments.filter(a => a.id !== assignment.id);
+						
+						// Show success message
+						toastStore.success(`Assignment for ${assignment.subject} has been deleted successfully`);
+					} else {
+						// Show error message
+						toastStore.error(result.error || 'Failed to delete assignment');
+					}
+				} catch (error) {
+					console.error('Error deleting assignment:', error);
+					toastStore.error('Failed to delete assignment. Please try again.');
 				}
 			},
 			() => {
@@ -830,29 +807,7 @@
 		);
 	}
 
-	// Edit dropdown functions
-	function toggleEditSubjectDropdown() {
-		isEditSubjectDropdownOpen = !isEditSubjectDropdownOpen;
-		isEditTeacherDropdownOpen = false;
-	}
 
-	function selectEditSubject(subject) {
-		editAssignmentSubject = subject.name;
-		isEditSubjectDropdownOpen = false;
-	}
-
-	function toggleEditTeacherDropdown() {
-		isEditTeacherDropdownOpen = !isEditTeacherDropdownOpen;
-		isEditSubjectDropdownOpen = false;
-	}
-
-	function selectEditTeacher(teacher) {
-		editSelectedTeacher = teacher;
-		isEditTeacherDropdownOpen = false;
-	}
-
-	// Computed properties for edit form
-	$: editSelectedSubjectObj = subjects.find(subject => subject.name === editAssignmentSubject);
 
 	// Schedule conflict checker function
 	function checkScheduleConflict(startTime, endTime) {
@@ -994,12 +949,72 @@
 		calculateDuration();
 	}
 
+	// Format time string from 24-hour format to 12-hour format with AM/PM
+	function formatTimeString(timeString) {
+		if (!timeString) return '';
+		
+		// Handle both HH:MM:SS and HH:MM formats
+		const timeParts = timeString.split(':');
+		let hours = parseInt(timeParts[0]);
+		const minutes = timeParts[1];
+		
+		const ampm = hours >= 12 ? 'PM' : 'AM';
+		hours = hours % 12;
+		hours = hours ? hours : 12; // 0 should be 12
+		
+		// Remove leading zero from minutes if present
+		const formattedMinutes = minutes.startsWith('0') && minutes !== '00' ? minutes.substring(1) : minutes;
+		
+		// Only show minutes if they're not 00
+		if (formattedMinutes === '00') {
+			return `${hours}:00 ${ampm}`;
+		} else {
+			return `${hours}:${formattedMinutes} ${ampm}`;
+		}
+	}
+
+	// Load existing schedules from API
+	async function loadSchedules() {
+		try {
+			const response = await fetch('/api/schedules');
+			const result = await response.json();
+			
+			if (result.success) {
+				console.log('Loaded schedules:', result.data);
+				// Transform API data to match the component's expected format
+				scheduleAssignments = result.data.map(schedule => ({
+					id: schedule.id,
+					year: `grade-${schedule.grade_level}`,
+					grade: `Grade ${schedule.grade_level}`,
+					section: schedule.section_name,
+					day: schedule.day_of_week.charAt(0).toUpperCase() + schedule.day_of_week.slice(1), // Capitalize first letter
+					time: `${formatTimeString(schedule.start_time)} - ${formatTimeString(schedule.end_time)}`,
+					subject: schedule.subject_name || schedule.activity_type_name,
+					teacher: schedule.teacher_name,
+					type: schedule.schedule_type,
+					startTime: formatTimeString(schedule.start_time),
+					endTime: formatTimeString(schedule.end_time),
+					subjectId: schedule.subject_id,
+					activityTypeId: schedule.activity_type_id,
+					teacherId: schedule.teacher_id,
+					sectionId: schedule.section_id,
+					schoolYear: schedule.school_year
+				}));
+			} else {
+				console.error('Failed to load schedules:', result.error);
+			}
+		} catch (error) {
+			console.error('Error loading schedules:', error);
+		}
+	}
+
 	// Load data on component mount
 	onMount(() => {
 		loadActivityTypes();
 		loadSections();
 		loadTeachers();
 		loadSubjects();
+		loadSchedules(); // Add this to load existing schedules
 	});
 </script>
 
@@ -1019,7 +1034,7 @@
 	<div class="scheduleassign-header">
 		<div class="scheduleassign-header-content">
 			<h1 class="scheduleassign-page-title">Schedule Management</h1>
-			<p class="scheduleassign-page-subtitle">Assign subjects and teachers to sections with specific time slots</p>
+			<p class="scheduleassign-page-subtitle">Assign subjects and teachers to sections with specific time periods</p>
 		</div>
 	</div>
 
@@ -1189,42 +1204,41 @@
 						</button>
 					</div>
 				</div>
-
-						<!-- Saved Schedules -->
-						{#if savedSchedules.length > 0}
-							<div class="scheduleassign-saved-schedules">
-								{#each savedSchedules as schedule (schedule.id)}
+						<!-- Existing Schedules from Database -->
+						{#if currentDayAssignments.length > 0}
+							<div class="scheduleassign-existing-schedules">
+								{#each currentDayAssignments as assignment (assignment.id)}
 								<div class="scheduleassign-assignment-card">
 									<div class="scheduleassign-assignment-header">
 										<div class="scheduleassign-assignment-info">
-											<h3 class="scheduleassign-assignment-title">{schedule.subject}</h3>
-										<p class="scheduleassign-assignment-subtitle">{selectedFormSectionObj.grade} - {selectedFormSectionObj.name}</p>
+											<h3 class="scheduleassign-assignment-title">{assignment.subject}</h3>
+											<p class="scheduleassign-assignment-subtitle">{assignment.grade} - {assignment.section}</p>
 										</div>
 										<div class="scheduleassign-assignment-actions">
 											<button 
 												type="button" 
 												class="scheduleassign-delete-button"
-												on:click={() => removeSchedule(schedule.id)}
-												title="Remove schedule"
+												on:click={() => handleDeleteAssignment(assignment)}
+												title="Delete assignment"
 											>
 												<span class="material-symbols-outlined">delete</span>
 											</button>
 										</div>
 									</div>
 									<div class="scheduleassign-assignment-details">
-									<div class="scheduleassign-detail-item">
-										<span class="material-symbols-outlined scheduleassign-detail-icon">person</span>
-										<span class="scheduleassign-detail-text">{schedule.teacher}</span>
+										{#if assignment.teacher}
+											<div class="scheduleassign-detail-item">
+												<span class="material-symbols-outlined scheduleassign-detail-icon">person</span>
+												<span class="scheduleassign-detail-text">{assignment.teacher}</span>
+											</div>
+										{/if}
+										{#if assignment.startTime && assignment.endTime}
+											<div class="scheduleassign-detail-item">
+												<span class="material-symbols-outlined scheduleassign-detail-icon">schedule</span>
+												<span class="scheduleassign-detail-text">{assignment.startTime} - {assignment.endTime}</span>
+											</div>
+										{/if}
 									</div>
-									<div class="scheduleassign-detail-item">
-										<span class="material-symbols-outlined scheduleassign-detail-icon">calendar_today</span>
-										<span class="scheduleassign-detail-text">{selectedFormDayObj.name}</span>
-									</div>
-									<div class="scheduleassign-detail-item">
-										<span class="material-symbols-outlined scheduleassign-detail-icon">schedule</span>
-										<span class="scheduleassign-detail-text">{schedule.startTime} - {schedule.endTime}</span>
-									</div>
-								</div>
 								</div>
 								{/each}
 							</div>
