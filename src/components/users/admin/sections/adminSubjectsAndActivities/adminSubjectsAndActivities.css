@@ -1,13 +1,11 @@
 /* Subject Creation Page Styles */
 
 .admin-subject-creation-container {
-	padding: var(--spacing-xl);
-	color: var(--md-sys-color-on-surface);
-	box-sizing: border-box;
-	overflow-y: auto;
-	overflow-x: hidden;
-	scroll-behavior: smooth;
-	height: 100%;
+  color: var(--md-sys-color-on-surface);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 /* Custom scrollbar */

@@ -1,5 +1,5 @@
 <script>
-	import './adminCurriculumManagement.css';
+	import './adminSubjectsAndActivities.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
@@ -459,22 +459,6 @@
 		}
 	}
 
-	// async function toggleEditActivityForm(activity) {
-	// 	if (editingActivityId === activity.id) {
-	// 		// Cancel editing
-	// 		editingActivityId = null;
-	// 		editActivityName = '';
-	// 		editActivityCode = '';
-	// 		editActivityIcon = 'event';
-	// 	} else {
-	// 		// Start editing
-	// 		editingActivityId = activity.id;
-	// 		editActivityName = activity.name;
-	// 		editActivityCode = activity.code;
-	// 		editActivityIcon = activity.icon;
-	// 	}
-	// }
-
 	async function handleUpdateActivity() {
 		if (!editActivityName.trim() || !editActivityCode.trim()) {
 			toastStore.error('Please fill in all required fields');
@@ -553,7 +537,7 @@
 	<!-- Header -->
 	<div class="admin-subject-header">
 		<div class="admin-header-content">
-			<h1 class="admin-page-title">Curriculum Management</h1>
+			<h1 class="admin-page-title">Subjects & Activities</h1>
 			<p class="admin-page-subtitle">Manage subjects and activity types for the curriculum</p>
 		</div>
 		

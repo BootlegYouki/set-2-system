@@ -40,7 +40,12 @@
 					id: 'department-management',
 					label: 'Department',
 					icon: 'corporate_fare'
-				}
+				},
+				{
+					id: 'subjects-and-activities',
+					label: 'Subjects & Activities',
+					icon: 'school'
+				},
 			]
 		},
 		{
@@ -72,11 +77,6 @@
 			label: 'Account Creation',
 			icon: 'person_add',
 			type: 'item'
-		},
-		{
-			id: 'curriculum-management',
-			label: 'Curriculum Management',
-			icon: 'school'
 		},
 	];
 
