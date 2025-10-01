@@ -165,10 +165,10 @@
 				}));
 				
 				if (gradeLevel) {
-					// If filtering by grade level, update subjects array
+					// If filtering by grade level, update subjects array only
 					subjects = mappedSubjects;
 				} else {
-					// If loading all subjects, store in both arrays
+					// If loading all subjects (initial load), store in both arrays
 					allSubjects = mappedSubjects;
 					subjects = [...allSubjects];
 				}
@@ -420,10 +420,20 @@
 		// Reset all subsequent selections except day (keep Monday selected)
 		selectedFormSection = '';
 		selectedFormSubject = '';
+		selectedFormTeacher = '';
 		
 		// Filter subjects based on selected grade level
 		if (year && year.id) {
-			loadSubjects(year.id);
+			// Extract numeric grade level from format like 'grade-7' -> 7
+			const numericGrade = parseInt(year.id.replace('grade-', ''));
+			
+			// Filter subjects to only show those matching the selected grade level
+			if (allSubjects.length > 0) {
+				subjects = allSubjects.filter(subject => subject.grade_level === numericGrade);
+			} else {
+				// If allSubjects is empty, load subjects with grade level filter
+				loadSubjects(year.id);
+			}
 		} else {
 			// If no year selected, show all subjects
 			subjects = [...allSubjects];

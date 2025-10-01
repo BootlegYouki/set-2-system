@@ -98,6 +98,21 @@
 			}
 		});
 
+		// Add vacant time slots for each day
+		Object.keys(processedSchedule).forEach(day => {
+			const classes = processedSchedule[day];
+			const vacantTimes = detectVacantTimes(classes);
+			
+			// Combine regular classes and vacant times, then sort by start time
+			const combinedSchedule = [...classes, ...vacantTimes].sort((a, b) => {
+				const aStartTime = timeToMinutes(a.time.split(' - ')[0]);
+				const bStartTime = timeToMinutes(b.time.split(' - ')[0]);
+				return aStartTime - bStartTime;
+			});
+			
+			processedSchedule[day] = combinedSchedule;
+		});
+
 		return processedSchedule;
 	}
 
@@ -108,6 +123,72 @@
 		const ampm = hour >= 12 ? 'PM' : 'AM';
 		const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
 		return `${displayHour.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+	}
+
+	// Convert time string to minutes for comparison
+	function timeToMinutes(timeString) {
+		const [time, period] = timeString.split(' ');
+		const [hours, minutes] = time.split(':').map(Number);
+		
+		let totalMinutes = minutes;
+		if (period === 'PM' && hours !== 12) {
+			totalMinutes += (hours + 12) * 60;
+		} else if (period === 'AM' && hours === 12) {
+			totalMinutes += 0; // 12 AM is 0 hours
+		} else {
+			totalMinutes += hours * 60;
+		}
+		
+		return totalMinutes;
+	}
+
+	// Convert minutes back to time string
+	function minutesToTime(totalMinutes) {
+		const hours = Math.floor(totalMinutes / 60);
+		const minutes = totalMinutes % 60;
+		const ampm = hours >= 12 ? 'PM' : 'AM';
+		const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+		return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+	}
+
+	// Function to detect vacant time slots between scheduled classes
+	function detectVacantTimes(classes) {
+		if (classes.length <= 1) return [];
+
+		// Sort classes by start time
+		const sortedClasses = [...classes].sort((a, b) => {
+			const aStartTime = timeToMinutes(a.time.split(' - ')[0]);
+			const bStartTime = timeToMinutes(b.time.split(' - ')[0]);
+			return aStartTime - bStartTime;
+		});
+
+		const vacantTimes = [];
+
+		// Check for gaps between consecutive classes
+		for (let i = 0; i < sortedClasses.length - 1; i++) {
+			const currentClass = sortedClasses[i];
+			const nextClass = sortedClasses[i + 1];
+
+			const currentEndTime = timeToMinutes(currentClass.time.split(' - ')[1]);
+			const nextStartTime = timeToMinutes(nextClass.time.split(' - ')[0]);
+
+			// If there's a gap between classes (more than 0 minutes)
+			if (nextStartTime > currentEndTime) {
+				const vacantStartTime = minutesToTime(currentEndTime);
+				const vacantEndTime = minutesToTime(nextStartTime);
+
+				vacantTimes.push({
+					name: 'Vacant Time',
+					time: `${vacantStartTime} - ${vacantEndTime}`,
+					room: 'Available',
+					subject: 'Free Period',
+					color: 'gray',
+					isVacant: true
+				});
+			}
+		}
+
+		return vacantTimes;
 	}
 
 	// Fetch schedule data from API
@@ -275,21 +356,28 @@
 						</div>
 						
 						<div class="class-details">
-							<div class="schedule-class-location">
-								<span class="material-symbols-outlined"> location_on</span>
-								<span>{classItem.room}</span>
-							</div>
-							{#if classItem.subject}
-								<div class="schedule-class-teacher">
-									<span class="material-symbols-outlined"> book </span>
-									<span>{classItem.subject}</span>
+							{#if classItem.scheduleType === 'vacant'}
+								<div class="schedule-class-location">
+									<span class="material-symbols-outlined">schedule</span>
+									<span>Available Time</span>
 								</div>
-							{/if}
-							{#if classItem.gradeLevel && classItem.scheduleType === 'subject'}
-								<div class="schedule-class-grade">
-									<span class="material-symbols-outlined"> school </span>
-									<span>Grade {classItem.gradeLevel}</span>
+							{:else}
+								<div class="schedule-class-location">
+									<span class="material-symbols-outlined"> location_on</span>
+									<span>{classItem.room}</span>
 								</div>
+								{#if classItem.subject}
+									<div class="schedule-class-teacher">
+										<span class="material-symbols-outlined"> book </span>
+										<span>{classItem.subject}</span>
+									</div>
+								{/if}
+								{#if classItem.gradeLevel && classItem.scheduleType === 'subject'}
+									<div class="schedule-class-grade">
+										<span class="material-symbols-outlined"> school </span>
+										<span>Grade {classItem.gradeLevel}</span>
+									</div>
+								{/if}
 							{/if}
 						</div>
 					</div>
