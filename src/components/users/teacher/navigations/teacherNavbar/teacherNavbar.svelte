@@ -98,7 +98,7 @@
 			</button>
 			
 			<div class="logo-section">
-				<span class="material-symbols-outlined logo-icon">school</span>
+				<span class="material-symbols-outlined logo-icon">person_book</span>
 				<span class="app-title">Welcome, {displayName}</span>
 			</div>
 		</div>

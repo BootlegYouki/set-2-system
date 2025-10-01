@@ -1,5 +1,8 @@
 <script>
 	import favicon from '$lib/assets/favicon.svg';
+	import faviconAdmin from '$lib/assets/favicon-admin.svg';
+	import faviconStudent from '$lib/assets/favicon-student.svg';
+	import faviconTeacher from '$lib/assets/favicon-teacher.svg';
 	import '../lib/styles/design-system.css';
 	import ToastContainer from '../components/common/ToastContainer.svelte';
 	import ModalContainer from '../components/common/ModalContainer.svelte';
@@ -8,6 +11,28 @@
 	
 	let { children } = $props();
 	let isAuthInitialized = $state(false);
+	let authState = $state();
+	
+	// Subscribe to auth store changes
+	$effect(() => {
+		const unsubscribe = authStore.subscribe(value => {
+			authState = value;
+		});
+		return unsubscribe;
+	});
+	
+	// Reactive favicon based on user type
+	let currentFavicon = $derived(
+		!authState?.isAuthenticated
+			? favicon
+			: authState.userType === 'admin'
+			? faviconAdmin
+			: authState.userType === 'student'
+			? faviconStudent
+			: authState.userType === 'teacher'
+			? faviconTeacher
+			: favicon
+	);
 	
 	// Initialize auth store
 	onMount(() => {		
@@ -25,7 +50,7 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" href={currentFavicon} />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
