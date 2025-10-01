@@ -38,6 +38,9 @@
 	let isFilterYearDropdownOpen = false;
 	let isFilterSectionDropdownOpen = false;
 	
+	// Loading states
+	let isLoadingSections = false;
+	
 	// Day picker states (similar to student schedule)
 	let isAdminDayDropdownOpen = false;
 	
@@ -85,6 +88,7 @@
 
 	// Load sections from API
 	async function loadSections() {
+		isLoadingSections = true;
 		try {
 			const response = await fetch('/api/sections?action=available-sections');
 			const result = await response.json();
@@ -102,6 +106,8 @@
 			}
 		} catch (error) {
 			console.error('Error loading sections:', error);
+		} finally {
+			isLoadingSections = false;
 		}
 	}
 	// Dynamic teachers loaded from API
@@ -594,6 +600,12 @@
 			return;
 		}
 
+		// Check for duplicate subject/activity on the same day
+		const hasDuplicate = checkDuplicateSubjectActivity();
+		if (hasDuplicate) {
+			return; // Error toast is already shown in the function
+		}
+
 		isAssigning = true;
 
 		try {
@@ -1009,6 +1021,33 @@
 		return false; // No conflict
 	}
 
+	// Check for duplicate subject/activity on the same day
+	function checkDuplicateSubjectActivity() {
+		if (!selectedFormSubject || !selectedFormSubjectObj) {
+			return false;
+		}
+
+		// Get the subject/activity name and type
+		const newSubjectName = selectedFormSubjectObj.name;
+		const newScheduleType = newSchedule.scheduleType;
+
+		// Check against existing schedules for the current day and section
+		for (const assignment of currentDayAssignments) {
+			// Compare subject/activity names and types
+			if (assignment.subject === newSubjectName && assignment.type === newScheduleType) {
+				// Show appropriate error message based on schedule type
+				if (newScheduleType === 'subject') {
+					toastStore.error(`Duplicate subject detected! "${newSubjectName}" is already scheduled for this day. Please choose a different subject.`);
+				} else {
+					toastStore.error(`Duplicate activity detected! "${newSubjectName}" is already scheduled for this day. Please choose a different activity.`);
+				}
+				return true; // Duplicate found
+			}
+		}
+
+		return false; // No duplicate
+	}
+
 	// Time calculation function
 	function calculateDuration() {
 		// Reset calculated values first
@@ -1161,7 +1200,11 @@
 					activityTypeId: schedule.activity_type_id,
 					teacherId: schedule.teacher_id,
 					sectionId: schedule.section_id,
-					schoolYear: schedule.school_year
+					schoolYear: schedule.school_year,
+					roomId: schedule.room_id,
+					roomName: schedule.room_name,
+					roomBuilding: schedule.room_building,
+					roomFloor: schedule.room_floor
 				}));
 			} else {
 				console.error('Failed to load schedules:', result.error);
@@ -1293,7 +1336,12 @@
 									/>
 									<span class="material-icons scheduleassign-search-icon">search</span>
 								</div>
-								{#if filteredSectionsWithSearch.length > 0}
+								{#if isLoadingSections}
+									<div class="admin-section-loading">
+										<span class="section-loader"></span>
+										<span>Loading sections...</span>
+									</div>
+								{:else if filteredSectionsWithSearch.length > 0}
 									{#each filteredSectionsWithSearch as section (section.id)}
 										<button 
 											type="button"
@@ -1401,13 +1449,27 @@
 												<span class="scheduleassign-detail-text">{assignment.startTime} - {assignment.endTime}</span>
 											</div>
 										{/if}
+										{#if assignment.type === 'subject' && assignment.roomName}
+											<div class="scheduleassign-detail-item">
+												<span class="material-symbols-outlined scheduleassign-detail-icon">location_on</span>
+												<span class="scheduleassign-detail-text">
+													{assignment.roomName}
+													{#if assignment.roomBuilding || assignment.roomFloor}
+														<span class="scheduleassign-room-details">
+															({assignment.roomBuilding}{assignment.roomFloor ? `, Floor ${assignment.roomFloor}` : ''})
+														</span>
+													{/if}
+												</span>
+											</div>
+										{/if}
 									</div>
 								</div>
 								{/each}
 							</div>
 						{/if}
-
-						<button 
+						
+						<a href="#add-schedule-container">
+						<button
 							type="button"
 							class="scheduleassign-add-schedule-card"
 							class:cancel-mode={isAddingSchedule}
@@ -1419,12 +1481,13 @@
 								<p class="scheduleassign-card-subtitle">{isAddingSchedule ? 'Close the form' : 'Create a new class schedule'}</p>
 							</div>
 						</button>
+						</a>
 					</div>
 				{/if}
 				
 				<!-- Add Schedule Form -->
 				{#if isAddingSchedule && selectedFormYear && selectedFormSection && selectedFormDay}
-					<div class="scheduleassign-add-form">
+					<div class="scheduleassign-add-form" id="add-schedule-container">
 						<h3 class="scheduleassign-form-title">Add New Schedule</h3>
 						<div class="scheduleassign-form-inputs">
 							<!-- Time Configuration Section -->

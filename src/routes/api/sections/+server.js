@@ -21,7 +21,7 @@ export async function GET({ url }) {
                         status,
                         room_id
                     FROM sections
-                    WHERE status = 'active' AND room_id IS NULL
+                    WHERE status = 'active'
                     ORDER BY grade_level, name
                 `);
                 return json({ success: true, data: sectionsResult.rows });

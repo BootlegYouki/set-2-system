@@ -826,14 +826,16 @@
 						<h3 class="sectionmgmt-section-name">{section.name} · Grade {section.grade_level}</h3>
 					</div>
 					<div class="sectionmgmt-action-buttons">
-						<button 
-							type="button"
-							class="sectionmgmt-edit-button"
-							on:click={() => toggleEditForm(section)}
-							title="{editingSectionId === section.id ? 'Cancel Edit' : 'Edit Section'}"
-						>
-							<span class="material-symbols-outlined">{editingSectionId === section.id ? 'close' : 'edit'}</span>
-						</button>
+						<a href="#section-edit-form-container">
+							<button 
+								type="button"
+								class="sectionmgmt-edit-button"
+								on:click={() => toggleEditForm(section)}
+								title="{editingSectionId === section.id ? 'Cancel Edit' : 'Edit Section'}"
+							>
+								<span class="material-symbols-outlined">{editingSectionId === section.id ? 'close' : 'edit'}</span>
+							</button>
+						</a>
 						<button 
 						type="button"
 						class="sectionmgmt-remove-button"
@@ -867,7 +869,7 @@
 				<!-- Inline Edit Form -->
 				{#if editingSectionId === section.id}
 					<div class="sectionmgmt-edit-form-section">
-						<div class="sectionmgmt-edit-form-container">
+						<div class="sectionmgmt-edit-form-container" id="section-edit-form-container">
 							<div class="sectionmgmt-edit-form-header">
 								<h2 class="sectionmgmt-edit-form-title">Edit Section</h2>
 								<p class="sectionmgmt-edit-form-subtitle">Update section information and manage students</p>

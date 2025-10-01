@@ -1699,3 +1699,28 @@
 	gap: var(--spacing-md);
 	margin-bottom: var(--spacing-md);
 }
+
+.scheduleassign-room-details {
+	color: var(--text-secondary);
+	font-size: 0.9em;
+	font-weight: normal;
+}
+
+/* Loading Container Styles */
+.admin-section-loading {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xl);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.admin-section-loading p {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	font-weight: var(--md-sys-typescale-body-large-weight);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+	text-align: center;
+}

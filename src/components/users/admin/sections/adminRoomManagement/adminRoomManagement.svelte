@@ -464,14 +464,16 @@
 										<span class="material-symbols-outlined">{assigningRoomId === room.id ? 'close' : 'add_circle'}</span>
 									</button>
 								{/if}
-								<button 
-									type="button"
-									class="admin-room-edit-button"
-									on:click={() => toggleEditForm(room)}
-									title="{editingRoomId === room.id ? 'Cancel Edit' : 'Edit Room'}"
-								>
-									<span class="material-symbols-outlined">{editingRoomId === room.id ? 'close' : 'edit'}</span>
-								</button>
+								<a href="#admin-room-edit-form-container">
+									<button 
+										type="button"
+										class="admin-room-edit-button"
+										on:click={() => toggleEditForm(room)}
+										title="{editingRoomId === room.id ? 'Cancel Edit' : 'Edit Room'}"
+									>
+										<span class="material-symbols-outlined">{editingRoomId === room.id ? 'close' : 'edit'}</span>
+									</button>
+								</a>
 								<button 
 									type="button"
 									class="admin-room-remove-button"
@@ -503,7 +505,7 @@
 				
 				<!-- Inline Edit Form -->
 				{#if editingRoomId === room.id}
-					<div class="admin-room-edit-form-section">
+					<div class="admin-room-edit-form-section" id="admin-room-edit-form-container">
 						<div class="admin-room-edit-form-container">
 							<div class="admin-room-edit-form-header">
 								<h2 class="admin-room-edit-form-title">Edit Room</h2>
