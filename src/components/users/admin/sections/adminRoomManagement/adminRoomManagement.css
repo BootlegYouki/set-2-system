@@ -517,7 +517,9 @@
 }
 
 .admin-room-room-location,
-.admin-room-room-assignment {
+.admin-room-room-assignment,
+.admin-room-room-created,
+.admin-room-room-updated {
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-xs);
@@ -527,7 +529,9 @@
 }
 
 .admin-room-room-location .material-symbols-outlined,
-.admin-room-room-assignment .material-symbols-outlined {
+.admin-room-room-assignment .material-symbols-outlined,
+.admin-room-room-created .material-symbols-outlined,
+.admin-room-room-updated .material-symbols-outlined {
 	font-size: 0.875rem;
 }
 

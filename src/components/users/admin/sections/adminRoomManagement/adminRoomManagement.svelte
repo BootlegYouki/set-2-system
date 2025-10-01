@@ -503,6 +503,16 @@
 								<span>Available</span>
 							</div>
 						{/if}
+						<div class="admin-room-room-created">
+							<span class="material-symbols-outlined">schedule</span>
+							<span>Created: {room.createdDate}</span>
+						</div>
+						{#if room.updatedDate && room.updatedDate !== room.createdDate}
+							<div class="admin-room-room-updated">
+								<span class="material-symbols-outlined">update</span>
+								<span>Updated: {room.updatedDate}</span>
+							</div>
+						{/if}
 					</div>
 				
 				<!-- Inline Edit Form -->

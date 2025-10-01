@@ -565,6 +565,16 @@
 	function handleClickOutside(event) {
 		// No longer needed for simple select elements
 	}
+
+	// Format date from YYYY-MM-DD to MM-DD-YYYY
+	function formatDate(dateString) {
+		if (!dateString) return '';
+		const parts = dateString.split('-');
+		if (parts.length === 3) {
+			return `${parts[1]}-${parts[2]}-${parts[0]}`;
+		}
+		return dateString;
+	}
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -776,7 +786,7 @@
 							</div>
 							<div class="dept-mgmt-department-created">
 								<span class="material-symbols-outlined">calendar_today</span>
-								<span>Created: {department.createdAt}</span>
+								<span>Created: {formatDate(department.createdAt)}</span>
 							</div>
 						</div>
 

@@ -713,7 +713,8 @@
 .sectionmgmt-section-adviser,
 .sectionmgmt-section-students,
 .sectionmgmt-section-room,
-.sectionmgmt-section-created {
+.sectionmgmt-section-created,
+.sectionmgmt-section-updated {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -725,7 +726,8 @@
 .sectionmgmt-section-adviser .material-symbols-outlined,
 .sectionmgmt-section-students .material-symbols-outlined,
 .sectionmgmt-section-room .material-symbols-outlined,
-.sectionmgmt-section-created .material-symbols-outlined {
+.sectionmgmt-section-created .material-symbols-outlined,
+.sectionmgmt-section-updated .material-symbols-outlined {
   font-size: 0.875rem;
 }
 

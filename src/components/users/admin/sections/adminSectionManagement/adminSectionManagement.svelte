@@ -865,6 +865,12 @@
 						<span class="material-symbols-outlined">calendar_today</span>
 						<span>Created: {new Date(section.created_at).toLocaleDateString()}</span>
 					</div>
+					{#if section.updated_at && section.updated_at !== section.created_at}
+						<div class="sectionmgmt-section-updated">
+							<span class="material-symbols-outlined">update</span>
+							<span>Updated: {new Date(section.updated_at).toLocaleDateString()}</span>
+						</div>
+					{/if}
 				</div>
 				
 				<!-- Inline Edit Form -->
