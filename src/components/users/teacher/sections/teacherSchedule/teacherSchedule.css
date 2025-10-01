@@ -160,7 +160,8 @@
 .schedule-class-card.blue .schedule-class-name,
 .schedule-class-card.blue .schedule-class-time,
 .schedule-class-card.blue .schedule-class-location,
-.schedule-class-card.blue .schedule-class-teacher {
+.schedule-class-card.blue .schedule-class-teacher,
+.schedule-class-card.blue .schedule-class-grade {
 	color: var(--md-sys-color-on-primary-container);
 }
 
@@ -180,7 +181,8 @@
 .schedule-class-card.green .schedule-class-name,
 .schedule-class-card.green .schedule-class-time,
 .schedule-class-card.green .schedule-class-location,
-.schedule-class-card.green .schedule-class-teacher {
+.schedule-class-card.green .schedule-class-teacher,
+.schedule-class-card.green .schedule-class-grade {
 	color: inherit;
 }
 
@@ -200,7 +202,8 @@
 .schedule-class-card.purple .schedule-class-name,
 .schedule-class-card.purple .schedule-class-time,
 .schedule-class-card.purple .schedule-class-location,
-.schedule-class-card.purple .schedule-class-teacher {
+.schedule-class-card.purple .schedule-class-teacher,
+.schedule-class-card.purple .schedule-class-grade {
 	color: inherit;
 }
 
@@ -220,7 +223,8 @@
 .schedule-class-card.yellow .schedule-class-name,
 .schedule-class-card.yellow .schedule-class-time,
 .schedule-class-card.yellow .schedule-class-location,
-.schedule-class-card.yellow .schedule-class-teacher {
+.schedule-class-card.yellow .schedule-class-teacher,
+.schedule-class-card.yellow .schedule-class-grade {
 	color: inherit;
 }
 
@@ -240,7 +244,8 @@
 .schedule-class-card.orange .schedule-class-name,
 .schedule-class-card.orange .schedule-class-time,
 .schedule-class-card.orange .schedule-class-location,
-.schedule-class-card.orange .schedule-class-teacher {
+.schedule-class-card.orange .schedule-class-teacher,
+.schedule-class-card.orange .schedule-class-grade {
 	color: inherit;
 }
 
@@ -254,8 +259,9 @@
 .schedule-class-card.gray .schedule-class-name,
 .schedule-class-card.gray .schedule-class-time,
 .schedule-class-card.gray .schedule-class-location,
-.schedule-class-card.gray .schedule-class-teacher {
-	color: var(--md-sys-color-on-surface);
+.schedule-class-card.gray .schedule-class-teacher,
+.schedule-class-card.gray .schedule-class-grade {
+	color: inherit;
 }
 
 /* Pink/Rose - Soft contrast to blue */
@@ -274,7 +280,8 @@
 .schedule-class-card.pink .schedule-class-name,
 .schedule-class-card.pink .schedule-class-time,
 .schedule-class-card.pink .schedule-class-location,
-.schedule-class-card.pink .schedule-class-teacher {
+.schedule-class-card.pink .schedule-class-teacher,
+.schedule-class-card.pink .schedule-class-grade {
 	color: inherit;
 }
 
@@ -294,7 +301,8 @@
 .schedule-class-card.light-purple .schedule-class-name,
 .schedule-class-card.light-purple .schedule-class-time,
 .schedule-class-card.light-purple .schedule-class-location,
-.schedule-class-card.light-purple .schedule-class-teacher {
+.schedule-class-card.light-purple .schedule-class-teacher,
+.schedule-class-card.light-purple .schedule-class-grade {
 	color: inherit;
 }
 
@@ -331,7 +339,8 @@
 }
 
 .schedule-class-location,
-.schedule-class-teacher {
+.schedule-class-teacher,
+.schedule-class-grade {
 	display: flex;
 	align-items: center;
 	gap: var(--spacing-xs);

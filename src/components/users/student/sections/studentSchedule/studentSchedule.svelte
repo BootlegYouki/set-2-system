@@ -1,4 +1,8 @@
 <script>
+	import { onMount } from 'svelte';
+	import { authStore } from '../../../../login/js/auth.js';
+	import './studentSchedule.css';
+
 	// Get current date info
 	const today = new Date();
 	const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
@@ -20,52 +24,131 @@
 	// Get current day abbreviation (default to Monday if weekend)
 	const todayIndex = today.getDay();
 	let selectedDay = dayIndexToAbbrev[todayIndex] || 'Mon'; // Default to Monday if weekend
-  import './studentSchedule.css';
-	const schedule = {
-		Mon: [
-			{ name: 'Algebra II', time: '08:00 - 08:45', room: 'Room 142', teacher: 'Mrs. Johnson', color: 'blue' },
-			{ name: 'English Literature', time: '08:50 - 09:35', room: 'Room 205', teacher: 'Mr. Davis', color: 'green' },
-			{ name: 'Biology', time: '09:40 - 10:25', room: 'Room 301', teacher: 'Ms. Wilson', color: 'purple' },
-			{ name: 'World History', time: '10:30 - 11:15', room: 'Room 178', teacher: 'Mr. Thompson', color: 'yellow' },
-			{ name: 'Physical Education', time: '11:20 - 12:05', room: 'Gymnasium', teacher: 'Coach Martinez', color: 'orange' },
-			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Cafeteria', teacher: '', color: 'gray' },
-			{ name: 'Spanish II', time: '12:40 - 13:25', room: 'Room 115', teacher: 'Señora Garcia', color: 'pink' },
-			{ name: 'Chemistry', time: '13:30 - 14:15', room: 'Lab 201', teacher: 'Dr. Brown', color: 'light-purple' }
-		],
-		Tue: [
-			{ name: 'Mathematics', time: '08:00 - 08:45', room: 'Room 140', teacher: 'Mr. Smith', color: 'blue' },
-			{ name: 'Physics', time: '08:50 - 09:35', room: 'Lab 305', teacher: 'Dr. Lee', color: 'green' },
-			{ name: 'English Literature', time: '09:40 - 10:25', room: 'Room 205', teacher: 'Mr. Davis', color: 'purple' },
-			{ name: 'Art', time: '10:30 - 11:15', room: 'Art Studio', teacher: 'Ms. Taylor', color: 'yellow' },
-			{ name: 'Study Hall', time: '11:20 - 12:05', room: 'Library', teacher: '', color: 'orange' },
-			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Cafeteria', teacher: '', color: 'gray' },
-			{ name: 'Computer Science', time: '12:40 - 13:25', room: 'Lab 101', teacher: 'Mr. Wilson', color: 'pink' },
-			{ name: 'Music', time: '13:30 - 14:15', room: 'Music Room', teacher: 'Ms. Anderson', color: 'light-purple' }
-		],
-		Wed: [
-			{ name: 'Biology', time: '08:00 - 08:45', room: 'Room 301', teacher: 'Ms. Wilson', color: 'blue' },
-			{ name: 'Algebra II', time: '08:50 - 09:35', room: 'Room 142', teacher: 'Mrs. Johnson', color: 'green' },
-			{ name: 'World History', time: '09:40 - 10:25', room: 'Room 178', teacher: 'Mr. Thompson', color: 'purple' },
-			{ name: 'Spanish II', time: '10:30 - 11:15', room: 'Room 115', teacher: 'Señora Garcia', color: 'yellow' },
-			{ name: 'Physical Education', time: '11:20 - 12:05', room: 'Gymnasium', teacher: 'Coach Martinez', color: 'orange' },
-			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Cafeteria', teacher: '', color: 'gray' },
-			{ name: 'English Literature', time: '12:40 - 13:25', room: 'Room 205', teacher: 'Mr. Davis', color: 'pink' },
-			{ name: 'Geography', time: '13:30 - 14:15', room: 'Room 220', teacher: 'Ms. Clark', color: 'light-purple' }
-		],
-		Thu: [
-			{ name: 'Chemistry', time: '08:00 - 08:45', room: 'Lab 201', teacher: 'Dr. Brown', color: 'blue' },
-			{ name: 'World History', time: '08:50 - 09:35', room: 'Room 178', teacher: 'Mr. Thompson', color: 'green' },
-			{ name: 'Mathematics', time: '09:40 - 10:25', room: 'Room 140', teacher: 'Mr. Smith', color: 'purple' },
-			{ name: 'English Literature', time: '10:30 - 11:15', room: 'Room 205', teacher: 'Mr. Davis', color: 'yellow' },
-			{ name: 'Art', time: '11:20 - 12:05', room: 'Art Studio', teacher: 'Ms. Taylor', color: 'orange' },
-			{ name: 'Lunch', time: '12:05 - 12:35', room: 'Cafeteria', teacher: '', color: 'gray' },
-			{ name: 'Biology', time: '12:40 - 13:25', room: 'Room 301', teacher: 'Ms. Wilson', color: 'pink' },
-			{ name: 'Physical Education', time: '13:30 - 14:15', room: 'Gymnasium', teacher: 'Coach Martinez', color: 'light-purple' }
-		],
-		Fri: [
-			// Empty Friday - no classes scheduled
-		]
-	};
+
+	// Slot-based colors (each slot gets a designated color)
+	const slotColors = ['blue', 'green', 'purple', 'yellow', 'orange'];
+	
+	// Function to get color based on slot index
+	function getSlotColor(slotIndex) {
+		return slotColors[slotIndex % slotColors.length];
+	}
+
+	// Schedule data from API
+	let scheduleData = [];
+	let loading = true;
+	let error = null;
+
+	// Process schedule data into the format expected by the component
+	function processScheduleData(data) {
+		const processedSchedule = {
+			Mon: [],
+			Tue: [],
+			Wed: [],
+			Thu: [],
+			Fri: []
+		};
+
+		// Map database day names to abbreviated names
+		const dayMapping = {
+			'monday': 'Mon',
+			'tuesday': 'Tue',
+			'wednesday': 'Wed',
+			'thursday': 'Thu',
+			'friday': 'Fri'
+		};
+
+		// Group by day to track slot indices
+		const daySlotCounters = {
+			Mon: 0,
+			Tue: 0,
+			Wed: 0,
+			Thu: 0,
+			Fri: 0
+		};
+
+		data.forEach(item => {
+			const dayAbbrev = dayMapping[item.day_of_week.toLowerCase()];
+			if (dayAbbrev) {
+				// Format time from 24-hour to 12-hour format
+				const startTime = formatTime(item.start_time);
+				const endTime = formatTime(item.end_time);
+				
+				// Determine the class name and teacher
+				let className, teacher;
+				if (item.schedule_type === 'subject') {
+					className = item.subject_name || 'Unknown Subject';
+					teacher = item.teacher_name || 'No Teacher Assigned';
+				} else if (item.schedule_type === 'activity') {
+					className = item.activity_type_name || 'Activity';
+					teacher = item.teacher_name || '';
+				}
+
+				const classItem = {
+					name: className,
+					time: `${startTime} - ${endTime}`,
+					room: item.room_name || 'TBA',
+					teacher: teacher,
+					scheduleType: item.schedule_type, // Add schedule type for conditional display
+					color: getSlotColor(daySlotCounters[dayAbbrev]) // Assign color based on slot
+				};
+
+				processedSchedule[dayAbbrev].push(classItem);
+				daySlotCounters[dayAbbrev]++; // Increment slot counter for this day
+			}
+		});
+
+		return processedSchedule;
+	}
+
+	// Format time from 24-hour to 12-hour format
+	function formatTime(timeString) {
+		const [hours, minutes] = timeString.split(':');
+		const hour = parseInt(hours);
+		const ampm = hour >= 12 ? 'PM' : 'AM';
+		const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+		return `${displayHour.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+	}
+
+	// Fetch schedule data from API
+	async function fetchScheduleData() {
+		try {
+			loading = true;
+			error = null;
+
+			// Get current user data from auth store
+			const authState = $authStore;
+			if (!authState.isAuthenticated || !authState.userData?.id) {
+				throw new Error('User not authenticated');
+			}
+
+			const response = await fetch(`/api/schedules?action=student-schedules&studentId=${authState.userData.id}&schoolYear=2024-2025`);
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to fetch schedule data');
+			}
+
+			scheduleData = processScheduleData(result.data);
+		} catch (err) {
+			console.error('Error fetching schedule data:', err);
+			error = err.message;
+			// Fallback to empty schedule
+			scheduleData = {
+				Mon: [],
+				Tue: [],
+				Wed: [],
+				Thu: [],
+				Fri: []
+			};
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Load schedule data on component mount
+	onMount(() => {
+		fetchScheduleData();
+	});
 
 	const weekDays = [
 		{ day: 'Mon' },
@@ -84,7 +167,7 @@
 		'Fri': 'Friday'
 	};
 
-	$: currentClasses = schedule[selectedDay] || [];
+	$: currentClasses = scheduleData[selectedDay] || [];
 	$: fullDayName = dayNameMap[selectedDay] || selectedDay;
 	
 	// Mobile dropdown state
@@ -159,7 +242,27 @@
 	<div class="classes-section">
 		<h2>{fullDayName} Classes</h2>
 		
-		{#if currentClasses.length > 0}
+		{#if loading}
+			<div class="loading-message">
+				<div class="loading-icon">
+					<span class="material-symbols-outlined">schedule</span>
+				</div>
+				<h3>Loading Schedule...</h3>
+				<p>Please wait while we fetch your class schedule.</p>
+			</div>
+		{:else if error}
+			<div class="error-message">
+				<div class="error-icon">
+					<span class="material-symbols-outlined">error</span>
+				</div>
+				<h3>Error Loading Schedule</h3>
+				<p>{error}</p>
+				<button class="retry-button" on:click={fetchScheduleData}>
+					<span class="material-symbols-outlined">refresh</span>
+					Try Again
+				</button>
+			</div>
+		{:else if currentClasses.length > 0}
 			<div class="classes-list">
 				{#each currentClasses as classItem}
 					<div class="class-card {classItem.color}">
@@ -171,7 +274,7 @@
 						<div class="class-details">
 							<div class="class-location">
 								<span class="material-symbols-outlined"> location_on</span>
-								<span>{classItem.room}</span>
+								<span>{classItem.scheduleType === 'activity' ? 'No room' : classItem.room}</span>
 							</div>
 							{#if classItem.teacher}
 								<div class="class-teacher">

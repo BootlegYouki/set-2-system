@@ -89,15 +89,64 @@ export async function GET({ url }) {
                         sub.code as subject_code,
                         sch.activity_type_id,
                         act.name as activity_type_name,
+                        r.name as room_name,
                         sch.school_year
                     FROM schedules sch
                     JOIN sections sec ON sch.section_id = sec.id
                     LEFT JOIN subjects sub ON sch.subject_id = sub.id
                     LEFT JOIN activity_types act ON sch.activity_type_id = act.id
+                    LEFT JOIN rooms r ON sec.room_id = r.id
                     WHERE sch.teacher_id = $1 AND sch.school_year = $2
                     ORDER BY sch.day_of_week, sch.start_time
                 `, [parseInt(teacherId), schoolYear]);
                 return json({ success: true, data: teacherSchedulesResult.rows });
+
+            case 'student-schedules':
+                const studentId = url.searchParams.get('studentId');
+                if (!studentId) {
+                    return json({ success: false, error: 'Student ID is required' }, { status: 400 });
+                }
+                const studentSchedulesResult = await query(`
+                    SELECT 
+                        sch.id,
+                        sch.section_id,
+                        sec.name as section_name,
+                        sec.grade_level,
+                        sch.day_of_week,
+                        sch.start_time,
+                        sch.end_time,
+                        sch.schedule_type,
+                        sch.subject_id,
+                        sub.name as subject_name,
+                        sub.code as subject_code,
+                        sch.activity_type_id,
+                        act.name as activity_type_name,
+                        act.icon as activity_type_icon,
+                        sch.teacher_id,
+                        u.full_name as teacher_name,
+                        r.name as room_name,
+                        sch.school_year
+                    FROM schedules sch
+                    JOIN sections sec ON sch.section_id = sec.id
+                    JOIN section_students ss ON sec.id = ss.section_id
+                    LEFT JOIN subjects sub ON sch.subject_id = sub.id
+                    LEFT JOIN activity_types act ON sch.activity_type_id = act.id
+                    LEFT JOIN users u ON sch.teacher_id = u.id
+                    LEFT JOIN rooms r ON sec.room_id = r.id
+                    WHERE ss.student_id = $1 AND sch.school_year = $2 AND ss.status = 'active'
+                    ORDER BY 
+                        CASE sch.day_of_week
+                            WHEN 'monday' THEN 1
+                            WHEN 'tuesday' THEN 2
+                            WHEN 'wednesday' THEN 3
+                            WHEN 'thursday' THEN 4
+                            WHEN 'friday' THEN 5
+                            WHEN 'saturday' THEN 6
+                            WHEN 'sunday' THEN 7
+                        END,
+                        sch.start_time
+                `, [parseInt(studentId), schoolYear]);
+                return json({ success: true, data: studentSchedulesResult.rows });
 
             default:
                 // Default: Get all schedules with optional filtering
