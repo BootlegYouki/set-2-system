@@ -82,8 +82,10 @@
 			.app-loading-content {
 				text-align: center;
 			}
-			.app-loading-content .material-symbols-outlined {
-				font-size: 120px;
+
+			.app-loading-icon{
+				fill: var(--md-sys-color-on-surface);
+				height: 120px;
 			}
 			
 			.app-loading-progress {
@@ -95,14 +97,18 @@
 			}
 			
 			.app-loading-bar {
-				flex: 1;
-				height: 6px;
-				background-color: var(--md-sys-color-outline-variant);
-				border-radius: 3px;
-				overflow: hidden;
-				position: relative;
+					flex: 1;
+					height: 6px;
+					background-color: var(--md-sys-color-outline-variant);
+					border-radius: 3px;
+					overflow: hidden;
+					position: relative;
 			}
-			
+
+			[data-theme="light"] .app-loading-fill {
+    			background: linear-gradient(90deg, #222831 0%, #393e46 100%);
+			}
+
 			.app-loading-fill {
 				height: 100%;
 				background: linear-gradient(90deg, 
@@ -224,7 +230,7 @@
 		<!-- App loading state -->
 		<div class="app-loading" id="app-loading">
 			<div class="app-loading-content">
-				<span class="material-symbols-outlined app-loading-icon">school</span>
+			<svg class="app-loading-icon" xmlns="http://www.w3.org/2000/svg" height="120px" viewBox="0 -960 960 960" width="120px" fill="#F4F4F4"><path d="M480-120 200-272v-240L40-600l440-240 440 240v320h-80v-276l-80 44v240L480-120Zm0-332 274-148-274-148-274 148 274 148Zm0 241 200-108v-151L480-360 280-470v151l200 108Zm0-241Zm0 90Zm0 0Z"/></svg>
 				
 				<!-- Progress bar -->
 				<div class="app-loading-progress">
