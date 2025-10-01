@@ -743,12 +743,13 @@
 					</div>
 				{:else}
 					{#each filteredSubjects as subject (subject.id)}
-						<div class="adminsubject-subject-card">
+						<div class="adminsubject-subject-card" id="adminsubject-subject-card-{subject.id}">
 							<div class="adminsubject-subject-header">
 								<div class="adminsubject-subject-title">
 									<h3 class="adminsubject-subject-name">{subject.name} · {subject.gradeLevel}</h3>
 								</div>
 								<div class="adminsubject-action-buttons">
+									<a href="#adminsubject-subject-card-{subject.id}">
 									<button 
 										type="button" 
 										class="adminsubject-edit-button" 
@@ -759,6 +760,7 @@
 											{editingSubjectId === subject.id ? 'close' : 'edit'}
 										</span>
 									</button>
+									</a>
 									<button 
 										type="button" 
 										class="adminsubject-remove-button" 
@@ -788,7 +790,7 @@
 						<!-- Inline Edit Form -->
 						{#if editingSubjectId === subject.id}
 							<div class="adminsubject-edit-form-section">
-								<div class="adminsubject-edit-form-container">
+								<div class="adminsubject-edit-form-container" id="adminsubject-edit-form-container">
 									<div class="adminsubject-edit-form-header">
 										<h2 class="adminsubject-edit-form-title">Edit Subject</h2>
 										<p class="adminsubject-edit-form-subtitle">Update subject information</p>
@@ -1012,22 +1014,24 @@
 			<div class="adminactivity-activities-grid">
 				{#if activityTypes.length > 0}
 					{#each activityTypes as activity (activity.id)}
-					<div class="adminactivity-activity-card">
+					<div class="adminactivity-activity-card" id="adminactivity-activity-card-{activity.id}">
 						<div class="adminactivity-activity-header">
 							<div class="adminactivity-activity-title">
 								<h3 class="adminactivity-activity-name">{activity.name}</h3>
 							</div>
 							<div class="adminactivity-action-buttons">
-								<button 
-									type="button" 
-									class="adminactivity-edit-button" 
-									on:click={() => toggleEditActivityForm(activity)}
-									title="{editingActivityId === activity.id ? 'Cancel Edit' : 'Edit Activity Type'}"
-								>
-									<span class="material-symbols-outlined">
-										{editingActivityId === activity.id ? 'close' : 'edit'}
-									</span>
-								</button>
+								<a href="#adminactivity-activity-card-{activity.id}">
+									<button 
+										type="button" 
+										class="adminactivity-edit-button" 
+										on:click={() => toggleEditActivityForm(activity)}
+										title="{editingActivityId === activity.id ? 'Cancel Edit' : 'Edit Activity Type'}"
+									>
+										<span class="material-symbols-outlined">
+											{editingActivityId === activity.id ? 'close' : 'edit'}
+										</span>
+									</button>
+								</a>
 								<button 
 									type="button" 
 									class="adminactivity-remove-button" 
@@ -1140,13 +1144,15 @@
 
 										<!-- Form Actions -->
 										<div class="adminsubject-edit-form-actions">
-											<button
-												type="button"
-												class="adminsubject-cancel-button"
-												on:click={() => toggleEditActivityForm(activity)}
-											>
-												Cancel
-											</button>
+											<a href="#adminactivity-activity-card-{activity.id}">
+												<button
+													type="button"
+													class="adminsubject-cancel-button"
+													on:click={() => toggleEditActivityForm(activity)}
+												>
+													Cancel
+												</button>
+											</a>
 											<button
 												type="submit"
 												class="adminsubject-submit-button"

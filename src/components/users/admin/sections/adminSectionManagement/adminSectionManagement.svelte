@@ -820,13 +820,14 @@
 				</div>
 			{:else}
 				{#each sectionsData as section (section.id)}
-			<div class="sectionmgmt-section-card" class:editing={editingSectionId === section.id}>
+			<div class="sectionmgmt-section-card" class:editing={editingSectionId === section.id} 
+			id="sectionmgmt-section-card-{section.id}">
 				<div class="sectionmgmt-section-header-card">
 					<div class="sectionmgmt-section-title">
 						<h3 class="sectionmgmt-section-name">{section.name} · Grade {section.grade_level}</h3>
 					</div>
 					<div class="sectionmgmt-action-buttons">
-						<a href="#section-edit-form-container">
+						<a href="#sectionmgmt-section-card-{section.id}">
 							<button 
 								type="button"
 								class="sectionmgmt-edit-button"

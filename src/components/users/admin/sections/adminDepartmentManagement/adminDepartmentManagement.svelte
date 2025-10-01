@@ -723,12 +723,14 @@
 				{#each filteredDepartments as department (department.id)}
 					<div class="dept-mgmt-department-card" 
 						 class:editing={editingDepartmentId === department.id}
-						 class:assigning={assigningDepartmentId === department.id}>
+						 class:assigning={assigningDepartmentId === department.id}
+						 id="department-card-{department.id}">
 						<div class="dept-mgmt-department-header">
 							<div class="dept-mgmt-department-title">
 								<h3 class="dept-mgmt-department-name">{department.name}</h3>
 							</div>
 							<div class="dept-mgmt-action-buttons">
+								<a href="#department-card-{department.id}">
 								<button 
 									type="button"
 									class="dept-mgmt-assign-button"
@@ -737,6 +739,8 @@
 								>
 									<span class="material-symbols-outlined">{assigningDepartmentId === department.id ? 'close' : 'add_circle'}</span>
 								</button>
+								</a>
+								<a href="#department-card-{department.id}">
 								<button 
 									type="button"
 									class="dept-mgmt-edit-button"
@@ -745,6 +749,7 @@
 								>
 									<span class="material-symbols-outlined">{editingDepartmentId === department.id ? 'close' : 'edit'}</span>
 								</button>
+								</a>
 								<button 
 									type="button"
 									class="dept-mgmt-remove-button"
@@ -778,7 +783,7 @@
 						<!-- Inline Edit Form -->
 						{#if editingDepartmentId === department.id}
 							<div class="dept-mgmt-edit-form-section">
-								<div class="dept-mgmt-edit-form-container">
+								<div class="dept-mgmt-edit-form-container" id="admin-department-edit-form-container">
 									<div class="dept-mgmt-edit-form-header">
 										<h2 class="dept-mgmt-edit-form-title">Edit Department</h2>
 										<p class="dept-mgmt-edit-form-subtitle">Update department information</p>
@@ -818,9 +823,11 @@
 
 										<!-- Form Actions -->
 										<div class="dept-mgmt-edit-form-actions">
-											<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleEditForm(department)}>
-												Cancel
-											</button>
+											<a href="#department-card-{department.id}">
+												<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleEditForm(department)}>
+													Cancel
+												</button>
+											</a>
 											<button 
 												type="submit" 
 												class="dept-mgmt-update-button"
@@ -840,233 +847,233 @@
 
 						<!-- Inline Assign Form -->
 						{#if assigningDepartmentId === department.id}
-		<div class="dept-mgmt-assign-form-section">
-			<div class="dept-mgmt-assign-form-container">
-				<div class="dept-mgmt-assign-form-header">
-					<h2 class="dept-mgmt-assign-form-title">Assign Subjects & Teachers</h2>
-					<p class="dept-mgmt-assign-form-subtitle">Select subjects and teachers for this department</p>
-				</div>
-				
-				<form class="dept-mgmt-assign-form-content" on:submit|preventDefault={handleAssignDepartment}>
-					<!-- Subjects Selection -->
-					<div class="dept-mgmt-assign-info-row">
-						<div class="dept-mgmt-form-group">
-							<label class="dept-mgmt-form-label" for="subjects">Select Subjects</label>
-							
-							<!-- Subject Selection Dropdown -->
-							<div class="dept-mgmt-custom-dropdown" class:open={isSubjectDropdownOpen}>
-								<button 
-									type="button"
-									class="dept-mgmt-dropdown-trigger" 
-									class:selected={selectedSubjects.length > 0}
-									on:click={toggleSubjectDropdown}
-									id="subjects"
-								>
-									<span class="dept-mgmt-placeholder">Add subjects to department</span>
-									<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
-								</button>
-								<div class="dept-mgmt-dropdown-menu">
-									<div class="dept-mgmt-search-container">
-										{#if filteredSubjects.length > 0}
-											{@const allFilteredSelected = filteredSubjects.every(subject => selectedSubjects.some(id => id === subject.id))}
-											<button 
-												type="button"
-												class="dept-mgmt-select-all-btn"
-												on:click={toggleSelectAllSubjects}
-												title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredSubjects.length})"
-											>
-												<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
-											</button>
-										{/if}
-										<input 
-											type="text" 
-											class="dept-mgmt-search-input"
-											placeholder="Search subjects..."
-											bind:value={subjectSearchTerm}
-										/>
-										<span class="material-symbols-outlined" 
-											class:dept-mgmt-search-icon-create={filteredSubjects.length > 0}
-											class:dept-mgmt-search-icon={filteredSubjects.length === 0}>search</span>
+							<div class="dept-mgmt-assign-form-section">
+								<div class="dept-mgmt-assign-form-container">
+									<div class="dept-mgmt-assign-form-header">
+										<h2 class="dept-mgmt-assign-form-title">Assign Subjects & Teachers</h2>
+										<p class="dept-mgmt-assign-form-subtitle">Select subjects and teachers for this department</p>
 									</div>
-									{#each filteredSubjects as subject (subject.id)}
-										<button 
-											type="button"
-											class="dept-mgmt-dropdown-option dept-mgmt-subject-option" 
-											class:selected={selectedSubjects.some(id => id === subject.id)}
-											on:click={() => toggleSubjectSelection(subject)}
-										>
-											<div class="dept-mgmt-subject-checkbox">
-												<span class="material-symbols-outlined">
-													{selectedSubjects.some(id => id === subject.id) ? 'check_box' : 'check_box_outline_blank'}
-												</span>
-											</div>
-											<span class="material-symbols-outlined dept-mgmt-option-icon">subject</span>
-											<div class="dept-mgmt-option-content">
-												<span class="dept-mgmt-option-name">{subject.name}</span>
-												<span class="dept-mgmt-option-description">{subject.code} • {subject.gradeLevel}</span>
-											</div>
-										</button>
-									{/each}
-									{#if filteredSubjects.length === 0}
-										<div class="dept-mgmt-no-results">
-											<span class="material-symbols-outlined">subject</span>
-											<span>No subjects found</span>
-										</div>
-									{/if}
-								</div>
-							</div>
-							<p class="dept-mgmt-form-help">Select subjects that will be managed by this department.</p>
-							
-							<!-- Selected Subjects Display -->
-							{#if selectedSubjects.length > 0}
-								<div class="dept-mgmt-selected-subjects">
-									<div class="dept-mgmt-selected-subjects-header">
-										<span class="dept-mgmt-selected-count">{selectedSubjects.length} subject{selectedSubjects.length !== 1 ? 's' : ''} selected</span>
-									</div>
-									<div class="dept-mgmt-selected-subjects-list">
-										{#each selectedSubjects as subjectId (subjectId)}
-											{@const subject = availableSubjects.find(s => s.id === subjectId)}
-											{#if subject}
-												<div class="dept-mgmt-selected-subject-chip">
-													<span class="dept-mgmt-subject-name">{subject.name}</span>
-													<span class="dept-mgmt-subject-code">{subject.code}</span>
+									
+									<form class="dept-mgmt-assign-form-content" on:submit|preventDefault={handleAssignDepartment}>
+										<!-- Subjects Selection -->
+										<div class="dept-mgmt-assign-info-row">
+											<div class="dept-mgmt-form-group">
+												<label class="dept-mgmt-form-label" for="subjects">Select Subjects</label>
+												
+												<!-- Subject Selection Dropdown -->
+												<div class="dept-mgmt-custom-dropdown" class:open={isSubjectDropdownOpen}>
 													<button 
-														type="button" 
-														class="dept-mgmt-remove-subject"
-														on:click={() => removeSubject(subjectId)}
-														aria-label="Remove {subject.name}"
+														type="button"
+														class="dept-mgmt-dropdown-trigger" 
+														class:selected={selectedSubjects.length > 0}
+														on:click={toggleSubjectDropdown}
+														id="subjects"
 													>
-														<span class="material-symbols-outlined">close</span>
+														<span class="dept-mgmt-placeholder">Add subjects to department</span>
+														<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
 													</button>
+													<div class="dept-mgmt-dropdown-menu">
+														<div class="dept-mgmt-search-container">
+															{#if filteredSubjects.length > 0}
+																{@const allFilteredSelected = filteredSubjects.every(subject => selectedSubjects.some(id => id === subject.id))}
+																<button 
+																	type="button"
+																	class="dept-mgmt-select-all-btn"
+																	on:click={toggleSelectAllSubjects}
+																	title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredSubjects.length})"
+																>
+																	<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+																</button>
+															{/if}
+															<input 
+																type="text" 
+																class="dept-mgmt-search-input"
+																placeholder="Search subjects..."
+																bind:value={subjectSearchTerm}
+															/>
+															<span class="material-symbols-outlined" 
+																class:dept-mgmt-search-icon-create={filteredSubjects.length > 0}
+																class:dept-mgmt-search-icon={filteredSubjects.length === 0}>search</span>
+														</div>
+														{#each filteredSubjects as subject (subject.id)}
+															<button 
+																type="button"
+																class="dept-mgmt-dropdown-option dept-mgmt-subject-option" 
+																class:selected={selectedSubjects.some(id => id === subject.id)}
+																on:click={() => toggleSubjectSelection(subject)}
+															>
+																<div class="dept-mgmt-subject-checkbox">
+																	<span class="material-symbols-outlined">
+																		{selectedSubjects.some(id => id === subject.id) ? 'check_box' : 'check_box_outline_blank'}
+																	</span>
+																</div>
+																<span class="material-symbols-outlined dept-mgmt-option-icon">subject</span>
+																<div class="dept-mgmt-option-content">
+																	<span class="dept-mgmt-option-name">{subject.name}</span>
+																	<span class="dept-mgmt-option-description">{subject.code} • {subject.gradeLevel}</span>
+																</div>
+															</button>
+														{/each}
+														{#if filteredSubjects.length === 0}
+															<div class="dept-mgmt-no-results">
+																<span class="material-symbols-outlined">subject</span>
+																<span>No subjects found</span>
+															</div>
+														{/if}
+													</div>
 												</div>
-											{/if}
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-					</div>
+												<p class="dept-mgmt-form-help">Select subjects that will be managed by this department.</p>
+												
+												<!-- Selected Subjects Display -->
+												{#if selectedSubjects.length > 0}
+													<div class="dept-mgmt-selected-subjects">
+														<div class="dept-mgmt-selected-subjects-header">
+															<span class="dept-mgmt-selected-count">{selectedSubjects.length} subject{selectedSubjects.length !== 1 ? 's' : ''} selected</span>
+														</div>
+														<div class="dept-mgmt-selected-subjects-list">
+															{#each selectedSubjects as subjectId (subjectId)}
+																{@const subject = availableSubjects.find(s => s.id === subjectId)}
+																{#if subject}
+																	<div class="dept-mgmt-selected-subject-chip">
+																		<span class="dept-mgmt-subject-name">{subject.name}</span>
+																		<span class="dept-mgmt-subject-code">{subject.code}</span>
+																		<button 
+																			type="button" 
+																			class="dept-mgmt-remove-subject"
+																			on:click={() => removeSubject(subjectId)}
+																			aria-label="Remove {subject.name}"
+																		>
+																			<span class="material-symbols-outlined">close</span>
+																		</button>
+																	</div>
+																{/if}
+															{/each}
+														</div>
+													</div>
+												{/if}
+											</div>
+										</div>
 
-					<!-- Teachers Selection -->
-					<div class="dept-mgmt-assign-info-row">
-						<div class="dept-mgmt-form-group">
-							<label class="dept-mgmt-form-label" for="teachers">Select Teachers</label>
-							
-							<!-- Teacher Selection Dropdown -->
-							<div class="dept-mgmt-custom-dropdown" class:open={isTeacherDropdownOpen}>
-								<button 
-									type="button"
-									class="dept-mgmt-dropdown-trigger" 
-									class:selected={selectedTeachers.length > 0}
-									on:click={toggleTeacherDropdown}
-									id="teachers"
-								>
-									<span class="dept-mgmt-placeholder">Add teachers to department</span>
-									<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
-								</button>
-								<div class="dept-mgmt-dropdown-menu">
-									<div class="dept-mgmt-search-container">
-										{#if filteredTeachers.length > 0}
-											{@const allFilteredSelected = filteredTeachers.every(teacher => selectedTeachers.some(id => id === teacher.id))}
-											<button 
-												type="button"
-												class="dept-mgmt-select-all-btn"
-												on:click={toggleSelectAllTeachers}
-												title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredTeachers.length})"
-											>
-												<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
-											</button>
-										{/if}
-										<input 
-											type="text" 
-											class="dept-mgmt-search-input"
-											placeholder="Search teachers..."
-											bind:value={teacherSearchTerm}
-										/>
-										<span class="material-symbols-outlined" 
-											class:dept-mgmt-search-icon-create={filteredTeachers.length > 0}
-											class:dept-mgmt-search-icon={filteredTeachers.length === 0}>search</span>
-									</div>
-									{#each filteredTeachers as teacher (teacher.id)}
-										<button 
-											type="button"
-											class="dept-mgmt-dropdown-option dept-mgmt-teacher-option" 
-											class:selected={selectedTeachers.some(id => id === teacher.id)}
-											on:click={() => toggleTeacherSelection(teacher)}
-										>
-											<div class="dept-mgmt-teacher-checkbox">
-												<span class="material-symbols-outlined">
-													{selectedTeachers.some(id => id === teacher.id) ? 'check_box' : 'check_box_outline_blank'}
-												</span>
-											</div>
-											<span class="material-symbols-outlined dept-mgmt-option-icon">person</span>
-											<div class="dept-mgmt-option-content">
-												<span class="dept-mgmt-option-name">{teacher.name}</span>
-												<span class="dept-mgmt-option-description">{teacher.accountNumber}</span>
-											</div>
-										</button>
-									{/each}
-									{#if filteredTeachers.length === 0}
-										<div class="dept-mgmt-no-results">
-											<span class="material-symbols-outlined">person_off</span>
-											<span>No teachers found</span>
-										</div>
-									{/if}
-								</div>
-							</div>
-							<p class="dept-mgmt-form-help">Select teachers who will be part of this department.</p>
-							
-							<!-- Selected Teachers Display -->
-							{#if selectedTeachers.length > 0}
-								<div class="dept-mgmt-selected-teachers">
-									<div class="dept-mgmt-selected-teachers-header">
-										<span class="dept-mgmt-selected-count">{selectedTeachers.length} teacher{selectedTeachers.length !== 1 ? 's' : ''} selected</span>
-									</div>
-									<div class="dept-mgmt-selected-teachers-list">
-										{#each selectedTeachers as teacherId (teacherId)}
-											{@const teacher = availableTeachers.find(t => t.id === teacherId)}
-											{#if teacher}
-												<div class="dept-mgmt-selected-teacher-chip">
-													<span class="dept-mgmt-teacher-name">{teacher.name}</span>
-													<span class="dept-mgmt-teacher-subject">{teacher.accountNumber}</span>
+										<!-- Teachers Selection -->
+										<div class="dept-mgmt-assign-info-row">
+											<div class="dept-mgmt-form-group">
+												<label class="dept-mgmt-form-label" for="teachers">Select Teachers</label>
+												
+												<!-- Teacher Selection Dropdown -->
+												<div class="dept-mgmt-custom-dropdown" class:open={isTeacherDropdownOpen}>
 													<button 
-														type="button" 
-														class="dept-mgmt-remove-teacher"
-														on:click={() => removeTeacher(teacherId)}
-														aria-label="Remove {teacher.name}"
+														type="button"
+														class="dept-mgmt-dropdown-trigger" 
+														class:selected={selectedTeachers.length > 0}
+														on:click={toggleTeacherDropdown}
+														id="teachers"
 													>
-														<span class="material-symbols-outlined">close</span>
+														<span class="dept-mgmt-placeholder">Add teachers to department</span>
+														<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
 													</button>
+													<div class="dept-mgmt-dropdown-menu">
+														<div class="dept-mgmt-search-container">
+															{#if filteredTeachers.length > 0}
+																{@const allFilteredSelected = filteredTeachers.every(teacher => selectedTeachers.some(id => id === teacher.id))}
+																<button 
+																	type="button"
+																	class="dept-mgmt-select-all-btn"
+																	on:click={toggleSelectAllTeachers}
+																	title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredTeachers.length})"
+																>
+																	<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+																</button>
+															{/if}
+															<input 
+																type="text" 
+																class="dept-mgmt-search-input"
+																placeholder="Search teachers..."
+																bind:value={teacherSearchTerm}
+															/>
+															<span class="material-symbols-outlined" 
+																class:dept-mgmt-search-icon-create={filteredTeachers.length > 0}
+																class:dept-mgmt-search-icon={filteredTeachers.length === 0}>search</span>
+														</div>
+														{#each filteredTeachers as teacher (teacher.id)}
+															<button 
+																type="button"
+																class="dept-mgmt-dropdown-option dept-mgmt-teacher-option" 
+																class:selected={selectedTeachers.some(id => id === teacher.id)}
+																on:click={() => toggleTeacherSelection(teacher)}
+															>
+																<div class="dept-mgmt-teacher-checkbox">
+																	<span class="material-symbols-outlined">
+																		{selectedTeachers.some(id => id === teacher.id) ? 'check_box' : 'check_box_outline_blank'}
+																	</span>
+																</div>
+																<span class="material-symbols-outlined dept-mgmt-option-icon">person</span>
+																<div class="dept-mgmt-option-content">
+																	<span class="dept-mgmt-option-name">{teacher.name}</span>
+																	<span class="dept-mgmt-option-description">{teacher.accountNumber}</span>
+																</div>
+															</button>
+														{/each}
+														{#if filteredTeachers.length === 0}
+															<div class="dept-mgmt-no-results">
+																<span class="material-symbols-outlined">person_off</span>
+																<span>No teachers found</span>
+															</div>
+														{/if}
+													</div>
 												</div>
-											{/if}
-										{/each}
+												<p class="dept-mgmt-form-help">Select teachers who will be part of this department.</p>
+												
+												<!-- Selected Teachers Display -->
+												{#if selectedTeachers.length > 0}
+													<div class="dept-mgmt-selected-teachers">
+														<div class="dept-mgmt-selected-teachers-header">
+															<span class="dept-mgmt-selected-count">{selectedTeachers.length} teacher{selectedTeachers.length !== 1 ? 's' : ''} selected</span>
+														</div>
+														<div class="dept-mgmt-selected-teachers-list">
+															{#each selectedTeachers as teacherId (teacherId)}
+																{@const teacher = availableTeachers.find(t => t.id === teacherId)}
+																{#if teacher}
+																	<div class="dept-mgmt-selected-teacher-chip">
+																		<span class="dept-mgmt-teacher-name">{teacher.name}</span>
+																		<span class="dept-mgmt-teacher-subject">{teacher.accountNumber}</span>
+																		<button 
+																			type="button" 
+																			class="dept-mgmt-remove-teacher"
+																			on:click={() => removeTeacher(teacherId)}
+																			aria-label="Remove {teacher.name}"
+																		>
+																			<span class="material-symbols-outlined">close</span>
+																		</button>
+																	</div>
+																{/if}
+															{/each}
+														</div>
+													</div>
+												{/if}
+											</div>
+										</div>
+						
+											<!-- Form Actions -->
+											<div class="dept-mgmt-assign-actions">
+												<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleAssignForm(department)}>
+													Cancel
+												</button>
+												<button 
+													type="submit" 
+													class="dept-mgmt-assign-submit-button"
+													disabled={isAssigning}
+												>
+													{#if isAssigning}
+														Assigning...
+													{:else}
+														Update
+													{/if}
+												</button>
+											</div>
+										</form>
 									</div>
-								</div>
-							{/if}
-						</div>
-					</div>
-	
-						<!-- Form Actions -->
-						<div class="dept-mgmt-assign-actions">
-							<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleAssignForm(department)}>
-								Cancel
-							</button>
-							<button 
-								type="submit" 
-								class="dept-mgmt-assign-submit-button"
-								disabled={isAssigning}
-							>
-								{#if isAssigning}
-									Assigning...
-								{:else}
-									Update Assignments
-								{/if}
-							</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		{/if}
+							</div>
+						{/if}
 					</div>
 				{/each}
 			{/if}

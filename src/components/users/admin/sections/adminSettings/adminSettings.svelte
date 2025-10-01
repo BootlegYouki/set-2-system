@@ -55,8 +55,6 @@
 			quarter3End = convertToYYYYMMDD(settings.quarter_3_end_date) || '';
 			quarter4Start = convertToYYYYMMDD(settings.quarter_4_start_date) || '';
 			quarter4End = convertToYYYYMMDD(settings.quarter_4_end_date) || '';
-			
-			showSuccess('Admin settings loaded successfully!');
 			}
 		} catch (error) {
 			console.error('Error loading admin settings:', error);

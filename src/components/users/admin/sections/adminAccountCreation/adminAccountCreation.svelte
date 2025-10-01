@@ -1071,20 +1071,22 @@
 				</div>
 			{:else}
 				{#each filteredAccounts as account (account.id)}
-			<div class="account-card">
+			<div class="account-card" id="account-card-{account.id}">
 				<div class="account-card-header">
 					<div class="account-title">
 						<h3 class="account-name">{account.name} · {account.type}</h3>
 					</div>
 					<div class="account-action-buttons">
-						<button 
-							type="button"
-							class="account-edit-button"
-							title="{editingAccountId === account.id ? 'Cancel Edit' : 'Edit Account'}"
-							on:click={() => toggleEditForm(account)}
-						>
-							<span class="material-symbols-outlined">{editingAccountId === account.id ? 'close' : 'edit'}</span>
-						</button>
+						<a href="#account-card-{account.id}">
+							<button 
+								type="button"
+								class="account-edit-button"
+								title="{editingAccountId === account.id ? 'Cancel Edit' : 'Edit Account'}"
+								on:click={() => toggleEditForm(account)}
+							>
+								<span class="material-symbols-outlined">{editingAccountId === account.id ? 'close' : 'edit'}</span>
+							</button>
+						</a>
 						<button 
 							type="button"
 							class="account-remove-button"
@@ -1312,13 +1314,15 @@
 								{/if}
 
 								<div class="edit-form-actions">
-									<button 
-										type="button" 
-										class="account-cancel-button"
-										on:click={() => toggleEditForm(account)}
-									>
-										Cancel
-									</button>
+									<a href="#account-card-{account.id}">
+										<button 
+											type="button" 
+											class="account-cancel-button"
+											on:click={() => toggleEditForm(account)}
+										>
+											Cancel
+										</button>
+									</a>
 									<button 
 										type="submit" 
 										class="account-submit-button"

@@ -14,7 +14,7 @@
 			icon: 'dashboard',
 			type: 'item'
 		},
-		{
+				{
 			id: 'management-folder',
 			label: 'Management',
 			icon: 'folder',
@@ -49,21 +49,9 @@
 			]
 		},
 		{
-			id: 'student-masterlist',
-			label: 'Student Masterlist',
-			icon: 'groups',
-			type: 'item'
-		},
-		{
-			id: 'archived-students',
-			label: 'Archived Students',
-			icon: 'archive',
-			type: 'item'
-		},
-		{
-			id: 'student-grades-list',
-			label: 'Student Grades List',
-			icon: 'grade',
+			id: 'account-creation',
+			label: 'Account Creation',
+			icon: 'person_add',
 			type: 'item'
 		},
 		{
@@ -73,9 +61,21 @@
 			type: 'item'
 		},
 		{
-			id: 'account-creation',
-			label: 'Account Creation',
-			icon: 'person_add',
+			id: 'student-masterlist',
+			label: 'Student Masterlist',
+			icon: 'groups',
+			type: 'item'
+		},
+		{
+			id: 'student-grades-list',
+			label: 'Student Grades List',
+			icon: 'grade',
+			type: 'item'
+		},
+		{
+			id: 'archived-students',
+			label: 'Archived Students',
+			icon: 'archive',
 			type: 'item'
 		},
 	];

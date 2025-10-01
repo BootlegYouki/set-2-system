@@ -439,7 +439,7 @@
 		{:else}
 			<div class="admin-room-rooms-grid">
 				{#each existingRooms as room (room.id)}
-					<div class="admin-room-room-card" class:editing={editingRoomId === room.id} class:assigning={assigningRoomId === room.id}>
+					<div class="admin-room-room-card" class:editing={editingRoomId === room.id} class:assigning={assigningRoomId === room.id} id="admin-room-room-card-{room.id}">
 						<div class="admin-room-room-header">
 							<div class="admin-room-room-title">
 								<h3 class="admin-room-room-name">{room.name}</h3>
@@ -455,16 +455,18 @@
 										<span class="material-symbols-outlined">remove_circle</span>
 									</button>
 								{:else}
-									<button 
-										type="button"
-										class="admin-room-assign-button"
-										on:click={() => toggleAssignForm(room)}
-										title="{assigningRoomId === room.id ? 'Cancel Assign' : 'Assign Room'}"
-									>
-										<span class="material-symbols-outlined">{assigningRoomId === room.id ? 'close' : 'add_circle'}</span>
-									</button>
+									<a href="#admin-room-room-card-{room.id}">
+										<button 
+											type="button"
+											class="admin-room-assign-button"
+											on:click={() => toggleAssignForm(room)}
+											title="{assigningRoomId === room.id ? 'Cancel Assign' : 'Assign Room'}"
+										>
+											<span class="material-symbols-outlined">{assigningRoomId === room.id ? 'close' : 'add_circle'}</span>
+										</button>
+									</a>
 								{/if}
-								<a href="#admin-room-edit-form-container">
+								<a href="#admin-room-room-card-{room.id}">
 									<button 
 										type="button"
 										class="admin-room-edit-button"
@@ -505,7 +507,7 @@
 				
 				<!-- Inline Edit Form -->
 				{#if editingRoomId === room.id}
-					<div class="admin-room-edit-form-section" id="admin-room-edit-form-container">
+					<div class="admin-room-edit-form-section">
 						<div class="admin-room-edit-form-container">
 							<div class="admin-room-edit-form-header">
 								<h2 class="admin-room-edit-form-title">Edit Room</h2>

@@ -8,6 +8,10 @@
   box-sizing: border-box;
 }
 
+a {
+  text-decoration: none;
+}
+
 html {
   background-color: var(--md-sys-color-surface);
   transition: background-color var(--transition-normal) !important;
