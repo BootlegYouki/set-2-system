@@ -4,52 +4,26 @@ import { verifyAuth } from '../../../api/helper/auth-helper.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
-  console.log('=== GRADES SAVE API CALLED ===');
-  console.log('Request URL:', request.url);
-  console.log('Request method:', request.method);
-  
-  // Log all headers for debugging
-  console.log('Request headers:');
-  for (const [key, value] of request.headers.entries()) {
-    console.log(`  ${key}: ${value}`);
-  }
-  
-  // Clone request to read body for logging
-  const requestClone = request.clone();
-  let requestBody = null;
-  try {
-    requestBody = await requestClone.json();
-    console.log('Request body received:', JSON.stringify(requestBody, null, 2));
-  } catch (bodyError) {
-    console.log('Could not parse request body as JSON:', bodyError.message);
-  }
-  
   try {
     // Verify authentication
     const authResult = await verifyAuth(request, ['teacher']);
-    console.log('Auth result:', authResult);
     
     if (!authResult.success) {
-      console.log('Authentication failed:', authResult.error);
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
 
     const body = await request.json();
-    console.log('Request body received:', JSON.stringify(body, null, 2));
     
     const { section_id, subject_id, grading_period_id, grading_config, grades } = body;
 
     // Validate required fields
     if (!section_id || !subject_id || !grading_period_id || !grades || !Array.isArray(grades)) {
-      console.log('Missing required fields:', { section_id, subject_id, grading_period_id, grades: !!grades });
       return json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const teacherId = authResult.user.id;
-    console.log('Teacher ID:', teacherId);
 
     // Start transaction
-    console.log('Starting database transaction...');
     await query('BEGIN');
 
     try {
@@ -107,38 +81,22 @@ export async function POST({ request }) {
 
       // Commit transaction
       await query('COMMIT');
-      console.log('Transaction committed successfully');
 
-      const response = { 
+      return json({ 
         success: true, 
         message: 'Grades saved successfully',
         results 
-      };
-      console.log('Sending success response:', response);
-      return json(response);
+      });
 
     } catch (error) {
       // Rollback transaction on error
-      console.log('Error occurred, rolling back transaction:', error);
       await query('ROLLBACK');
       throw error;
     }
 
   } catch (error) {
-    console.error('=== GRADES SAVE API ERROR ===');
     console.error('Error saving grades:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    
-    // Try to get request body for debugging
-    try {
-      const bodyText = await request.text();
-      console.error('Request body that caused error:', bodyText);
-    } catch (bodyError) {
-      console.error('Could not read request body:', bodyError.message);
-    }
-    
-    return json({ error: 'Internal server error', details: error.message }, { status: 500 });
+    return json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -184,7 +142,6 @@ async function getOrCreateCategories() {
 }
 
 async function processAssessmentGrades(grades, assessmentType, categoryId, sectionId, subjectId, gradingPeriodId, teacherId, config) {
-  console.log(`Processing ${assessmentType} grades...`);
   const results = [];
   
   // Get or create grade items for this assessment type
@@ -197,15 +154,11 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
     config,
     assessmentType
   );
-  
-  console.log(`Found/created ${gradeItems.length} grade items for ${assessmentType}`);
 
   // Process each student's grades for this assessment type
   for (const studentGrade of grades) {
     const studentAccountNumber = studentGrade.student_id;
     const assessmentGrades = studentGrade[assessmentType];
-    
-    console.log(`Processing student ${studentAccountNumber} ${assessmentType}:`, assessmentGrades);
 
     // Convert student account number to student ID
     let studentId;
@@ -214,14 +167,11 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
       const studentResult = await query(studentQuery, [studentAccountNumber, 'student']);
       
       if (studentResult.rows.length === 0) {
-        console.error(`Student not found with account number: ${studentAccountNumber}`);
         continue; // Skip this student
       }
       
       studentId = studentResult.rows[0].id;
-      console.log(`Converted account number ${studentAccountNumber} to student ID ${studentId}`);
     } catch (error) {
-      console.error(`Error converting student account number ${studentAccountNumber}:`, error);
       continue; // Skip this student
     }
 
@@ -231,8 +181,6 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
         const gradeItem = gradeItems[i];
 
         if (gradeItem && score !== null && score !== undefined && score !== '') {
-          console.log(`Saving grade: Student ${studentId}, Item ${gradeItem.id}, Score ${score}`);
-          
           // Save or update the grade
           const upsertQuery = `
             INSERT INTO student_grades (student_id, grade_item_id, score, graded_by, graded_at)
@@ -247,18 +195,12 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
           `;
 
           const result = await query(upsertQuery, [studentId, gradeItem.id, parseFloat(score), teacherId]);
-          console.log(`Grade saved successfully:`, result.rows[0]);
           results.push(result.rows[0]);
-        } else {
-          console.log(`Skipping grade: Student ${studentId}, Item ${i}, Score ${score} (empty or no grade item)`);
         }
       }
-    } else {
-      console.log(`No ${assessmentType} grades found for student ${studentId}`);
     }
   }
 
-  console.log(`Completed processing ${assessmentType}, saved ${results.length} grades`);
   return results;
 }
 

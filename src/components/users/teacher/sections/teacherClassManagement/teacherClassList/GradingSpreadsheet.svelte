@@ -36,6 +36,7 @@
   let saveMessage = $state('');
   let saveSuccess = $state(false);
   let autoSaveInterval = null;
+  let autoSaveTimeout = null; // For debounced auto-save on data changes
 
   let spreadsheetContainer;
   let selectedCell = $state(null);
@@ -738,6 +739,9 @@
     // Recalculate averages and final grades
     recalculateRow(rowIndex);
     
+    // Trigger debounced auto-save on data change
+    triggerDebouncedAutoSave();
+    
     // Clear the edit value after saving
     editValue = '';
   }
@@ -852,15 +856,6 @@
         quarterlyAssessment: student.quarterlyAssessment
       }));
 
-      // Debug logging to see what data is being sent
-      console.log('Auto-save data being sent:', {
-        section_id: sectionId,
-        subject_id: subjectId,
-        grading_period_id: gradingPeriodId,
-        grading_config: gradingConfig,
-        grades: gradesData
-      });
-
       await authenticatedFetch('/api/grades/save', {
         method: 'POST',
         body: JSON.stringify({
@@ -872,24 +867,23 @@
         })
       });
 
-      // Silent save - no UI feedback
-      console.log('Auto-save completed successfully');
-
     } catch (error) {
-      console.error('Auto-save failed:', error);
-      // Show critical auto-save errors in console for debugging
-      console.error('Auto-save error details:', error.message);
-      
-      // Try to parse error response for more details
-      if (error.response) {
-        try {
-          const errorData = await error.response.json();
-          console.error('Server error details:', errorData);
-        } catch (parseError) {
-          console.error('Could not parse error response:', parseError);
-        }
-      }
+      // Silent auto-save errors - only log critical failures
+      console.error('Auto-save failed:', error.message);
     }
+  }
+
+  // Debounced auto-save function (triggers auto-save after 3 seconds of inactivity)
+  function triggerDebouncedAutoSave() {
+    // Clear existing timeout
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+    }
+    
+    // Set new timeout for 3 seconds
+    autoSaveTimeout = setTimeout(() => {
+      autoSave();
+    }, 3000);
   }
 
   // Manual save function (with UI feedback)
@@ -962,14 +956,16 @@
 
   // Effect to set up auto-save when component mounts
   $effect(() => {
-    // Auto-save is temporarily disabled for debugging
-    // Set up auto-save interval (every 5 seconds)
-    // autoSaveInterval = setInterval(autoSave, 5000);
+    // Set up auto-save interval (every 30 seconds)
+    autoSaveInterval = setInterval(autoSave, 30000);
     
     // Cleanup function
     return () => {
       if (autoSaveInterval) {
         clearInterval(autoSaveInterval);
+      }
+      if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
       }
     };
   });
