@@ -13,7 +13,6 @@
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
   import TeacherSchedule from '../components/users/teacher/sections/teacherSchedule/teacherSchedule.svelte';
   import TeacherClassSelection from '../components/users/teacher/sections/teacherClassManagement/teacherClassSelection/teacherClassSelection.svelte';
-  import TeacherClassList from '../components/users/teacher/sections/teacherClassManagement/teacherClassList/teacherClassList.svelte';
   import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
   import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';

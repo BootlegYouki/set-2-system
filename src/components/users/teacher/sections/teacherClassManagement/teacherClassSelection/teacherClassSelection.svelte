@@ -1,23 +1,29 @@
 <script>
+  import { onMount } from 'svelte';
+  import { authStore } from '../../../../../login/js/auth.js';
   import './teacherClassSelection.css';
   import Odometer from '../../../../../common/Odometer.svelte';
   
   // Props for navigation
   let { onNavigateToClassList } = $props();
   
-  // Sample data - in real app this would come from props or API
-  let teacherData = {
-    name: "Prof. Maria Santos",
-    yearLevels: [7, 8, 9, 10], // Grade 7 to 10
-    totalSections: 8,
-    totalStudents: 240,
-    averagePerSection: 30
-  };
+  // State variables
+  let teacherData = $state({
+    name: "Loading...",
+    yearLevels: [],
+    totalSections: 0,
+    totalStudents: 0,
+    averagePerSection: 0
+  });
+
+  let classData = $state([]);
+  let loading = $state(true);
+  let error = $state(null);
 
   // Function to handle section card click
-  function handleSectionClick(yearLevel, sectionName) {
+  function handleSectionClick(yearLevel, sectionName, sectionId) {
     if (onNavigateToClassList) {
-      onNavigateToClassList({ detail: { yearLevel, sectionName } });
+      onNavigateToClassList({ detail: { yearLevel, sectionName, sectionId } });
     }
   }
 
@@ -53,53 +59,58 @@
     }
   ];
 
-  // Sample class data organized by year level
-  let classData = [
-    {
-      yearLevel: 7,
-      gradeName: "Grade 7",
-      sections: [
-        { name: "Section A", students: 32, subject: "Mathematics" },
-        { name: "Section B", students: 28, subject: "Mathematics" }
-      ]
-    },
-    {
-      yearLevel: 8,
-      gradeName: "Grade 8", 
-      sections: [
-        { name: "Section A", students: 30, subject: "Mathematics" },
-        { name: "Section C", students: 25, subject: "Science" }
-      ]
-    },
-    {
-      yearLevel: 9,
-      gradeName: "Grade 9",
-      sections: [
-        { name: "Section A", students: 35, subject: "Mathematics" },
-        { name: "Section B", students: 33, subject: "Physics" },
-        { name: "Section C", students: 31, subject: "Chemistry" },
-        { name: "Section D", students: 29, subject: "Biology" },
-        { name: "Section E", students: 32, subject: "Mathematics" }
-      ]
-    },
-    {
-      yearLevel: 10,
-      gradeName: "Grade 10",
-      sections: [
-        { name: "Section A", students: 29, subject: "Advanced Mathematics" },
-        { name: "Section B", students: 28, subject: "Chemistry" }
-      ]
-    }
-  ];
+  // Fetch teacher's sections from API
+  async function fetchTeacherSections() {
+    try {
+      loading = true;
+      error = null;
 
-  // Calculate statistics using Svelte 5 runes
-  $effect(() => {
-    teacherData.totalSections = classData.reduce((sum, year) => sum + year.sections.length, 0);
-    teacherData.totalStudents = classData.reduce((sum, year) => 
-      sum + year.sections.reduce((sectionSum, section) => sectionSum + section.students, 0), 0);
-    teacherData.averagePerSection = teacherData.totalSections > 0 
-      ? Math.round(teacherData.totalStudents / teacherData.totalSections) 
-      : 0;
+      // Get current user data from auth store
+      const authState = $authStore;
+      if (!authState.isAuthenticated || !authState.userData?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const teacherId = authState.userData.id;
+      const schoolYear = '2024-2025'; // You can make this dynamic if needed
+
+      const response = await fetch(`/api/teacher-sections?teacherId=${teacherId}&schoolYear=${schoolYear}`);
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch teacher sections');
+      }
+
+      // Update teacher data and class data
+      classData = result.data.classData;
+      teacherData = {
+        name: authState.userData.name || 'Teacher',
+        yearLevels: result.data.stats.yearLevels,
+        totalSections: result.data.stats.totalSections,
+        totalStudents: result.data.stats.totalStudents,
+        averagePerSection: result.data.stats.averagePerSection
+      };
+
+    } catch (err) {
+      console.error('Error fetching teacher sections:', err);
+      error = err.message;
+      // Fallback to empty data
+      classData = [];
+      teacherData = {
+        name: 'Teacher',
+        yearLevels: [],
+        totalSections: 0,
+        totalStudents: 0,
+        averagePerSection: 0
+      };
+    } finally {
+      loading = false;
+    }
+  }
+
+  // Load data on component mount
+  onMount(() => {
+    fetchTeacherSections();
   });
 
 
@@ -136,39 +147,71 @@
   <!-- Year Levels and Sections Section -->
   <div class="classes-section-container">
     <h2 class="class-mgmt-section-title">Year Levels & Sections</h2>
-    <div class="year-levels-grid">
-      {#each classData as yearData (yearData.yearLevel)}
-        <div class="year-level-container">
-          <!-- Year Level Header -->
-          <div class="year-level-header">
-            <div class="year-level-info">
-              <div class="year-level-icon">
-                <span class="material-symbols-outlined">school</span>
-              </div>
-              <div class="year-level-details">
-                <h3 class="year-level-title">{yearData.gradeName}</h3>
-                <p class="year-level-summary">{yearData.sections.length} section{yearData.sections.length !== 1 ? 's' : ''} • {yearData.sections.reduce((sum, section) => sum + section.students, 0)} students</p>
+    
+    {#if loading}
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading your teaching assignments...</p>
+      </div>
+    {:else if error}
+      <div class="error-container">
+        <div class="error-icon">
+          <span class="material-symbols-outlined">error</span>
+        </div>
+        <p class="error-message">Error: {error}</p>
+        <button class="retry-button" onclick={fetchTeacherSections}>
+          <span class="material-symbols-outlined">refresh</span>
+          Retry
+        </button>
+      </div>
+    {:else if classData.length === 0}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <span class="material-symbols-outlined">school</span>
+        </div>
+        <h3>No Teaching Assignments</h3>
+        <p>You don't have any sections assigned for this school year.</p>
+      </div>
+    {:else}
+      <div class="year-levels-grid">
+        {#each classData as yearData (yearData.yearLevel)}
+          <div class="year-level-container">
+            <!-- Year Level Header -->
+            <div class="year-level-header">
+              <div class="year-level-info">
+                <div class="year-level-icon">
+                  <span class="material-symbols-outlined">school</span>
+                </div>
+                <div class="year-level-details">
+                  <h3 class="year-level-title">{yearData.gradeName}</h3>
+                  <p class="year-level-summary">{yearData.sections.length} section{yearData.sections.length !== 1 ? 's' : ''} • {yearData.sections.reduce((sum, section) => sum + section.students, 0)} students</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Sections Grid -->
-          <div class="sections-grid">
-            {#each yearData.sections as section (section.name)}
-              <button 
-                class="section-card" 
-                onclick={() => handleSectionClick(yearData.yearLevel, section.name)}
-                aria-label="View class list for {section.name}"
-              >
-                <div class="section-name">{section.name}</div>
-                <div class="section-students">
-                  {section.students} students
-                </div>
-              </button>
-            {/each}
+            <!-- Sections Grid -->
+            <div class="sections-grid">
+              {#each yearData.sections as section (section.name)}
+                <button 
+                  class="section-card" 
+                  onclick={() => handleSectionClick(yearData.yearLevel, section.name, section.id)}
+                  aria-label="View class list for {section.name}"
+                >
+                  <div class="section-name">{section.name}</div>
+                  {#if section.subjects && section.subjects.length > 0}
+                    <div class="section-subjects">
+                      {section.subjects.slice(0, 2).join(', ')}
+                      {#if section.subjects.length > 2}
+                        <span class="more-subjects">+{section.subjects.length - 2} more</span>
+                      {/if}
+                    </div>
+                  {/if}
+                </button>
+              {/each}
+            </div>
           </div>
-        </div>
-      {/each}
-    </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 </div>
