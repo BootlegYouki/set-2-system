@@ -1,10 +1,10 @@
 <script>
-	import './adminSectionManagement.css';
-	import { modalStore } from '../../../../common/js/modalStore.js';
-	import { toastStore } from '../../../../common/js/toastStore.js';
-	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import './adminSectionForm.css';
+	import { modalStore } from '../../../../../common/js/modalStore.js';
+	import { toastStore } from '../../../../../common/js/toastStore.js';
+	import { api } from '../../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
-	import { sectionManagementStore } from '../../../../../lib/stores/admin/sectionManagementStore.js';
+	import { sectionManagementStore } from '../../../../../../lib/stores/admin/sectionManagementStore.js';
 
 	// Destructure store values
 	$: ({ sections, isLoadingSections, sectionsError } = sectionManagementStore);
@@ -519,18 +519,7 @@
 	})();
 </script>
 
-<svelte:window on:click={handleClickOutside} />
-
-<div class="sectionmgmt-container">
-	<!-- Header -->
-	<div class="sectionmgmt-header">
-		<div class="sectionmgmt-header-content">
-			<h1 class="sectionmgmt-page-title">Section Management</h1>
-			<p class="sectionmgmt-page-subtitle">Create and manage class sections, assign students and advisory teachers</p>
-		</div>
-	</div>
-
-	<!-- Section Creation Form -->
+<div class="sectionmgmt-form-container">
 	<div class="sectionmgmt-creation-form-section">
 		<div class="sectionmgmt-section-header">
 			<h2 class="sectionmgmt-section-title">Create New Section</h2>
@@ -802,7 +791,6 @@
 			</form>
 		</div>
 	</div>
-
 	<!-- Recent Sections -->
 	<div class="sectionmgmt-recent-sections-section">
 		<div class="sectionmgmt-section-header">

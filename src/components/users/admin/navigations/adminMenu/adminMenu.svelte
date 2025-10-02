@@ -22,16 +22,6 @@
 			expanded: managementFolderExpanded,
 			items: [
 				{
-					id: 'room-management',
-					label: 'Room',
-					icon: 'meeting_room'
-				},
-				{
-					id: 'section-management',
-					label: 'Section',
-					icon: 'class'
-				},
-				{
 					id: 'schedule-management',
 					label: 'Schedule',
 					icon: 'schedule'
