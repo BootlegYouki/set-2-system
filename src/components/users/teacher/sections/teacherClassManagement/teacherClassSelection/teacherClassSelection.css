@@ -387,7 +387,7 @@
   min-height: 300px;
 }
 
-.loading-spinner {
+.teacher-loading-spinner {
   width: 40px;
   height: 40px;
   border: 4px solid var(--surface-variant);

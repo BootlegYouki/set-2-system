@@ -150,7 +150,7 @@
     
     {#if loading}
       <div class="loading-container">
-        <div class="loading-spinner"></div>
+        <div class="teacher-loading-spinner"></div>
         <p>Loading your teaching assignments...</p>
       </div>
     {:else if error}
