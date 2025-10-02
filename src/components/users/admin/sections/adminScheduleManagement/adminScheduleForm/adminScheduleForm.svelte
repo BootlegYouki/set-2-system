@@ -1,5 +1,5 @@
 <script>
-	import './adminRoomForm.css';
+	import './adminScheduleForm.css';
 	import { toastStore } from '../../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../../common/js/modalStore.js';
 	import { api } from '../../../../../../routes/api/helper/api-helper.js';
