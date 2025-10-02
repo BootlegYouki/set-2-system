@@ -4,15 +4,21 @@ import { verifyAuth } from '../../../api/helper/auth-helper.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
+  console.log('=== GRADES SAVE API CALLED ===');
+  
   try {
     // Verify authentication
     const authResult = await verifyAuth(request, ['teacher']);
     
     if (!authResult.success) {
+      console.log('Authentication failed:', authResult.error);
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
 
+    console.log('User authenticated:', authResult.user.account_number);
+
     const body = await request.json();
+    console.log('Request body received:', JSON.stringify(body, null, 2));
     
     const { section_id, subject_id, grading_period_id, grading_config, grades } = body;
 
@@ -91,12 +97,26 @@ export async function POST({ request }) {
     } catch (error) {
       // Rollback transaction on error
       await query('ROLLBACK');
+      console.error('Transaction error:', error);
+      console.error('Transaction error details:', {
+        message: error.message,
+        stack: error.stack,
+        sectionId: section_id,
+        subjectId: subject_id,
+        gradingPeriodId: grading_period_id,
+        gradesCount: grades?.length
+      });
       throw error;
     }
 
   } catch (error) {
     console.error('Error saving grades:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      body: body
+    });
+    return json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }
 
@@ -160,6 +180,8 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
     const studentAccountNumber = studentGrade.student_id;
     const assessmentGrades = studentGrade[assessmentType];
 
+    console.log(`Processing student: ${studentAccountNumber}, assessment: ${assessmentType}`);
+
     // Convert student account number to student ID
     let studentId;
     try {
@@ -167,11 +189,14 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
       const studentResult = await query(studentQuery, [studentAccountNumber, 'student']);
       
       if (studentResult.rows.length === 0) {
+        console.log(`Student not found: ${studentAccountNumber}`);
         continue; // Skip this student
       }
       
       studentId = studentResult.rows[0].id;
+      console.log(`Found student ID: ${studentId} for account: ${studentAccountNumber}`);
     } catch (error) {
+      console.error(`Error finding student ${studentAccountNumber}:`, error);
       continue; // Skip this student
     }
 
@@ -206,12 +231,19 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
 
 async function getOrCreateGradeItems(sectionId, subjectId, gradingPeriodId, categoryId, teacherId, config, assessmentType) {
   const gradeItems = [];
-  const count = config.count || 1;
-  const totals = config.totals || [];
+  
+  // Handle case where config might only have weight (from frontend)
+  // Default to 1 item if count is not specified
+  const count = config?.count || 1;
+  const totals = config?.totals || [];
+
+  console.log(`Creating grade items for ${assessmentType}:`, { sectionId, subjectId, gradingPeriodId, categoryId, count, config });
 
   for (let i = 0; i < count; i++) {
-    const itemName = `${config.label || assessmentType} ${i + 1}`;
-    const totalScore = totals[i] || 100;
+    const itemName = `${config?.label || assessmentType} ${i + 1}`;
+    const totalScore = totals[i] || 100; // Default to 100 if no total specified
+
+    console.log(`Processing grade item: ${itemName}, totalScore: ${totalScore}`);
 
     // Check if grade item already exists
     const existingQuery = `
@@ -220,25 +252,34 @@ async function getOrCreateGradeItems(sectionId, subjectId, gradingPeriodId, cate
         AND category_id = $4 AND name = $5
     `;
 
-    const existing = await query(existingQuery, [sectionId, subjectId, gradingPeriodId, categoryId, itemName]);
+    try {
+      const existing = await query(existingQuery, [sectionId, subjectId, gradingPeriodId, categoryId, itemName]);
 
-    if (existing.rows.length > 0) {
-      gradeItems.push(existing.rows[0]);
-    } else {
-      // Create new grade item
-      const insertQuery = `
-        INSERT INTO grade_items (section_id, subject_id, teacher_id, grading_period_id, category_id, name, total_score)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING *
-      `;
+      if (existing.rows.length > 0) {
+        console.log(`Found existing grade item: ${itemName}`);
+        gradeItems.push(existing.rows[0]);
+      } else {
+        console.log(`Creating new grade item: ${itemName}`);
+        // Create new grade item
+        const insertQuery = `
+          INSERT INTO grade_items (section_id, subject_id, teacher_id, grading_period_id, category_id, name, total_score)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING *
+        `;
 
-      const result = await query(insertQuery, [
-        sectionId, subjectId, teacherId, gradingPeriodId, categoryId, itemName, totalScore
-      ]);
+        const result = await query(insertQuery, [
+          sectionId, subjectId, teacherId, gradingPeriodId, categoryId, itemName, totalScore
+        ]);
 
-      gradeItems.push(result.rows[0]);
+        console.log(`Created grade item with ID: ${result.rows[0].id}`);
+        gradeItems.push(result.rows[0]);
+      }
+    } catch (error) {
+      console.error(`Error processing grade item ${itemName}:`, error);
+      throw error;
     }
   }
 
+  console.log(`Returning ${gradeItems.length} grade items for ${assessmentType}`);
   return gradeItems;
 }

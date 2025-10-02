@@ -886,7 +886,7 @@
     try {
       // Prepare grades data for API
       const gradesData = students.map(student => ({
-        student_id: student.id,
+        student_id: student.accountNumber || student.account_number || student.id,
         writtenWork: student.writtenWork,
         performanceTasks: student.performanceTasks,
         quarterlyAssessment: student.quarterlyAssessment
@@ -941,7 +941,7 @@
     try {
       // Prepare grades data for API
       const gradesData = students.map(student => ({
-        student_id: student.id,
+        student_id: student.accountNumber || student.account_number || student.id,
         writtenWork: student.writtenWork,
         performanceTasks: student.performanceTasks,
         quarterlyAssessment: student.quarterlyAssessment
