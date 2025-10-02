@@ -37,7 +37,11 @@
   let saveSuccess = $state(false);
   let autoSaveInterval = null;
   let autoSaveTimeout = null; // For debounced auto-save on data changes
-
+  
+  // New state for tracking data changes and save status
+  let hasUnsavedChanges = $state(false);
+  let isDataSaved = $state(true); // Start as saved since no changes initially
+  let originalData = $state(null); // Store original data for comparison
   let spreadsheetContainer;
   let selectedCell = $state(null);
   let isEditing = $state(false);
@@ -57,6 +61,29 @@
     if (isNaN(num)) return score;
     // Remove trailing zeros and unnecessary decimal point
     return num % 1 === 0 ? num.toString() : num.toString();
+  }
+
+  // Function to create a deep copy of student data for comparison
+  function createDataSnapshot() {
+    return JSON.parse(JSON.stringify(students.map(student => ({
+      id: student.id,
+      writtenWork: [...student.writtenWork],
+      performanceTasks: [...student.performanceTasks],
+      quarterlyAssessment: [...student.quarterlyAssessment]
+    }))));
+  }
+
+  // Function to check if data has changed
+  function checkForDataChanges() {
+    if (!originalData) return false;
+    
+    const currentData = createDataSnapshot();
+    const hasChanges = JSON.stringify(currentData) !== JSON.stringify(originalData);
+    
+    hasUnsavedChanges = hasChanges;
+    isDataSaved = !hasChanges;
+    
+    return hasChanges;
   }
 
   function initializeSpreadsheetData() {
@@ -110,6 +137,13 @@
       
       spreadsheetData.push(row);
     });
+
+    // Store original data snapshot if not already stored
+    if (!originalData && students.length > 0) {
+      originalData = createDataSnapshot();
+      isDataSaved = true;
+      hasUnsavedChanges = false;
+    }
   }
 
   function calculateAverage(scores, totals = null, assessmentType = null) {
@@ -272,8 +306,8 @@
         event.preventDefault();
         if (!isCalculatedColumn(col) && col > 1) {
           isEditing = true;
-          editValue = '';
-          justStartedEditing = true;
+          editValue = event.key;
+          justStartedEditing = false; // First character already entered
         }
         break;
       case 'Tab':
@@ -690,76 +724,62 @@
   }
 
   function updateSpreadsheetData() {
-    if (!selectedCell || !editValue) return;
+    if (!selectedCell || selectedCell.row === 0) return;
     
-    const rowIndex = selectedCell.row;
-    const colIndex = selectedCell.col;
-    let value = editValue;
-    let wasInvalid = false;
+    const { row, col } = selectedCell;
+    const studentIndex = row - 1;
+    const student = students[studentIndex];
     
-    // Validate and convert invalid input to 0 for grade columns
-    const headers = spreadsheetData[0];
-    const header = headers[colIndex];
-    if (header?.startsWith('WW') || header?.startsWith('PT') || header?.startsWith('QA')) {
-      if (!header.includes('Avg')) { // Only for input columns, not calculated averages
-        if (value && value.trim() !== '') {
-          const parsed = parseFloat(value);
-          
-          // Get the maximum score for this column
-          let maxScore = null;
-          if (header?.startsWith('WW')) {
-            const columnIndex = parseInt(header.replace('WW', '')) - 1;
-            maxScore = gradingConfig.writtenWork.totals?.[columnIndex];
-          } else if (header?.startsWith('PT')) {
-            const columnIndex = parseInt(header.replace('PT', '')) - 1;
-            maxScore = gradingConfig.performanceTasks.totals?.[columnIndex];
-          } else if (header?.startsWith('QA')) {
-            const columnIndex = parseInt(header.replace('QA', '')) - 1;
-            maxScore = gradingConfig.quarterlyAssessment.totals?.[columnIndex];
-          }
-          
-          // Validate input: leave blank if invalid, negative, or exceeds maximum
-          if (isNaN(parsed) || parsed < 0 || (maxScore && parsed > maxScore)) {
-            value = '';
-            editValue = ''; // Update the input field as well
-            wasInvalid = true;
-            
-            // Show appropriate toast message based on the type of invalid input
-            if (isNaN(parsed)) {
-              toastStore.error('Invalid input detected. Only numbers are allowed in grade cells.');
-            } else if (parsed < 0) {
-              toastStore.error('Negative values are not allowed. Score has been cleared.');
-            } else if (maxScore && parsed > maxScore) {
-              toastStore.error(`Score cannot exceed the maximum of ${maxScore}. Value has been cleared.`);
-            }
-          }
-        }
+    if (!student) return;
+    
+    // Get the column mapping to determine which assessment type and index
+    const columnMapping = getColumnMapping(col);
+    if (!columnMapping) return;
+    
+    const { assessmentType, columnIndex } = columnMapping;
+    
+    // Parse and validate the input
+    let value = editValue.trim();
+    let numericValue = null;
+    let isValid = true;
+    
+    if (value !== '') {
+      numericValue = parseFloat(value);
+      if (isNaN(numericValue) || numericValue < 0) {
+        // Invalid input - convert to 0 and mark as invalid
+        numericValue = 0;
+        isValid = false;
+        invalidCells.add(`${row}-${col}`);
+        
+        // Remove invalid marking after 3 seconds
+        setTimeout(() => {
+          invalidCells.delete(`${row}-${col}`);
+          invalidCells = new Set(invalidCells); // Trigger reactivity
+        }, 3000);
+      } else {
+        // Valid input - remove from invalid cells if it was there
+        invalidCells.delete(`${row}-${col}`);
       }
-    }
-    
-    // Track invalid cells for styling
-    const cellKey = `${rowIndex}-${colIndex}`;
-    if (wasInvalid) {
-      invalidCells.add(cellKey);
     } else {
-      invalidCells.delete(cellKey);
+      // Empty value is valid (represents no score)
+      numericValue = null;
+      invalidCells.delete(`${row}-${col}`);
     }
-    invalidCells = new Set(invalidCells); // Trigger reactivity
     
-    // Update the spreadsheet data
-    spreadsheetData[rowIndex][colIndex] = value;
+    // Update the student's data
+    student[assessmentType][columnIndex] = numericValue;
     
-    // Update the original student data
-    updateStudentData(rowIndex, colIndex, value);
+    // Trigger reactivity
+    students = [...students];
     
-    // Recalculate averages and final grades
-    recalculateRow(rowIndex);
+    // Reinitialize spreadsheet to recalculate averages and final grades
+    initializeSpreadsheetData();
+    
+    // Check for data changes after update
+    checkForDataChanges();
     
     // Trigger debounced auto-save on data change
     triggerDebouncedAutoSave();
-    
-    // Clear the edit value after saving
-    editValue = '';
   }
 
   function handleKeyDown(event, rowIndex, colIndex) {
@@ -883,6 +903,11 @@
         })
       });
 
+      // Update save state after successful auto-save
+      originalData = createDataSnapshot();
+      hasUnsavedChanges = false;
+      isDataSaved = true;
+
     } catch (error) {
       // Silent auto-save errors - only log critical failures
       console.error('Auto-save failed:', error.message);
@@ -935,6 +960,11 @@
 
       saveSuccess = true;
       toastStore.success('All grades have been saved to the database');
+
+      // Update save state after successful save
+      originalData = createDataSnapshot();
+      hasUnsavedChanges = false;
+      isDataSaved = true;
 
       // Clear the message after 3 seconds
       setTimeout(() => {
@@ -994,13 +1024,17 @@
   <div class="save-section">
     <button 
       class="save-button" 
+      class:saved={isDataSaved && !hasUnsavedChanges}
       onclick={saveGrades}
-      disabled={isSaving}
-      title="Save all grades to database"
+      disabled={isSaving || (isDataSaved && !hasUnsavedChanges)}
+      title={isDataSaved && !hasUnsavedChanges ? "All grades are saved" : "Save all grades to database"}
     >
       {#if isSaving}
         <span class="material-symbols-outlined spinning">sync</span>
         <span>Saving...</span>
+      {:else if isDataSaved && !hasUnsavedChanges}
+        <span class="material-symbols-outlined">check_circle</span>
+        <span>Grades Saved</span>
       {:else}
         <span class="material-symbols-outlined">save</span>
         <span>Save Grades</span>
@@ -1100,6 +1134,16 @@
     cursor: not-allowed;
   }
 
+  .save-button.saved {
+    background-color: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+    cursor: default;
+  }
+
+  .save-button.saved:hover {
+    background-color: var(--md-sys-color-tertiary-container);
+    box-shadow: none;
+  }
   .save-message {
     display: flex;
     align-items: center;
