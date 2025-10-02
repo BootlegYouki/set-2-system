@@ -51,6 +51,14 @@
   let headers = $state([]);
 
   // Initialize spreadsheet data
+  function formatScore(score) {
+    if (score === null || score === undefined || score === '') return '';
+    const num = parseFloat(score);
+    if (isNaN(num)) return score;
+    // Remove trailing zeros and unnecessary decimal point
+    return num % 1 === 0 ? num.toString() : num.toString();
+  }
+
   function initializeSpreadsheetData() {
     const headers = ['Student ID', 'Student Name'];
     
@@ -81,19 +89,19 @@
       
       // Written Work scores
       for (let i = 0; i < gradingConfig.writtenWork.count; i++) {
-        row.push(student.writtenWork[i] || '');
+        row.push(formatScore(student.writtenWork[i]));
       }
       row.push(calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork'));
       
       // Performance Tasks scores
       for (let i = 0; i < gradingConfig.performanceTasks.count; i++) {
-        row.push(student.performanceTasks[i] || '');
+        row.push(formatScore(student.performanceTasks[i]));
       }
       row.push(calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks'));
       
       // Quarterly Assessment scores
       for (let i = 0; i < gradingConfig.quarterlyAssessment.count; i++) {
-        row.push(student.quarterlyAssessment[i] || '');
+        row.push(formatScore(student.quarterlyAssessment[i]));
       }
       row.push(calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment'));
       
@@ -120,11 +128,13 @@
         sum += percentage;
         totalPossible += 100;
       }
-      return Math.round((sum / validScores.length) * 100) / 100;
+      const average = Math.round((sum / validScores.length) * 100) / 100;
+      return formatScore(average);
     } else {
       // Original calculation for backward compatibility
       sum = validScores.reduce((acc, score) => acc + parseFloat(score), 0);
-      return Math.round((sum / validScores.length) * 100) / 100;
+      const average = Math.round((sum / validScores.length) * 100) / 100;
+      return formatScore(average);
     }
   }
 
@@ -135,11 +145,17 @@
     
     if (wwAvg === '' || ptAvg === '' || qaAvg === '') return '';
     
-    const finalGrade = (wwAvg * gradingConfig.writtenWork.weight) + 
-                      (ptAvg * gradingConfig.performanceTasks.weight) + 
-                      (qaAvg * gradingConfig.quarterlyAssessment.weight);
+    // Parse the formatted averages back to numbers for calculation
+    const wwNum = parseFloat(wwAvg) || 0;
+    const ptNum = parseFloat(ptAvg) || 0;
+    const qaNum = parseFloat(qaAvg) || 0;
     
-    return Math.round(finalGrade * 100) / 100;
+    const finalGrade = (wwNum * gradingConfig.writtenWork.weight) + 
+                      (ptNum * gradingConfig.performanceTasks.weight) + 
+                      (qaNum * gradingConfig.quarterlyAssessment.weight);
+    
+    const roundedGrade = Math.round(finalGrade * 100) / 100;
+    return formatScore(roundedGrade);
   }
 
   function handleCellClick(rowIndex, colIndex, event) {
