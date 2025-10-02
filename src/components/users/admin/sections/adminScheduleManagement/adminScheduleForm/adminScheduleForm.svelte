@@ -670,21 +670,7 @@
                             <h4 class="scheduleassign-form-title">Add New Schedule</h4>
                             
                             <!-- Day Selection with Checkboxes -->
-                            <div class="scheduleassign-day-selection-section">
-                                <label class="scheduleassign-input-label">Select Days:</label>
-                                <div class="scheduleassign-day-checkboxes">
-                                    {#each days as day}
-                                        <label class="scheduleassign-day-checkbox">
-                                            <input 
-                                                type="checkbox" 
-                                                bind:group={selectedDays} 
-                                                value={day.id}
-                                            />
-                                            <span class="scheduleassign-checkbox-label">{day.name}</span>
-                                        </label>
-                                    {/each}
-                                </div>
-                            </div>
+
 
                             <div class="scheduleassign-form-inputs">
                                 <!-- Time Section -->
@@ -707,6 +693,20 @@
                                             />
                                         </div>
                                     </div>
+									<div class="scheduleassign-day-selection-section">
+										<div class="scheduleassign-day-checkboxes">
+											{#each days as day}
+												<label class="scheduleassign-day-checkbox">
+													<input 
+														type="checkbox" 
+														bind:group={selectedDays} 
+														value={day.id}
+													/>
+													<span class="scheduleassign-checkbox-label">{day.name}</span>
+												</label>
+											{/each}
+										</div>
+									</div>
                                 </div>
 
                                 <!-- Schedule Type and Subject/Activity Selection Row -->

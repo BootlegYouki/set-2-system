@@ -317,7 +317,6 @@
 .scheduleassign-time-section {
 	display: flex;
 	flex-direction: column;
-	gap: var(--spacing-md);
 	margin-bottom: var(--spacing-lg);
 	padding: var(--spacing-lg);
 	background: var(--md-sys-color-surface-container-lowest);
@@ -1048,14 +1047,15 @@
 
 /* Day Selection with Checkboxes */
 .scheduleassign-day-selection-section {
-	margin-bottom: var(--spacing-lg);
+	margin-bottom: var(--spacing-md);
 }
 
 .scheduleassign-day-checkboxes {
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: center;
 	gap: var(--spacing-md);
-	margin-top: var(--spacing-sm);
+	margin-top: var(--spacing-md);
 }
 
 .scheduleassign-day-checkbox {
