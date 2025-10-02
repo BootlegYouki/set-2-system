@@ -241,8 +241,7 @@
 
 /* Row layout for schedule type and subject/activity selection */
 .scheduleassign-type-subject-row {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
+	display: flex;
 	gap: var(--spacing-lg);
 	align-items: end;
 }

@@ -966,64 +966,63 @@
                                             </div>
                                         </div>
                                     {/if}
+									<!-- Teacher Selection (Only for Subject type) -->
+									{#if formData.scheduleType === 'subject'}
+										<div class="scheduleassign-input-group">
+											<label class="scheduleassign-input-label">Teacher</label>
+											<div class="scheduleassign-custom-dropdown">
+												<button 
+													type="button"
+													class="scheduleassign-dropdown-trigger"
+													class:open={isTeacherDropdownOpen}
+													class:selected={formData.teacherId}
+													disabled={isLoadingTeachers}
+													on:click={toggleTeacherDropdown}
+												>
+													{#if formData.teacherId}
+														{@const selectedTeacher = teachers.find(t => t.id === formData.teacherId)}
+														<div class="scheduleassign-selected-option">
+															<span class="material-symbols-outlined scheduleassign-option-icon">person</span>
+															<div class="scheduleassign-option-content">
+																<span class="scheduleassign-option-name">{selectedTeacher?.first_name} {selectedTeacher?.last_name}</span>
+															</div>
+														</div>
+													{:else}
+														<span class="scheduleassign-placeholder">Select Teacher</span>
+													{/if}
+													<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
+												</button>
+												<div class="scheduleassign-dropdown-menu" class:open={isTeacherDropdownOpen}>
+													{#if isLoadingTeachers}
+														<div class="scheduleassign-loading">
+															<span class="scheduleassign-loader"></span>
+															<span>Loading teachers...</span>
+														</div>
+													{:else if teachers.length > 0}
+														{#each teachers as teacher (teacher.id)}
+															<button 
+																type="button"
+																class="scheduleassign-dropdown-option" 
+																class:selected={formData.teacherId === teacher.id}
+																on:click={() => selectTeacher(teacher)}
+															>
+																<span class="material-symbols-outlined scheduleassign-option-icon">person</span>
+																<div class="scheduleassign-option-content">
+																	<span class="scheduleassign-option-name">{teacher.first_name} {teacher.last_name}</span>
+																</div>
+															</button>
+														{/each}
+													{:else}
+														<div class="scheduleassign-empty-state">
+															<span class="material-symbols-outlined scheduleassign-empty-icon">inbox</span>
+															<span class="scheduleassign-empty-text">No teachers available</span>
+														</div>
+													{/if}
+												</div>
+											</div>
+										</div>
+									{/if}
                                 </div>
-
-                                <!-- Teacher Selection (Only for Subject type) -->
-                                {#if formData.scheduleType === 'subject'}
-                                    <div class="scheduleassign-input-group">
-                                        <label class="scheduleassign-input-label">Teacher</label>
-                                        <div class="scheduleassign-custom-dropdown">
-                                            <button 
-                                                type="button"
-                                                class="scheduleassign-dropdown-trigger"
-                                                class:open={isTeacherDropdownOpen}
-                                                class:selected={formData.teacherId}
-                                                disabled={isLoadingTeachers}
-                                                on:click={toggleTeacherDropdown}
-                                            >
-                                                {#if formData.teacherId}
-                                                    {@const selectedTeacher = teachers.find(t => t.id === formData.teacherId)}
-                                                    <div class="scheduleassign-selected-option">
-                                                        <span class="material-symbols-outlined scheduleassign-option-icon">person</span>
-                                                        <div class="scheduleassign-option-content">
-                                                            <span class="scheduleassign-option-name">{selectedTeacher?.first_name} {selectedTeacher?.last_name}</span>
-                                                        </div>
-                                                    </div>
-                                                {:else}
-                                                    <span class="scheduleassign-placeholder">Select Teacher</span>
-                                                {/if}
-                                                <span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-                                            </button>
-                                            <div class="scheduleassign-dropdown-menu" class:open={isTeacherDropdownOpen}>
-                                                {#if isLoadingTeachers}
-                                                    <div class="scheduleassign-loading">
-                                                        <span class="scheduleassign-loader"></span>
-                                                        <span>Loading teachers...</span>
-                                                    </div>
-                                                {:else if teachers.length > 0}
-                                                    {#each teachers as teacher (teacher.id)}
-                                                        <button 
-                                                            type="button"
-                                                            class="scheduleassign-dropdown-option" 
-                                                            class:selected={formData.teacherId === teacher.id}
-                                                            on:click={() => selectTeacher(teacher)}
-                                                        >
-                                                            <span class="material-symbols-outlined scheduleassign-option-icon">person</span>
-                                                            <div class="scheduleassign-option-content">
-                                                                <span class="scheduleassign-option-name">{teacher.first_name} {teacher.last_name}</span>
-                                                            </div>
-                                                        </button>
-                                                    {/each}
-                                                {:else}
-                                                    <div class="scheduleassign-empty-state">
-                                                        <span class="material-symbols-outlined scheduleassign-empty-icon">inbox</span>
-                                                        <span class="scheduleassign-empty-text">No teachers available</span>
-                                                    </div>
-                                                {/if}
-                                            </div>
-                                        </div>
-                                    </div>
-                                {/if}
                             </div>
 
                             <!-- Form Actions -->
