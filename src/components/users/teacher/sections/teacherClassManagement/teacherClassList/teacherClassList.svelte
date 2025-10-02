@@ -133,6 +133,7 @@
   function addColumn(category) {
     if (gradingConfig[category].count < 10) {
       gradingConfig[category].count += 1;
+      adjustStudentData(); // Ensure student data arrays match the new column count
     }
   }
 
