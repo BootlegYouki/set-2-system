@@ -357,6 +357,45 @@
 	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
 }
 
+/* Time Info Container Styles */
+.scheduleassign-time-info-container {
+	margin-top: var(--spacing-md);
+	border-radius: var(--radius-md);
+}
+
+.scheduleassign-time-error {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	background-color: var(--md-sys-color-error-container);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-radius: var(--radius-md);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	border: 1px solid var(--md-sys-color-error);
+}
+
+.scheduleassign-time-error .material-symbols-outlined {
+	font-size: 18px;
+}
+
+.scheduleassign-time-duration {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	background-color: var(--md-sys-color-primary-container);
+	padding: var(--spacing-lg) var(--spacing-md);
+	border-radius: var(--radius-md);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	border: 1px solid var(--md-sys-color-primary);
+	justify-content: center;
+}
+
+.scheduleassign-time-duration .material-symbols-outlined {
+	font-size: 18px;
+}
+
 /* Custom Period Dropdown Styles (matching Year level dropdown) */
 .scheduleassign-period-dropdown {
 	position: relative;
@@ -1320,7 +1359,7 @@
 .scheduleassign-assignment-details {
 	display: flex;
 	flex-wrap: wrap;
-	gap: var(--spacing-md);
+	gap: var(--spacing-sm);
 	margin-bottom: var(--spacing-xs);
 }
 

@@ -5,8 +5,61 @@ import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.j
 // GET /api/subjects - Fetch all subjects with optional filtering
 export async function GET({ url }) {
   try {
+    const action = url.searchParams.get('action');
     const searchTerm = url.searchParams.get('search') || '';
     const gradeLevel = url.searchParams.get('grade_level');
+    
+    // Handle different actions
+    if (action === 'available-subjects') {
+      // For schedule form - filter by grade level if provided
+      let sqlQuery = `
+        SELECT 
+          s.id,
+          s.name,
+          s.code,
+          s.grade_level,
+          s.department_id,
+          s.created_at,
+          s.updated_at,
+          d.name as department_name,
+          d.code as department_code
+        FROM subjects s
+        LEFT JOIN departments d ON s.department_id = d.id
+      `;
+      
+      const params = [];
+      let paramIndex = 1;
+      
+      // Add grade level filter for available-subjects action
+      if (gradeLevel && gradeLevel !== '') {
+        sqlQuery += ` WHERE s.grade_level = $${paramIndex}`;
+        params.push(parseInt(gradeLevel));
+        paramIndex++;
+      }
+      
+      sqlQuery += ' ORDER BY s.name ASC';
+      
+      const result = await query(sqlQuery, params);
+      
+      // Format the data for schedule form dropdown
+      const subjects = result.rows.map(subject => ({
+        id: subject.id,
+        name: subject.name,
+        code: subject.code,
+        grade_level: subject.grade_level,
+        gradeLevel: `Grade ${subject.grade_level}`,
+        department_id: subject.department_id,
+        department_name: subject.department_name,
+        department_code: subject.department_code
+      }));
+      
+      return json({
+        success: true,
+        data: subjects
+      });
+    }
+    
+    // Default behavior for admin subjects management
     
     let sqlQuery = `
       SELECT 

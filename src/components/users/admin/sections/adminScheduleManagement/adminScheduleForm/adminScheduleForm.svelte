@@ -94,6 +94,60 @@
 	let isTeacherDropdownOpen = false;
 	let isScheduleTypeDropdownOpen = false;
 	
+	// Time validation variables
+	let timeValidationMessage = '';
+	let calculatedDuration = '';
+	
+	// Reactive time validation and duration calculation
+	$: {
+		if (formData.startTime && formData.endTime) {
+			validateTimeRange();
+		} else {
+			timeValidationMessage = '';
+			calculatedDuration = '';
+		}
+	}
+	
+	// Function to validate time range and calculate duration
+	function validateTimeRange() {
+		const startTime = formData.startTime;
+		const endTime = formData.endTime;
+		
+		if (!startTime || !endTime) {
+			timeValidationMessage = '';
+			calculatedDuration = '';
+			return;
+		}
+		
+		// Convert time strings to minutes for comparison
+		const startMinutes = timeStringToMinutes(startTime);
+		const endMinutes = timeStringToMinutes(endTime);
+		
+		if (endMinutes <= startMinutes) {
+			timeValidationMessage = 'End time must be after start time';
+			calculatedDuration = '';
+		} else {
+			timeValidationMessage = '';
+			const durationMinutes = endMinutes - startMinutes;
+			const hours = Math.floor(durationMinutes / 60);
+			const minutes = durationMinutes % 60;
+			
+			if (hours > 0 && minutes > 0) {
+				calculatedDuration = `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes > 1 ? 's' : ''}`;
+			} else if (hours > 0) {
+				calculatedDuration = `${hours} hour${hours > 1 ? 's' : ''}`;
+			} else {
+				calculatedDuration = `${minutes} minute${minutes > 1 ? 's' : ''}`;
+			}
+		}
+	}
+	
+	// Helper function to convert time string (HH:MM) to minutes
+	function timeStringToMinutes(timeString) {
+		const [hours, minutes] = timeString.split(':').map(Number);
+		return hours * 60 + minutes;
+	}
+	
 	// Filter form sections based on selected form year
 	$: filteredFormSections = selectedFormYear ? sections.filter(section => section.year === selectedFormYear) : [];
 
@@ -182,6 +236,10 @@
 	function selectFormSection(section) {
 		selectedFormSection = section ? section.id : '';
 		isFormSectionDropdownOpen = false;
+		
+		// Reset subjects when section changes to reload with new grade level filter
+		subjects = [];
+		formData.subjectId = '';
 	}
 
 	// Format time string from 24-hour format to 12-hour format with AM/PM
@@ -248,7 +306,7 @@
 
 	// Delete assignment function
 	async function handleDeleteAssignment(assignment) {
-		modalStore.showConfirmModal(
+		modalStore.confirm(
 			'Delete Assignment',
 			`<p>Are you sure you want to delete this schedule assignment?</p>`,
 			async () => {
@@ -259,6 +317,12 @@
 					if (result.success) {
 						// Remove assignment from the local array only after successful API call
 						scheduleAssignments = scheduleAssignments.filter(a => a.id !== assignment.id);
+						
+						// Force reactivity update by reassigning the array
+						scheduleAssignments = [...scheduleAssignments];
+						
+						// Manually trigger height adjustment after DOM update
+						setTimeout(() => adjustEmptyDayHeights(), 0);
 						
 						// Show success message
 						toastStore.success(`Assignment for ${assignment.subject} has been deleted successfully`);
@@ -354,7 +418,16 @@
 		
 		isLoadingSubjects = true;
 		try {
-			const response = await fetch('/api/subjects?action=available-subjects');
+			// Get the grade level from the selected section
+			const selectedSection = sections.find(s => s.id === selectedFormSection);
+			const gradeLevel = selectedSection ? selectedSection.grade_level : '';
+			
+			// Add grade level parameter to the API call
+			const url = gradeLevel ? 
+				`/api/subjects?action=available-subjects&grade_level=${gradeLevel}` : 
+				'/api/subjects?action=available-subjects';
+			
+			const response = await fetch(url);
 			const result = await response.json();
 			
 			if (result.success) {
@@ -438,7 +511,7 @@
 					},
 					body: JSON.stringify({
 						sectionId: selectedFormSection,
-						dayId: dayId,
+						dayOfWeek: dayName,
 						startTime: formData.startTime,
 						endTime: formData.endTime,
 						scheduleType: formData.scheduleType,
@@ -692,6 +765,23 @@
                                                 bind:value={formData.endTime}
                                             />
                                         </div>
+                                    </div>
+                                    
+                                    <!-- Time Validation and Duration Display Container -->
+                                    <div class="scheduleassign-time-info-container">
+                                        {#if formData.startTime && formData.endTime}
+                                            {#if timeValidationMessage}
+                                                <div class="scheduleassign-time-error">
+                                                    <span class="material-symbols-outlined">error</span>
+                                                    <span>{timeValidationMessage}</span>
+                                                </div>
+                                            {:else if calculatedDuration}
+                                                <div class="scheduleassign-time-duration">
+                                                    <span class="material-symbols-outlined">schedule</span>
+                                                    <span>Duration: {calculatedDuration}</span>
+                                                </div>
+                                            {/if}
+                                        {/if}
                                     </div>
 									<div class="scheduleassign-day-selection-section">
 										<div class="scheduleassign-day-checkboxes">
