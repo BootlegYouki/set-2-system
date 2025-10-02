@@ -143,6 +143,10 @@
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+.scheduleassign-add-schedule-link{
+	width: 100%;
+}
+
 .scheduleassign-add-schedule-card:hover:not(:disabled) {
 	color: var(--md-sys-color-on-primary-container);
 	border-color: var(--md-sys-color-primary);
@@ -235,6 +239,14 @@
 	gap: 0.5rem;
 }
 
+/* Row layout for schedule type and subject/activity selection */
+.scheduleassign-type-subject-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--spacing-lg);
+	align-items: end;
+}
+
 .scheduleassign-save-schedule-btn,
 .scheduleassign-cancel-schedule-btn {
 	display: flex;
@@ -289,7 +301,7 @@
 
 .scheduleassign-save-schedule-btn .material-symbols-outlined,
 .scheduleassign-cancel-schedule-btn .material-symbols-outlined {
-	font-size: 16px;
+	font-size: 24px;
 }
 
 /* Time Period Management Styles */
@@ -1029,8 +1041,138 @@
 /* Form Actions */
 .scheduleassign-form-actions {
 	display: flex;
+	gap: var(--spacing-md);
 	justify-content: end;
 	margin-top: var(--spacing-xl);
+}
+
+/* Day Selection with Checkboxes */
+.scheduleassign-day-selection-section {
+	margin-bottom: var(--spacing-lg);
+}
+
+.scheduleassign-day-checkboxes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--spacing-md);
+	margin-top: var(--spacing-sm);
+}
+
+.scheduleassign-day-checkbox {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-sm) var(--spacing-md);
+	background: var(--md-sys-color-surface-container-lowest);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	user-select: none;
+}
+
+.scheduleassign-day-checkbox:hover {
+	background: var(--md-sys-color-surface-container-low);
+	border-color: var(--md-sys-color-outline);
+}
+
+.scheduleassign-day-checkbox input[type="checkbox"] {
+	margin: 0;
+	width: 18px;
+	height: 18px;
+	accent-color: var(--md-sys-color-primary);
+}
+
+.scheduleassign-day-checkbox input[type="checkbox"]:checked + .scheduleassign-checkbox-label {
+	color: var(--md-sys-color-primary);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+}
+
+.scheduleassign-checkbox-label {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	color: var(--md-sys-color-on-surface);
+	transition: all var(--transition-normal);
+}
+
+/* Select Input Styles */
+.scheduleassign-select-input {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-lg);
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-md);
+	background: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	min-height: 56px;
+}
+
+.scheduleassign-select-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.scheduleassign-select-input:disabled {
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+/* Input Label Styles */
+.scheduleassign-input-label {
+	display: block;
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+	color: var(--md-sys-color-on-surface);
+	margin-bottom: var(--spacing-xs);
+}
+
+/* Schedule Header with Actions */
+.scheduleassign-schedule-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: var(--spacing-lg);
+	padding-bottom: var(--spacing-md);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.scheduleassign-schedule-info {
+	flex: 1;
+}
+
+.scheduleassign-schedule-actions {
+	display: flex;
+	gap: var(--spacing-md);
+}
+
+/* Responsive Design for Day Checkboxes */
+@media (max-width: 768px) {
+	.scheduleassign-day-checkboxes {
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+	
+	.scheduleassign-day-checkbox {
+		justify-content: center;
+		padding: var(--spacing-md);
+	}
+	
+	.scheduleassign-schedule-header {
+		flex-direction: column;
+		gap: var(--spacing-md);
+		align-items: stretch;
+	}
+	
+	.scheduleassign-form-actions {
+		flex-direction: column;
+	}
 }
 
 .scheduleassign-assign-button {
@@ -1567,6 +1709,70 @@
 	margin: 0 0 var(--spacing-lg) 0;
 }
 
+/* All Days Schedule Grid */
+.scheduleassign-days-grid {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: var(--spacing-sm);
+	margin-top: var(--spacing-xl);
+}
+
+.scheduleassign-day-column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+}
+
+.scheduleassign-day-header {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-lg);
+	background-color: var(--md-sys-color-surface-variant);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	color: var(--md-sys-color-on-surface-variant);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+}
+
+.scheduleassign-day-header .material-symbols-outlined {
+	font-size: 1.5rem;
+}
+
+.scheduleassign-day-header .day-name {
+	font-weight: 500;
+}
+
+.scheduleassign-day-schedules {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+/* Responsive Design for All Days Grid */
+@media (max-width: 1200px) {
+	.scheduleassign-days-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 768px) {
+	.scheduleassign-days-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--spacing-md);
+	}
+}
+
+@media (max-width: 480px) {
+	.scheduleassign-days-grid {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-md);
+	}
+}
+
 .scheduleassign-time-slots {
 	display: flex;
 	flex-direction: column;
@@ -1722,4 +1928,318 @@
 	color: var(--md-sys-color-on-surface-variant);
 	margin: 0;
 	text-align: center;
+}
+
+/* Custom Dropdown Styles */
+.scheduleassign-custom-dropdown {
+	position: relative;
+	width: 100%;
+}
+
+.scheduleassign-dropdown-trigger {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-lg);
+	background: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	font-weight: var(--md-sys-typescale-body-large-weight);
+	color: var(--md-sys-color-on-surface);
+	min-height: 58px;
+	gap: var(--spacing-md);
+}
+
+.scheduleassign-dropdown-trigger:hover {
+	border-color: var(--md-sys-color-outline);
+}
+
+.scheduleassign-dropdown-trigger:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.scheduleassign-dropdown-trigger.selected {
+	border-color: var(--md-sys-color-primary);
+}
+
+.scheduleassign-dropdown-trigger.open {
+	border-color: var(--md-sys-color-primary);
+}
+
+.scheduleassign-dropdown-trigger:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+	background: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	border-color: var(--md-sys-color-outline-variant);
+}
+
+
+.scheduleassign-selected-option {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	flex: 1;
+}
+
+.scheduleassign-option-icon {
+	font-size: 20px;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.scheduleassign-option-content {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	flex: 1;
+}
+
+.scheduleassign-option-name {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	font-weight: var(--md-sys-typescale-body-large-weight);
+	color: var(--md-sys-color-on-surface);
+}
+
+.scheduleassign-placeholder {
+	color: var(--md-sys-color-on-surface-variant);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	font-weight: var(--md-sys-typescale-body-large-weight);
+}
+
+.scheduleassign-dropdown-arrow {
+	font-size: 24px;
+	color: var(--md-sys-color-on-surface-variant);
+	transition: transform 0.2s ease;
+}
+
+.scheduleassign-dropdown-trigger.open .scheduleassign-dropdown-arrow {
+	transform: rotate(180deg);
+}
+
+.scheduleassign-dropdown-menu {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	background: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	box-shadow: var(--elevation-2);
+	z-index: 1000;
+	max-height: 200px;
+	overflow-y: auto;
+	margin-top: var(--spacing-xs);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-8px);
+	transition: all var(--transition-normal);
+}
+
+.scheduleassign-dropdown-menu.open {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+}
+
+.scheduleassign-dropdown-menu::-webkit-scrollbar {
+	width: 8px;
+}
+
+.scheduleassign-dropdown-menu::-webkit-scrollbar-track {
+	background: var(--md-sys-color-surface-variant);
+	border-radius: var(--radius-sm);
+}
+
+.scheduleassign-dropdown-menu::-webkit-scrollbar-thumb {
+	background: var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-sm);
+}
+
+.scheduleassign-dropdown-menu::-webkit-scrollbar-thumb:hover {
+	background: var(--md-sys-color-outline);
+}
+
+.scheduleassign-dropdown-option {
+	width: 100%;
+	padding: var(--spacing-md) var(--spacing-lg);
+	background: none;
+	border: none;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+	cursor: pointer;
+	transition: background-color var(--transition-normal);
+	text-align: left;
+	color: var(--md-sys-color-on-surface);
+	font-size: var(--md-sys-typescale-body-large-size);
+}
+
+.scheduleassign-dropdown-option:hover {
+	background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.scheduleassign-dropdown-option.selected {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.scheduleassign-dropdown-option:hover {
+	background-color: var(--md-sys-color-surface-container-high);
+}
+
+.scheduleassign-dropdown-option.selected {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.scheduleassign-dropdown-option.selected .scheduleassign-option-icon {
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.scheduleassign-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-lg);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.scheduleassign-loader {
+	width: 16px;
+	height: 16px;
+	border: 2px solid var(--md-sys-color-outline-variant);
+	border-top: 2px solid var(--md-sys-color-primary);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+.scheduleassign-empty-state {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xl);
+	color: var(--md-sys-color-on-surface-variant);
+	text-align: center;
+}
+
+.scheduleassign-empty-icon {
+	font-size: 48px;
+	color: var(--md-sys-color-outline-variant);
+	margin-bottom: var(--spacing-sm);
+}
+
+.scheduleassign-empty-text {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: var(--md-sys-typescale-body-medium-weight);
+}
+
+/* Main Empty State */
+.scheduleassign-empty-state-main {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-2xl);
+	gap: var(--spacing-lg);
+	text-align: center;
+	color: var(--md-sys-color-on-surface-variant);
+	background-color: var(--md-sys-color-surface-container-lowest);
+	border: 2px dashed var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-xl);
+	margin: var(--spacing-xl) 0;
+	min-height: 300px;
+}
+
+.scheduleassign-empty-state-main .empty-icon {
+	font-size: 64px;
+	color: var(--md-sys-color-outline-variant);
+	opacity: 0.6;
+	margin-bottom: var(--spacing-md);
+}
+
+.scheduleassign-empty-state-main h3 {
+	font-family: var(--md-sys-typescale-title-large-font);
+	font-size: var(--md-sys-typescale-title-large-size);
+	font-weight: var(--md-sys-typescale-title-large-weight);
+	color: var(--md-sys-color-on-surface);
+	margin: 0;
+}
+
+.scheduleassign-empty-state-main p {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
+	max-width: 400px;
+	line-height: 1.5;
+}
+
+/* Empty Day Slot Styles */
+.scheduleassign-empty-day {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xl);
+	flex: 1;
+	height: 100%;
+	background: var(--md-sys-color-surface-container-lowest);
+	border: 2px dashed var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	color: var(--md-sys-color-on-surface-variant);
+	gap: var(--spacing-md);
+	opacity: 0.7;
+	transition: opacity 0.2s ease, min-height 0.3s ease;
+	box-sizing: border-box;
+}
+
+.scheduleassign-empty-day:hover {
+	opacity: 1;
+}
+
+.scheduleassign-empty-day .empty-icon {
+	font-size: 48px;
+	color: var(--md-sys-color-outline-variant);
+	opacity: 0.6;
+}
+
+.scheduleassign-empty-day .empty-text {
+	font-family: var(--md-sys-typescale-title-medium-font);
+	font-size: var(--md-sys-typescale-title-medium-size);
+	font-weight: var(--md-sys-typescale-title-medium-weight);
+	color: var(--md-sys-color-on-surface-variant);
+	text-align: center;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design for Custom Dropdowns */
+@media (max-width: 768px) {
+	.scheduleassign-dropdown-menu {
+		max-height: 250px;
+	}
+	
+	.scheduleassign-dropdown-trigger {
+		min-height: 48px;
+		padding: var(--spacing-sm) var(--spacing-md);
+	}
+	
+	.scheduleassign-dropdown-option {
+		padding: var(--spacing-sm) var(--spacing-md);
+	}
 }
