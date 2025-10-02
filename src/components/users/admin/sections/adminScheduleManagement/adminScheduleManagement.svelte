@@ -1,5 +1,5 @@
 <script>
-	import AdminScheduleForm from './adminScheduleForm/adminRoomForm.svelte';
+	import AdminScheduleForm from './adminScheduleForm/adminScheduleForm.svelte';
 	import AdminRoomForm from './adminRoomForm/adminRoomForm.svelte';
 	import AdminSectionForm from './adminSectionForm/adminSectionForm.svelte';
 
