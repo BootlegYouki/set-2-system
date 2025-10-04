@@ -1358,6 +1358,7 @@
 .scheduleassign-assignment-details {
 	display: flex;
 	flex-wrap: wrap;
+	flex-direction: column;
 	gap: var(--spacing-sm);
 	margin-bottom: var(--spacing-xs);
 }

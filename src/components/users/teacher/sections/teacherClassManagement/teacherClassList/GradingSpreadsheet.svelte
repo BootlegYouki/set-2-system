@@ -1096,7 +1096,7 @@
       });
 
       saveSuccess = true;
-      toastStore.success('Final grades have been uploaded to the database successfully!');
+      toastStore.success('Final grades have been sent to the adviser successfully!');
 
       // Clear the message after 3 seconds
       setTimeout(() => {
