@@ -1,18 +1,37 @@
 <script>
+  import { onMount } from 'svelte';
+  import { authStore } from '../../../../login/js/auth.js';
+  import { api } from '../../../../../routes/api/helper/api-helper.js';
   import './studentGrade.css';
-	import Odometer from '../../../../common/Odometer.svelte';
-	// Sample data - in real app this would come from props or API
+	import CountUp from '../../../../common/CountUp.svelte';
+	
+	// State variables
+	let loading = true;
+	let error = null;
 	let currentQuarter = '1st Quarter';
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
 	let isDropdownOpen = false;
+	let subjects = [];
+	let totalSubjects = 0;
+	let overallAverage = 0;
+	let studentData = null;
+
+	// Quarter to grading period mapping
+	const quarterToGradingPeriod = {
+		'1st Quarter': 1,
+		'2nd Quarter': 2,
+		'3rd Quarter': 3,
+		'4th Quarter': 4
+	};
 
 	function toggleDropdown() {
 		isDropdownOpen = !isDropdownOpen;
 	}
 
-	function selectQuarter(quarter) {
+	async function selectQuarter(quarter) {
 		currentQuarter = quarter;
 		isDropdownOpen = false;
+		await fetchGrades();
 	}
 
 	function handleClickOutside(event) {
@@ -20,85 +39,65 @@
 			isDropdownOpen = false;
 		}
 	}
-	let totalSubjects = 5;
 
 	// Get grade color based on numeric value - using CSS variables
 	function getGradeColor(grade) {
-		if (grade >= 85) return 'var(--grade-excellent)';      // 90-100: Excellent
-		if (grade >= 80) return 'var(--grade-good)';           // 80-89: Good
-		if (grade >= 75) return 'var(--grade-satisfactory)';   // 70-79: Satisfactory
-		if (grade >= 65) return 'var(--grade-needs-improvement)'; // 60-69: Needs Improvement
-		return 'var(--grade-no-grade)';                        // Below 60 or no grade
+		if (grade >= 85) return 'var(--grade-excellent)';      // 85-100: Excellent
+		if (grade >= 80) return 'var(--grade-good)';           // 80-84: Good
+		if (grade >= 75) return 'var(--grade-satisfactory)';   // 75-79: Satisfactory
+		if (grade >= 65) return 'var(--grade-needs-improvement)'; // 65-74: Needs Improvement
+		return 'var(--grade-no-grade)';                        // Below 65 or no grade
 	}
 
-	// Sample grades data - Updated to use grade-based colors
-	let subjects = [
-		{
-			id: 1,
-			name: 'Mathematics',
-			teacher: 'Prof. Maria Santos',
-			credits: 3,
-			numericGrade: 95,
-			color: 'var(--grade-excellent)'
-		},
-		{
-			id: 2,
-			name: 'Physics',
-			teacher: 'Dr. John Rodriguez',
-			credits: 3,
-			numericGrade: 88,
-			color: 'var(--grade-good)'
-		},
-		{
-			id: 3,
-			name: 'Chemistry',
-			teacher: 'Prof. Ana Dela Cruz',
-			credits: 3,
-			numericGrade: 76,
-			color: 'var(--grade-satisfactory)'
-		},
-		{
-			id: 4,
-			name: 'Computer Science',
-			teacher: 'Dr. Michael Tan',
-			credits: 4,
-			numericGrade: 94,
-			color: 'var(--grade-excellent)'
-		},
-		{
-			id: 5,
-			name: 'English Literature',
-			teacher: 'Prof. Sarah Johnson',
-			credits: 2,
-			numericGrade: 0,
-			color: 'var(--grade-no-grade)'
-		}
-	];
+	// Fetch grades from API
+	async function fetchGrades() {
+		try {
+			loading = true;
+			error = null;
 
-	// Update subject colors based on grades reactively
+			if (!$authStore.userData?.id) {
+				error = 'User not authenticated';
+				return;
+			}
+
+			const gradingPeriodId = quarterToGradingPeriod[currentQuarter];
+			const result = await api.get(`/api/student-grades/verified?student_id=${$authStore.userData.id}&grading_period_id=${gradingPeriodId}`);
+
+			if (result.success) {
+				studentData = result.data.student;
+				subjects = result.data.subjects.map(subject => ({
+					...subject,
+					color: getGradeColor(subject.numericGrade)
+				}));
+				totalSubjects = result.data.totalSubjects;
+				overallAverage = result.data.overallAverage;
+			} else {
+				error = result.error || 'Failed to fetch grades';
+			}
+		} catch (err) {
+			console.error('Error fetching grades:', err);
+			error = 'Failed to load grades. Please try again.';
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Load data when component mounts
+	onMount(() => {
+		if ($authStore.userData?.id) {
+			fetchGrades();
+		} else {
+			error = 'Please log in to view your grades';
+			loading = false;
+		}
+	});
+
+	// Update subject colors when subjects change
 	$: {
 		subjects = subjects.map(subject => ({
 			...subject,
 			color: getGradeColor(subject.numericGrade)
 		}));
-	}
-
-	// Calculate overall average
-	let overallAverage;
-	$: {
-		// Include all subjects with valid numeric grades (> 0)
-		const validSubjects = subjects.filter(subject => 
-			subject.numericGrade != null && 
-			typeof subject.numericGrade === 'number' && 
-			subject.numericGrade > 0
-		);
-		
-		if (validSubjects.length > 0) {
-			const totalPoints = validSubjects.reduce((sum, subject) => sum + subject.numericGrade, 0);
-			overallAverage = (totalPoints / validSubjects.length).toFixed(2);
-		} else {
-			overallAverage = '0.00';
-		}
 	}
 
 </script>
@@ -132,70 +131,96 @@
 		</div>
 	</div>
 
-	<!-- Overall Performance Card -->
-	<div class="performance-card">
-		<h2 class="performance-title">Overall Performance</h2>
-		<div class="performance-content">
-			<div class="performance-main">
-				<div class="average-section">
-					<div class="average-value" style="color: {getGradeColor(parseFloat(overallAverage))}">
-						<div>
-							<Odometer value={parseFloat(overallAverage)} format="d.dd" duration={3000} animation="ease-out" />
+	<!-- Loading State -->
+	{#if error}
+		<!-- Error State -->
+		<div class="error-container">
+			<span class="material-symbols-outlined error-icon">error</span>
+			<p>Error: {error}</p>
+			<button class="retry-btn" on:click={fetchGrades}>
+				<span class="material-symbols-outlined">refresh</span>
+				Try Again
+			</button>
+		</div>
+	{:else}
+		<!-- Overall Performance Card -->
+		<div class="performance-card">
+			<h2 class="performance-title">Overall Performance</h2>
+			<div class="performance-content">
+				<div class="performance-main">
+					<div class="average-section">
+						<div class="average-value" style="color: {getGradeColor(overallAverage)}">
+							<div>
+								<CountUp value={overallAverage} decimals={1} duration={2.5} />
+							</div>
 						</div>
+						<div class="average-label">Current Average</div>
 					</div>
-					<div class="average-label">Current Average</div>
-				</div>
-				<div class="subjects-section-card">
-					<div class="subjects-value">
-						<div>
-							<Odometer value={totalSubjects} format="d" duration={3000} animation="ease-out" />
+					<div class="subjects-section-card">
+						<div class="subjects-value">
+							<div>
+							<CountUp value={totalSubjects} decimals={0} duration={2} />
+							</div>
 						</div>
+						<div class="subjects-label">Total Subjects</div>
 					</div>
-					<div class="subjects-label">Total Subjects</div>
 				</div>
 			</div>
 		</div>
-	</div>
 
-	<!-- Subjects Grid -->
-	<div class="subjects-section">
-		<h2 class="section-title">Subject Performance</h2>
-		<div class="subjects-grid">
-			{#each subjects as subject (subject.id)}
-				<div class="subject-card">
-					<!-- Column 1: Icon -->
-					<div class="subject-icon-column">
-						<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
-							<span class="material-symbols-outlined">book</span>
-						</div>
-					</div>
-					
-					<!-- Column 2: Subject Details -->
-					<div class="subject-details-column">
-						<h3 class="subject-name">{subject.name}</h3>
-						<p class="teacher-name">{subject.teacher}</p>
-						{#if subject.numericGrade > 0}
-							<div class="progress-bar">
-								<div class="progress-fill" style="width: {subject.numericGrade}%; background-color: {subject.color}"></div>
-							</div>
-						{/if}
-					</div>
-					
-					<!-- Column 3: Grade Display -->
-					<div class="grade-column">
-						{#if subject.numericGrade > 0}
-							<div class="grade-large" style="color: {subject.color}">
-								<Odometer value={subject.numericGrade} format="d" duration={3000} animation="ease-out" />
-							</div>
-						{:else}
-							<div class="no-grade-large" style="color: {subject.color}">
-								<span class="material-symbols-outlined">remove</span>
-								<span class="no-grade-text">No Grade</span>
-							</div>
-						{/if}
-					</div>
+		<!-- Subjects Grid -->
+		<div class="subjects-section">
+			<h2 class="section-title">Subject Performance</h2>
+			{#if loading}
+				<div class="loading-container">
+					<div class="loading-spinner"></div>
+					<p>Loading your grades...</p>
 				</div>
-			{/each}
+			{:else if subjects.length === 0}
+				<div class="no-subjects">
+					<span class="material-symbols-outlined">school</span>
+					<p>No subjects found for {currentQuarter}</p>
+					<small>Grades will appear here once they are verified by your teachers</small>
+				</div>
+			{:else}
+				<div class="subjects-grid">
+					{#each subjects as subject (subject.id)}
+						<div class="subject-card">
+							<!-- Column 1: Icon -->
+							<div class="subject-icon-column">
+								<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
+									<span class="material-symbols-outlined">book</span>
+								</div>
+							</div>
+							
+							<!-- Column 2: Subject Details -->
+							<div class="subject-details-column">
+								<h3 class="subject-name">{subject.name}</h3>
+								<p class="teacher-name">{subject.teacher}</p>
+								{#if subject.verified && subject.numericGrade > 0}
+									<div class="progress-bar">
+										<div class="progress-fill" style="width: {subject.numericGrade}%; background-color: {subject.color}"></div>
+									</div>
+								{/if}
+							</div>
+							
+							<!-- Column 3: Grade Display -->
+							<div class="grade-column">
+								{#if subject.verified && subject.numericGrade > 0}
+									<div class="grade-large" style="color: {subject.color}">
+										<CountUp value={subject.numericGrade} decimals={1} duration={1.5} />
+									</div>
+								{:else}
+									<div class="no-grade-large" style="color: {subject.color}">
+										<span class="material-symbols-outlined">remove</span>
+										<span class="no-grade-text">No Grade</span>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
 		</div>
-	</div>
+	{/if}
 </div>

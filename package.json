@@ -33,6 +33,7 @@
 	},
 	"dependencies": {
 		"bcrypt": "^6.0.0",
+		"countup.js": "^2.9.0",
 		"dotenv": "^17.2.2",
 		"node-fetch": "^3.3.2",
 		"odometer": "^0.4.8",
