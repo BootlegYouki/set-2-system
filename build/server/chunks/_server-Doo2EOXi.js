@@ -1,0 +1,341 @@
+import { j as json } from './index-CccDCyu_.js';
+import { q as query } from './db--iX-5Jmg.js';
+import { g as getUserFromRequest, l as logActivityWithUser } from './auth-helper-VQdrszph.js';
+import 'pg';
+import 'dotenv';
+
+async function GET({ url }) {
+  try {
+    const action = url.searchParams.get("action");
+    const sectionId = url.searchParams.get("sectionId");
+    const schoolYear = url.searchParams.get("schoolYear") || "2024-2025";
+    const dayOfWeek = url.searchParams.get("dayOfWeek");
+    const scheduleId = url.searchParams.get("scheduleId");
+    switch (action) {
+      case "schedule-details":
+        const scheduleDetailsResult = await query(
+          "SELECT * FROM get_schedule_details($1, $2, $3)",
+          [sectionId ? parseInt(sectionId) : null, schoolYear, dayOfWeek]
+        );
+        return json({ success: true, data: scheduleDetailsResult.rows });
+      case "single-schedule":
+        if (!scheduleId) {
+          return json({ success: false, error: "Schedule ID is required" }, { status: 400 });
+        }
+        const singleScheduleResult = await query(`
+                    SELECT 
+                        sch.id,
+                        sch.section_id,
+                        sec.name as section_name,
+                        sec.grade_level,
+                        sch.day_of_week,
+                        sch.start_time,
+                        sch.end_time,
+                        sch.schedule_type,
+                        sch.subject_id,
+                        sub.name as subject_name,
+                        sub.code as subject_code,
+                        sch.activity_type_id,
+                        act.name as activity_type_name,
+                        act.icon as activity_type_icon,
+                        sch.teacher_id,
+                        u.full_name as teacher_name,
+                        u.account_number as teacher_account_number,
+                        sch.school_year,
+                        sch.created_at,
+                        sch.updated_at
+                    FROM schedules sch
+                    JOIN sections sec ON sch.section_id = sec.id
+                    LEFT JOIN subjects sub ON sch.subject_id = sub.id
+                    LEFT JOIN activity_types act ON sch.activity_type_id = act.id
+                    LEFT JOIN users u ON sch.teacher_id = u.id
+                    WHERE sch.id = $1
+                `, [parseInt(scheduleId)]);
+        if (singleScheduleResult.rows.length === 0) {
+          return json({ success: false, error: "Schedule not found" }, { status: 404 });
+        }
+        return json({ success: true, data: singleScheduleResult.rows[0] });
+      case "section-schedules":
+        if (!sectionId) {
+          return json({ success: false, error: "Section ID is required" }, { status: 400 });
+        }
+        const sectionSchedulesResult = await query(
+          "SELECT * FROM get_schedule_details($1, $2, NULL)",
+          [parseInt(sectionId), schoolYear]
+        );
+        return json({ success: true, data: sectionSchedulesResult.rows });
+      case "teacher-schedules":
+        const teacherId = url.searchParams.get("teacherId");
+        if (!teacherId) {
+          return json({ success: false, error: "Teacher ID is required" }, { status: 400 });
+        }
+        const teacherSchedulesResult = await query(`
+                    SELECT 
+                        sch.id,
+                        sch.section_id,
+                        sec.name as section_name,
+                        sec.grade_level,
+                        sch.day_of_week,
+                        sch.start_time,
+                        sch.end_time,
+                        sch.schedule_type,
+                        sch.subject_id,
+                        sub.name as subject_name,
+                        sub.code as subject_code,
+                        sch.activity_type_id,
+                        act.name as activity_type_name,
+                        r.name as room_name,
+                        sch.school_year
+                    FROM schedules sch
+                    JOIN sections sec ON sch.section_id = sec.id
+                    LEFT JOIN subjects sub ON sch.subject_id = sub.id
+                    LEFT JOIN activity_types act ON sch.activity_type_id = act.id
+                    LEFT JOIN rooms r ON sec.room_id = r.id
+                    WHERE sch.teacher_id = $1 AND sch.school_year = $2
+                    ORDER BY sch.day_of_week, sch.start_time
+                `, [parseInt(teacherId), schoolYear]);
+        return json({ success: true, data: teacherSchedulesResult.rows });
+      case "student-schedules":
+        const studentId = url.searchParams.get("studentId");
+        if (!studentId) {
+          return json({ success: false, error: "Student ID is required" }, { status: 400 });
+        }
+        const studentSchedulesResult = await query(`
+                    SELECT 
+                        sch.id,
+                        sch.section_id,
+                        sec.name as section_name,
+                        sec.grade_level,
+                        sch.day_of_week,
+                        sch.start_time,
+                        sch.end_time,
+                        sch.schedule_type,
+                        sch.subject_id,
+                        sub.name as subject_name,
+                        sub.code as subject_code,
+                        sch.activity_type_id,
+                        act.name as activity_type_name,
+                        act.icon as activity_type_icon,
+                        sch.teacher_id,
+                        u.full_name as teacher_name,
+                        r.name as room_name,
+                        sch.school_year
+                    FROM schedules sch
+                    JOIN sections sec ON sch.section_id = sec.id
+                    JOIN section_students ss ON sec.id = ss.section_id
+                    LEFT JOIN subjects sub ON sch.subject_id = sub.id
+                    LEFT JOIN activity_types act ON sch.activity_type_id = act.id
+                    LEFT JOIN users u ON sch.teacher_id = u.id
+                    LEFT JOIN rooms r ON sec.room_id = r.id
+                    WHERE ss.student_id = $1 AND sch.school_year = $2 AND ss.status = 'active'
+                    ORDER BY 
+                        CASE sch.day_of_week
+                            WHEN 'monday' THEN 1
+                            WHEN 'tuesday' THEN 2
+                            WHEN 'wednesday' THEN 3
+                            WHEN 'thursday' THEN 4
+                            WHEN 'friday' THEN 5
+                            WHEN 'saturday' THEN 6
+                            WHEN 'sunday' THEN 7
+                        END,
+                        sch.start_time
+                `, [parseInt(studentId), schoolYear]);
+        return json({ success: true, data: studentSchedulesResult.rows });
+      default:
+        const allSchedulesResult = await query(
+          "SELECT * FROM get_schedule_details($1, $2, $3)",
+          [sectionId ? parseInt(sectionId) : null, schoolYear, dayOfWeek]
+        );
+        return json({ success: true, data: allSchedulesResult.rows });
+    }
+  } catch (error) {
+    console.error("Error fetching schedules data:", error);
+    return json({ success: false, error: "Failed to fetch schedules data" }, { status: 500 });
+  }
+}
+async function POST({ request, getClientAddress }) {
+  try {
+    const data = await request.json();
+    console.log("Received schedule data:", data);
+    const {
+      sectionId,
+      dayOfWeek,
+      startTime,
+      endTime,
+      scheduleType,
+      subjectId,
+      activityTypeId,
+      teacherId,
+      schoolYear
+    } = data;
+    console.log("Received schedule data:", {
+      sectionId,
+      dayOfWeek,
+      startTime,
+      endTime,
+      scheduleType,
+      subjectId,
+      activityTypeId,
+      teacherId,
+      schoolYear
+    });
+    const clientIP = getClientAddress();
+    const userAgent = request.headers.get("user-agent");
+    if (!sectionId || !dayOfWeek || !startTime || !endTime || !scheduleType || !schoolYear) {
+      return json({ success: false, error: "Missing required fields" }, { status: 400 });
+    }
+    if (scheduleType === "subject" && !subjectId) {
+      return json({ success: false, error: "Subject ID is required for subject schedules" }, { status: 400 });
+    }
+    if (scheduleType === "activity" && !activityTypeId) {
+      return json({ success: false, error: "Activity Type ID is required for activity schedules" }, { status: 400 });
+    }
+    const conflictResult = await query(`
+            SELECT id, start_time, end_time 
+            FROM schedules 
+            WHERE section_id = $1 
+                AND day_of_week = $2 
+                AND school_year = $3 
+                AND (
+                    ($4::time >= start_time AND $4::time < end_time) OR
+                    ($5::time > start_time AND $5::time <= end_time) OR
+                    ($4::time <= start_time AND $5::time >= end_time)
+                )
+        `, [parseInt(sectionId), dayOfWeek, schoolYear, startTime, endTime]);
+    if (conflictResult.rows.length > 0) {
+      return json({
+        success: false,
+        error: "Time conflict detected with existing schedule",
+        conflictingSchedule: conflictResult.rows[0]
+      }, { status: 409 });
+    }
+    await query("BEGIN");
+    try {
+      console.log("About to execute INSERT query with values:", [
+        parseInt(sectionId),
+        dayOfWeek,
+        startTime,
+        endTime,
+        scheduleType,
+        subjectId ? parseInt(subjectId) : null,
+        activityTypeId ? parseInt(activityTypeId) : null,
+        teacherId ? parseInt(teacherId) : null,
+        schoolYear
+      ]);
+      const scheduleResult = await query(`
+                INSERT INTO schedules (
+                    section_id, 
+                    day_of_week, 
+                    start_time, 
+                    end_time, 
+                    schedule_type, 
+                    subject_id, 
+                    activity_type_id, 
+                    teacher_id, 
+                    school_year
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING id, section_id, day_of_week, start_time, end_time, schedule_type, 
+                         subject_id, activity_type_id, teacher_id, school_year, created_at
+            `, [
+        parseInt(sectionId),
+        dayOfWeek,
+        startTime,
+        endTime,
+        scheduleType,
+        subjectId ? parseInt(subjectId) : null,
+        activityTypeId ? parseInt(activityTypeId) : null,
+        teacherId ? parseInt(teacherId) : null,
+        schoolYear
+      ]);
+      const newSchedule = scheduleResult.rows[0];
+      try {
+        const user = await getUserFromRequest(request);
+        if (user && user.id) {
+          await logActivityWithUser(
+            "schedule_created",
+            user,
+            {
+              schedule_id: newSchedule.id,
+              section_id: newSchedule.section_id,
+              day_of_week: newSchedule.day_of_week,
+              start_time: newSchedule.start_time,
+              end_time: newSchedule.end_time,
+              schedule_type: newSchedule.schedule_type,
+              school_year: newSchedule.school_year
+            },
+            clientIP,
+            userAgent
+          );
+        }
+      } catch (logError) {
+        console.error("Error logging activity:", logError);
+      }
+      await query("COMMIT");
+      return json({
+        success: true,
+        message: "Schedule created successfully",
+        data: newSchedule
+      });
+    } catch (error) {
+      await query("ROLLBACK");
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error creating schedule:", error);
+    console.error("Error stack:", error.stack);
+    return json({ success: false, error: "Failed to create schedule", details: error.message }, { status: 500 });
+  }
+}
+async function DELETE({ url, request, getClientAddress }) {
+  try {
+    const scheduleId = url.searchParams.get("id");
+    const clientIP = getClientAddress();
+    const userAgent = request.headers.get("user-agent");
+    if (!scheduleId) {
+      return json({ success: false, error: "Schedule ID is required" }, { status: 400 });
+    }
+    const existingSchedule = await query("SELECT * FROM schedules WHERE id = $1", [parseInt(scheduleId)]);
+    if (existingSchedule.rows.length === 0) {
+      return json({ success: false, error: "Schedule not found" }, { status: 404 });
+    }
+    const scheduleToDelete = existingSchedule.rows[0];
+    await query("BEGIN");
+    try {
+      await query("DELETE FROM schedules WHERE id = $1", [parseInt(scheduleId)]);
+      try {
+        const user = await getUserFromRequest(request);
+        await logActivityWithUser(
+          "schedule_deleted",
+          user,
+          {
+            schedule_id: parseInt(scheduleId),
+            section_id: scheduleToDelete.section_id,
+            day_of_week: scheduleToDelete.day_of_week,
+            start_time: scheduleToDelete.start_time,
+            end_time: scheduleToDelete.end_time,
+            schedule_type: scheduleToDelete.schedule_type
+          },
+          clientIP,
+          userAgent
+        );
+      } catch (logError) {
+        console.error("Error logging activity:", logError);
+      }
+      await query("COMMIT");
+      return json({
+        success: true,
+        message: "Schedule deleted successfully"
+      });
+    } catch (error) {
+      await query("ROLLBACK");
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error deleting schedule:", error);
+    return json({ success: false, error: "Failed to delete schedule" }, { status: 500 });
+  }
+}
+
+export { DELETE, GET, POST };
+//# sourceMappingURL=_server-Doo2EOXi.js.map

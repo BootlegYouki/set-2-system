@@ -1,24 +1,21 @@
-import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
-import { verifyAuth } from '../helper/auth-helper.js';
+import { j as json } from './index-CccDCyu_.js';
+import { q as query } from './db--iX-5Jmg.js';
+import { v as verifyAuth } from './auth-helper-VQdrszph.js';
+import 'pg';
+import 'dotenv';
 
-/** @type {import('./$types').RequestHandler} */
-export async function GET({ url, request }) {
+async function GET({ url, request }) {
   try {
-    // Verify authentication
     const authResult = await verifyAuth(request);
     if (!authResult.success) {
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
-
-    const sectionId = url.searchParams.get('section_id');
-    const subjectId = url.searchParams.get('subject_id');
-    const gradingPeriodId = url.searchParams.get('grading_period_id');
-    const studentId = url.searchParams.get('student_id');
-    const action = url.searchParams.get('action');
-
-    // Get students with grades for a specific section, subject, and grading period
-    if (action === 'students_with_grades' && sectionId && subjectId && gradingPeriodId) {
+    const sectionId = url.searchParams.get("section_id");
+    const subjectId = url.searchParams.get("subject_id");
+    const gradingPeriodId = url.searchParams.get("grading_period_id");
+    const studentId = url.searchParams.get("student_id");
+    const action = url.searchParams.get("action");
+    if (action === "students_with_grades" && sectionId && subjectId && gradingPeriodId) {
       const studentsQuery = `
         SELECT DISTINCT
           u.id,
@@ -34,10 +31,7 @@ export async function GET({ url, request }) {
         AND u.status = 'active'
         ORDER BY u.full_name
       `;
-      
       const students = await query(studentsQuery, [sectionId]);
-
-      // Get grade items for this section, subject, and grading period
       const gradeItemsQuery = `
         SELECT 
           gi.id,
@@ -54,10 +48,7 @@ export async function GET({ url, request }) {
         AND gi.status = 'active'
         ORDER BY gc.code, gi.id
       `;
-      
       const gradeItems = await query(gradeItemsQuery, [sectionId, subjectId, gradingPeriodId]);
-
-      // Get all grades for these students and grade items
       const gradesQuery = `
         SELECT 
           sg.student_id,
@@ -72,10 +63,7 @@ export async function GET({ url, request }) {
         AND gi.subject_id = $2
         AND gi.grading_period_id = $3
       `;
-      
       const grades = await query(gradesQuery, [sectionId, subjectId, gradingPeriodId]);
-
-      // Get final grades
       const finalGradesQuery = `
         SELECT 
           student_id,
@@ -89,37 +77,29 @@ export async function GET({ url, request }) {
         AND subject_id = $2
         AND grading_period_id = $3
       `;
-      
       const finalGrades = await query(finalGradesQuery, [sectionId, subjectId, gradingPeriodId]);
-
-      // Organize data for frontend
-      const studentsWithGrades = students.rows.map(student => {
-        const studentGrades = grades.rows.filter(g => g.student_id === student.id);
-        const studentFinalGrade = finalGrades.rows.find(fg => fg.student_id === student.id);
-        
-        // Group grades by category
+      const studentsWithGrades = students.rows.map((student) => {
+        const studentGrades = grades.rows.filter((g) => g.student_id === student.id);
+        const studentFinalGrade = finalGrades.rows.find((fg) => fg.student_id === student.id);
         const writtenWork = [];
         const performanceTasks = [];
         const quarterlyAssessment = [];
-        
-        gradeItems.rows.forEach(item => {
-          const grade = studentGrades.find(g => g.grade_item_id === item.id);
+        gradeItems.rows.forEach((item) => {
+          const grade = studentGrades.find((g) => g.grade_item_id === item.id);
           const gradeData = {
             itemId: item.id,
             itemName: item.name,
             totalScore: item.total_score,
             score: grade ? grade.score : null
           };
-          
-          if (item.category_code === 'WW') {
+          if (item.category_code === "WW") {
             writtenWork.push(gradeData);
-          } else if (item.category_code === 'PT') {
+          } else if (item.category_code === "PT") {
             performanceTasks.push(gradeData);
-          } else if (item.category_code === 'QA') {
+          } else if (item.category_code === "QA") {
             quarterlyAssessment.push(gradeData);
           }
         });
-
         return {
           id: student.id,
           accountNumber: student.account_number,
@@ -135,32 +115,29 @@ export async function GET({ url, request }) {
             quarterlyAssessment: studentFinalGrade?.quarterly_assessment_average || 0
           },
           finalGrade: studentFinalGrade?.final_grade || 0,
-          letterGrade: studentFinalGrade?.letter_grade || ''
+          letterGrade: studentFinalGrade?.letter_grade || ""
         };
       });
-
-      // Get grading configuration
       const gradingConfig = {
         writtenWork: {
-          count: gradeItems.rows.filter(item => item.category_code === 'WW').length,
-          weight: gradeItems.rows.find(item => item.category_code === 'WW')?.category_weight || 0.30,
+          count: gradeItems.rows.filter((item) => item.category_code === "WW").length,
+          weight: gradeItems.rows.find((item) => item.category_code === "WW")?.category_weight || 0.3,
           label: "WW",
-          items: gradeItems.rows.filter(item => item.category_code === 'WW')
+          items: gradeItems.rows.filter((item) => item.category_code === "WW")
         },
         performanceTasks: {
-          count: gradeItems.rows.filter(item => item.category_code === 'PT').length,
-          weight: gradeItems.rows.find(item => item.category_code === 'PT')?.category_weight || 0.50,
+          count: gradeItems.rows.filter((item) => item.category_code === "PT").length,
+          weight: gradeItems.rows.find((item) => item.category_code === "PT")?.category_weight || 0.5,
           label: "PT",
-          items: gradeItems.rows.filter(item => item.category_code === 'PT')
+          items: gradeItems.rows.filter((item) => item.category_code === "PT")
         },
         quarterlyAssessment: {
-          count: gradeItems.rows.filter(item => item.category_code === 'QA').length,
-          weight: gradeItems.rows.find(item => item.category_code === 'QA')?.category_weight || 0.20,
+          count: gradeItems.rows.filter((item) => item.category_code === "QA").length,
+          weight: gradeItems.rows.find((item) => item.category_code === "QA")?.category_weight || 0.2,
           label: "QA",
-          items: gradeItems.rows.filter(item => item.category_code === 'QA')
+          items: gradeItems.rows.filter((item) => item.category_code === "QA")
         }
       };
-
       return json({
         success: true,
         students: studentsWithGrades,
@@ -168,74 +145,62 @@ export async function GET({ url, request }) {
         gradeItems: gradeItems.rows
       });
     }
-
-    // Get grading periods
-    if (action === 'grading_periods') {
+    if (action === "grading_periods") {
       const periodsQuery = `
         SELECT id, name, school_year, start_date, end_date, status
         FROM grading_periods
         WHERE status = 'active'
         ORDER BY start_date
       `;
-      
       const periods = await query(periodsQuery);
       return json({ success: true, gradingPeriods: periods.rows });
     }
-
-    // Get grade categories
-    if (action === 'categories') {
+    if (action === "categories") {
       const categoriesQuery = `
         SELECT id, name, code, weight, description
         FROM grade_categories
         ORDER BY id
       `;
-      
       const categories = await query(categoriesQuery);
       return json({ success: true, categories: categories.rows });
     }
-
-    return json({ error: 'Invalid action or missing parameters' }, { status: 400 });
-
+    return json({ error: "Invalid action or missing parameters" }, { status: 400 });
   } catch (error) {
-    console.error('Error in student-grades GET:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error in student-grades GET:", error);
+    return json({ error: "Internal server error" }, { status: 500 });
   }
 }
-
-/** @type {import('./$types').RequestHandler} */
-export async function POST({ request }) {
+async function POST({ request }) {
   try {
-    // Verify authentication
     const authResult = await verifyAuth(request);
     if (!authResult.success) {
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
-
     const body = await request.json();
     const { action } = body;
-
-    // Create grade item
-    if (action === 'create_grade_item') {
+    if (action === "create_grade_item") {
       const { sectionId, subjectId, teacherId, gradingPeriodId, categoryId, name, description, totalScore, dateGiven, dueDate } = body;
-      
       const insertQuery = `
         INSERT INTO grade_items (section_id, subject_id, teacher_id, grading_period_id, category_id, name, description, total_score, date_given, due_date)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `;
-      
       const result = await query(insertQuery, [
-        sectionId, subjectId, teacherId, gradingPeriodId, categoryId, 
-        name, description, totalScore || 100, dateGiven, dueDate
+        sectionId,
+        subjectId,
+        teacherId,
+        gradingPeriodId,
+        categoryId,
+        name,
+        description,
+        totalScore || 100,
+        dateGiven,
+        dueDate
       ]);
-      
       return json({ success: true, gradeItem: result.rows[0] });
     }
-
-    // Update student grade
-    if (action === 'update_grade') {
+    if (action === "update_grade") {
       const { studentId, gradeItemId, score, gradedBy } = body;
-      
       const upsertQuery = `
         INSERT INTO student_grades (student_id, grade_item_id, score, graded_by, graded_at)
         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
@@ -247,20 +212,14 @@ export async function POST({ request }) {
           updated_at = CURRENT_TIMESTAMP
         RETURNING *
       `;
-      
       const result = await query(upsertQuery, [studentId, gradeItemId, score, gradedBy]);
-      
       return json({ success: true, grade: result.rows[0] });
     }
-
-    // Bulk update grades
-    if (action === 'bulk_update_grades') {
+    if (action === "bulk_update_grades") {
       const { grades, gradedBy } = body;
-      
       const results = [];
       for (const grade of grades) {
         const { studentId, gradeItemId, score } = grade;
-        
         const upsertQuery = `
           INSERT INTO student_grades (student_id, grade_item_id, score, graded_by, graded_at)
           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
@@ -272,98 +231,73 @@ export async function POST({ request }) {
             updated_at = CURRENT_TIMESTAMP
           RETURNING *
         `;
-        
         const result = await query(upsertQuery, [studentId, gradeItemId, score, gradedBy]);
         results.push(result.rows[0]);
       }
-      
       return json({ success: true, grades: results });
     }
-
-    return json({ error: 'Invalid action' }, { status: 400 });
-
+    return json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    console.error('Error in student-grades POST:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error in student-grades POST:", error);
+    return json({ error: "Internal server error" }, { status: 500 });
   }
 }
-
-/** @type {import('./$types').RequestHandler} */
-export async function PUT({ request }) {
+async function PUT({ request }) {
   try {
-    // Verify authentication
     const authResult = await verifyAuth(request);
     if (!authResult.success) {
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
-
     const body = await request.json();
     const { action } = body;
-
-    // Update grade item
-    if (action === 'update_grade_item') {
+    if (action === "update_grade_item") {
       const { id, name, description, totalScore, dateGiven, dueDate } = body;
-      
       const updateQuery = `
         UPDATE grade_items 
         SET name = $2, description = $3, total_score = $4, date_given = $5, due_date = $6, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
         RETURNING *
       `;
-      
       const result = await query(updateQuery, [id, name, description, totalScore, dateGiven, dueDate]);
-      
       if (result.rows.length === 0) {
-        return json({ error: 'Grade item not found' }, { status: 404 });
+        return json({ error: "Grade item not found" }, { status: 404 });
       }
-      
       return json({ success: true, gradeItem: result.rows[0] });
     }
-
-    return json({ error: 'Invalid action' }, { status: 400 });
-
+    return json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    console.error('Error in student-grades PUT:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error in student-grades PUT:", error);
+    return json({ error: "Internal server error" }, { status: 500 });
   }
 }
-
-/** @type {import('./$types').RequestHandler} */
-export async function DELETE({ request }) {
+async function DELETE({ request }) {
   try {
-    // Verify authentication
     const authResult = await verifyAuth(request);
     if (!authResult.success) {
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
-
     const body = await request.json();
     const { action } = body;
-
-    // Delete grade item
-    if (action === 'delete_grade_item') {
+    if (action === "delete_grade_item") {
       const { id } = body;
-      
       const deleteQuery = `
         UPDATE grade_items 
         SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
         RETURNING *
       `;
-      
       const result = await query(deleteQuery, [id]);
-      
       if (result.rows.length === 0) {
-        return json({ error: 'Grade item not found' }, { status: 404 });
+        return json({ error: "Grade item not found" }, { status: 404 });
       }
-      
-      return json({ success: true, message: 'Grade item deleted successfully' });
+      return json({ success: true, message: "Grade item deleted successfully" });
     }
-
-    return json({ error: 'Invalid action' }, { status: 400 });
-
+    return json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
-    console.error('Error in student-grades DELETE:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error in student-grades DELETE:", error);
+    return json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export { DELETE, GET, POST, PUT };
+//# sourceMappingURL=_server-DGORe5Xv.js.map
