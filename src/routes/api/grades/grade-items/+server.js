@@ -263,14 +263,14 @@ async function addGradeItem(teacherId, sectionId, subjectId, gradingPeriodId, ca
     // First, lock the table to prevent concurrent insertions
     await client.query(`LOCK TABLE grade_items IN EXCLUSIVE MODE`);
     
-    const countResult = await client.query(`
-      SELECT COUNT(*) as count 
+    // Get existing grade items to find the next sequential number
+    const existingItemsResult = await client.query(`
+      SELECT name 
       FROM grade_items 
       WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
+      ORDER BY created_at
     `, [sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
 
-    const currentCount = parseInt(countResult.rows[0].count);
-    
     // Get category name for generating item name
     const categoryResult = await client.query(`
       SELECT name, code FROM grade_categories WHERE id = $1
@@ -281,9 +281,28 @@ async function addGradeItem(teacherId, sectionId, subjectId, gradingPeriodId, ca
       throw new Error('Invalid category');
     }
 
-    const categoryName = categoryResult.rows[0].name;
-    const newItemNumber = currentCount + 1;
-    const itemName = gradeItemData?.name || `${categoryName} ${newItemNumber}`;
+    const categoryCode = categoryResult.rows[0].code; // Use code instead of name
+    
+    // Find the next available number by checking existing names
+    let newItemNumber = 1;
+    const existingNumbers = existingItemsResult.rows
+      .map(row => {
+        const match = row.name.match(new RegExp(`${categoryCode}\\s+(\\d+)$`));
+        return match ? parseInt(match[1]) : 0;
+      })
+      .filter(num => num > 0)
+      .sort((a, b) => a - b);
+    
+    // Find the first gap or use the next sequential number
+    for (let i = 0; i < existingNumbers.length; i++) {
+      if (existingNumbers[i] !== i + 1) {
+        newItemNumber = i + 1;
+        break;
+      }
+      newItemNumber = existingNumbers[i] + 1;
+    }
+    
+    const itemName = gradeItemData?.name || `${categoryCode} ${newItemNumber}`;
     const totalScore = gradeItemData?.total_score || 100;
 
     // Insert new grade item within the same transaction
@@ -313,24 +332,54 @@ async function addGradeItem(teacherId, sectionId, subjectId, gradingPeriodId, ca
 
 async function removeGradeItem(teacherId, sectionId, subjectId, gradingPeriodId, categoryId, gradeItemData) {
   try {
-    // Get all grade items for this category, ordered by creation date
-    const itemsResult = await query(`
-      SELECT id, name 
+    // Check if a specific grade item ID is provided
+    const gradeItemId = gradeItemData?.grade_item_id;
+    
+    let itemToRemove;
+    
+    if (gradeItemId) {
+      // Remove specific grade item by ID
+      const specificItemResult = await query(`
+        SELECT id, name 
+        FROM grade_items 
+        WHERE id = $1 AND section_id = $2 AND subject_id = $3 AND grading_period_id = $4 AND category_id = $5 AND teacher_id = $6 AND status = 'active'
+      `, [gradeItemId, sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
+
+      if (specificItemResult.rows.length === 0) {
+        return json({ error: 'Grade item not found or unauthorized' }, { status: 404 });
+      }
+      
+      itemToRemove = specificItemResult.rows[0];
+    } else {
+      // Fallback to removing the most recently created grade item
+      const itemsResult = await query(`
+        SELECT id, name 
+        FROM grade_items 
+        WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
+        ORDER BY created_at DESC
+      `, [sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
+
+      if (itemsResult.rows.length === 0) {
+        return json({ error: 'No grade items found to remove' }, { status: 400 });
+      }
+
+      if (itemsResult.rows.length <= 1) {
+        return json({ error: 'Cannot remove the last grade item. At least one item is required.' }, { status: 400 });
+      }
+
+      itemToRemove = itemsResult.rows[0];
+    }
+
+    // Check if this would leave the category with no items
+    const countResult = await query(`
+      SELECT COUNT(*) as count 
       FROM grade_items 
       WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
-      ORDER BY created_at DESC
     `, [sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
 
-    if (itemsResult.rows.length === 0) {
-      return json({ error: 'No grade items found to remove' }, { status: 400 });
-    }
-
-    if (itemsResult.rows.length <= 1) {
+    if (parseInt(countResult.rows[0].count) <= 1) {
       return json({ error: 'Cannot remove the last grade item. At least one item is required.' }, { status: 400 });
     }
-
-    // Remove the most recently created grade item (last column)
-    const itemToRemove = itemsResult.rows[0];
     
     // Start transaction
     await query('BEGIN');

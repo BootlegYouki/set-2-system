@@ -43,7 +43,7 @@ export async function POST({ request }) {
         quarterlyAssessment: []
       };
 
-      // Process Written Work grades
+      // Process WW grades
       if (grading_config.writtenWork) {
         results.writtenWork = await processAssessmentGrades(
           grades,
@@ -57,7 +57,7 @@ export async function POST({ request }) {
         );
       }
 
-      // Process Performance Tasks grades
+      // Process PT grades
       if (grading_config.performanceTasks) {
         results.performanceTasks = await processAssessmentGrades(
           grades,
@@ -71,7 +71,7 @@ export async function POST({ request }) {
         );
       }
 
-      // Process Quarterly Assessment grades
+      // Process QA grades
       if (grading_config.quarterlyAssessment) {
         results.quarterlyAssessment = await processAssessmentGrades(
           grades,

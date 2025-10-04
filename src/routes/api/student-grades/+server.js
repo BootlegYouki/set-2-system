@@ -144,19 +144,19 @@ export async function GET({ url, request }) {
         writtenWork: {
           count: gradeItems.rows.filter(item => item.category_code === 'WW').length,
           weight: gradeItems.rows.find(item => item.category_code === 'WW')?.category_weight || 0.30,
-          label: "Written Work",
+          label: "WW",
           items: gradeItems.rows.filter(item => item.category_code === 'WW')
         },
         performanceTasks: {
           count: gradeItems.rows.filter(item => item.category_code === 'PT').length,
           weight: gradeItems.rows.find(item => item.category_code === 'PT')?.category_weight || 0.50,
-          label: "Performance Tasks",
+          label: "PT",
           items: gradeItems.rows.filter(item => item.category_code === 'PT')
         },
         quarterlyAssessment: {
           count: gradeItems.rows.filter(item => item.category_code === 'QA').length,
           weight: gradeItems.rows.find(item => item.category_code === 'QA')?.category_weight || 0.20,
-          label: "Quarterly Assessment",
+          label: "QA",
           items: gradeItems.rows.filter(item => item.category_code === 'QA')
         }
       };

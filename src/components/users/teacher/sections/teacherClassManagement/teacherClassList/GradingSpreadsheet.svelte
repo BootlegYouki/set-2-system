@@ -4,7 +4,8 @@
   import { toastStore } from '../../../../../common/js/toastStore.js';
   import { authenticatedFetch } from '../../../../../../routes/api/helper/api-helper.js';
   import { authStore } from '../../../../../login/js/auth.js';
-  import CustomTotalScoreModal from './CustomTotalScoreModal.svelte';
+  import { modalStore } from '../../../../../common/js/modalStore.js';
+  import GradeColumnModal from './GradeColumnModal.svelte';
 
   // Props
   let { 
@@ -413,20 +414,29 @@
     return null; // Not an assessment column
   }
 
-  // State for custom modal
-  let modalVisible = $state(false);
-  let modalAssessmentType = $state('');
-  let modalColumnIndex = $state(0);
-  let modalColumnName = $state('');
-  let modalCurrentTotal = $state('');
+  // State for modal (no longer needed with modalStore)
+  // These variables can be removed as modalStore handles modal state
 
-  // Open total score modal
+  // Open total score modal using modalStore
   function openTotalScoreModal(assessmentType, columnIndex, columnName) {
-    modalAssessmentType = assessmentType;
-    modalColumnIndex = columnIndex;
-    modalColumnName = getColumnName(assessmentType, columnIndex);
-    modalCurrentTotal = getTotalForColumn(assessmentType, columnIndex);
-    modalVisible = true;
+    const currentTotal = getTotalForColumn(assessmentType, columnIndex);
+    const existingColumnNames = getExistingColumnNames(assessmentType);
+    const canRemove = canRemoveColumn(assessmentType);
+    
+    modalStore.open(GradeColumnModal, {
+      assessmentType,
+      columnIndex,
+      columnName: getColumnName(assessmentType, columnIndex),
+      currentTotal,
+      canRemove,
+      existingColumnNames,
+      onSave: updateTotalScores,
+      onRename: handleColumnRename,
+      onRemove: handleColumnRemove
+    }, {
+      size: 'medium',
+      closable: true
+    });
   }
 
   // Update total scores and recalculate
@@ -581,6 +591,14 @@
         return;
       }
 
+      // Get the specific grade item ID for the column being removed
+      const gradeItemId = gradingConfig[assessmentType].gradeItemIds?.[columnIndex];
+      if (!gradeItemId) {
+        console.error('No grade item ID found for column:', columnIndex);
+        toastStore.error('Cannot identify column to remove.');
+        return;
+      }
+
       // Call API to remove grade item from database
       const response = await fetch('/api/grades/grade-items', {
         method: 'POST',
@@ -595,7 +613,8 @@
           section_id: sectionId,
           subject_id: subjectId,
           grading_period_id: gradingPeriodId,
-          category_id: categoryId
+          category_id: categoryId,
+          grade_item_id: gradeItemId // Send specific grade item ID
         })
       });
 
@@ -626,6 +645,11 @@
       // Remove from column positions array if it exists
       if (gradingConfig[assessmentType].columnPositions) {
         gradingConfig[assessmentType].columnPositions.splice(columnIndex, 1);
+      }
+
+      // Remove from grade item IDs array if it exists
+      if (gradingConfig[assessmentType].gradeItemIds) {
+        gradingConfig[assessmentType].gradeItemIds.splice(columnIndex, 1);
       }
 
       // Update student data to remove the column
@@ -724,14 +748,7 @@
     return gradingConfig[assessmentType].totals[columnIndex] || '';
   }
 
-  // Close modal
-  function closeModal() {
-    modalVisible = false;
-    modalAssessmentType = '';
-    modalColumnIndex = 0;
-    modalColumnName = '';
-    modalCurrentTotal = '';
-  }
+  // closeModal function removed - modalStore handles modal closing
 
   function handleCellInput(rowIndex, colIndex, event) {
     const value = event.target.value;
@@ -1522,17 +1539,4 @@
   }
 </style>
 
-<!-- Custom Total Score Modal -->
-<CustomTotalScoreModal
-  bind:visible={modalVisible}
-  assessmentType={modalAssessmentType}
-  columnIndex={modalColumnIndex}
-  columnName={modalColumnName}
-  currentTotal={modalCurrentTotal}
-  canRemove={modalAssessmentType ? canRemoveColumn(modalAssessmentType) : false}
-  existingColumnNames={modalAssessmentType ? getExistingColumnNames(modalAssessmentType) : []}
-  onSave={updateTotalScores}
-  onRename={handleColumnRename}
-  onRemove={handleColumnRemove}
-  onClose={closeModal}
-/>
+<!-- Modal is now handled by modalStore - no component needed here -->

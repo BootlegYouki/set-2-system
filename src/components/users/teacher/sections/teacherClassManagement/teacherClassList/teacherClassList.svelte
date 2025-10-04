@@ -69,31 +69,31 @@
           // Build grading configuration from fetched grade items
           const newGradingConfig = {
             writtenWork: {
-              count: result.gradeItems.writtenWork.length || 1,
+              count: result.gradeItems.writtenWork.length,
               weight: 0.30,
               label: "Written Work",
-              totals: result.gradeItems.writtenWork.map(item => item.total_score) || [100],
-              columnNames: result.gradeItems.writtenWork.map(item => item.name) || [],
-              columnPositions: result.gradeItems.writtenWork.map((_, index) => index + 1) || [1],
-              gradeItemIds: result.gradeItems.writtenWork.map(item => item.id) || []
+              totals: result.gradeItems.writtenWork.map(item => item.total_score),
+              columnNames: result.gradeItems.writtenWork.map(item => item.name),
+              columnPositions: result.gradeItems.writtenWork.map((_, index) => index + 1),
+              gradeItemIds: result.gradeItems.writtenWork.map(item => item.id)
             },
             performanceTasks: {
-              count: result.gradeItems.performanceTasks.length || 1,
+              count: result.gradeItems.performanceTasks.length,
               weight: 0.50,
               label: "Performance Tasks", 
-              totals: result.gradeItems.performanceTasks.map(item => item.total_score) || [100],
-              columnNames: result.gradeItems.performanceTasks.map(item => item.name) || [],
-              columnPositions: result.gradeItems.performanceTasks.map((_, index) => index + 1) || [1],
-              gradeItemIds: result.gradeItems.performanceTasks.map(item => item.id) || []
+              totals: result.gradeItems.performanceTasks.map(item => item.total_score),
+              columnNames: result.gradeItems.performanceTasks.map(item => item.name),
+              columnPositions: result.gradeItems.performanceTasks.map((_, index) => index + 1),
+              gradeItemIds: result.gradeItems.performanceTasks.map(item => item.id)
             },
             quarterlyAssessment: {
-              count: result.gradeItems.quarterlyAssessment.length || 1,
+              count: result.gradeItems.quarterlyAssessment.length,
               weight: 0.20,
               label: "Quarterly Assessment",
-              totals: result.gradeItems.quarterlyAssessment.map(item => item.total_score) || [100],
-              columnNames: result.gradeItems.quarterlyAssessment.map(item => item.name) || [],
-              columnPositions: result.gradeItems.quarterlyAssessment.map((_, index) => index + 1) || [1],
-              gradeItemIds: result.gradeItems.quarterlyAssessment.map(item => item.id) || []
+              totals: result.gradeItems.quarterlyAssessment.map(item => item.total_score),
+              columnNames: result.gradeItems.quarterlyAssessment.map(item => item.name),
+              columnPositions: result.gradeItems.quarterlyAssessment.map((_, index) => index + 1),
+              gradeItemIds: result.gradeItems.quarterlyAssessment.map(item => item.id)
             }
           };
           
@@ -156,30 +156,30 @@
   // Grading configuration
   let gradingConfig = $state({
     writtenWork: {
-      count: 1,
+      count: 0,
       weight: 0.30, // 30%
       label: "Written Work",
-      totals: [100], // Total scores for each WW assessment
+      totals: [], // Total scores for each WW assessment
       columnNames: [],
-      columnPositions: [1],
+      columnPositions: [],
       gradeItemIds: []
     },
     performanceTasks: {
-      count: 1,
+      count: 0,
       weight: 0.50, // 50%
       label: "Performance Tasks",
-      totals: [100], // Total scores for each PT assessment
+      totals: [], // Total scores for each PT assessment
       columnNames: [],
-      columnPositions: [1],
+      columnPositions: [],
       gradeItemIds: []
     },
     quarterlyAssessment: {
-      count: 1,
+      count: 0,
       weight: 0.20, // 20%
       label: "Quarterly Assessment",
-      totals: [100], // Total scores for each QA assessment
+      totals: [], // Total scores for each QA assessment
       columnNames: [],
-      columnPositions: [1],
+      columnPositions: [],
       gradeItemIds: []
     }
   });
@@ -253,6 +253,18 @@
 
         // Update UI only after successful database operation
         gradingConfig[category].count += 1;
+        
+        // Add the new grade item ID to the gradeItemIds array
+        if (!gradingConfig[category].gradeItemIds) {
+          gradingConfig[category].gradeItemIds = [];
+        }
+        gradingConfig[category].gradeItemIds.push(result.grade_item.id);
+        
+        // Add the new column name to the columnNames array
+        if (!gradingConfig[category].columnNames) {
+          gradingConfig[category].columnNames = [];
+        }
+        gradingConfig[category].columnNames.push(result.grade_item.name);
         
         // Initialize columnPositions if it doesn't exist
         if (!gradingConfig[category].columnPositions) {
