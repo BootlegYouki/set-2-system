@@ -4,6 +4,7 @@ import { query } from '../../../database/db.js';
 export async function GET({ url }) {
     try {
         const sectionId = url.searchParams.get('sectionId');
+        const subjectId = url.searchParams.get('subjectId');
         const teacherId = url.searchParams.get('teacherId');
         const schoolYear = url.searchParams.get('schoolYear') || '2024-2025';
 
@@ -120,10 +121,16 @@ export async function GET({ url }) {
                 JOIN grade_categories gc ON gi.category_id = gc.id
                 WHERE sg.student_id = $1
                     AND gi.section_id = $2
+                    ${subjectId ? 'AND gi.subject_id = $3' : ''}
                 ORDER BY gc.code, gi.id
             `;
             
-            const gradesResult = await query(gradesQuery, [student.id, parseInt(sectionId)]);
+            const queryParams = [student.id, parseInt(sectionId)];
+            if (subjectId) {
+                queryParams.push(parseInt(subjectId));
+            }
+            
+            const gradesResult = await query(gradesQuery, queryParams);
             
             // Organize grades by category
             const writtenWork = [];

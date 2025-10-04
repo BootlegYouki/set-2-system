@@ -90,7 +90,11 @@
   function initializeSpreadsheetData() {
     const headers = ['Student ID', 'Student Name'];
     
-    console.log('initializeSpreadsheetData - gradingConfig:', gradingConfig);
+    console.log('initializeSpreadsheetData called with:', {
+      subjectId,
+      gradingConfig,
+      studentsCount: students.length
+    });
     
     // Add Written Work columns
     for (let i = 1; i <= gradingConfig.writtenWork.count; i++) {
@@ -141,12 +145,10 @@
       spreadsheetData.push(row);
     });
 
-    // Store original data snapshot if not already stored
-    if (!originalData && students.length > 0) {
-      originalData = createDataSnapshot();
-      isDataSaved = true;
-      hasUnsavedChanges = false;
-    }
+    // Reset original data snapshot when subject changes
+    originalData = createDataSnapshot();
+    isDataSaved = true;
+    hasUnsavedChanges = false;
   }
 
   function calculateAverage(scores, totals = null, assessmentType = null) {
@@ -1118,15 +1120,26 @@
     }
   }
 
-  // Effect to reinitialize when students or gradingConfig changes
+  // Effect to reinitialize when students, gradingConfig, or subjectId changes
   $effect(() => {
     // Only track the specific dependencies we care about
     const studentCount = students.length;
     const config = gradingConfig;
+    const currentSubjectId = subjectId;
+    
+    console.log('GradingSpreadsheet $effect triggered:', {
+      studentCount,
+      subjectId: currentSubjectId,
+      configCounts: {
+        writtenWork: config?.writtenWork?.count,
+        performanceTasks: config?.performanceTasks?.count,
+        quarterlyAssessment: config?.quarterlyAssessment?.count
+      }
+    });
     
     // Use untrack to prevent the effect from tracking changes to spreadsheetData
     untrack(() => {
-      if (studentCount > 0 || config) {
+      if (studentCount > 0 || config || currentSubjectId) {
         initializeSpreadsheetData();
       }
     });

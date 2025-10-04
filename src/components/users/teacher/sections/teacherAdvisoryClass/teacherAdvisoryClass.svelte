@@ -1,103 +1,91 @@
 <script>
+  import { onMount } from 'svelte';
+  import { authStore } from '../../../../login/js/auth.js';
   import './teacherAdvisoryClass.css';
   import Odometer from '../../../../common/Odometer.svelte';
   
-  // Sample advisory class data - in real app this would come from props or API
-  let advisoryData = {
-    sectionName: "Grade 9 - Section A",
-    roomName: "Room 201",
-    totalStudents: 32,
-    averageGrade: 87.5,
-    subjectsCount: 8
-  };
+  // State variables
+  let loading = $state(true);
+  let error = $state(null);
+  let advisoryData = $state(null);
+  let students = $state([]);
 
-  // Sample students with their grades from different subject teachers
-  let students = [
-    {
-      id: "2024-001",
-      name: "Alice Johnson",
-      studentNumber: "2024-001234",
-      gradesVerified: false,
-      grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 92, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 88, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 85, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 90, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 87, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 95, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 89, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 93, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-11" }
-      ]
-    },
-    {
-      id: "2024-002",
-      name: "Bob Chen",
-      studentNumber: "2024-001235",
-      gradesVerified: true,
-      grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 78, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 82, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 80, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 85, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 79, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 90, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 83, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 88, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-11" }
-      ]
-    },
-    {
-      id: "2024-003",
-      name: "Carol Martinez",
-      studentNumber: "2024-001236",
-      gradesVerified: false,
-      grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 95, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 91, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 88, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 92, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 90, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 98, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 94, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 96, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-11" }
-      ]
-    },
-    {
-      id: "2024-004",
-      name: "David Rodriguez",
-      studentNumber: "2024-001237",
-      gradesVerified: false,
-      grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 84, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 86, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 82, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 88, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 85, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 92, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 87, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 89, quarter: "1st Quarter", verified: false, submittedDate: "2024-01-11" }
-      ]
-    },
-    {
-      id: "2024-005",
-      name: "Emma Thompson",
-      studentNumber: "2024-001238",
-      gradesVerified: true,
-      grades: [
-        { subject: "Mathematics", teacher: "Mr. Smith", grade: 91, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-15" },
-        { subject: "Science", teacher: "Ms. Davis", grade: 89, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-14" },
-        { subject: "English", teacher: "Mrs. Brown", grade: 93, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-16" },
-        { subject: "History", teacher: "Mr. Wilson", grade: 87, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-13" },
-        { subject: "Filipino", teacher: "Ms. Cruz", grade: 88, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-17" },
-        { subject: "PE", teacher: "Coach Martinez", grade: 94, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-12" },
-        { subject: "Arts", teacher: "Ms. Garcia", grade: 91, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-18" },
-        { subject: "Computer", teacher: "Mr. Lee", grade: 92, quarter: "1st Quarter", verified: true, submittedDate: "2024-01-11" }
-      ]
+  // Fetch advisory data from API
+  async function fetchAdvisoryData() {
+    try {
+      loading = true;
+      error = null;
+
+      const response = await fetch('/api/teacher-advisory', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': $authStore.userData?.id?.toString() || '',
+          'x-user-account-number': $authStore.userData?.accountNumber || '',
+          'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        advisoryData = result.data.advisoryData;
+        
+        if (result.data.students) {
+          // Transform the API data to match the component's expected format
+          students = result.data.students.map(student => ({
+            id: student.id.toString(),
+            name: student.name,
+            studentNumber: student.studentNumber,
+            gradeLevel: student.gradeLevel,
+            gradesVerified: student.gradesVerified,
+            grades: student.subjects.map(subject => ({
+              subject: subject.subject,
+              teacher: subject.teacher,
+              grade: subject.average,
+              quarter: "1st Quarter",
+              verified: subject.verified,
+              submittedDate: subject.grades.length > 0 ? 
+                new Date(subject.grades[0].gradedAt || subject.grades[0].dateGiven).toISOString().split('T')[0] : 
+                null,
+              gradeItems: subject.grades
+            }))
+          }));
+        }
+      } else {
+        error = result.error || 'Failed to fetch advisory data';
+      }
+    } catch (err) {
+      console.error('Error fetching advisory data:', err);
+      error = 'Failed to load advisory data. Please try again.';
+    } finally {
+      loading = false;
     }
-  ];
+  }
+
+  // Load data when component mounts
+  onMount(() => {
+    if ($authStore.userData?.id) {
+      fetchAdvisoryData();
+    }
+  });
 
   // Calculate student averages (show all grades, track verification status)
-  $: studentsWithAverages = students.map(student => {
-    const total = student.grades.reduce((sum, grade) => sum + grade.grade, 0);
+  const studentsWithAverages = $derived(students.map(student => {
+    if (!student.grades || student.grades.length === 0) {
+      return {
+        ...student,
+        average: 0,
+        verifiedGradesCount: 0,
+        pendingGradesCount: 0
+      };
+    }
+    
+    const total = student.grades.reduce((sum, grade) => sum + (grade.grade || 0), 0);
     const average = total / student.grades.length;
     const verifiedGrades = student.grades.filter(grade => grade.verified);
     return {
@@ -106,13 +94,20 @@
       verifiedGradesCount: verifiedGrades.length,
       pendingGradesCount: student.grades.length - verifiedGrades.length
     };
-  });
+  }));
 
-  // Calculate class statistics (show all grades)
-  $: {
-    const allAverages = studentsWithAverages.map(s => s.average);
-    advisoryData.averageGrade = Math.round((allAverages.reduce((sum, avg) => sum + avg, 0) / allAverages.length) * 100) / 100;
-  }
+  // Update advisory data class average when students change
+  $effect(() => {
+    if (advisoryData && studentsWithAverages.length > 0) {
+      const validAverages = studentsWithAverages
+        .map(s => s.average)
+        .filter(avg => avg > 0);
+      
+      if (validAverages.length > 0) {
+        advisoryData.averageGrade = Math.round((validAverages.reduce((sum, avg) => sum + avg, 0) / validAverages.length) * 100) / 100;
+      }
+    }
+  });
 
   // Verification functions
   function verifyStudentGrades(studentId) {
@@ -202,28 +197,29 @@
     {
       id: 'students',
       label: 'Total Students',
-      getValue: () => advisoryData.totalStudents,
+      getValue: () => advisoryData?.totalStudents || 0,
       icon: 'people',
       color: 'var(--school-primary)'
     },
     {
       id: 'subjects',
       label: 'Subjects Tracked',
-      getValue: () => advisoryData.subjectsCount,
+      getValue: () => advisoryData?.subjectsCount || 0,
       icon: 'book',
       color: 'var(--school-secondary)'
     },
     {
       id: 'average',
       label: 'Class Average',
-      getValue: () => advisoryData.averageGrade,
-      icon: 'analytics',
-      color: 'var(--success)'
+      getValue: () => advisoryData?.averageGrade || 0,
+      icon: 'grade',
+      color: 'var(--school-accent)'
     }
   ];
 
   // Selected student for detailed view
-  let selectedStudent = null;
+  // UI state
+  let selectedStudent = $state(null);
 
   function selectStudent(student) {
     selectedStudent = selectedStudent?.id === student.id ? null : student;
@@ -252,11 +248,11 @@
       <div class="advisory-class-info">
         <div class="class-detail">
           <span class="material-symbols-outlined">school</span>
-          <span>{advisoryData.sectionName}</span>
+          <span>{advisoryData?.sectionName || 'Loading...'}</span>
         </div>
         <div class="class-detail">
           <span class="material-symbols-outlined">meeting_room</span>
-          <span>{advisoryData.roomName}</span>
+          <span>{advisoryData?.roomName || 'Loading...'}</span>
         </div>
       </div>
       <div class="verification-info">

@@ -12,14 +12,67 @@
   let loading = $state(true);
   let error = $state(null);
   let isDestroyed = $state(false); // Track component destruction
+  let addingColumn = $state(false); // Track column addition in progress
   let sectionData = $state(null);
+  
+  // Subject tab management
+  let activeSubjectIndex = $state(0);
+  
+  // Get current active subject
+  let activeSubject = $derived(
+    sectionData?.subjects?.[activeSubjectIndex] || null
+  );
+  
+  // Tab navigation function
+  function setActiveSubject(index) {
+    console.log('setActiveSubject called with index:', index);
+    console.log('Available subjects:', sectionData?.subjects);
+    
+    activeSubjectIndex = index;
+    
+    console.log('New activeSubject:', activeSubject);
+    
+    // Reset grading config when switching subjects
+    gradingConfig = {
+      writtenWork: {
+        count: 0,
+        weight: 0.30,
+        label: "Written Work",
+        totals: [],
+        columnNames: [],
+        columnPositions: [],
+        gradeItemIds: []
+      },
+      performanceTasks: {
+        count: 0,
+        weight: 0.50,
+        label: "Performance Tasks",
+        totals: [],
+        columnNames: [],
+        columnPositions: [],
+        gradeItemIds: []
+      },
+      quarterlyAssessment: {
+        count: 0,
+        weight: 0.20,
+        label: "Quarterly Assessment",
+        totals: [],
+        columnNames: [],
+        columnPositions: [],
+        gradeItemIds: []
+      }
+    };
+    // Fetch new grading configuration and student data for the selected subject
+    fetchGradingConfiguration();
+    fetchClassStudents();
+  }
   
   // Reactive class information using Svelte 5 runes
   let classInfo = $derived(sectionData ? {
     yearLevel: sectionData.section.gradeLevel,
     sectionName: sectionData.section.name,
     gradeName: `Grade ${sectionData.section.gradeLevel}`,
-    subject: sectionData.subjects.length > 0 ? sectionData.subjects[0].name : "No Subject",
+    subject: activeSubject?.name || "No Subject",
     section: `Grade ${sectionData.section.gradeLevel} - ${sectionData.section.name}`,
     quarter: "1st Quarter",
     totalStudents: sectionData.totalStudents,
@@ -46,14 +99,25 @@
   // Dynamic student data from database
   let students = $state([]);
 
-  // Fetch existing grade items and build// Fetch grading configuration from API
+  // Fetch existing grade items and build// Fetch grading configuration for the active subject
   async function fetchGradingConfiguration() {
-    if (!selectedClass || !sectionData?.subjects?.[0]?.id || isDestroyed) return;
-    
-    const subjectId = sectionData.subjects[0].id;
-    
+    if (!selectedClass || !activeSubject) {
+      console.log('fetchGradingConfiguration: Missing required data', {
+        selectedClass: !!selectedClass,
+        activeSubject: !!activeSubject
+      });
+      return;
+    }
+
+    console.log('fetchGradingConfiguration called with:', {
+      sectionId: selectedClass.sectionId,
+      subjectId: activeSubject.id,
+      gradingPeriodId: 1,
+      teacherId: $authStore.userData.id
+    });
+
     try {
-      const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${subjectId}&grading_period_id=1`, {
+      const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${activeSubject.id}&grading_period_id=1&teacher_id=${$authStore.userData.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -62,55 +126,61 @@
           'x-user-name': encodeURIComponent($authStore.userData.name || '')
         }
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        
-        if (result.success && result.gradeItems) {
-          // Build grading configuration from fetched grade items
-          const newGradingConfig = {
-            writtenWork: {
-              count: result.gradeItems.writtenWork.length,
-              weight: 0.30,
-              label: "WW",
-              totals: result.gradeItems.writtenWork.map(item => item.total_score),
-              columnNames: result.gradeItems.writtenWork.map(item => item.name),
-              columnPositions: result.gradeItems.writtenWork.map((_, index) => index + 1),
-              gradeItemIds: result.gradeItems.writtenWork.map(item => item.id)
-            },
-            performanceTasks: {
-              count: result.gradeItems.performanceTasks.length,
-              weight: 0.50,
-              label: "PT", 
-              totals: result.gradeItems.performanceTasks.map(item => item.total_score),
-              columnNames: result.gradeItems.performanceTasks.map(item => item.name),
-              columnPositions: result.gradeItems.performanceTasks.map((_, index) => index + 1),
-              gradeItemIds: result.gradeItems.performanceTasks.map(item => item.id)
-            },
-            quarterlyAssessment: {
-              count: result.gradeItems.quarterlyAssessment.length,
-              weight: 0.20,
-              label: "QA",
-              totals: result.gradeItems.quarterlyAssessment.map(item => item.total_score),
-              columnNames: result.gradeItems.quarterlyAssessment.map(item => item.name),
-              columnPositions: result.gradeItems.quarterlyAssessment.map((_, index) => index + 1),
-              gradeItemIds: result.gradeItems.quarterlyAssessment.map(item => item.id)
-            }
-          };
-          
-          gradingConfig = newGradingConfig;
-        }
-      } else {
-        console.error('Failed to fetch grading configuration:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
+      const result = await response.json();
+      console.log('fetchGradingConfiguration response:', result);
+
+      // The API returns { success: true, gradeItems: { writtenWork: [], performanceTasks: [], quarterlyAssessment: [] } }
+      const data = result.gradeItems || {};
+
+      // Create new grading config based on fetched data
+      const newGradingConfig = {
+        writtenWork: {
+          count: data.writtenWork?.length || 0,
+          weight: 0.30,
+          label: "Written Work",
+          totals: data.writtenWork?.map(item => item.total_score) || [],
+          columnNames: data.writtenWork?.map(item => item.name) || [],
+          columnPositions: data.writtenWork?.map((_, index) => index + 1) || [],
+          gradeItemIds: data.writtenWork?.map(item => item.id) || []
+        },
+        performanceTasks: {
+          count: data.performanceTasks?.length || 0,
+          weight: 0.50,
+          label: "Performance Tasks",
+          totals: data.performanceTasks?.map(item => item.total_score) || [],
+          columnNames: data.performanceTasks?.map(item => item.name) || [],
+          columnPositions: data.performanceTasks?.map((_, index) => index + 1) || [],
+          gradeItemIds: data.performanceTasks?.map(item => item.id) || []
+        },
+        quarterlyAssessment: {
+          count: data.quarterlyAssessment?.length || 0,
+          weight: 0.20,
+          label: "Quarterly Assessment",
+          totals: data.quarterlyAssessment?.map(item => item.total_score) || [],
+          columnNames: data.quarterlyAssessment?.map(item => item.name) || [],
+          columnPositions: data.quarterlyAssessment?.map((_, index) => index + 1) || [],
+          gradeItemIds: data.quarterlyAssessment?.map(item => item.id) || []
+        }
+      };
+
+      gradingConfig = newGradingConfig;
+      console.log('Updated gradingConfig:', gradingConfig);
+      
     } catch (error) {
       console.error('Error fetching grading configuration:', error);
-      // Keep default configuration if fetch fails
+      showToastNotification('Failed to load grading configuration', 'error');
     }
   }
 
   // Fetch class students from API
   async function fetchClassStudents() {
+    console.log('fetchClassStudents called with activeSubject:', activeSubject?.id, 'selectedClass:', selectedClass?.sectionId);
+    
     if (isDestroyed) return; // Only prevent calls after destruction
     
     try {
@@ -132,6 +202,11 @@
 
       if (teacherId) {
         params.append('teacherId', teacherId.toString());
+      }
+
+      // Add subject ID to filter grades by subject
+      if (activeSubject?.id) {
+        params.append('subjectId', activeSubject.id.toString());
       }
 
       const response = await fetch(`/api/class-students?${params}`);
@@ -206,9 +281,11 @@
 
   // Add column function with duplicate prevention
   async function addColumn(category) {
-    if (gradingConfig[category].count < 10 && !loading && !isDestroyed) {
+    if (gradingConfig[category].count < 10 && !addingColumn && !isDestroyed) {
       try {
-        loading = true; // Prevent duplicate calls
+        addingColumn = true; // Prevent duplicate calls
+        console.log('addColumn called for category:', category, 'activeSubject:', activeSubject?.id, 'selectedClass:', selectedClass?.subjectId);
+        
         // Map category names to category IDs
         const categoryMap = {
           'writtenWork': 1,
@@ -240,7 +317,7 @@
           body: JSON.stringify({
             action: 'add',
             section_id: selectedClass?.sectionId || sectionData?.section?.id,
-            subject_id: selectedClass?.subjectId || (sectionData?.subjects?.[0]?.id),
+            subject_id: activeSubject?.id || selectedClass?.subjectId || (sectionData?.subjects?.[0]?.id),
             grading_period_id: 1, // Assuming first quarter
             category_id: categoryId
           })
@@ -292,7 +369,7 @@
       } catch (error) {
         console.error('Error adding column:', error);
       } finally {
-        loading = false; // Reset loading state
+        addingColumn = false; // Reset adding state
       }
     }
   }
@@ -427,6 +504,22 @@
       <h1 class="classlist-page-title">Class Grading Sheet</h1>
       <p class="classlist-page-subtitle">{classInfo.section} • {classInfo.subject} • {classInfo.quarter}</p>
     </div>
+    
+    <!-- Subject Tabs -->
+    {#if sectionData?.subjects && sectionData.subjects.length > 1}
+      <div class="subject-tab-navigation">
+        {#each sectionData.subjects as subject, index}
+          <button 
+            class="subject-tab-button" 
+            class:active={activeSubjectIndex === index}
+            onclick={() => setActiveSubject(index)}
+          >
+            <span class="material-symbols-outlined">book</span>
+            {subject.name}
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   {#if loading}
@@ -471,7 +564,7 @@
               type="button"
               class="classlist-add-column-button"
               onclick={() => addColumn('writtenWork')}
-              disabled={gradingConfig.writtenWork.count >= 10}
+              disabled={gradingConfig.writtenWork.count >= 10 || addingColumn}
               title="Add Column"
             >
               <span class="material-symbols-outlined">add</span>
@@ -492,7 +585,7 @@
               type="button"
               class="classlist-add-column-button"
               onclick={() => addColumn('performanceTasks')}
-              disabled={gradingConfig.performanceTasks.count >= 10}
+              disabled={gradingConfig.performanceTasks.count >= 10 || addingColumn}
               title="Add Column"
             >
               <span class="material-symbols-outlined">add</span>
@@ -513,7 +606,7 @@
               type="button"
               class="classlist-add-column-button"
               onclick={() => addColumn('quarterlyAssessment')}
-              disabled={gradingConfig.quarterlyAssessment.count >= 10}
+              disabled={gradingConfig.quarterlyAssessment.count >= 10 || addingColumn}
               title="Add Column"
             >
               <span class="material-symbols-outlined">add</span>
@@ -529,7 +622,7 @@
     bind:students 
     bind:gradingConfig 
     sectionId={selectedClass?.sectionId}
-    subjectId={sectionData?.subjects?.[0]?.id}
+    subjectId={activeSubject?.id}
     gradingPeriodId={1}
   />
   {/if}

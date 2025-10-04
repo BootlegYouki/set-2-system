@@ -34,14 +34,62 @@
 /* Header Section */
 .classlist-page-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
   margin-bottom: var(--spacing-xl);
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .header-content {
   flex: 1;
+}
+
+/* Subject Tab Navigation Styles */
+.subject-tab-navigation {
+  display: flex;
+  gap: var(--spacing-xs);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  padding-bottom: var(--spacing-sm);
+}
+
+.subject-tab-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  font-weight: var(--md-sys-typescale-body-medium-weight);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.subject-tab-button:hover {
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+.subject-tab-button.active {
+  color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-primary-container);
+}
+
+.subject-tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--md-sys-color-primary);
+  border-radius: var(--radius-xs);
+}
+
+.subject-tab-button .material-symbols-outlined {
+  font-size: 20px;
 }
 
 /* Header Navigation */
