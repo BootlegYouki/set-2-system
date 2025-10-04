@@ -210,136 +210,17 @@
 
     const { row, col } = selectedCell;
     
-    // If currently editing, only handle Enter, Escape, and number/letter keys
-    if (isEditing) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        isEditing = false;
-        updateSpreadsheetData();
-        // Move to next row, same column
-        if (row < spreadsheetData.length - 1) {
-          selectedCell = { row: row + 1, col };
-          if (!isCalculatedColumn(col) && col > 1) {
-            isEditing = true;
-            editValue = '';
-          }
-        }
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        isEditing = false;
-        editValue = '';
-      } else if (event.key === 'Tab') {
-        event.preventDefault();
-        isEditing = false;
-        updateSpreadsheetData();
-        
-        // Move to next editable cell
-        let nextCol = col + 1;
-        while (nextCol < spreadsheetData[0].length && isCalculatedColumn(nextCol)) {
-          nextCol++;
-        }
-        
-        if (nextCol < spreadsheetData[0].length) {
-          selectedCell = { row, col: nextCol };
-          if (!isCalculatedColumn(nextCol)) {
-            isEditing = true;
-            editValue = '';
-          }
-        } else if (row < spreadsheetData.length - 1) {
-          // Move to first editable column of next row
-          selectedCell = { row: row + 1, col: 2 };
-          isEditing = true;
-          editValue = '';
-        }
-      } else if (/^[0-9.]$/.test(event.key)) {
-        // For number keys, replace the content only if just started editing
-        event.preventDefault();
-        if (justStartedEditing) {
-          editValue = event.key;
-          justStartedEditing = false;
-        } else {
-          editValue += event.key;
-        }
-      } else if (event.key === 'Backspace' || event.key === 'Delete') {
-        // Allow backspace and delete to work normally
-        justStartedEditing = false;
-        return;
-      } else if (event.key.length === 1) {
-        // For other single character keys, replace content only if just started editing
-        event.preventDefault();
-        if (justStartedEditing) {
-          editValue = event.key;
-          justStartedEditing = false;
-        } else {
-          editValue += event.key;
-        }
-      }
-      return;
-    }
-
-    // Navigation when not editing
-    switch (event.key) {
-      case 'ArrowUp':
-        event.preventDefault();
-        if (row > 1) {
-          selectedCell = { row: row - 1, col };
-        }
-        break;
-      case 'ArrowDown':
-        event.preventDefault();
-        if (row < spreadsheetData.length - 1) {
-          selectedCell = { row: row + 1, col };
-        }
-        break;
-      case 'ArrowLeft':
-        event.preventDefault();
-        if (col > 0) {
-          selectedCell = { row, col: col - 1 };
-        }
-        break;
-      case 'ArrowRight':
-        event.preventDefault();
-        if (col < spreadsheetData[0].length - 1) {
-          selectedCell = { row, col: col + 1 };
-        }
-        break;
-      case 'Enter':
-        event.preventDefault();
-        if (!isCalculatedColumn(col) && col > 1) {
-          isEditing = true;
-          editValue = event.key;
-          justStartedEditing = false; // First character already entered
-        }
-        break;
-      case 'Tab':
-        event.preventDefault();
-        // Move to next editable cell
-        let nextCol = col + 1;
-        while (nextCol < spreadsheetData[0].length && isCalculatedColumn(nextCol)) {
-          nextCol++;
-        }
-        
-        if (nextCol < spreadsheetData[0].length) {
-          selectedCell = { row, col: nextCol };
-        } else if (row < spreadsheetData.length - 1) {
-          // Move to first editable column of next row
-          selectedCell = { row: row + 1, col: 2 };
-        }
-        break;
-      default:
-         // Start editing with number or letter keys
-         if (/^[0-9.]$/.test(event.key) && !isCalculatedColumn(col) && col > 1) {
-           event.preventDefault();
-           isEditing = true;
-           editValue = event.key;
-           justStartedEditing = false; // First character already entered
-         } else if (event.key.length === 1 && !isCalculatedColumn(col) && col > 1) {
-           event.preventDefault();
-           isEditing = true;
-           editValue = event.key;
-           justStartedEditing = false; // First character already entered
-         }
-         break;
+    // Only handle typing to start editing
+    if (/^[0-9.]$/.test(event.key) && !isCalculatedColumn(col) && col > 1) {
+      event.preventDefault();
+      isEditing = true;
+      editValue = event.key;
+      justStartedEditing = false; // First character already entered
+    } else if (event.key.length === 1 && !isCalculatedColumn(col) && col > 1) {
+      event.preventDefault();
+      isEditing = true;
+      editValue = event.key;
+      justStartedEditing = false; // First character already entered
     }
   }
 
@@ -911,88 +792,11 @@
     // ONLY handle navigation when we're actually editing (input is focused)
     if (!isEditing) return;
     
-    // Handle navigation for ALL keys, not just when editing
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      event.stopPropagation(); // Stop event bubbling
-      updateSpreadsheetData(); // Save first
-      isEditing = false;
-      if (rowIndex > 1) {
-        selectedCell = { row: rowIndex - 1, col: colIndex };
-      }
-      return;
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      event.stopPropagation(); // Stop event bubbling
-      updateSpreadsheetData(); // Save first
-      isEditing = false;
-      if (rowIndex < spreadsheetData.length - 1) {
-        selectedCell = { row: rowIndex + 1, col: colIndex };
-      }
-      return;
-    } else if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      event.stopPropagation(); // Stop event bubbling
-      updateSpreadsheetData(); // Save first
-      isEditing = false;
-      if (colIndex > 0) {
-        selectedCell = { row: rowIndex, col: colIndex - 1 };
-      }
-      return;
-    } else if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      event.stopPropagation(); // Stop event bubbling
-      updateSpreadsheetData(); // Save first
-      isEditing = false;
-      if (colIndex < spreadsheetData[0].length - 1) {
-        selectedCell = { row: rowIndex, col: colIndex + 1 };
-      }
-      return;
-    }
-    
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      isEditing = false;
-      updateSpreadsheetData();
-      
-      // Move to next row, same column
-      if (rowIndex < spreadsheetData.length - 1) {
-        selectedCell = { row: rowIndex + 1, col: colIndex };
-        if (!isCalculatedColumn(colIndex) && colIndex > 1) {
-          isEditing = true;
-          editValue = '';
-          justStartedEditing = true;
-        }
-      }
-    } else if (event.key === 'Escape') {
+    // Only handle Escape to exit editing mode
+    if (event.key === 'Escape') {
       event.preventDefault();
       isEditing = false;
       editValue = '';
-    } else if (event.key === 'Tab') {
-      event.preventDefault();
-      isEditing = false;
-      updateSpreadsheetData();
-      
-      // Move to next editable cell
-      let nextCol = colIndex + 1;
-      while (nextCol < headers.length && isCalculatedColumn(nextCol)) {
-        nextCol++;
-      }
-      
-      if (nextCol < headers.length) {
-        selectedCell = { row: rowIndex, col: nextCol };
-        if (!isCalculatedColumn(nextCol)) {
-          isEditing = true;
-          editValue = '';
-          justStartedEditing = true;
-        }
-      } else if (rowIndex < spreadsheetData.length - 1) {
-        // Move to first editable column of next row
-        selectedCell = { row: rowIndex + 1, col: 2 };
-        isEditing = true;
-        editValue = '';
-        justStartedEditing = true;
-      }
     }
   }
 
