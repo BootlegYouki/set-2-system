@@ -48,12 +48,8 @@ export async function POST({ request }) {
         results.writtenWork = await processAssessmentGrades(
           grades,
           'writtenWork',
-          categories.writtenWork,
-          section_id,
-          subject_id,
-          grading_period_id,
-          teacherId,
-          grading_config.writtenWork
+          await getExistingGradeItems(section_id, subject_id, grading_period_id, categories.writtenWork, teacherId, grading_config.writtenWork, 'writtenWork'),
+          teacherId
         );
       }
 
@@ -62,12 +58,8 @@ export async function POST({ request }) {
         results.performanceTasks = await processAssessmentGrades(
           grades,
           'performanceTasks',
-          categories.performanceTasks,
-          section_id,
-          subject_id,
-          grading_period_id,
-          teacherId,
-          grading_config.performanceTasks
+          await getExistingGradeItems(section_id, subject_id, grading_period_id, categories.performanceTasks, teacherId, grading_config.performanceTasks, 'performanceTasks'),
+          teacherId
         );
       }
 
@@ -76,12 +68,8 @@ export async function POST({ request }) {
         results.quarterlyAssessment = await processAssessmentGrades(
           grades,
           'quarterlyAssessment',
-          categories.quarterlyAssessment,
-          section_id,
-          subject_id,
-          grading_period_id,
-          teacherId,
-          grading_config.quarterlyAssessment
+          await getExistingGradeItems(section_id, subject_id, grading_period_id, categories.quarterlyAssessment, teacherId, grading_config.quarterlyAssessment, 'quarterlyAssessment'),
+          teacherId
         );
       }
 
@@ -161,19 +149,8 @@ async function getOrCreateCategories() {
   return categoryMap;
 }
 
-async function processAssessmentGrades(grades, assessmentType, categoryId, sectionId, subjectId, gradingPeriodId, teacherId, config) {
+async function processAssessmentGrades(grades, assessmentType, gradeItems, teacherId) {
   const results = [];
-  
-  // Get or create grade items for this assessment type
-  const gradeItems = await getOrCreateGradeItems(
-    sectionId, 
-    subjectId, 
-    gradingPeriodId, 
-    categoryId, 
-    teacherId, 
-    config,
-    assessmentType
-  );
 
   // Process each student's grades for this assessment type
   for (const studentGrade of grades) {
@@ -229,57 +206,24 @@ async function processAssessmentGrades(grades, assessmentType, categoryId, secti
   return results;
 }
 
-async function getOrCreateGradeItems(sectionId, subjectId, gradingPeriodId, categoryId, teacherId, config, assessmentType) {
-  const gradeItems = [];
-  
-  // Handle case where config might only have weight (from frontend)
-  // Default to 1 item if count is not specified
-  const count = config?.count || 1;
-  const totals = config?.totals || [];
+async function getExistingGradeItems(sectionId, subjectId, gradingPeriodId, categoryId, teacherId, config, assessmentType) {
+  console.log(`Getting existing grade items for ${assessmentType}:`, { sectionId, subjectId, gradingPeriodId, categoryId, config });
 
-  console.log(`Creating grade items for ${assessmentType}:`, { sectionId, subjectId, gradingPeriodId, categoryId, count, config });
-
-  for (let i = 0; i < count; i++) {
-    const itemName = `${config?.label || assessmentType} ${i + 1}`;
-    const totalScore = totals[i] || 100; // Default to 100 if no total specified
-
-    console.log(`Processing grade item: ${itemName}, totalScore: ${totalScore}`);
-
-    // Check if grade item already exists
+  try {
+    // Only get existing grade items, don't create new ones
     const existingQuery = `
       SELECT * FROM grade_items 
       WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 
-        AND category_id = $4 AND name = $5
+      AND category_id = $4
+      ORDER BY created_at ASC
     `;
 
-    try {
-      const existing = await query(existingQuery, [sectionId, subjectId, gradingPeriodId, categoryId, itemName]);
+    const existing = await query(existingQuery, [sectionId, subjectId, gradingPeriodId, categoryId]);
 
-      if (existing.rows.length > 0) {
-        console.log(`Found existing grade item: ${itemName}`);
-        gradeItems.push(existing.rows[0]);
-      } else {
-        console.log(`Creating new grade item: ${itemName}`);
-        // Create new grade item
-        const insertQuery = `
-          INSERT INTO grade_items (section_id, subject_id, teacher_id, grading_period_id, category_id, name, total_score)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-          RETURNING *
-        `;
-
-        const result = await query(insertQuery, [
-          sectionId, subjectId, teacherId, gradingPeriodId, categoryId, itemName, totalScore
-        ]);
-
-        console.log(`Created grade item with ID: ${result.rows[0].id}`);
-        gradeItems.push(result.rows[0]);
-      }
-    } catch (error) {
-      console.error(`Error processing grade item ${itemName}:`, error);
-      throw error;
-    }
+    console.log(`Found ${existing.rows.length} existing grade items for ${assessmentType}`);
+    return existing.rows;
+  } catch (error) {
+    console.error(`Error getting existing grade items for ${assessmentType}:`, error);
+    throw error;
   }
-
-  console.log(`Returning ${gradeItems.length} grade items for ${assessmentType}`);
-  return gradeItems;
 }

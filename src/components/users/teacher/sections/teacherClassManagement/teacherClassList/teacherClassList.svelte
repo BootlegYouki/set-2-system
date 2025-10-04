@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { authStore } from '../../../../../login/js/auth.js';
   import './teacherClassList.css';
   import Toast from '../../../../../common/Toast.svelte';
@@ -11,6 +11,7 @@
   // State variables
   let loading = $state(true);
   let error = $state(null);
+  let isDestroyed = $state(false); // Track component destruction
   let sectionData = $state(null);
   
   // Reactive class information using Svelte 5 runes
@@ -45,9 +46,9 @@
   // Dynamic student data from database
   let students = $state([]);
 
-  // Fetch existing grade items and build grading configuration
+  // Fetch existing grade items and build// Fetch grading configuration from API
   async function fetchGradingConfiguration() {
-    if (!selectedClass || !sectionData?.subjects?.[0]?.id) return;
+    if (!selectedClass || !sectionData?.subjects?.[0]?.id || isDestroyed) return;
     
     const subjectId = sectionData.subjects[0].id;
     
@@ -110,6 +111,8 @@
 
   // Fetch class students from API
   async function fetchClassStudents() {
+    if (isDestroyed) return; // Only prevent calls after destruction
+    
     try {
       loading = true;
       error = null;
@@ -201,10 +204,11 @@
   // Dropdown toggle functions - no longer needed
   // Removed dropdown functions since we're using buttons now
 
-  // Add column functions
+  // Add column function with duplicate prevention
   async function addColumn(category) {
-    if (gradingConfig[category].count < 10) {
+    if (gradingConfig[category].count < 10 && !loading && !isDestroyed) {
       try {
+        loading = true; // Prevent duplicate calls
         // Map category names to category IDs
         const categoryMap = {
           'writtenWork': 1,
@@ -287,6 +291,8 @@
         
       } catch (error) {
         console.error('Error adding column:', error);
+      } finally {
+        loading = false; // Reset loading state
       }
     }
   }
@@ -393,8 +399,16 @@
 
   // Load data on component mount
   onMount(async () => {
-    await fetchClassStudents();
-    await fetchGradingConfiguration();
+    if (!isDestroyed) { // Only check if component is not destroyed
+      await fetchClassStudents();
+      await fetchGradingConfiguration();
+    }
+  });
+
+  // Cleanup on component destruction
+  onDestroy(() => {
+    isDestroyed = true;
+    loading = false;
   });
 </script>
 
