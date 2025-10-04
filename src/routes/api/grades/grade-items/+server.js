@@ -161,6 +161,47 @@ export async function PUT({ request }) {
   }
 }
 
+/** @type {import('./$types').RequestHandler} */
+export async function DELETE({ request }) {
+  console.log('=== GRADE ITEMS DELETE API CALLED ===');
+  
+  try {
+    // Verify authentication
+    const authResult = await verifyAuth(request, ['teacher']);
+    
+    if (!authResult.success) {
+      console.log('Authentication failed:', authResult.error);
+      return json({ error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    console.log('User authenticated:', authResult.user.account_number);
+
+    const body = await request.json();
+    console.log('Delete request body received:', JSON.stringify(body, null, 2));
+    
+    const { grade_item_id } = body;
+
+    // Validate required fields
+    if (!grade_item_id) {
+      return json({ error: 'Missing required field: grade_item_id' }, { status: 400 });
+    }
+
+    const teacherId = authResult.user.id;
+
+    const deletedGradeItem = await deleteGradeItem(teacherId, grade_item_id);
+    
+    return json({ 
+      success: true, 
+      message: 'Grade item deleted successfully',
+      deleted_item: deletedGradeItem
+    });
+
+  } catch (error) {
+    console.error('Grade items delete API error:', error);
+    return json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 async function updateGradeItem(teacherId, gradeItemId, updateData) {
   const client = await getClient();
   
@@ -196,9 +237,9 @@ async function updateGradeItem(teacherId, gradeItemId, updateData) {
     if (updateData.total_score !== undefined && updateData.total_score !== null) {
       // Validate total score
       const totalScore = parseFloat(updateData.total_score);
-      if (isNaN(totalScore) || totalScore <= 0 || totalScore > 100) {
+      if (isNaN(totalScore) || totalScore <= 0 || totalScore > 1000) {
         await client.query('ROLLBACK');
-        throw new Error('Total score must be a positive number between 1 and 100');
+        throw new Error('Total score must be a positive number between 1 and 1000');
       }
       updateFields.push(`total_score = $${paramIndex}`);
       updateValues.push(totalScore);
@@ -421,5 +462,70 @@ async function removeGradeItem(teacherId, sectionId, subjectId, gradingPeriodId,
   } catch (error) {
     console.error('Error removing grade item:', error);
     return json({ error: 'Failed to remove grade item' }, { status: 500 });
+  }
+}
+
+async function deleteGradeItem(teacherId, gradeItemId) {
+  const client = await getClient();
+  
+  try {
+    // Start transaction
+    await client.query('BEGIN');
+    
+    // First, verify that the grade item belongs to the teacher
+    const verifyResult = await client.query(`
+      SELECT id, name, total_score, section_id, subject_id, grading_period_id, category_id
+      FROM grade_items 
+      WHERE id = $1 AND teacher_id = $2 AND status = 'active'
+    `, [gradeItemId, teacherId]);
+
+    if (verifyResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      throw new Error('Grade item not found or unauthorized');
+    }
+
+    const gradeItem = verifyResult.rows[0];
+
+    // Check if this would leave the category with no items
+    const countResult = await client.query(`
+      SELECT COUNT(*) as count 
+      FROM grade_items 
+      WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
+    `, [gradeItem.section_id, gradeItem.subject_id, gradeItem.grading_period_id, gradeItem.category_id, teacherId]);
+
+    if (parseInt(countResult.rows[0].count) <= 1) {
+      await client.query('ROLLBACK');
+      throw new Error('Cannot delete the last grade item. At least one item is required per category.');
+    }
+
+    // Delete associated student grades first
+    await client.query(`
+      DELETE FROM student_grades 
+      WHERE grade_item_id = $1
+    `, [gradeItemId]);
+
+    // Delete the grade item
+    const deleteResult = await client.query(`
+      DELETE FROM grade_items 
+      WHERE id = $1 AND teacher_id = $2
+      RETURNING id, name, total_score
+    `, [gradeItemId, teacherId]);
+
+    if (deleteResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      throw new Error('Failed to delete grade item');
+    }
+
+    await client.query('COMMIT');
+
+    console.log('Grade item deleted:', deleteResult.rows[0]);
+
+    return deleteResult.rows[0];
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
 }

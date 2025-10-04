@@ -71,7 +71,7 @@
             writtenWork: {
               count: result.gradeItems.writtenWork.length,
               weight: 0.30,
-              label: "Written Work",
+              label: "WW",
               totals: result.gradeItems.writtenWork.map(item => item.total_score),
               columnNames: result.gradeItems.writtenWork.map(item => item.name),
               columnPositions: result.gradeItems.writtenWork.map((_, index) => index + 1),
@@ -80,7 +80,7 @@
             performanceTasks: {
               count: result.gradeItems.performanceTasks.length,
               weight: 0.50,
-              label: "Performance Tasks", 
+              label: "PT", 
               totals: result.gradeItems.performanceTasks.map(item => item.total_score),
               columnNames: result.gradeItems.performanceTasks.map(item => item.name),
               columnPositions: result.gradeItems.performanceTasks.map((_, index) => index + 1),
@@ -89,7 +89,7 @@
             quarterlyAssessment: {
               count: result.gradeItems.quarterlyAssessment.length,
               weight: 0.20,
-              label: "Quarterly Assessment",
+              label: "QA",
               totals: result.gradeItems.quarterlyAssessment.map(item => item.total_score),
               columnNames: result.gradeItems.quarterlyAssessment.map(item => item.name),
               columnPositions: result.gradeItems.quarterlyAssessment.map((_, index) => index + 1),

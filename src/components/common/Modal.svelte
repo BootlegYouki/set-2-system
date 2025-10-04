@@ -173,7 +173,7 @@
   /* Modal sizes */
   .modal-small {
     width: 100%;
-    max-width: 400px;
+    max-width: 500px;
   }
 
   .modal-medium {

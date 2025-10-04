@@ -48,10 +48,12 @@ function createModalStore() {
         title,
         message,
         onConfirm,
-        onCancel
+        onCancel,
+        onDelete: options.onDelete,
+        deleteText: options.deleteText
       }, {
         size: options.size || 'small',
-        closable: false
+        closable: options.closable !== false
       });
     },
     // Large confirm modal for complex content
@@ -86,6 +88,31 @@ function createModalStore() {
         onCancel
       }, {
         size: 'medium'
+      });
+    },
+    // Form modal with two input fields
+    form: (title, message, field1Config, field2Config, onSubmit, onCancel, onDelete, options = {}) => {
+      return modalStore.open('FormModal', {
+        title,
+        message,
+        field1Label: field1Config.label || 'Field 1',
+        field1Type: field1Config.type || 'text',
+        field1Placeholder: field1Config.placeholder || 'Enter value...',
+        field1Value: field1Config.value || '',
+        field1Min: field1Config.min,
+        field1Max: field1Config.max,
+        field2Label: field2Config.label || 'Field 2',
+        field2Type: field2Config.type || 'text',
+        field2Placeholder: field2Config.placeholder || 'Enter value...',
+        field2Value: field2Config.value || '',
+        field2Min: field2Config.min,
+        field2Max: field2Config.max,
+        onSubmit,
+        onCancel,
+        onDelete
+      }, {
+        size: options.size || 'medium',
+        closable: options.closable !== false
       });
     }
   };

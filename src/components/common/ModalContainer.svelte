@@ -113,6 +113,65 @@
             </button>
           </div>
         </div>
+      {:else if modal.component === 'FormModal'}
+        <div class="modal-form-content">
+          <p class="modal-message">{modal.props.message}</p>
+          <div class="modal-form-fields">
+            <div class="modal-form-group">
+              <label for="formField1" class="modal-form-label">{modal.props.field1Label || 'Field 1'}</label>
+              <input 
+                type={modal.props.field1Type || 'text'}
+                id="formField1"
+                class="modal-input" 
+                placeholder={modal.props.field1Placeholder || "Enter value..."}
+                bind:value={modal.props.field1Value}
+                min={modal.props.field1Min}
+                max={modal.props.field1Max}
+              />
+            </div>
+            <div class="modal-form-group">
+              <label for="formField2" class="modal-form-label">{modal.props.field2Label || 'Field 2'}</label>
+              <input 
+                type={modal.props.field2Type || 'text'}
+                id="formField2"
+                class="modal-input" 
+                placeholder={modal.props.field2Placeholder || "Enter value..."}
+                bind:value={modal.props.field2Value}
+                min={modal.props.field2Min}
+                max={modal.props.field2Max}
+              />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button 
+              class="modal-btn modal-btn-secondary" 
+              onclick={() => {
+                if (modal.props.onCancel) modal.props.onCancel();
+                handleModalClose(modal.id);
+              }}
+            >
+              Cancel
+            </button>
+            <button 
+              class="modal-btn modal-btn-danger" 
+              onclick={() => {
+                if (modal.props.onDelete) modal.props.onDelete();
+                handleModalClose(modal.id);
+              }}
+            >
+              Delete
+            </button>
+            <button 
+              class="modal-btn modal-btn-primary" 
+              onclick={() => {
+                if (modal.props.onSubmit) modal.props.onSubmit(modal.props.field1Value, modal.props.field2Value);
+                handleModalClose(modal.id);
+              }}
+            >
+              Update
+            </button>
+          </div>
+        </div>
       {:else if modal.component === 'CustomModal'}
         <div class="modal-custom-content">
           {@html modal.props.content}
@@ -135,10 +194,31 @@
   .modal-confirm-content,
   .modal-alert-content,
   .modal-prompt-content,
+  .modal-form-content,
   .modal-custom-content,
   .modal-generic-content {
     display: flex;
     flex-direction: column;
+  }
+
+  .modal-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+  }
+
+  .modal-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .modal-form-label {
+    font-family: var(--md-sys-typescale-body-medium-font);
+    font-size: var(--md-sys-typescale-body-medium-size);
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface);
   }
 
   .modal-message {
@@ -224,6 +304,18 @@
 
   .modal-btn-secondary:hover {
     background-color: var(--md-sys-color-surface-container-highest);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .modal-btn-danger {
+    background-color: var(--md-sys-color-error);
+    color: var(--md-sys-color-on-error);
+    border: 1px solid var(--md-sys-color-error);
+  }
+
+  .modal-btn-danger:hover {
+    background-color: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
     box-shadow: var(--shadow-sm);
   }
 

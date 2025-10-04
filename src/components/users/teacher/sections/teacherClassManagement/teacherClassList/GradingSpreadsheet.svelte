@@ -2,10 +2,10 @@
   import { onMount, untrack } from 'svelte';
   import * as XLSX from 'xlsx';
   import { toastStore } from '../../../../../common/js/toastStore.js';
+  import { modalStore } from '../../../../../common/js/modalStore.js';
   import { authenticatedFetch } from '../../../../../../routes/api/helper/api-helper.js';
   import { authStore } from '../../../../../login/js/auth.js';
-  import { modalStore } from '../../../../../common/js/modalStore.js';
-  import GradeColumnModal from './GradeColumnModal.svelte';
+  import './GradingSpreadsheet.css';
 
   // Props
   let { 
@@ -367,17 +367,13 @@
     return 'default';
   }
 
-  // Handle header click to open total score modal
+  // Handle header click - open edit modal for assessment columns
   function handleHeaderClick(colIndex, event) {
     event.preventDefault();
     event.stopPropagation();
     
-    // Map column index to assessment type and column index
-    const columnMapping = getColumnMapping(colIndex);
-    if (columnMapping) {
-      const { assessmentType, columnIndex } = columnMapping;
-      const columnName = getColumnName(assessmentType, columnIndex);
-      openTotalScoreModal(assessmentType, columnIndex, columnName);
+    if (isAssessmentColumn(colIndex)) {
+      editColumn(colIndex);
     }
   }
 
@@ -412,31 +408,6 @@
     }
     
     return null; // Not an assessment column
-  }
-
-  // State for modal (no longer needed with modalStore)
-  // These variables can be removed as modalStore handles modal state
-
-  // Open total score modal using modalStore
-  function openTotalScoreModal(assessmentType, columnIndex, columnName) {
-    const currentTotal = getTotalForColumn(assessmentType, columnIndex);
-    const existingColumnNames = getExistingColumnNames(assessmentType);
-    const canRemove = canRemoveColumn(assessmentType);
-    
-    modalStore.open(GradeColumnModal, {
-      assessmentType,
-      columnIndex,
-      columnName: getColumnName(assessmentType, columnIndex),
-      currentTotal,
-      canRemove,
-      existingColumnNames,
-      onSave: updateTotalScores,
-      onRename: handleColumnRename,
-      onRemove: handleColumnRemove
-    }, {
-      size: 'medium',
-      closable: true
-    });
   }
 
   // Update total scores and recalculate
@@ -747,8 +718,6 @@
     }
     return gradingConfig[assessmentType].totals[columnIndex] || '';
   }
-
-  // closeModal function removed - modalStore handles modal closing
 
   function handleCellInput(rowIndex, colIndex, event) {
     const value = event.target.value;
@@ -1169,6 +1138,154 @@
       }
     };
   });
+
+  // Function to handle editing column name and total score
+  function editColumn(colIndex) {
+    const mapping = getColumnMapping(colIndex);
+    if (!mapping) {
+      toastStore.error('Cannot edit this column');
+      return;
+    }
+
+    const { assessmentType, columnIndex } = mapping;
+    const currentName = getColumnName(assessmentType, columnIndex);
+    const currentTotal = gradingConfig[assessmentType].totals[columnIndex] || 100;
+    const gradeItemId = gradingConfig[assessmentType].gradeItemIds?.[columnIndex];
+
+    if (!gradeItemId) {
+      toastStore.error('Cannot edit column: Grade item ID not found');
+      return;
+    }
+
+    // Use the new FormModal for two separate input fields
+    modalStore.form(
+      'Edit Column',
+      'Edit the column name and total score for this assessment:',
+      {
+        label: 'Column Name',
+        type: 'text',
+        placeholder: 'Enter column name',
+        value: currentName
+      },
+      {
+        label: 'Total Score',
+        type: 'number',
+        placeholder: 'Enter total score',
+        value: currentTotal,
+        min: 1,
+        max: 1000
+      },
+      async (newName, newTotal) => {
+        // Validate inputs
+        if (!newName || !newName.trim()) {
+          toastStore.error('Column name cannot be empty');
+          return;
+        }
+
+        const totalScore = parseInt(newTotal);
+        if (isNaN(totalScore) || totalScore < 1 || totalScore > 1000) {
+          toastStore.error('Total score must be between 1 and 1000');
+          return;
+        }
+
+        try {
+          // Update the grade item in the database
+          const response = await authenticatedFetch('/api/grades/grade-items', {
+            method: 'PUT',
+            body: JSON.stringify({
+              grade_item_id: gradeItemId,
+              name: newName.trim(),
+              total_score: totalScore
+            })
+          });
+
+          // authenticatedFetch already handles response.ok and throws on error
+          // If we reach here, the request was successful
+          
+          // Update local gradingConfig
+          if (!gradingConfig[assessmentType].columnNames) {
+            gradingConfig[assessmentType].columnNames = [];
+          }
+          gradingConfig[assessmentType].columnNames[columnIndex] = newName.trim();
+          gradingConfig[assessmentType].totals[columnIndex] = totalScore;
+
+          // Trigger reactivity
+          gradingConfig = { ...gradingConfig };
+
+          // Reinitialize spreadsheet to reflect changes
+          initializeSpreadsheetData();
+
+          toastStore.success('Column updated successfully');
+        } catch (error) {
+          console.error('Error updating column:', error);
+          toastStore.error('Failed to update column. Please try again.');
+        }
+      },
+      () => {
+        // Do nothing on cancel
+      },
+      async () => {
+        // Delete column handler
+        try {
+          const response = await authenticatedFetch('/api/grades/grade-items', {
+            method: 'DELETE',
+            body: JSON.stringify({
+              grade_item_id: gradeItemId
+            })
+          });
+
+          // authenticatedFetch already handles response.ok and throws on error
+          // If we reach here, the request was successful
+          
+          // Remove from local gradingConfig - update all relevant properties
+          gradingConfig[assessmentType].count -= 1;
+          
+          if (gradingConfig[assessmentType].columnNames) {
+            gradingConfig[assessmentType].columnNames.splice(columnIndex, 1);
+          }
+          if (gradingConfig[assessmentType].totals) {
+            gradingConfig[assessmentType].totals.splice(columnIndex, 1);
+          }
+          if (gradingConfig[assessmentType].columnPositions) {
+            gradingConfig[assessmentType].columnPositions.splice(columnIndex, 1);
+          }
+          if (gradingConfig[assessmentType].gradeItemIds) {
+            gradingConfig[assessmentType].gradeItemIds.splice(columnIndex, 1);
+          }
+
+          // Trigger reactivity
+          gradingConfig = { ...gradingConfig };
+
+          // Adjust student data to match new column count
+          students = students.map(student => {
+            const newStudent = { ...student };
+            
+            // Remove the deleted column's data from each assessment type
+            if (assessmentType === 'writtenWork' && newStudent.writtenWork) {
+              newStudent.writtenWork.splice(columnIndex, 1);
+            } else if (assessmentType === 'performanceTasks' && newStudent.performanceTasks) {
+              newStudent.performanceTasks.splice(columnIndex, 1);
+            } else if (assessmentType === 'quarterlyAssessment' && newStudent.quarterlyAssessment) {
+              newStudent.quarterlyAssessment.splice(columnIndex, 1);
+            }
+            
+            return newStudent;
+          });
+
+          // Reinitialize spreadsheet to reflect changes
+          initializeSpreadsheetData();
+
+          toastStore.success('Column deleted successfully');
+        } catch (error) {
+          console.error('Error deleting column:', error);
+          toastStore.error('Failed to delete column. Please try again.');
+        }
+      },
+      { 
+        size: 'small'
+      }
+    );
+  }
 </script>
 
 <svelte:window on:keydown={handleGlobalKeydown} />
@@ -1252,291 +1369,79 @@
 </div>
 
 <style>
-  .save-section {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
-    background-color: var(--md-sys-color-surface-container-low);
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  /* Modal form styles */
+  :global(.modal-form-content) {
+    padding: 20px;
   }
 
-  .save-button {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    background-color: var(--md-sys-color-primary);
-    color: var(--md-sys-color-on-primary);
-    border: none;
-    border-radius: var(--radius-md);
-    font-weight: var(--md-sys-typescale-label-large-weight);
-    cursor: pointer;
-    transition: all var(--transition-normal);
-    min-height: 40px;
+  :global(.modal-form-group) {
+    margin-bottom: 16px;
   }
 
-  .save-button:hover:not(:disabled) {
-    background-color: var(--md-sys-color-primary-hover);
-    box-shadow: var(--elevation-1);
-  }
-
-  .save-button:disabled {
-    background-color: var(--md-sys-color-surface-variant);
-    color: var(--md-sys-color-on-surface-variant);
-    cursor: not-allowed;
-  }
-
-  .save-button.saved {
-    background-color: var(--md-sys-color-tertiary-container);
-    color: var(--md-sys-color-on-tertiary-container);
-    cursor: default;
-  }
-
-  .save-button.saved:hover {
-    background-color: var(--md-sys-color-tertiary-container);
-    box-shadow: none;
-  }
-  .save-message {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-sm);
-    font-size: var(--md-sys-typescale-body-small-size);
-    font-weight: var(--md-sys-typescale-label-medium-weight);
-  }
-
-  .save-message.success {
-    background-color: var(--md-sys-color-tertiary-container);
-    color: var(--md-sys-color-on-tertiary-container);
-  }
-
-  .save-message.error {
-    background-color: var(--md-sys-color-error-container);
-    color: var(--md-sys-color-on-error-container);
-  }
-
-  .spinning {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .grading-spreadsheet {
-    background-color: var(--md-sys-color-surface);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    overflow: hidden;
-    
-  }
-
-  .spreadsheet-container {
-    overflow: auto;
-    max-height: 70vh;
-  }
-
-  .spreadsheet-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--md-sys-typescale-body-small-size);
-    background-color: var(--md-sys-color-surface);
-    min-width: 1200px;
-  }
-
-  .spreadsheet-header {
-    background-color: var(--md-sys-color-surface-container-high);
-    color: var(--md-sys-color-on-surface);
-    font-weight: var(--md-sys-typescale-label-large-weight);
-    padding: var(--spacing-md);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    text-align: center;
-    min-width: 80px;
-    position: relative;
-  }
-
-  .header-text {
+  :global(.modal-form-label) {
     display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #374151;
+    font-size: 14px;
   }
 
-  .header-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
+  :global(.modal-input) {
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #ffffff;
+    transition: border-color 0.2s ease;
+  }
+
+  :global(.modal-input:focus) {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  :global(.modal-actions) {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
   }
 
-  .spreadsheet-header.clickable:hover .header-overlay {
-    opacity: 1;
-  }
-
-  .spreadsheet-header.student-info {
-    background-color: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    position: sticky;
-    left: 0;
-    z-index: 11;
-    min-width: 120px;
-  }
-
-  .spreadsheet-header.calculated {
-    background-color: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
-    font-weight: 600;
-  }
-
-  .spreadsheet-header.clickable {
+  :global(.modal-btn) {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
+    border: 1px solid transparent;
   }
 
-  .header-icon {
-    font-size: 18px;
+  :global(.modal-btn-secondary) {
+    background-color: #f3f4f6;
+    color: #374151;
+    border-color: #d1d5db;
+  }
+
+  :global(.modal-btn-secondary:hover) {
+    background-color: #e5e7eb;
+  }
+
+  :global(.modal-btn-primary) {
+    background-color: #3b82f6;
     color: white;
   }
 
-  .spreadsheet-cell.calculated {
-    background-color: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
-    font-weight: 600;
+  :global(.modal-btn-primary:hover) {
+    background-color: #2563eb;
   }
 
-  .spreadsheet-row {
-    transition: background-color var(--transition-normal);
-  }
-
-  .spreadsheet-row:hover {
-    background-color: var(--md-sys-color-surface-container-hover);
-  }
-
-
-
-  .spreadsheet-cell {
-    border: 1px solid var(--md-sys-color-outline-variant);
-    padding: 0;
-    text-align: center;
-    vertical-align: middle;
-    position: relative;
-    min-width: 80px;
-    height: 40px;
-  }
-
-  .spreadsheet-cell.student-info {
-    background-color: var(--md-sys-color-surface-container-low);
-    position: sticky;
-    left: 0;
-    z-index: 5;
-    text-align: left;
-    min-width: 120px;
-  }
-
-  .spreadsheet-cell.calculated {
-    background-color: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
-    font-weight: 600;
-  }
-
-  .spreadsheet-cell.editable {
-    cursor: pointer;
-  }
-
-
-  .spreadsheet-cell.selected {
-    outline: 2px solid var(--md-sys-color-primary);
-    outline-offset: -2px;
-    z-index: 6;
-  }
-
-  .spreadsheet-cell.editing {
-    background-color: var(--md-sys-color-surface);
-  }
-
-  .cell-content {
-    display: block;
-    width: 100%;
-    height: 100%;
-    padding: var(--spacing-sm);
-    box-sizing: border-box;
-  }
-
-  .cell-input {
-    width: 100%;
-    height: 100%;
-    border: none;
-    outline: none;
-    background: transparent;
-    text-align: center;
-    font-size: inherit;
-    color: var(--md-sys-color-on-surface);
-    padding: var(--spacing-sm);
-    box-sizing: border-box;
-    min-width: 80px;
-    max-width: 80px;
-  }
-
-  .spreadsheet-cell.student-info .cell-input {
-    text-align: left;
-  }
-
-  /* Scrollbar Styling */
-  .spreadsheet-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  .spreadsheet-container::-webkit-scrollbar-track {
-    background: var(--md-sys-color-surface-variant);
-  }
-
-  .spreadsheet-container::-webkit-scrollbar-thumb {
-    background: var(--md-sys-color-outline-variant);
-    border-radius: var(--radius-sm);
-  }
-
-  .spreadsheet-container::-webkit-scrollbar-thumb:hover {
-    background: var(--md-sys-color-outline);
-  }
-
-  /* Invalid cell styling */
-  .spreadsheet-cell.invalid {
-    background-color: var(--md-sys-color-error-container) !important;
-    color: var(--md-sys-color-on-error-container) !important;
-    animation: errorPulse 0.5s ease-in-out;
-  }
-
-  .spreadsheet-cell.invalid .cell-content {
-    color: var(--md-sys-color-on-error-container);
-    font-weight: 600;
-  }
-
-  @keyframes errorPulse {
-    0% { 
-      background-color: var(--md-sys-color-error);
-      transform: scale(1);
-    }
-    50% { 
-      background-color: var(--md-sys-color-error);
-      transform: scale(1.02);
-    }
-    100% { 
-      background-color: var(--md-sys-color-error-container);
-      transform: scale(1);
-    }
+  :global(.modal-message) {
+    margin-bottom: 16px;
+    color: #374151;
+    font-size: 14px;
   }
 </style>
 
-<!-- Modal is now handled by modalStore - no component needed here -->
