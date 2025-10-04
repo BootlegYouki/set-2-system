@@ -210,6 +210,28 @@
 
     const { row, col } = selectedCell;
     
+    // Handle arrow key navigation
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+        event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      navigateCell(event.key);
+      return;
+    }
+    
+    // Handle Enter key (move down like Excel)
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      navigateCell('ArrowDown');
+      return;
+    }
+    
+    // Handle Tab key (move right)
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      navigateCell(event.shiftKey ? 'ArrowLeft' : 'ArrowRight');
+      return;
+    }
+    
     // Only handle typing to start editing
     if (/^[0-9.]$/.test(event.key) && !isCalculatedColumn(col) && col > 1) {
       event.preventDefault();
@@ -221,6 +243,57 @@
       isEditing = true;
       editValue = event.key;
       justStartedEditing = false; // First character already entered
+    }
+  }
+
+  // Function to navigate between cells
+  function navigateCell(direction) {
+    if (!selectedCell || !spreadsheetData.length) return;
+    
+    const { row, col } = selectedCell;
+    const maxRow = spreadsheetData.length - 1; // -1 because first row is headers
+    const maxCol = spreadsheetData[0].length - 1;
+    
+    let newRow = row;
+    let newCol = col;
+    
+    switch (direction) {
+      case 'ArrowUp':
+        newRow = Math.max(1, row - 1); // Don't go above first data row
+        break;
+      case 'ArrowDown':
+        newRow = Math.min(maxRow, row + 1);
+        break;
+      case 'ArrowLeft':
+        newCol = Math.max(0, col - 1);
+        break;
+      case 'ArrowRight':
+        newCol = Math.min(maxCol, col + 1);
+        break;
+    }
+    
+    // Update selected cell
+    selectedCell = { row: newRow, col: newCol };
+    
+    // Scroll the cell into view if needed
+    scrollCellIntoView(newRow, newCol);
+  }
+  
+  // Function to scroll cell into view
+  function scrollCellIntoView(row, col) {
+    if (!spreadsheetContainer) return;
+    
+    // Find the cell element
+    const cellElement = spreadsheetContainer.querySelector(
+      `tbody tr:nth-child(${row}) td:nth-child(${col + 1})`
+    );
+    
+    if (cellElement) {
+      cellElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      });
     }
   }
 
@@ -789,14 +862,64 @@
   function handleKeyDown(event, rowIndex, colIndex) {
     if (!selectedCell) return;
     
-    // ONLY handle navigation when we're actually editing (input is focused)
-    if (!isEditing) return;
-    
-    // Only handle Escape to exit editing mode
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      isEditing = false;
-      editValue = '';
+    // Handle navigation and editing when input is focused
+    if (isEditing) {
+      // Handle Enter key - save current value and move down
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        // Save the current value and get the current position
+        const currentRow = selectedCell.row;
+        const currentCol = selectedCell.col;
+        updateSpreadsheetData();
+        isEditing = false;
+        // Use a timeout to ensure the spreadsheet has been updated before navigating
+        setTimeout(() => {
+          selectedCell = { row: currentRow, col: currentCol };
+          navigateCell('ArrowDown');
+        }, 0);
+        return;
+      }
+      
+      // Handle Tab key - save current value and move right/left
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        // Save the current value and get the current position
+        const currentRow = selectedCell.row;
+        const currentCol = selectedCell.col;
+        updateSpreadsheetData();
+        isEditing = false;
+        // Use a timeout to ensure the spreadsheet has been updated before navigating
+        setTimeout(() => {
+          selectedCell = { row: currentRow, col: currentCol };
+          navigateCell(event.shiftKey ? 'ArrowLeft' : 'ArrowRight');
+        }, 0);
+        return;
+      }
+      
+      // Handle arrow keys - save current value and navigate
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+          event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        // Save the current value and get the current position
+        const currentRow = selectedCell.row;
+        const currentCol = selectedCell.col;
+        updateSpreadsheetData();
+        isEditing = false;
+        // Use a timeout to ensure the spreadsheet has been updated before navigating
+        setTimeout(() => {
+          selectedCell = { row: currentRow, col: currentCol };
+          navigateCell(event.key);
+        }, 0);
+        return;
+      }
+      
+      // Handle Escape to exit editing mode without saving
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        isEditing = false;
+        editValue = '';
+        return;
+      }
     }
   }
 
@@ -1116,7 +1239,7 @@
       {/if}
     </button>
   </div>
-  <div class="spreadsheet-container">
+  <div class="spreadsheet-container" bind:this={spreadsheetContainer}>
     <table class="spreadsheet-table">
       <thead>
         <tr>
@@ -1157,7 +1280,11 @@
                     class="cell-input"
                     bind:value={editValue}
                     onkeydown={(e) => handleKeyDown(e, rowIndex + 1, colIndex)}
-                    onblur={() => {isEditing = false; updateSpreadsheetData();}}
+                    onblur={() => {
+                      // Save the value when losing focus
+                      updateSpreadsheetData();
+                      isEditing = false;
+                    }}
                     autofocus
                   />
                 {:else}
