@@ -29,6 +29,55 @@
 	background: var(--md-sys-color-outline);
 }
 
+/* Loading and Error States */
+.admindocreq-loading,
+.admindocreq-error {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-xxl);
+	text-align: center;
+	gap: var(--spacing-md);
+}
+
+.admindocreq-loading-icon {
+	font-size: 48px;
+	color: var(--md-sys-color-primary);
+	animation: spin 1s linear infinite;
+}
+
+.admindocreq-error-icon {
+	font-size: 48px;
+	color: var(--md-sys-color-error);
+}
+
+.admindocreq-retry-button {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-sm) var(--spacing-md);
+	background-color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	border: none;
+	border-radius: var(--radius-md);
+	cursor: pointer;
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: var(--md-sys-typescale-label-large-weight);
+	transition: background-color var(--transition-normal);
+}
+
+.admindocreq-retry-button:hover {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+@keyframes spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
 /* Header Styles */
 .admin-docreq-header {
 	display: flex;
@@ -371,6 +420,32 @@
 	font-size: 18px;
 }
 
+/* Status-based card borders and backgrounds */
+.status-pending-border {
+	border: 1px solid var(--status-pending-border);
+	background-color: var(--status-pending-bg-light);
+}
+
+.status-processing-border {
+	border: 1px solid var(--status-processing-border);
+	background-color: var(--status-processing-bg-light);
+}
+
+.status-completed-border {
+	border: 1px solid var(--status-completed-border);
+	background-color: var(--status-completed-bg-light);
+}
+
+.status-rejected-border {
+	border: 1px solid var(--status-rejected-border);
+	background-color: var(--status-rejected-bg-light);
+}
+
+.status-cancelled-border {
+	border: 1px solid var(--status-cancelled-border);
+	background-color: var(--status-cancelled-bg-light);
+}
+
 .admindocreq-status-pending {
 	background-color: var(--status-pending-bg);
 	color: var(--status-pending-text);
@@ -536,6 +611,47 @@
 
 .admindocreq-complete-button .material-symbols-outlined {
 	font-size: 18px;
+}
+
+.admindocreq-action-btn.remove-btn {
+	background-color: var(--md-sys-color-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	flex-shrink: 0;
+	color: var(--md-sys-color-error);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+}
+
+.admindocreq-action-btn.remove-btn:hover {
+	background-color: var(--md-sys-color-error-container);
+	border-color: var(--md-sys-color-error);
+	color: var(--md-sys-color-on-error-container);
+	box-shadow: var(--elevation-1);
+}
+
+.admindocreq-action-btn.remove-btn .material-symbols-outlined {
+	font-size: 18px;
+	transition: inherit;
+}
+
+.admindocreq-action-btn.remove-btn:active {
+	background-color: var(--md-sys-color-error-container);
+	box-shadow: none;
+	transform: scale(0.95);
+}
+
+/* Update footer layouts to accommodate remove buttons */
+.completed-footer,
+.cancelled-footer {
+	justify-content: space-between;
+	align-items: center;
 }
 
 /* No Results Message */

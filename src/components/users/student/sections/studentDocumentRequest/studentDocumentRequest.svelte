@@ -1,4 +1,7 @@
 <script>
+	import { onMount } from 'svelte';
+	import { authStore } from '../../../../login/js/auth.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import './studentDocumentRequest.css';
 
 	// Document request state
@@ -9,6 +12,11 @@
 	
 	// Custom dropdown state
 	let isDropdownOpen = false;
+	
+	// Data state
+	let requestHistory = [];
+	let loading = true;
+	let error = null;
 	
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
@@ -37,53 +45,70 @@
 		{ id: 'certificate', name: 'Certificate', description: 'Academic achievement certificate' }
 	];
 
-	// Request history data
-	let requestHistory = [
-		{
-			id: 1,
-			type: 'Transcript',
-			purpose: 'Official transcript for graduate school application',
-			requestedDate: '10/20/2023',
-			completedDate: '10/22/2023',
-			status: 'completed'
-		},
-		{
-			id: 2,
-			type: 'Enrollment Certificate',
-			purpose: 'Current enrollment verification for scholarship',
-			requestedDate: '10/18/2023',
-			estimatedCompletion: '10/25/2023',
-			status: 'processing'
-		},
-		{
-			id: 3,
-			type: 'Grade Report',
-			purpose: 'Semester grade report',
-			requestedDate: '10/15/2023',
-			rejectionReason: 'Incomplete coursework - final grades not yet submitted by instructors',
-			status: 'rejected'
-		},
-		{
-			id: 4,
-			type: 'Certificate',
-			purpose: 'Academic achievement certificate for internship application',
-			requestedDate: '10/12/2023',
-			status: 'pending'
-		}
-	];
+	// Fetch document requests from API
+	async function fetchDocumentRequests() {
+		try {
+			loading = true;
+			error = null;
 
-	function handleCancelRequest(requestId) {
-		// Find and update the request status
-		requestHistory = requestHistory.map(request => {
-			if (request.id === requestId && (request.status === 'pending')) {
-				return {
-					...request,
-					status: 'cancelled',
-					cancelledDate: new Date().toLocaleDateString('en-US')
-				};
+			if (!$authStore.userData?.id) {
+				error = 'User not authenticated';
+				return;
 			}
-			return request;
-		});
+
+			const result = await api.get(`/api/document-requests?student_id=${$authStore.userData.id}`);
+
+			if (result.success) {
+				requestHistory = result.data;
+			} else {
+				error = result.error || 'Failed to fetch document requests';
+			}
+		} catch (err) {
+			console.error('Error fetching document requests:', err);
+			error = 'Failed to load document requests. Please try again.';
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Load data when component mounts
+	onMount(() => {
+		if ($authStore.userData?.id) {
+			fetchDocumentRequests();
+		} else {
+			error = 'Please log in to view your document requests';
+			loading = false;
+		}
+	});
+
+	async function handleCancelRequest(requestId) {
+		try {
+			// Call API to cancel the request
+			const response = await api.patch('/api/document-requests', {
+				id: requestId,
+				action: 'cancel'
+			});
+
+			if (response.success) {
+				// Update the local state with the cancelled request
+				requestHistory = requestHistory.map(request => {
+					if (request.id === requestId) {
+						return {
+							...request,
+							status: 'cancelled',
+							cancelledDate: response.data.cancelledDate
+						};
+					}
+					return request;
+				});
+			} else {
+				console.error('Failed to cancel request:', response.error);
+				// You could add a toast notification here for user feedback
+			}
+		} catch (error) {
+			console.error('Error cancelling request:', error);
+			// You could add a toast notification here for user feedback
+		}
 	}
 
 	function toggleRequestForm() {
@@ -107,26 +132,32 @@
 		}
 	}
 
-	function handleSubmitRequest() {
+	async function handleSubmitRequest() {
 		if (!selectedDocumentType || !requestPurpose.trim()) return;
 		
 		isSubmitting = true;
-		// Simulate API call
-		setTimeout(() => {
-			const newRequest = {
-				id: requestHistory.length + 1,
-				type: documentTypes.find(d => d.id === selectedDocumentType)?.name || selectedDocumentType,
-				purpose: requestPurpose,
-				requestedDate: new Date().toLocaleDateString('en-US'),
-				status: 'processing'
-			};
-			requestHistory = [newRequest, ...requestHistory];
+		
+		try {
+			const result = await api.post('/api/document-requests', {
+				student_id: $authStore.userData.id,
+				document_type: selectedDocumentType,
+				purpose: requestPurpose
+			});
+
+			if (result.success) {
+				// Add the new request to the beginning of the list
+				requestHistory = [result.data, ...requestHistory];
+				toggleRequestForm();
+			} else {
+				error = result.error || 'Failed to submit document request';
+			}
+		} catch (err) {
+			console.error('Error submitting document request:', err);
+			error = 'Failed to submit document request. Please try again.';
+		} finally {
 			isSubmitting = false;
-			toggleRequestForm();
-		}, 2000);
+		}
 	}
-
-
 
 	function getStatusIcon(status) {
 		switch (status) {
@@ -138,7 +169,6 @@
 			default: return 'help';
 		}
 	}
-
 
 </script>
 
@@ -153,6 +183,14 @@
 		</div>
 	</div>
 
+	<!-- Error Message -->
+	{#if error}
+		<div class="error-message">
+			<span class="material-symbols-outlined">error</span>
+			{error}
+		</div>
+	{/if}
+
 	<!-- Quick Actions Section -->
 	<div class="quick-actions-section">
 		<div class="quick-actions-header">
@@ -160,7 +198,7 @@
 			<p class="section-subtitle">Request new documents or check existing requests</p>
 		</div>
 		
-		<button class="request-new-button" on:click={toggleRequestForm}>
+		<button class="request-new-button" on:click={toggleRequestForm} disabled={loading}>
 			<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>
 			{isRequestFormOpen ? 'Cancel Request' : 'Request New Document'}
 		</button>
@@ -233,8 +271,8 @@
 						</div>
 					</div>
 					
-					<div class="form-actions">
-						<button class="cancel-button" on:click={toggleRequestForm} disabled={isSubmitting}>
+					<div class="document-form-actions">
+						<button class="document-cancel-button" on:click={toggleRequestForm} disabled={isSubmitting}>
 							Cancel
 						</button>
 						<button 
@@ -243,7 +281,6 @@
 							disabled={!selectedDocumentType || !requestPurpose.trim() || isSubmitting}
 						>
 							{#if isSubmitting}
-								<span class="material-symbols-outlined spinning">hourglass_empty</span>
 								Submitting...
 							{:else}
 								Submit Request
@@ -259,60 +296,73 @@
 	<div class="request-history-section">
 		<h2 class="section-title">Request History</h2>
 		
-		<div class="request-history-grid">
-			{#each requestHistory as request, index (request.id)}
-				<div class="request-card {request.status}" style="--card-index: {index + 1};">
-					<div class="request-main-content">
-						<div class="request-status-icon">
-							<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
+		{#if loading}
+			<div class="loading-message">
+				<div class="system-loader"></div>
+				Loading your document requests...
+			</div>
+		{:else if requestHistory.length === 0}
+			<div class="no-requests-message">
+				<span class="material-symbols-outlined">description</span>
+				<p>No document requests found</p>
+				<p class="subtitle">Start by requesting your first document above</p>
+			</div>
+		{:else}
+			<div class="request-history-grid">
+				{#each requestHistory as request, index (request.id)}
+					<div class="request-card {request.status}" style="--card-index: {index + 1};">
+						<div class="request-main-content">
+							<div class="request-status-icon">
+								<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
+							</div>
+							
+							<div class="request-content">
+								<div class="request-header">
+									<div class="request-info">
+										<h3 class="request-title">{request.type}</h3>
+										<p class="request-date">Requested on {request.requestedDate}</p>
+									</div>
+									<div class="student-status-badge status-{request.status}">
+										{request.status === 'completed' ? 'Completed' : 
+										 request.status === 'processing' ? 'Processing' : 
+										 request.status === 'pending' ? 'Pending' : 
+										 request.status === 'rejected' ? 'Rejected' : 
+										 request.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
+									</div>
+								</div>
+								<p class="request-description">{request.purpose}</p>
+							</div>
 						</div>
 						
-						<div class="request-content">
-							<div class="request-header">
-								<div class="request-info">
-									<h3 class="request-title">{request.type}</h3>
-									<p class="request-date">Requested on {request.requestedDate}</p>
-								</div>
-								<div class="student-status-badge status-{request.status}">
-									{request.status === 'completed' ? 'Completed' : 
-									 request.status === 'processing' ? 'Processing' : 
-									 request.status === 'pending' ? 'Pending' : 
-									 request.status === 'rejected' ? 'Rejected' : 
-									 request.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
-								</div>
+						<!-- Status Footer with colored background -->
+						{#if request.status === 'completed'}
+							<div class="request-footer completed-footer">
+								<span class="footer-info">Completed on {request.completedDate}</span>
 							</div>
-							<p class="request-description">{request.purpose}</p>
-						</div>
+						{:else if request.status === 'processing'}
+							<div class="request-footer processing-footer">
+								<span class="footer-info">Note: {request.adminNote || 'Processing your request'}</span>
+							</div>
+						{:else if request.status === 'pending'}
+							<div class="request-footer pending-footer">
+								<span class="footer-info">Awaiting review</span>
+								<button class="cancel-request-button" on:click={() => handleCancelRequest(request.id)}>
+									<span class="material-symbols-outlined">close</span>
+									Cancel
+								</button>
+							</div>
+						{:else if request.status === 'cancelled'}
+							<div class="request-footer cancelled-footer">
+								<span class="footer-info">Cancelled on {request.cancelledDate}</span>
+							</div>
+						{:else if request.status === 'rejected'}
+							<div class="request-footer rejected-footer">
+								<span class="footer-info">Reason: {request.rejectionReason}</span>
+							</div>
+						{/if}
 					</div>
-					
-					<!-- Status Footer with colored background -->
-					{#if request.status === 'completed'}
-						<div class="request-footer completed-footer">
-							<span class="footer-info">Completed on {request.completedDate}</span>
-						</div>
-					{:else if request.status === 'processing'}
-						<div class="request-footer processing-footer">
-							<span class="footer-info">Estimated completion: {request.estimatedCompletion}</span>
-						</div>
-					{:else if request.status === 'pending'}
-						<div class="request-footer pending-footer">
-							<span class="footer-info">Awaiting review - We'll process your request soon</span>
-							<button class="cancel-request-button" on:click={() => handleCancelRequest(request.id)}>
-								<span class="material-symbols-outlined">close</span>
-								Cancel
-							</button>
-						</div>
-					{:else if request.status === 'cancelled'}
-						<div class="request-footer cancelled-footer">
-							<span class="footer-info">Cancelled on {request.cancelledDate}</span>
-						</div>
-					{:else if request.status === 'rejected'}
-						<div class="request-footer rejected-footer">
-							<span class="footer-info">Reason: {request.rejectionReason}</span>
-						</div>
-					{/if}
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 </div>

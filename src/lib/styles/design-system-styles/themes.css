@@ -147,12 +147,12 @@
   --status-processing-text: #90caf9;
   
   /* Rejected - Red */
-  --status-rejected-bg: #b71c1c;
+  --status-rejected-bg: #b71c1c65;
   --status-rejected-border: #f44336;
   --status-rejected-text: #ffcdd2;
   
   /* Pending - Orange */
-  --status-pending-bg: #e65100;
+  --status-pending-bg: #e651003a;
   --status-pending-border: #ff9800;
   --status-pending-text: #ffcc80;
   

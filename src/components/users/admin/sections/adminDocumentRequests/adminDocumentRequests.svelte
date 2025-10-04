@@ -2,12 +2,17 @@
 	import './adminDocumentRequests.css';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { onMount } from 'svelte';
+	import { authStore } from '../../../../login/js/auth.js';
 
 	// Document requests state
 	let searchTerm = '';
 	let selectedStatusFilter = '';
 	let selectedDocumentTypeFilter = '';
 	let selectedGradeFilter = '';
+	let documentRequests = [];
+	let isLoading = true;
+	let error = null;
 
 	// Dropdown states
 	let isStatusFilterDropdownOpen = false;
@@ -41,62 +46,97 @@
 	];
 
 	// Mock document requests data
-	let documentRequests = [
-		{
-			id: 1,
-			studentName: 'Maria Santos',
-			studentId: 'STU-2024-001',
-			gradeLevel: 'Grade 10',
-			documentType: 'Transcript',
-			purpose: 'College application requirements',
-			requestDate: '01/15/2024',
-			status: 'pending'
-		},
-		{
-			id: 2,
-			studentName: 'Juan Dela Cruz',
-			studentId: 'STU-2024-002',
-			gradeLevel: 'Grade 9',
-			documentType: 'Enrollment Certificate',
-			purpose: 'Scholarship application',
-			requestDate: '01/14/2024',
-			completedDate: '01/16/2024',
-			status: 'completed'
-		},
-		{
-			id: 3,
-			studentName: 'Ana Reyes',
-			studentId: 'STU-2024-003',
-			gradeLevel: 'Grade 8',
-			documentType: 'Grade Report',
-			purpose: 'Transfer to another school',
-			requestDate: '01/13/2024',
-			approvalNote: 'Approved for transfer - all requirements met',
-			status: 'processing'
-		},
-		{
-			id: 4,
-			studentName: 'Carlos Garcia',
-			studentId: 'STU-2024-004',
-			gradeLevel: 'Grade 7',
-			documentType: 'Certificate',
-			purpose: 'Academic achievement recognition',
-			requestDate: '01/12/2024',
-			rejectionReason: 'Incomplete academic requirements',
-			status: 'rejected'
-		},
-		{
-			id: 5,
-			studentName: 'Sofia Mendoza',
-			studentId: 'STU-2024-005',
-			gradeLevel: 'Grade 10',
-			documentType: 'Diploma',
-			purpose: 'Employment requirements',
-			requestDate: '01/11/2024',
-			cancelledDate: '01/13/2024',
-			status: 'cancelled'
+	// let documentRequests = [
+	// 	{
+	// 		id: 1,
+	// 		studentName: 'Maria Santos',
+	// 		studentId: 'STU-2024-001',
+	// 		gradeLevel: 'Grade 10',
+	// 		documentType: 'Transcript',
+	// 		purpose: 'College application requirements',
+	// 		requestDate: '01/15/2024',
+	// 		status: 'pending'
+	// 	},
+	// 	{
+	// 		id: 2,
+	// 		studentName: 'Juan Dela Cruz',
+	// 		studentId: 'STU-2024-002',
+	// 		gradeLevel: 'Grade 9',
+	// 		documentType: 'Enrollment Certificate',
+	// 		purpose: 'Scholarship application',
+	// 		requestDate: '01/14/2024',
+	// 		completedDate: '01/16/2024',
+	// 		status: 'completed'
+	// 	},
+	// 	{
+	// 		id: 3,
+	// 		studentName: 'Ana Reyes',
+	// 		studentId: 'STU-2024-003',
+	// 		gradeLevel: 'Grade 8',
+	// 		documentType: 'Grade Report',
+	// 		purpose: 'Transfer to another school',
+	// 		requestDate: '01/13/2024',
+	// 		approvalNote: 'Approved for transfer - all requirements met',
+	// 		status: 'processing'
+	// 	},
+	// 	{
+	// 		id: 4,
+	// 		studentName: 'Carlos Garcia',
+	// 		studentId: 'STU-2024-004',
+	// 		gradeLevel: 'Grade 7',
+	// 		documentType: 'Certificate',
+	// 		purpose: 'Academic achievement recognition',
+	// 		requestDate: '01/12/2024',
+	// 		rejectionReason: 'Incomplete academic requirements',
+	// 		status: 'rejected'
+	// 	},
+	// 	{
+	// 		id: 5,
+	// 		studentName: 'Sofia Mendoza',
+	// 		studentId: 'STU-2024-005',
+	// 		gradeLevel: 'Grade 10',
+	// 		documentType: 'Diploma',
+	// 		purpose: 'Employment requirements',
+	// 		requestDate: '01/11/2024',
+	// 		cancelledDate: '01/13/2024',
+	// 		status: 'cancelled'
+	// 	}
+	// ];
+
+	// Load document requests from API
+	async function loadDocumentRequests() {
+		isLoading = true;
+		error = null;
+		
+		try {
+			const response = await fetch('/api/document-requests?admin_view=true', {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-user-id': $authStore.userData?.id?.toString() || '',
+					'x-user-account-number': $authStore.userData?.accountNumber || '',
+					'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+				}
+			});
+			
+			if (!response.ok) {
+				throw new Error(`Failed to load document requests: ${response.status}`);
+			}
+			
+			const data = await response.json();
+			documentRequests = data.data || [];
+		} catch (err) {
+			console.error('Error loading document requests:', err);
+			error = err.message;
+		} finally {
+			isLoading = false;
 		}
-	];
+	}
+
+	// Load data on component mount
+	onMount(() => {
+		loadDocumentRequests();
+	});
 
 	// Computed properties for filtering
 	$: selectedStatusFilterObj = requestStatuses.find(status => status.id === selectedStatusFilter);
@@ -159,23 +199,50 @@
 	}
 
 	// Handle request actions
-	function handleApproveRequest(requestId) {
+	async function handleApproveRequest(requestId) {
 		modalStore.prompt(
 			'Approve Document Request',
 			'Please provide an approval note (optional):',
 			'Enter approval note...',
-			(note) => {
-				documentRequests = documentRequests.map(request => {
-					if (request.id === requestId && request.status === 'pending') {
-						return {
-							...request,
-							status: 'processing',
-							approvalNote: note && note.trim() ? note.trim() : 'Approved without additional notes'
-						};
+			async (note) => {
+				try {
+					const response = await fetch('/api/document-requests', {
+						method: 'PATCH',
+						headers: {
+							'Content-Type': 'application/json',
+							'x-user-id': $authStore.userData?.id?.toString() || '',
+							'x-user-account-number': $authStore.userData?.accountNumber || '',
+							'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+						},
+						body: JSON.stringify({
+							id: requestId,
+							action: 'approve',
+							admin_note: note && note.trim() ? note.trim() : null
+						})
+					});
+
+					const result = await response.json();
+					
+					if (result.success) {
+						// Update local state
+						documentRequests = documentRequests.map(request => {
+							if (request.id === requestId && request.status === 'pending') {
+								return {
+									...request,
+									status: 'processing',
+									approvalNote: note && note.trim() ? note.trim() : 'Approved without additional notes'
+								};
+							}
+							return request;
+						});
+						toastStore.success('Request approved and moved to processing');
+					} else {
+						toastStore.error(result.error || 'Failed to approve request');
 					}
-					return request;
-				});
-				toastStore.success('Request approved and moved to processing');
+				} catch (err) {
+					toastStore.error('Failed to approve request');
+					console.error('Error approving request:', err);
+				}
 			},
 			() => {
 				// Do nothing on cancel
@@ -184,24 +251,54 @@
 		);
 	}
 
-	function handleRejectRequest(requestId) {
+	async function handleRejectRequest(requestId) {
 		modalStore.prompt(
 			'Reject Document Request',
 			'Please provide a reason for rejecting this document request:',
 			'Enter rejection reason...',
-			(reason) => {
-				if (reason && reason.trim()) {
-					documentRequests = documentRequests.map(request => {
-						if (request.id === requestId && request.status === 'pending') {
-							return {
-								...request,
-								status: 'rejected',
-								rejectionReason: reason.trim()
-							};
-						}
-						return request;
+			async (reason) => {
+				if (!reason || !reason.trim()) {
+					toastStore.error('Please provide a rejection reason');
+					return;
+				}
+
+				try {
+					const response = await fetch('/api/document-requests', {
+						method: 'PATCH',
+						headers: {
+							'Content-Type': 'application/json',
+							'x-user-id': $authStore.userData?.id?.toString() || '',
+							'x-user-account-number': $authStore.userData?.accountNumber || '',
+							'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+						},
+						body: JSON.stringify({
+							id: requestId,
+							action: 'reject',
+							rejection_reason: reason.trim()
+						})
 					});
-					toastStore.success('Request rejected successfully');
+
+					const result = await response.json();
+					
+					if (result.success) {
+						// Update local state
+						documentRequests = documentRequests.map(request => {
+							if (request.id === requestId && request.status === 'pending') {
+								return {
+									...request,
+									status: 'rejected',
+									rejectionReason: reason.trim()
+								};
+							}
+							return request;
+						});
+						toastStore.success('Request rejected successfully');
+					} else {
+						toastStore.error(result.error || 'Failed to reject request');
+					}
+				} catch (err) {
+					toastStore.error('Failed to reject request');
+					console.error('Error rejecting request:', err);
 				}
 			},
 			() => {
@@ -211,21 +308,87 @@
 		);
 	}
 
-	function handleCompleteRequest(requestId) {
-		documentRequests = documentRequests.map(request => {
-			if (request.id === requestId && request.status === 'processing') {
-				return {
-					...request,
-					status: 'completed',
-					completedDate: new Date().toLocaleDateString('en-US')
-				};
+	async function handleCompleteRequest(requestId) {
+		try {
+			const response = await fetch('/api/document-requests', {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'x-user-id': $authStore.userData?.id?.toString() || '',
+					'x-user-account-number': $authStore.userData?.accountNumber || '',
+					'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+				},
+				body: JSON.stringify({
+					id: requestId,
+					action: 'complete'
+				})
+			});
+
+			const result = await response.json();
+			
+			if (result.success) {
+				// Update local state
+				documentRequests = documentRequests.map(request => {
+					if (request.id === requestId && request.status === 'processing') {
+						return {
+							...request,
+							status: 'completed',
+							completedDate: new Date().toLocaleDateString('en-US')
+						};
+					}
+					return request;
+				});
+				toastStore.success('Request marked as completed');
+			} else {
+				toastStore.error(result.error || 'Failed to complete request');
 			}
-			return request;
-		});
-		toastStore.success('Request marked as completed');
+		} catch (err) {
+			toastStore.error('Failed to complete request');
+			console.error('Error completing request:', err);
+		}
 	}
 
 	// Handle click outside to close dropdowns
+	// Handle remove request
+	async function handleRemoveRequest(requestId) {
+		modalStore.confirm(
+			'Remove Document Request',
+			'Are you sure you want to permanently remove this document request? This action cannot be undone.',
+			async () => {
+				try {
+					const response = await fetch('/api/document-requests', {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json',
+							'x-user-id': $authStore.userData?.id?.toString() || '',
+							'x-user-account-number': $authStore.userData?.accountNumber || '',
+							'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+						},
+						body: JSON.stringify({
+							id: requestId
+						})
+					});
+
+					const result = await response.json();
+					
+					if (result.success) {
+						// Remove from local state
+						documentRequests = documentRequests.filter(request => request.id !== requestId);
+						toastStore.success('Document request removed successfully');
+					} else {
+						toastStore.error(result.error || 'Failed to remove request');
+					}
+				} catch (err) {
+					toastStore.error('Failed to remove request');
+					console.error('Error removing request:', err);
+				}
+			},
+			() => {
+				// Do nothing on cancel
+			}
+		);
+	}
+
 	function handleClickOutside(event) {
 		if (!event.target.closest('.admindocreq-status-filter')) {
 			isStatusFilterDropdownOpen = false;
@@ -447,85 +610,115 @@
 			<p class="admin-section-subtitle">Manage student document requests</p>
 		</div>
 
-		<div class="admindocreq-requests-grid">
-			{#each filteredRequests as request (request.id)}
-				<div class="admindocreq-request-card">
-					<div class="admindocreq-request-header">
-						<div class="admindocreq-request-info">
-							<div class="admindocreq-student-info">
-								<h3 class="admindocreq-student-name">{request.studentName} · {request.documentType}</h3>
-							</div>
-						</div>
-						<div class="admindocreq-action-buttons">
-							
-							<div class="admindocreq-status-badge admindocreq-status-{request.status}">
-								<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
-								{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-							</div>
-						</div>
-					</div>
-
-					<div class="admindocreq-request-content">
-						<div class="admindocreq-document-info">
-							<div class="admindocreq-document-type">
-								<span class="material-symbols-outlined">person</span>
-								<span>{request.studentId} • {request.gradeLevel}</span>
-							</div>
-							<div class="admindocreq-request-date">
-								<span class="material-symbols-outlined">calendar_today</span>
-								<span>Requested: {request.requestDate}</span>
-							</div>
-							{#if request.purpose}
-								<div class="admindocreq-request-priority">
-									<span class="material-symbols-outlined">info</span>
-									<span>Purpose: {request.purpose}</span>
-								</div>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Status-specific footer -->
-					{#if request.status === 'pending'}
-						<div class="admindocreq-request-actions">
-							<button class="admindocreq-approve-button" on:click={() => handleApproveRequest(request.id)}>
-								<span class="material-symbols-outlined">check_circle</span>
-								Approve
-							</button>
-							<button class="admindocreq-reject-button" on:click={() => handleRejectRequest(request.id)}>
-								<span class="material-symbols-outlined">cancel</span>
-								Reject
-							</button>
-						</div>
-					{:else if request.status === 'processing'}
-						<div class="admindocreq-request-actions processing-footer">
-							{#if request.approvalNote}
-								<span class="admindocreq-footer-info">Note: {request.approvalNote}</span>
-							{/if}
-							<button class="admindocreq-complete-button" on:click={() => handleCompleteRequest(request.id)}>
-								<span class="material-symbols-outlined">task_alt</span>
-								Mark Complete
-							</button>
-						</div>
-					{:else if request.status === 'completed'}
-						<div class="admindocreq-request-actions completed-footer">
-				<span class="admindocreq-footer-info">Completed on {request.completedDate}</span>
+		{#if isLoading}
+			<div class="admindocreq-loading">
+				<div class="system-loader"></div>
+				<p>Loading document requests...</p>
 			</div>
-					{:else if request.status === 'rejected'}
-						<div class="admindocreq-request-actions rejected-footer">
-							<span class="admindocreq-footer-info">Reason: {request.rejectionReason}</span>
+		{:else if error}
+			<div class="admindocreq-error">
+				<span class="material-symbols-outlined admindocreq-error-icon">error</span>
+				<p>{error}</p>
+				<button class="admindocreq-retry-button" on:click={loadDocumentRequests}>
+					<span class="material-symbols-outlined">refresh</span>
+					Retry
+				</button>
+			</div>
+		{:else}
+			<div class="admindocreq-requests-grid">
+				{#each filteredRequests as request (request.id)}
+					<div class="admindocreq-request-card status-{request.status}-border">
+						<div class="admindocreq-request-header">
+							<div class="admindocreq-request-info">
+								<div class="admindocreq-student-info">
+									<h3 class="admindocreq-student-name">{request.studentName} · {request.type}</h3>
+								</div>
+							</div>
+							<div class="admindocreq-action-buttons">
+								
+								<div class="admindocreq-status-badge admindocreq-status-{request.status}">
+									<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
+									{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+								</div>
+							</div>
 						</div>
-					{:else if request.status === 'cancelled'}
-						<div class="admindocreq-request-actions cancelled-footer">
-							<span class="admindocreq-footer-info">Cancelled on {request.cancelledDate}</span>
+
+						<div class="admindocreq-request-content">
+							<div class="admindocreq-document-info">
+								<div class="admindocreq-document-type">
+									<span class="material-symbols-outlined">person</span>
+									<span>{request.studentId} • {request.gradeLevel}</span>
+								</div>
+								<div class="admindocreq-request-date">
+									<span class="material-symbols-outlined">calendar_today</span>
+									<span>Requested: {request.requestedDate}</span>
+								</div>
+								{#if request.purpose}
+									<div class="admindocreq-request-priority">
+										<span class="material-symbols-outlined">info</span>
+										<span>Purpose: {request.purpose}</span>
+									</div>
+								{/if}
+							</div>
 						</div>
-					{/if}
-				</div>
-			{:else}
-				<div class="admindocreq-no-results">
-					<span class="material-symbols-outlined admindocreq-no-results-icon">search_off</span>
-					<p>No document requests found matching your search criteria.</p>
-				</div>
-			{/each}
-		</div>
+
+						<!-- Status-specific footer -->
+						{#if request.status === 'pending'}
+							<div class="admindocreq-request-actions">
+								<button class="admindocreq-approve-button" on:click={() => handleApproveRequest(request.id)}>
+									<span class="material-symbols-outlined">check_circle</span>
+									Approve
+								</button>
+								<button class="admindocreq-reject-button" on:click={() => handleRejectRequest(request.id)}>
+									<span class="material-symbols-outlined">cancel</span>
+									Reject
+								</button>
+							</div>
+						{:else if request.status === 'processing'}
+							<div class="admindocreq-request-actions processing-footer">
+								{#if request.adminNote}
+								<span class="admindocreq-footer-info">Note: {request.adminNote}</span>
+								{/if}
+								<button class="admindocreq-complete-button" on:click={() => handleCompleteRequest(request.id)}>
+									<span class="material-symbols-outlined">task_alt</span>
+									Mark Complete
+								</button>
+							</div>
+						{:else if request.status === 'completed'}
+							<div class="admindocreq-request-actions completed-footer">
+								<span class="admindocreq-footer-info">Completed on {request.completedDate || 'N/A'}</span>
+								<button 
+									class="admindocreq-action-btn remove-btn"
+									on:click={() => handleRemoveRequest(request.id)}
+									title="Remove request"
+								>
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
+						{:else if request.status === 'rejected'}
+							<div class="admindocreq-request-actions rejected-footer">
+								<span class="admindocreq-footer-info">Reason: {request.rejectionReason}</span>
+							</div>
+						{:else if request.status === 'cancelled'}
+							<div class="admindocreq-request-actions cancelled-footer">
+								<span class="admindocreq-footer-info">Cancelled on {request.cancelledDate || 'N/A'}</span>
+								<button 
+									class="admindocreq-action-btn remove-btn"
+									on:click={() => handleRemoveRequest(request.id)}
+									title="Remove request"
+								>
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
+						{/if}
+					</div>
+				{:else}
+					<div class="admindocreq-no-results">
+						<span class="material-symbols-outlined admindocreq-no-results-icon">search_off</span>
+						<p>No document requests found matching your search criteria.</p>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 </div>
