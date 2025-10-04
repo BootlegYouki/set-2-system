@@ -430,7 +430,7 @@
   }
 
   // Update total scores and recalculate
-  function updateTotalScores(assessmentType, columnIndex, newTotal) {
+  async function updateTotalScores(assessmentType, columnIndex, newTotal) {
     // Check if gradingConfig and assessmentType exist
     if (!gradingConfig || !gradingConfig[assessmentType]) {
       console.error('Invalid gradingConfig or assessmentType:', assessmentType);
@@ -440,6 +440,43 @@
     // Initialize totals array if it doesn't exist
     if (!gradingConfig[assessmentType].totals) {
       gradingConfig[assessmentType].totals = [];
+    }
+
+    // Get the grade item ID for this column
+    const gradeItemId = gradingConfig[assessmentType].gradeItemIds?.[columnIndex];
+    
+    if (gradeItemId) {
+      try {
+        // Call API to update the total score in the database
+        const response = await fetch('/api/grades/grade-items', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': $authStore.userData?.id?.toString() || '',
+            'x-user-account-number': $authStore.userData?.accountNumber || '',
+            'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+          },
+          body: JSON.stringify({
+            grade_item_id: gradeItemId,
+            total_score: newTotal
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Failed to update total score:', errorData);
+          toastStore.error('Failed to update total score in database');
+          return;
+        }
+
+        const result = await response.json();
+        console.log('Total score updated successfully:', result);
+        toastStore.success('Total score updated successfully');
+      } catch (error) {
+        console.error('Error updating total score:', error);
+        toastStore.error('Failed to update total score');
+        return;
+      }
     }
     
     // Update the specific column total
@@ -453,12 +490,48 @@
   }
 
   // Handle column rename
-  function handleColumnRename(assessmentType, columnIndex, newName) {
+  async function handleColumnRename(assessmentType, columnIndex, newName) {
     // Check if gradingConfig and assessmentType exist
     if (!gradingConfig || !gradingConfig[assessmentType]) {
       console.error('Invalid gradingConfig or assessmentType:', assessmentType);
       toastStore.error('Cannot rename column. Invalid configuration.');
       return;
+    }
+
+    // Get the grade item ID for this column
+    const gradeItemId = gradingConfig[assessmentType].gradeItemIds?.[columnIndex];
+    
+    if (gradeItemId) {
+      try {
+        // Call API to update the name in the database
+        const response = await fetch('/api/grades/grade-items', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': $authStore.userData?.id?.toString() || '',
+            'x-user-account-number': $authStore.userData?.accountNumber || '',
+            'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+          },
+          body: JSON.stringify({
+            grade_item_id: gradeItemId,
+            name: newName
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Failed to update column name:', errorData);
+          toastStore.error('Failed to update column name in database');
+          return;
+        }
+
+        const result = await response.json();
+        console.log('Column name updated successfully:', result);
+      } catch (error) {
+        console.error('Error updating column name:', error);
+        toastStore.error('Failed to update column name');
+        return;
+      }
     }
     
     // Initialize column names array if it doesn't exist

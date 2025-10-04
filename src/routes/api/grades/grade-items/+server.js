@@ -115,6 +115,143 @@ export async function POST({ request }) {
   }
 }
 
+/** @type {import('./$types').RequestHandler} */
+export async function PUT({ request }) {
+  console.log('=== GRADE ITEMS UPDATE API CALLED ===');
+  
+  try {
+    // Verify authentication
+    const authResult = await verifyAuth(request, ['teacher']);
+    
+    if (!authResult.success) {
+      console.log('Authentication failed:', authResult.error);
+      return json({ error: authResult.error }, { status: authResult.status || 401 });
+    }
+
+    console.log('User authenticated:', authResult.user.account_number);
+
+    const body = await request.json();
+    console.log('Update request body received:', JSON.stringify(body, null, 2));
+    
+    const { grade_item_id, name, total_score } = body;
+
+    // Validate required fields
+    if (!grade_item_id) {
+      return json({ error: 'Missing required field: grade_item_id' }, { status: 400 });
+    }
+
+    // At least one field to update must be provided
+    if (name === undefined && total_score === undefined) {
+      return json({ error: 'At least one field (name or total_score) must be provided for update' }, { status: 400 });
+    }
+
+    const teacherId = authResult.user.id;
+
+    const updatedGradeItem = await updateGradeItem(teacherId, grade_item_id, { name, total_score });
+    
+    return json({ 
+      success: true, 
+      message: 'Grade item updated successfully',
+      grade_item: updatedGradeItem
+    });
+
+  } catch (error) {
+    console.error('Grade items update API error:', error);
+    return json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function updateGradeItem(teacherId, gradeItemId, updateData) {
+  const client = await getClient();
+  
+  try {
+    // Start transaction
+    await client.query('BEGIN');
+    
+    // First, verify that the grade item belongs to the teacher
+    const verifyResult = await client.query(`
+      SELECT id, name, total_score, section_id, subject_id, grading_period_id, category_id
+      FROM grade_items 
+      WHERE id = $1 AND teacher_id = $2 AND status = 'active'
+    `, [gradeItemId, teacherId]);
+
+    if (verifyResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      throw new Error('Grade item not found or unauthorized');
+    }
+
+    const currentItem = verifyResult.rows[0];
+    
+    // Build dynamic update query
+    const updateFields = [];
+    const updateValues = [];
+    let paramIndex = 1;
+
+    if (updateData.name !== undefined && updateData.name !== null) {
+      updateFields.push(`name = $${paramIndex}`);
+      updateValues.push(updateData.name.trim());
+      paramIndex++;
+    }
+
+    if (updateData.total_score !== undefined && updateData.total_score !== null) {
+      // Validate total score
+      const totalScore = parseFloat(updateData.total_score);
+      if (isNaN(totalScore) || totalScore <= 0 || totalScore > 100) {
+        await client.query('ROLLBACK');
+        throw new Error('Total score must be a positive number between 1 and 100');
+      }
+      updateFields.push(`total_score = $${paramIndex}`);
+      updateValues.push(totalScore);
+      paramIndex++;
+    }
+
+    if (updateFields.length === 0) {
+      await client.query('ROLLBACK');
+      throw new Error('No valid fields to update');
+    }
+
+    // Add updated_at timestamp
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+    
+    // Add WHERE clause parameters
+    updateValues.push(gradeItemId, teacherId);
+    const whereClause = `WHERE id = $${paramIndex} AND teacher_id = $${paramIndex + 1}`;
+
+    const updateQuery = `
+      UPDATE grade_items 
+      SET ${updateFields.join(', ')}
+      ${whereClause}
+      RETURNING *
+    `;
+
+    console.log('Update query:', updateQuery);
+    console.log('Update values:', updateValues);
+
+    const updateResult = await client.query(updateQuery, updateValues);
+
+    if (updateResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      throw new Error('Failed to update grade item');
+    }
+
+    // Commit transaction
+    await client.query('COMMIT');
+    
+    console.log('Grade item updated:', updateResult.rows[0]);
+
+    return updateResult.rows[0];
+
+  } catch (error) {
+    // Rollback transaction on error
+    await client.query('ROLLBACK');
+    console.error('Error updating grade item:', error);
+    throw error;
+  } finally {
+    // Release the client back to the pool
+    client.release();
+  }
+}
+
 async function addGradeItem(teacherId, sectionId, subjectId, gradingPeriodId, categoryId, gradeItemData) {
   const client = await getClient();
   

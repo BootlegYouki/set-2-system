@@ -74,7 +74,8 @@
               label: "Written Work",
               totals: result.gradeItems.writtenWork.map(item => item.total_score) || [100],
               columnNames: result.gradeItems.writtenWork.map(item => item.name) || [],
-              columnPositions: result.gradeItems.writtenWork.map((_, index) => index + 1) || [1]
+              columnPositions: result.gradeItems.writtenWork.map((_, index) => index + 1) || [1],
+              gradeItemIds: result.gradeItems.writtenWork.map(item => item.id) || []
             },
             performanceTasks: {
               count: result.gradeItems.performanceTasks.length || 1,
@@ -82,7 +83,8 @@
               label: "Performance Tasks", 
               totals: result.gradeItems.performanceTasks.map(item => item.total_score) || [100],
               columnNames: result.gradeItems.performanceTasks.map(item => item.name) || [],
-              columnPositions: result.gradeItems.performanceTasks.map((_, index) => index + 1) || [1]
+              columnPositions: result.gradeItems.performanceTasks.map((_, index) => index + 1) || [1],
+              gradeItemIds: result.gradeItems.performanceTasks.map(item => item.id) || []
             },
             quarterlyAssessment: {
               count: result.gradeItems.quarterlyAssessment.length || 1,
@@ -90,7 +92,8 @@
               label: "Quarterly Assessment",
               totals: result.gradeItems.quarterlyAssessment.map(item => item.total_score) || [100],
               columnNames: result.gradeItems.quarterlyAssessment.map(item => item.name) || [],
-              columnPositions: result.gradeItems.quarterlyAssessment.map((_, index) => index + 1) || [1]
+              columnPositions: result.gradeItems.quarterlyAssessment.map((_, index) => index + 1) || [1],
+              gradeItemIds: result.gradeItems.quarterlyAssessment.map(item => item.id) || []
             }
           };
           
@@ -156,19 +159,28 @@
       count: 1,
       weight: 0.30, // 30%
       label: "Written Work",
-      totals: [100] // Total scores for each WW assessment
+      totals: [100], // Total scores for each WW assessment
+      columnNames: [],
+      columnPositions: [1],
+      gradeItemIds: []
     },
     performanceTasks: {
       count: 1,
       weight: 0.50, // 50%
       label: "Performance Tasks",
-      totals: [100] // Total scores for each PT assessment
+      totals: [100], // Total scores for each PT assessment
+      columnNames: [],
+      columnPositions: [1],
+      gradeItemIds: []
     },
     quarterlyAssessment: {
       count: 1,
       weight: 0.20, // 20%
       label: "Quarterly Assessment",
-      totals: [100] // Total scores for each QA assessment
+      totals: [100], // Total scores for each QA assessment
+      columnNames: [],
+      columnPositions: [1],
+      gradeItemIds: []
     }
   });
 
