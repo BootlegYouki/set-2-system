@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import pool, { query } from '../../../database/db.js';
 import { verifyAuth, logActivityWithUser } from '../helper/auth-helper.js';
 
 export async function GET({ request, url }) {
@@ -143,13 +143,14 @@ export async function GET({ request, url }) {
 
             // Get final grades for the student
             const finalGradesQuery = `
-                SELECT DISTINCT
+                SELECT 
                     fg.id,
                     fg.written_work_average,
                     fg.performance_tasks_average,
                     fg.quarterly_assessment_average,
                     fg.final_grade,
                     fg.letter_grade,
+                    fg.verified,
                     fg.computed_at,
                     sub.name as subject_name,
                     sub.code as subject_code,
@@ -203,6 +204,7 @@ export async function GET({ request, url }) {
                     quarterlyAssessmentAverage: parseFloat(fg.quarterly_assessment_average) || 0,
                     finalGrade: parseFloat(fg.final_grade) || 0,
                     letterGrade: fg.letter_grade,
+                    verified: fg.verified || false,
                     computedAt: fg.computed_at
                 })),
                 overallAverage: overallAverage,
@@ -283,43 +285,112 @@ export async function POST({ request }) {
         }
 
         const user = authResult.user;
-        const { action, studentId, subjectName } = await request.json();
+        const { action, studentId, subjectName, gradeId } = await request.json();
 
         // Validate input
-        if (!action || !['verify_all', 'unverify_all', 'verify_subject', 'unverify_subject'].includes(action)) {
+        if (!action || !['verify_all', 'unverify_all', 'verify_subject', 'unverify_subject', 'verify_grade', 'unverify_grade'].includes(action)) {
             return json({
                 success: false,
                 error: 'Invalid action'
             }, { status: 400 });
         }
 
-        // For now, we'll just return success since grade verification 
-        // would require additional database schema changes
-        // This can be implemented later with a grade_verifications table
+        const client = await pool.connect();
+        
+        try {
+            let updateQuery = '';
+            let queryParams = [];
+            
+            switch (action) {
+                case 'verify_all':
+                    // Verify all grades for a student
+                    updateQuery = `
+                        UPDATE final_grades 
+                        SET verified = true 
+                        WHERE student_id = $1
+                    `;
+                    queryParams = [studentId];
+                    break;
+                    
+                case 'unverify_all':
+                    // Unverify all grades for a student
+                    updateQuery = `
+                        UPDATE final_grades 
+                        SET verified = false 
+                        WHERE student_id = $1
+                    `;
+                    queryParams = [studentId];
+                    break;
+                    
+                case 'verify_subject':
+                    // Verify all grades for a specific subject for a student
+                    updateQuery = `
+                        UPDATE final_grades 
+                        SET verified = true 
+                        WHERE student_id = $1 AND subject_id IN (
+                            SELECT id FROM subjects WHERE name = $2
+                        )
+                    `;
+                    queryParams = [studentId, subjectName];
+                    break;
+                    
+                case 'unverify_subject':
+                    // Unverify all grades for a specific subject for a student
+                    updateQuery = `
+                        UPDATE final_grades 
+                        SET verified = false 
+                        WHERE student_id = $1 AND subject_id IN (
+                            SELECT id FROM subjects WHERE name = $2
+                        )
+                    `;
+                    queryParams = [studentId, subjectName];
+                    break;
+                    
+                case 'verify_grade':
+                    // Verify a specific grade
+                    updateQuery = `UPDATE final_grades SET verified = true WHERE id = $1`;
+                    queryParams = [gradeId];
+                    break;
+                    
+                case 'unverify_grade':
+                    // Unverify a specific grade
+                    updateQuery = `UPDATE final_grades SET verified = false WHERE id = $1`;
+                    queryParams = [gradeId];
+                    break;
+            }
+            
+            const result = await client.query(updateQuery, queryParams);
+            
+            // Log the activity
+            await logActivityWithUser(
+                'grade_verification_update',
+                user,
+                { 
+                    action: action,
+                    student_id: studentId,
+                    subject_name: subjectName,
+                    grade_id: gradeId,
+                    affected_rows: result.rowCount
+                },
+                request.headers.get('x-forwarded-for') || 'unknown',
+                request.headers.get('user-agent') || 'unknown'
+            );
 
-        // Log the activity
-        await logActivityWithUser(
-            'grade_verification_update',
-            user,
-            { 
-                action: action,
-                student_id: studentId,
-                subject_name: subjectName
-            },
-            request.headers.get('x-forwarded-for') || 'unknown',
-            request.headers.get('user-agent') || 'unknown'
-        );
-
-        return json({
-            success: true,
-            message: 'Grade verification updated successfully'
-        });
+            return json({
+                success: true,
+                message: 'Grade verification updated successfully',
+                affectedRows: result.rowCount
+            });
+            
+        } finally {
+            client.release();
+        }
 
     } catch (error) {
         console.error('Error updating grade verification:', error);
         return json({ 
             success: false, 
-            error: 'Failed to update grade verification' 
+            error: 'Failed to update grade verification'
         }, { status: 500 });
     }
 }

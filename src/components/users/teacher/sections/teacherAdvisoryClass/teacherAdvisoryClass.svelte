@@ -1,14 +1,27 @@
 <script>
   import { onMount } from 'svelte';
   import { authStore } from '../../../../login/js/auth.js';
+  import { api } from '../../../../../routes/api/helper/api-helper.js';
   import './teacherAdvisoryClass.css';
   import Odometer from '../../../../common/Odometer.svelte';
   
+  // Helper function to format date as MM-DD-YYYY
+  function formatDate(dateString) {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}-${day}-${year}`;
+  }
+
   // State variables
   let loading = $state(true);
   let error = $state(null);
   let advisoryData = $state(null);
   let students = $state([]);
+  let schoolYear = $state('2024-2025'); // Default school year
+  let verifyingGrades = $state(new Set()); // Track which grades are being verified
 
   // Fetch advisory data from API
   async function fetchAdvisoryData() {
@@ -16,21 +29,7 @@
       loading = true;
       error = null;
 
-      const response = await fetch('/api/teacher-advisory', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': $authStore.userData?.id?.toString() || '',
-          'x-user-account-number': $authStore.userData?.accountNumber || '',
-          'x-user-name': encodeURIComponent($authStore.userData?.name || '')
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await api.get(`/api/teacher-advisory?teacherId=${$authStore.userData.id}&schoolYear=${schoolYear}`);
 
       if (result.success) {
         advisoryData = result.data.advisoryData;
@@ -51,7 +50,7 @@
               quarter: "1st Quarter",
               verified: subject.verified,
               submittedDate: subject.grades.length > 0 ? 
-                new Date(subject.grades[0].gradedAt || subject.grades[0].dateGiven).toISOString().split('T')[0] : 
+                formatDate(subject.grades[0].gradedAt || subject.grades[0].dateGiven) : 
                 null,
               gradeItems: subject.grades
             }))
@@ -91,12 +90,12 @@
       return sum + (finalGrade.finalGrade || 0);
     }, 0);
     const average = total / student.finalGrades.length;
-    const verifiedGrades = student.grades?.filter(grade => grade.verified) || [];
+    const verifiedFinalGrades = student.finalGrades?.filter(finalGrade => finalGrade.verified) || [];
     return {
       ...student,
       average: Math.round(average * 100) / 100,
-      verifiedGradesCount: verifiedGrades.length,
-      pendingGradesCount: (student.grades?.length || 0) - verifiedGrades.length
+      verifiedGradesCount: verifiedFinalGrades.length,
+      pendingGradesCount: (student.finalGrades?.length || 0) - verifiedFinalGrades.length
     };
   }));
 
@@ -113,70 +112,153 @@
     }
   });
 
-  // Verification functions
-  function verifyStudentGrades(studentId) {
-    students = students.map(student => {
-      if (student.id === studentId) {
-        return {
-          ...student,
-          gradesVerified: true,
-          grades: student.grades.map(grade => ({ ...grade, verified: true }))
-        };
-      }
-      return student;
-    });
-  }
-
-  function unverifyStudentGrades(studentId) {
-    students = students.map(student => {
-      if (student.id === studentId) {
-        return {
-          ...student,
-          gradesVerified: false,
-          grades: student.grades.map(grade => ({ ...grade, verified: false }))
-        };
-      }
-      return student;
-    });
-  }
-
-  function verifyIndividualGrade(studentId, subject) {
-    students = students.map(student => {
-      if (student.id === studentId) {
-        const updatedGrades = student.grades.map(grade => {
-          if (grade.subject === subject) {
-            return { ...grade, verified: true };
-          }
-          return grade;
+  // Verification functions for final grades
+  async function verifyFinalGrade(gradeId) {
+    if (!gradeId || verifyingGrades.has(gradeId)) return;
+    
+    // Add to loading set
+    verifyingGrades.add(gradeId);
+    verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
+    
+    try {
+      const result = await api.post('/api/teacher-advisory', {
+        action: 'verify_grade',
+        gradeId: gradeId
+      });
+      
+      if (result.success) {
+        // Update the local state
+        students = students.map(student => {
+          const updatedStudent = {
+            ...student,
+            finalGrades: student.finalGrades?.map(fg => 
+              fg.id === gradeId ? { ...fg, verified: true } : fg
+            ) || []
+          };
+          
+          // Check if all final grades are now verified
+          const allVerified = updatedStudent.finalGrades?.every(fg => fg.verified) || false;
+          updatedStudent.gradesVerified = allVerified;
+          
+          return updatedStudent;
         });
-        const allVerified = updatedGrades.every(grade => grade.verified);
-        return {
-          ...student,
-          grades: updatedGrades,
-          gradesVerified: allVerified
-        };
+        
+        // Remove from loading set after successful update
+        verifyingGrades.delete(gradeId);
+        verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
+      } else {
+        console.error('Failed to verify grade:', result.error);
+        // Remove from loading set on error
+        verifyingGrades.delete(gradeId);
+        verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
       }
-      return student;
-    });
+    } catch (error) {
+      console.error('Error verifying grade:', error);
+      // Remove from loading set on error
+      verifyingGrades.delete(gradeId);
+      verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
+    }
   }
 
-  function unverifyIndividualGrade(studentId, subject) {
-    students = students.map(student => {
-      if (student.id === studentId) {
-        const updatedGrades = student.grades.map(grade => {
-          if (grade.subject === subject) {
-            return { ...grade, verified: false };
-          }
-          return grade;
+  async function unverifyFinalGrade(gradeId) {
+    if (!gradeId || verifyingGrades.has(gradeId)) return;
+    
+    // Add to loading set
+    verifyingGrades.add(gradeId);
+    verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
+    
+    try {
+      const result = await api.post('/api/teacher-advisory', {
+        action: 'unverify_grade',
+        gradeId: gradeId
+      });
+      
+      if (result.success) {
+        // Update the local state
+        students = students.map(student => {
+          const updatedStudent = {
+            ...student,
+            finalGrades: student.finalGrades?.map(fg => 
+              fg.id === gradeId ? { ...fg, verified: false } : fg
+            ) || []
+          };
+          
+          // Check if all final grades are now verified (should be false after unverifying one)
+          const allVerified = updatedStudent.finalGrades?.every(fg => fg.verified) || false;
+          updatedStudent.gradesVerified = allVerified;
+          
+          return updatedStudent;
         });
-        return {
-          ...student,
-          grades: updatedGrades,
-          gradesVerified: false
-        };
+        
+        // Remove from loading set after successful update
+        verifyingGrades.delete(gradeId);
+        verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
+      } else {
+        console.error('Failed to unverify grade:', result.error);
+        // Remove from loading set on error
+        verifyingGrades.delete(gradeId);
+        verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
       }
-      return student;
-    });
+    } catch (error) {
+      console.error('Error unverifying grade:', error);
+      // Remove from loading set on error
+      verifyingGrades.delete(gradeId);
+      verifyingGrades = new Set(verifyingGrades); // Trigger reactivity
+    }
+  }
+
+  async function verifyStudentGrades(studentId) {
+    try {
+      const result = await api.post('/api/teacher-advisory', {
+        action: 'verify_all',
+        studentId: studentId
+      });
+      
+      if (result.success) {
+        // Update the local state
+        students = students.map(student => {
+          if (student.id === studentId) {
+            return {
+              ...student,
+              gradesVerified: true,
+              finalGrades: student.finalGrades?.map(fg => ({ ...fg, verified: true })) || []
+            };
+          }
+          return student;
+        });
+      } else {
+        console.error('Failed to verify student grades:', result.error);
+      }
+    } catch (error) {
+      console.error('Error verifying student grades:', error);
+    }
+  }
+
+  async function unverifyStudentGrades(studentId) {
+    try {
+      const result = await api.post('/api/teacher-advisory', {
+        action: 'unverify_all',
+        studentId: studentId
+      });
+      
+      if (result.success) {
+        // Update the local state
+        students = students.map(student => {
+          if (student.id === studentId) {
+            return {
+              ...student,
+              gradesVerified: false,
+              finalGrades: student.finalGrades?.map(fg => ({ ...fg, verified: false })) || []
+            };
+          }
+          return student;
+        });
+      } else {
+        console.error('Failed to unverify student grades:', result.error);
+      }
+    } catch (error) {
+      console.error('Error unverifying student grades:', error);
+    }
   }
 
   // Bulk verification functions
@@ -380,16 +462,23 @@
               <div class="grades-grid">
                 {#each student.grades as grade (grade.subject)}
                   {@const finalGrade = student.finalGrades?.find(fg => fg.subjectName === grade.subject)}
-                  <button class="grade-item {grade.verified ? 'verified' : 'unverified'}" 
-                          on:click={() => grade.verified ? unverifyIndividualGrade(student.id, grade.subject) : verifyIndividualGrade(student.id, grade.subject)}>
+                  <button class="grade-item {finalGrade?.verified ? 'verified' : 'unverified'}" 
+                          class:loading={verifyingGrades.has(finalGrade?.id)}
+                          disabled={verifyingGrades.has(finalGrade?.id)}
+                          on:click={() => finalGrade?.verified ? unverifyFinalGrade(finalGrade.id) : verifyFinalGrade(finalGrade.id)}>
                     <div class="grade-overlay">
                       <div class="overlay-content">
-                        <span class="material-symbols-outlined">
-                          {grade.verified ? 'cancel' : 'verified'}
-                        </span>
-                        <div class="overlay-text">
-                          {grade.verified ? 'Unverify' : 'Verify'}
-                        </div>
+                        {#if verifyingGrades.has(finalGrade?.id)}
+                          <div class="loading-spinner"></div>
+                          <div class="overlay-text">Processing...</div>
+                        {:else}
+                          <span class="material-symbols-outlined">
+                            {finalGrade?.verified ? 'cancel' : 'verified'}
+                          </span>
+                          <div class="overlay-text">
+                            {finalGrade?.verified ? 'Unverify' : 'Verify'}
+                          </div>
+                        {/if}
                       </div>
                     </div>
                     <div class="grade-item-header">

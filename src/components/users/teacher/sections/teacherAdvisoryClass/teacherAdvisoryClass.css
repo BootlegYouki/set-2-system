@@ -741,18 +741,32 @@
   border-radius: var(--radius-sm);
 }
 
-.verification-status.verified {
+.verification-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--md-sys-typescale-body-small-size);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.verification-status.verified-status {
   background-color: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
 }
 
-.verification-status.unverified {
+.verification-status.unverified-status {
   background-color: var(--md-sys-color-error-container);
   color: var(--md-sys-color-on-error-container);
 }
 
 .verification-status .material-symbols-outlined {
   font-size: 16px;
+}
+
+.verification-status .status-text {
+  font-weight: 500;
 }
 
 .verification-info {
@@ -832,4 +846,32 @@
     margin-left: 0;
     align-self: flex-end;
   }
+}
+
+/* Loading Spinner Styles */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Loading state for grade items */
+.grade-item.loading {
+  cursor: not-allowed;
+}
+
+.grade-item.loading .grade-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.grade-item:disabled {
+  pointer-events: none;
 }
