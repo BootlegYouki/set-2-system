@@ -141,6 +141,35 @@ export async function GET({ request, url }) {
                 }
             });
 
+            // Get final grades for the student
+            const finalGradesQuery = `
+                SELECT DISTINCT
+                    fg.id,
+                    fg.written_work_average,
+                    fg.performance_tasks_average,
+                    fg.quarterly_assessment_average,
+                    fg.final_grade,
+                    fg.letter_grade,
+                    fg.computed_at,
+                    sub.name as subject_name,
+                    sub.code as subject_code,
+                    COALESCE(t.full_name, 'Unknown Teacher') as teacher_name,
+                    gp.name as grading_period
+                FROM final_grades fg
+                JOIN subjects sub ON fg.subject_id = sub.id
+                JOIN grading_periods gp ON fg.grading_period_id = gp.id
+                LEFT JOIN (
+                    SELECT DISTINCT subject_id, section_id, teacher_id
+                    FROM schedules
+                ) sch ON sch.subject_id = sub.id AND sch.section_id = fg.section_id
+                LEFT JOIN users t ON sch.teacher_id = t.id AND t.account_type = 'teacher'
+                WHERE fg.student_id = $1 
+                    AND fg.section_id = $2
+                ORDER BY sub.name
+            `;
+
+            const finalGradesResult = await query(finalGradesQuery, [student.student_id, section.section_id]);
+
             // Calculate subject averages
             const subjects = Object.values(gradesBySubject).map(subject => {
                 if (subject.totalPossible > 0) {
@@ -163,6 +192,19 @@ export async function GET({ request, url }) {
                 enrolledAt: student.enrolled_at,
                 enrollmentStatus: student.enrollment_status,
                 subjects: subjects,
+                finalGrades: finalGradesResult.rows.map(fg => ({
+                    id: fg.id,
+                    subjectName: fg.subject_name,
+                    subjectCode: fg.subject_code,
+                    teacherName: fg.teacher_name,
+                    gradingPeriod: fg.grading_period,
+                    writtenWorkAverage: parseFloat(fg.written_work_average) || 0,
+                    performanceTasksAverage: parseFloat(fg.performance_tasks_average) || 0,
+                    quarterlyAssessmentAverage: parseFloat(fg.quarterly_assessment_average) || 0,
+                    finalGrade: parseFloat(fg.final_grade) || 0,
+                    letterGrade: fg.letter_grade,
+                    computedAt: fg.computed_at
+                })),
                 overallAverage: overallAverage,
                 gradesVerified: false // Default to false, can be updated later
             });

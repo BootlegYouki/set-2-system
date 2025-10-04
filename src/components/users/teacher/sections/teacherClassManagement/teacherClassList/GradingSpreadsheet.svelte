@@ -1116,7 +1116,7 @@
         saveMessage = '';
       }, 5000);
     } finally {
-      isSaving = false;
+      isSavingFinalGrades = false;
     }
   }
 

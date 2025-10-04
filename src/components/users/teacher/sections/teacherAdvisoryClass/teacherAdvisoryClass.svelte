@@ -43,6 +43,7 @@
             studentNumber: student.studentNumber,
             gradeLevel: student.gradeLevel,
             gradesVerified: student.gradesVerified,
+            finalGrades: student.finalGrades || [], // Add final grades data
             grades: student.subjects.map(subject => ({
               subject: subject.subject,
               teacher: subject.teacher,
@@ -74,25 +75,28 @@
     }
   });
 
-  // Calculate student averages (show all grades, track verification status)
+  // Calculate student averages (only use final grades, no fallback to regular grades)
   const studentsWithAverages = $derived(students.map(student => {
-    if (!student.grades || student.grades.length === 0) {
+    if (!student.finalGrades || student.finalGrades.length === 0) {
       return {
         ...student,
         average: 0,
         verifiedGradesCount: 0,
-        pendingGradesCount: 0
+        pendingGradesCount: student.grades?.length || 0
       };
     }
     
-    const total = student.grades.reduce((sum, grade) => sum + (grade.grade || 0), 0);
-    const average = total / student.grades.length;
-    const verifiedGrades = student.grades.filter(grade => grade.verified);
+    // Only use final grades - no fallback to regular grades
+    const total = student.finalGrades.reduce((sum, finalGrade) => {
+      return sum + (finalGrade.finalGrade || 0);
+    }, 0);
+    const average = total / student.finalGrades.length;
+    const verifiedGrades = student.grades?.filter(grade => grade.verified) || [];
     return {
       ...student,
       average: Math.round(average * 100) / 100,
       verifiedGradesCount: verifiedGrades.length,
-      pendingGradesCount: student.grades.length - verifiedGrades.length
+      pendingGradesCount: (student.grades?.length || 0) - verifiedGrades.length
     };
   }));
 
@@ -287,7 +291,10 @@
   <!-- Students Section -->
   <div class="students-section">
     <div class="section-header">
-      <h2 class="advisory-section-title">Students & Grade Overview</h2>
+      <button class="refresh-btn" on:click={fetchAdvisoryData}>
+        <span class="material-symbols-outlined">refresh</span>
+        Refresh
+      </button>
       <!-- Bulk verification controls -->
       <div class="bulk-controls">
         <button class="verify-all-btn" on:click={verifyAllStudents}>
@@ -301,7 +308,23 @@
       </div>
     </div>
     <div class="advisory-students-grid">
-      {#each studentsWithAverages as student (student.id)}
+      {#if loading}
+        <div class="students-loading">
+          <div class="dashboard-loader"></div>
+          <p>Loading students and grades...</p>
+        </div>
+      {:else if error}
+        <div class="students-error">
+          <span class="material-symbols-outlined error-icon">error</span>
+          <p>Error loading students: {error}</p>
+        </div>
+      {:else if studentsWithAverages.length === 0}
+        <div class="students-empty">
+          <span class="material-symbols-outlined">school</span>
+          <p>No students found in this advisory class</p>
+        </div>
+      {:else}
+        {#each studentsWithAverages as student (student.id)}
         <div class="advisory-student-card {student.gradesVerified ? 'verified' : 'pending'}" class:selected={selectedStudent?.id === student.id}>
           <div class="student-header" on:click={() => selectStudent(student)}>
             <div class="student-header-content">
@@ -337,6 +360,7 @@
 
           {#if selectedStudent?.id === student.id}
             <div class="student-grades">
+              <!-- Regular Grades Section -->
               <div class="grades-header">
                 <h4 class="grades-title">Subject Grades (1st Quarter)</h4>
                 <div class="student-verification-controls">
@@ -355,6 +379,7 @@
               </div>
               <div class="grades-grid">
                 {#each student.grades as grade (grade.subject)}
+                  {@const finalGrade = student.finalGrades?.find(fg => fg.subjectName === grade.subject)}
                   <button class="grade-item {grade.verified ? 'verified' : 'unverified'}" 
                           on:click={() => grade.verified ? unverifyIndividualGrade(student.id, grade.subject) : verifyIndividualGrade(student.id, grade.subject)}>
                     <div class="grade-overlay">
@@ -376,10 +401,16 @@
                         {/if}
                       </div>
                       <div class="grade-controls">
-                          <div class="grade-score-display" style="color: {getGradeColor(grade.grade)}">
-                            {grade.grade}%
-                          </div>  
-                      </div>
+                          {#if finalGrade}
+                            <div class="grade-score-display" style="color: {getGradeColor(finalGrade.finalGrade)}">
+                              {finalGrade.finalGrade}%
+                            </div>
+                          {:else}
+                            <div class="grade-score-display" style="color: #666;">
+                              Not Available
+                            </div>
+                          {/if}
+                        </div>
                     </div>
                   </button>
                 {/each}
@@ -388,6 +419,7 @@
           {/if}
         </div>
       {/each}
+      {/if}
     </div>
   </div>
 </div>
