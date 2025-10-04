@@ -25,12 +25,8 @@
   
   // Tab navigation function
   function setActiveSubject(index) {
-    console.log('setActiveSubject called with index:', index);
-    console.log('Available subjects:', sectionData?.subjects);
     
     activeSubjectIndex = index;
-    
-    console.log('New activeSubject:', activeSubject);
     
     // Reset grading config when switching subjects
     gradingConfig = {
@@ -102,19 +98,8 @@
   // Fetch existing grade items and build// Fetch grading configuration for the active subject
   async function fetchGradingConfiguration() {
     if (!selectedClass || !activeSubject) {
-      console.log('fetchGradingConfiguration: Missing required data', {
-        selectedClass: !!selectedClass,
-        activeSubject: !!activeSubject
-      });
       return;
     }
-
-    console.log('fetchGradingConfiguration called with:', {
-      sectionId: selectedClass.sectionId,
-      subjectId: activeSubject.id,
-      gradingPeriodId: 1,
-      teacherId: $authStore.userData.id
-    });
 
     try {
       const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${activeSubject.id}&grading_period_id=1&teacher_id=${$authStore.userData.id}`, {
@@ -132,7 +117,6 @@
       }
       
       const result = await response.json();
-      console.log('fetchGradingConfiguration response:', result);
 
       // The API returns { success: true, gradeItems: { writtenWork: [], performanceTasks: [], quarterlyAssessment: [] } }
       const data = result.gradeItems || {};
@@ -169,7 +153,6 @@
       };
 
       gradingConfig = newGradingConfig;
-      console.log('Updated gradingConfig:', gradingConfig);
       
     } catch (error) {
       console.error('Error fetching grading configuration:', error);
@@ -179,7 +162,6 @@
 
   // Fetch class students from API
   async function fetchClassStudents() {
-    console.log('fetchClassStudents called with activeSubject:', activeSubject?.id, 'selectedClass:', selectedClass?.sectionId);
     
     if (isDestroyed) return; // Only prevent calls after destruction
     
@@ -284,7 +266,7 @@
     if (gradingConfig[category].count < 10 && !addingColumn && !isDestroyed) {
       try {
         addingColumn = true; // Prevent duplicate calls
-        console.log('addColumn called for category:', category, 'activeSubject:', activeSubject?.id, 'selectedClass:', selectedClass?.subjectId);
+    
         
         // Map category names to category IDs
         const categoryMap = {
@@ -330,7 +312,6 @@
         }
 
         const result = await response.json();
-        console.log('Grade item added successfully:', result);
 
         // Update UI only after successful database operation
         gradingConfig[category].count += 1;

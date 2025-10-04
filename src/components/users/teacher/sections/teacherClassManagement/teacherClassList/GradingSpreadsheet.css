@@ -7,13 +7,15 @@
   justify-content: end;
 }
 
+
+
 .save-grades-button, .final-grades-button {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
   border: none;
   border-radius: 6px;
   font-size: 14px;
@@ -25,7 +27,8 @@
 }
 
 .save-grades-button:hover:not(:disabled), .final-grades-button:hover:not(:disabled) {
-  background-color: #2563eb;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
 }
@@ -72,7 +75,7 @@
   border: 1px solid var(--md-sys-color-outline-variant);
   overflow: hidden;
   border-radius: var(--radius-md);
-  
+
 }
 
 .spreadsheet-container {
@@ -82,10 +85,12 @@
 
 .spreadsheet-table {
   width: 100%;
-  border-collapse: collapse;
+  /* border-collapse: collapse; */
+  border-spacing: 1;
   font-size: var(--md-sys-typescale-body-small-size);
   background-color: var(--md-sys-color-surface);
-  min-width: 1200px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .spreadsheet-header {
@@ -134,8 +139,8 @@
 }
 
 .spreadsheet-header.calculated {
-  background-color: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
   font-weight: 600;
 }
 
@@ -186,9 +191,15 @@
 }
 
 .spreadsheet-cell.calculated {
-  background-color: var(--md-sys-color-secondary-container);
+  background-color: var(--outline-variant);
   color: var(--md-sys-color-on-secondary-container);
   font-weight: 600;
+}
+
+.spreadsheet-cell.final-grade {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+  font-weight: 700;
 }
 
 .spreadsheet-cell.editable {
@@ -265,15 +276,15 @@
 }
 
 @keyframes errorPulse {
-  0% { 
+  0% {
     background-color: var(--md-sys-color-error);
     transform: scale(1);
   }
-  50% { 
+  50% {
     background-color: var(--md-sys-color-error);
     transform: scale(1.02);
   }
-  100% { 
+  100% {
     background-color: var(--md-sys-color-error-container);
     transform: scale(1);
   }

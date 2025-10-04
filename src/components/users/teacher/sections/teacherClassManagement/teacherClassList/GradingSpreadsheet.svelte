@@ -8,23 +8,23 @@
   import './GradingSpreadsheet.css';
 
   // Props
-  let { 
-    students = [], 
-    sectionId, 
-    subjectId, 
+  let {
+    students = [],
+    sectionId,
+    subjectId,
     gradingPeriodId = 1,
     gradingConfig = {
-      writtenWork: { 
+      writtenWork: {
         count: 3,
         weight: 0.30,
         totals: [] // Array to store individual column totals
       },
-      performanceTasks: { 
+      performanceTasks: {
         count: 3,
         weight: 0.50,
         totals: [] // Array to store individual column totals
       },
-      quarterlyAssessment: { 
+      quarterlyAssessment: {
         count: 1,
         weight: 0.20,
         totals: [] // Array to store individual column totals
@@ -39,7 +39,7 @@
   let saveSuccess = $state(false);
   let autoSaveInterval = null;
   let autoSaveTimeout = null; // For debounced auto-save on data changes
-  
+
   // New state for tracking data changes and save status
   let hasUnsavedChanges = $state(false);
   let isDataSaved = $state(true); // Start as saved since no changes initially
@@ -48,7 +48,7 @@
   let selectedCell = $state(null);
   let isEditing = $state(false);
   let editValue = $state('');
-  
+
   // Loading state for the entire grading spreadsheet
   let isSpreadsheetLoading = $state(true);
   let justStartedEditing = $state(false);
@@ -81,37 +81,32 @@
   // Function to check if data has changed
   function checkForDataChanges() {
     if (!originalData) return false;
-    
+
     const currentData = createDataSnapshot();
     const hasChanges = JSON.stringify(currentData) !== JSON.stringify(originalData);
-    
+
     hasUnsavedChanges = hasChanges;
     isDataSaved = !hasChanges;
-    
+
     return hasChanges;
   }
 
   function initializeSpreadsheetData() {
     const headers = ['Student ID', 'Student Name'];
-    
-    console.log('initializeSpreadsheetData called with:', {
-      subjectId,
-      gradingConfig,
-      studentsCount: students.length
-    });
-    
+
+
     // Add Written Work columns
     for (let i = 1; i <= gradingConfig.writtenWork.count; i++) {
       headers.push(getColumnHeaderWithTotal('writtenWork', i - 1));
     }
     headers.push('WW Avg');
-    
+
     // Add Performance Tasks columns
     for (let i = 1; i <= gradingConfig.performanceTasks.count; i++) {
       headers.push(getColumnHeaderWithTotal('performanceTasks', i - 1));
     }
     headers.push('PT Avg');
-    
+
     // Add Quarterly Assessment columns
     for (let i = 1; i <= gradingConfig.quarterlyAssessment.count; i++) {
       headers.push(getColumnHeaderWithTotal('quarterlyAssessment', i - 1));
@@ -124,28 +119,28 @@
     // Add student data rows
     students.forEach(student => {
       const row = [student.id, student.name];
-      
+
       // Written Work scores
       for (let i = 0; i < gradingConfig.writtenWork.count; i++) {
         row.push(formatScore(student.writtenWork[i]));
       }
       row.push(calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork'));
-      
+
       // Performance Tasks scores
       for (let i = 0; i < gradingConfig.performanceTasks.count; i++) {
         row.push(formatScore(student.performanceTasks[i]));
       }
       row.push(calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks'));
-      
+
       // Quarterly Assessment scores
       for (let i = 0; i < gradingConfig.quarterlyAssessment.count; i++) {
         row.push(formatScore(student.quarterlyAssessment[i]));
       }
       row.push(calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment'));
-      
+
       // Final Grade
       row.push(calculateFinalGrade(student));
-      
+
       spreadsheetData.push(row);
     });
 
@@ -154,7 +149,7 @@
     // Don't assume data is saved on initialization - let user decide when to save
     isDataSaved = false;
     hasUnsavedChanges = false;
-    
+
     // Set loading to false after initialization
     isSpreadsheetLoading = false;
   }
@@ -162,21 +157,19 @@
   function calculateAverage(scores, totals = null, assessmentType = null) {
     const validScores = scores.filter(score => score !== null && score !== undefined && score !== '');
     if (validScores.length === 0) return '';
-    
-    console.log('calculateAverage called with:', { scores, totals, assessmentType });
-    
+
+
     let sum = 0;
-    
+
     // If totals are provided, calculate percentage-based average
     if (totals && totals.length > 0) {
       let percentageSum = 0;
       let validPercentageCount = 0;
-      
-      console.log('Using totals-based calculation');
-      
+
+
       // Only iterate through the number of totals we have, not all scores
       const maxIndex = Math.min(scores.length, totals.length);
-      
+
       for (let i = 0; i < maxIndex; i++) {
         const score = scores[i];
         if (score !== null && score !== undefined && score !== '') {
@@ -184,20 +177,17 @@
           const total = totals[i];
           if (total && total > 0) { // Only calculate if we have a valid total
             const percentage = (scoreValue / total) * 100;
-            console.log(`Score ${i}: ${scoreValue}/${total} = ${percentage}%`);
             percentageSum += percentage;
             validPercentageCount++;
           }
         }
       }
-      
+
       if (validPercentageCount === 0) return '';
       const average = Math.round((percentageSum / validPercentageCount) * 100) / 100;
-      console.log(`Final average: ${percentageSum}/${validPercentageCount} = ${average}`);
       return formatScore(average);
     } else {
       // Original calculation for backward compatibility
-      console.log('Using simple average calculation');
       sum = validScores.reduce((acc, score) => acc + parseFloat(score), 0);
       const average = Math.round((sum / validScores.length) * 100) / 100;
       return formatScore(average);
@@ -208,61 +198,61 @@
     const wwAvg = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork');
     const ptAvg = calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks');
     const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment');
-    
+
     if (wwAvg === '' || ptAvg === '' || qaAvg === '') return '';
-    
+
     // Parse the formatted averages back to numbers for calculation
     const wwNum = parseFloat(wwAvg) || 0;
     const ptNum = parseFloat(ptAvg) || 0;
     const qaNum = parseFloat(qaAvg) || 0;
-    
-    const finalGrade = (wwNum * gradingConfig.writtenWork.weight) + 
-                      (ptNum * gradingConfig.performanceTasks.weight) + 
+
+    const finalGrade = (wwNum * gradingConfig.writtenWork.weight) +
+                      (ptNum * gradingConfig.performanceTasks.weight) +
                       (qaNum * gradingConfig.quarterlyAssessment.weight);
-    
+
     const roundedGrade = Math.round(finalGrade * 100) / 100;
     return formatScore(roundedGrade);
   }
 
   function handleCellClick(rowIndex, colIndex, event) {
     if (colIndex < 2) return; // Don't allow editing of student info columns
-    
+
     selectedCell = { row: rowIndex, col: colIndex };
-    
+
     // Don't automatically start editing on click - let user navigate first
     isEditing = false;
   }
 
   function handleGlobalKeydown(event) {
     if (!selectedCell) return;
-    
+
     // Don't handle global keydown when editing - let the input handler take care of it
     if (isEditing) return;
 
     const { row, col } = selectedCell;
-    
+
     // Handle arrow key navigation
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown' ||
         event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
       navigateCell(event.key);
       return;
     }
-    
+
     // Handle Enter key (move down like Excel)
     if (event.key === 'Enter') {
       event.preventDefault();
       navigateCell('ArrowDown');
       return;
     }
-    
+
     // Handle Tab key (move right)
     if (event.key === 'Tab') {
       event.preventDefault();
       navigateCell(event.shiftKey ? 'ArrowLeft' : 'ArrowRight');
       return;
     }
-    
+
     // Only handle typing to start editing
     if (/^[0-9.]$/.test(event.key) && !isCalculatedColumn(col) && col > 1) {
       event.preventDefault();
@@ -280,14 +270,14 @@
   // Function to navigate between cells
   function navigateCell(direction) {
     if (!selectedCell || !spreadsheetData.length) return;
-    
+
     const { row, col } = selectedCell;
     const maxRow = spreadsheetData.length - 1; // -1 because first row is headers
     const maxCol = spreadsheetData[0].length - 1;
-    
+
     let newRow = row;
     let newCol = col;
-    
+
     switch (direction) {
       case 'ArrowUp':
         newRow = Math.max(1, row - 1); // Don't go above first data row
@@ -302,23 +292,23 @@
         newCol = Math.min(maxCol, col + 1);
         break;
     }
-    
+
     // Update selected cell
     selectedCell = { row: newRow, col: newCol };
-    
+
     // Scroll the cell into view if needed
     scrollCellIntoView(newRow, newCol);
   }
-  
+
   // Function to scroll cell into view
   function scrollCellIntoView(row, col) {
     if (!spreadsheetContainer) return;
-    
+
     // Find the cell element
     const cellElement = spreadsheetContainer.querySelector(
       `tbody tr:nth-child(${row}) td:nth-child(${col + 1})`
     );
-    
+
     if (cellElement) {
       cellElement.scrollIntoView({
         behavior: 'smooth',
@@ -342,13 +332,14 @@
   function getColumnType(colIndex) {
     const headers = spreadsheetData[0];
     const header = headers[colIndex];
-    
+
     if (colIndex < 2) return 'student-info';
-    if (header?.includes('Avg') || header === 'Final Grade') return 'calculated';
+    if (header === 'Final Grade') return 'calculated';
+    if (header?.includes('Avg')) return 'calculated';
     if (header?.startsWith('WW')) return 'written-work';
     if (header?.startsWith('PT')) return 'performance-task';
     if (header?.startsWith('QA')) return 'quarterly-assessment';
-    
+
     return 'default';
   }
 
@@ -356,7 +347,7 @@
   function handleHeaderClick(colIndex, event) {
     event.preventDefault();
     event.stopPropagation();
-    
+
     if (isAssessmentColumn(colIndex)) {
       editColumn(colIndex);
     }
@@ -365,7 +356,7 @@
   // Get assessment type and column index from spreadsheet column index
   function getColumnMapping(colIndex) {
     let currentIndex = 2; // Start after Student ID and Student Name
-    
+
     // Check Written Work columns
     for (let i = 0; i < gradingConfig.writtenWork.count; i++) {
       if (currentIndex === colIndex) {
@@ -374,7 +365,7 @@
       currentIndex++;
     }
     currentIndex++; // Skip WW Avg
-    
+
     // Check Performance Tasks columns
     for (let i = 0; i < gradingConfig.performanceTasks.count; i++) {
       if (currentIndex === colIndex) {
@@ -383,7 +374,7 @@
       currentIndex++;
     }
     currentIndex++; // Skip PT Avg
-    
+
     // Check Quarterly Assessment columns
     for (let i = 0; i < gradingConfig.quarterlyAssessment.count; i++) {
       if (currentIndex === colIndex) {
@@ -391,7 +382,7 @@
       }
       currentIndex++;
     }
-    
+
     return null; // Not an assessment column
   }
 
@@ -402,7 +393,7 @@
       console.error('Invalid gradingConfig or assessmentType:', assessmentType);
       return;
     }
-    
+
     // Initialize totals array if it doesn't exist
     if (!gradingConfig[assessmentType].totals) {
       gradingConfig[assessmentType].totals = [];
@@ -410,7 +401,7 @@
 
     // Get the grade item ID for this column
     const gradeItemId = gradingConfig[assessmentType].gradeItemIds?.[columnIndex];
-    
+
     if (gradeItemId) {
       try {
         // Call API to update the total score in the database
@@ -436,21 +427,19 @@
         }
 
         const result = await response.json();
-        console.log('Total score updated successfully:', result);
         toastStore.success('Total score updated successfully');
       } catch (error) {
-        console.error('Error updating total score:', error);
         toastStore.error('Failed to update total score');
         return;
       }
     }
-    
+
     // Update the specific column total
     gradingConfig[assessmentType].totals[columnIndex] = newTotal;
-    
+
     // Trigger reactivity
     gradingConfig = { ...gradingConfig };
-    
+
     // Recalculate spreadsheet data
     initializeSpreadsheetData();
   }
@@ -466,7 +455,7 @@
 
     // Get the grade item ID for this column
     const gradeItemId = gradingConfig[assessmentType].gradeItemIds?.[columnIndex];
-    
+
     if (gradeItemId) {
       try {
         // Call API to update the name in the database
@@ -492,28 +481,26 @@
         }
 
         const result = await response.json();
-        console.log('Column name updated successfully:', result);
       } catch (error) {
-        console.error('Error updating column name:', error);
         toastStore.error('Failed to update column name');
         return;
       }
     }
-    
+
     // Initialize column names array if it doesn't exist
     if (!gradingConfig[assessmentType].columnNames) {
       gradingConfig[assessmentType].columnNames = [];
     }
-    
+
     // Update the specific column name
     gradingConfig[assessmentType].columnNames[columnIndex] = newName;
-    
+
     // Trigger reactivity
     gradingConfig = { ...gradingConfig };
-    
+
     // Recalculate spreadsheet data to reflect new name
     initializeSpreadsheetData();
-    
+
     toastStore.success(`Column renamed to "${newName}"`);
   }
 
@@ -525,7 +512,7 @@
       toastStore.error('Cannot remove column. Invalid configuration.');
       return;
     }
-    
+
     // Check if we can remove (must have at least 1 column)
     if (gradingConfig[assessmentType].count <= 1) {
       toastStore.error('Cannot remove column. At least one column is required.');
@@ -582,7 +569,6 @@
       }
 
       const result = await response.json();
-      console.log('Grade item removed successfully:', result);
 
       // Update UI only after successful database operation
       // Decrease column count
@@ -619,7 +605,7 @@
 
       // Trigger reactivity
       gradingConfig = { ...gradingConfig };
-      
+
       toastStore.success('Column removed successfully');
     } catch (error) {
       console.error('Error removing column:', error);
@@ -633,15 +619,15 @@
     if (!gradingConfig || !assessmentType || !gradingConfig[assessmentType]) {
       return [];
     }
-    
+
     const names = [];
-    
+
     // Add default column names
     for (let i = 1; i <= gradingConfig[assessmentType].count; i++) {
       const defaultName = getColumnName(assessmentType, i - 1);
       names.push(defaultName);
     }
-    
+
     // Add custom column names if they exist
     if (gradingConfig[assessmentType].columnNames) {
       gradingConfig[assessmentType].columnNames.forEach((name, index) => {
@@ -650,7 +636,7 @@
         }
       });
     }
-    
+
     return names;
   }
 
@@ -664,21 +650,21 @@
   // Get column name (custom or default)
   function getColumnName(assessmentType, columnIndex) {
     // Check if custom name exists
-    if (gradingConfig[assessmentType].columnNames && 
+    if (gradingConfig[assessmentType].columnNames &&
         gradingConfig[assessmentType].columnNames[columnIndex]) {
       return gradingConfig[assessmentType].columnNames[columnIndex];
     }
-    
+
     // Return default name using original position numbers
-    const prefix = assessmentType === 'writtenWork' ? 'WW' : 
+    const prefix = assessmentType === 'writtenWork' ? 'WW' :
                    assessmentType === 'performanceTasks' ? 'PT' : 'QA';
-    
+
     // Use columnPositions if available, otherwise fall back to sequential numbering
-    if (gradingConfig[assessmentType].columnPositions && 
+    if (gradingConfig[assessmentType].columnPositions &&
         gradingConfig[assessmentType].columnPositions[columnIndex] !== undefined) {
       return `${prefix}${gradingConfig[assessmentType].columnPositions[columnIndex]}`;
     }
-    
+
     return `${prefix}${columnIndex + 1}`;
   }
 
@@ -697,7 +683,7 @@
     if (!gradingConfig || !gradingConfig[assessmentType]) {
       return '';
     }
-    
+
     if (!gradingConfig[assessmentType].totals) {
       return '';
     }
@@ -707,22 +693,22 @@
   function handleCellInput(rowIndex, colIndex, event) {
     const value = event.target.value;
     const numValue = parseFloat(value);
-    
+
     // Validate input is a number
     if (value !== '' && (isNaN(numValue) || numValue < 0)) {
       event.target.value = spreadsheetData[rowIndex][colIndex] || '';
       return;
     }
-    
+
     // Get column type and validate against total if applicable
     const headers = spreadsheetData[0];
     const header = headers[colIndex];
-    
+
     // Check if this is a raw score column and validate against total
     if (header && !header.includes('Avg') && header !== 'Final Grade' && colIndex > 1) {
       let assessmentType = null;
       let assessmentIndex = -1;
-      
+
       if (header.startsWith('WW')) {
         assessmentType = 'Written Work';
         assessmentIndex = parseInt(header.substring(2)) - 1;
@@ -733,12 +719,12 @@
         assessmentType = 'Quarterly Assessment';
         assessmentIndex = parseInt(header.substring(2)) - 1;
       }
-      
+
       // Validate against total score
       if (assessmentType && assessmentIndex >= 0) {
         const totals = gradingConfig[assessmentType]?.totals;
         const maxScore = totals?.[assessmentIndex];
-        
+
         if (maxScore && numValue > maxScore) {
           // Show error and revert
            // Note: Toast functionality would need to be passed from parent component
@@ -748,13 +734,13 @@
         }
       }
     }
-    
+
     // Update the data
     spreadsheetData[rowIndex][colIndex] = value;
-    
+
     // Update the original student data
     updateStudentData(rowIndex, colIndex, value);
-    
+
     // Recalculate averages and final grades
     recalculateRow(rowIndex);
   }
@@ -762,15 +748,15 @@
   function updateStudentData(rowIndex, colIndex, value) {
     const studentIndex = rowIndex - 1; // Subtract 1 for header row
     if (studentIndex < 0 || studentIndex >= students.length) return;
-    
+
     const headers = spreadsheetData[0];
     const header = headers[colIndex];
-    
+
     // Helper function to parse value and return 0 for invalid input
     const parseValueOrZero = (val) => {
       if (!val || val.trim() === '') return null;
       const parsed = parseFloat(val);
-      
+
       // Get the maximum score for this column
       let maxScore = null;
       if (header?.startsWith('WW')) {
@@ -783,11 +769,11 @@
         const columnIndex = parseInt(header.replace('QA', '')) - 1;
         maxScore = gradingConfig.quarterlyAssessment.totals?.[columnIndex];
       }
-      
+
       // Validate input: return 0 if invalid, negative, or exceeds maximum
       return isNaN(parsed) || parsed < 0 || (maxScore && parsed > maxScore) ? 0 : parsed;
     };
-    
+
     if (header?.startsWith('WW') && !header.includes('Avg')) {
       const wwIndex = parseInt(header.replace('WW', '')) - 1;
       students[studentIndex].writtenWork[wwIndex] = parseValueOrZero(value);
@@ -802,17 +788,17 @@
 
   function recalculateRow(rowIndex) {
     if (rowIndex === 0) return; // Skip header row
-    
+
     const studentIndex = rowIndex - 1;
     const student = students[studentIndex];
-    
+
     // Find column indices for averages
     const headers = spreadsheetData[0];
     const wwAvgIndex = headers.findIndex(h => h === 'WW Avg');
     const ptAvgIndex = headers.findIndex(h => h === 'PT Avg');
     const qaAvgIndex = headers.findIndex(h => h === 'QA Avg');
     const finalGradeIndex = headers.findIndex(h => h === 'Final Grade');
-    
+
     // Update averages
     if (wwAvgIndex !== -1) {
       spreadsheetData[rowIndex][wwAvgIndex] = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork');
@@ -826,31 +812,31 @@
     if (finalGradeIndex !== -1) {
       spreadsheetData[rowIndex][finalGradeIndex] = calculateFinalGrade(student);
     }
-    
+
     // Trigger reactivity
     spreadsheetData = [...spreadsheetData];
   }
 
   function updateSpreadsheetData() {
     if (!selectedCell || selectedCell.row === 0) return;
-    
+
     const { row, col } = selectedCell;
     const studentIndex = row - 1;
     const student = students[studentIndex];
-    
+
     if (!student) return;
-    
+
     // Get the column mapping to determine which assessment type and index
     const columnMapping = getColumnMapping(col);
     if (!columnMapping) return;
-    
+
     const { assessmentType, columnIndex } = columnMapping;
-    
+
     // Parse and validate the input
     let value = editValue.trim();
     let numericValue = null;
     let isValid = true;
-    
+
     if (value !== '') {
       numericValue = parseFloat(value);
       if (isNaN(numericValue) || numericValue < 0) {
@@ -858,7 +844,7 @@
         numericValue = 0;
         isValid = false;
         invalidCells.add(`${row}-${col}`);
-        
+
         // Remove invalid marking after 3 seconds
         setTimeout(() => {
           invalidCells.delete(`${row}-${col}`);
@@ -873,26 +859,26 @@
       numericValue = null;
       invalidCells.delete(`${row}-${col}`);
     }
-    
+
     // Update the student's data
     student[assessmentType][columnIndex] = numericValue;
-    
+
     // Trigger reactivity
     students = [...students];
-    
+
     // Reinitialize spreadsheet to recalculate averages and final grades
     initializeSpreadsheetData();
-    
+
     // Check for data changes after update
     checkForDataChanges();
-    
+
     // Trigger debounced auto-save on data change
     triggerDebouncedAutoSave();
   }
 
   function handleKeyDown(event, rowIndex, colIndex) {
     if (!selectedCell) return;
-    
+
     // Handle navigation and editing when input is focused
     if (isEditing) {
       // Handle Enter key - save current value and move down
@@ -910,7 +896,7 @@
         }, 0);
         return;
       }
-      
+
       // Handle Tab key - save current value and move right/left
       if (event.key === 'Tab') {
         event.preventDefault();
@@ -926,9 +912,9 @@
         }, 0);
         return;
       }
-      
+
       // Handle arrow keys - save current value and navigate
-      if (event.key === 'ArrowUp' || event.key === 'ArrowDown' || 
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown' ||
           event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
         // Save the current value and get the current position
@@ -943,7 +929,7 @@
         }, 0);
         return;
       }
-      
+
       // Handle Escape to exit editing mode without saving
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -999,7 +985,7 @@
     if (autoSaveTimeout) {
       clearTimeout(autoSaveTimeout);
     }
-    
+
     // Set new timeout for 3 seconds
     autoSaveTimeout = setTimeout(() => {
       autoSave();
@@ -1132,17 +1118,7 @@
     const studentCount = students.length;
     const config = gradingConfig;
     const currentSubjectId = subjectId;
-    
-    console.log('GradingSpreadsheet $effect triggered:', {
-      studentCount,
-      subjectId: currentSubjectId,
-      configCounts: {
-        writtenWork: config?.writtenWork?.count,
-        performanceTasks: config?.performanceTasks?.count,
-        quarterlyAssessment: config?.quarterlyAssessment?.count
-      }
-    });
-    
+
     // Use untrack to prevent the effect from tracking changes to spreadsheetData
     untrack(() => {
       if (studentCount > 0 || config || currentSubjectId) {
@@ -1155,7 +1131,7 @@
   $effect(() => {
     // Set up auto-save interval (every 30 seconds)
     autoSaveInterval = setInterval(autoSave, 30000);
-    
+
     // Cleanup function
     return () => {
       if (autoSaveInterval) {
@@ -1229,7 +1205,7 @@
 
           // authenticatedFetch already handles response.ok and throws on error
           // If we reach here, the request was successful
-          
+
           // Update local gradingConfig
           if (!gradingConfig[assessmentType].columnNames) {
             gradingConfig[assessmentType].columnNames = [];
@@ -1264,10 +1240,10 @@
 
           // authenticatedFetch already handles response.ok and throws on error
           // If we reach here, the request was successful
-          
+
           // Remove from local gradingConfig - update all relevant properties
           gradingConfig[assessmentType].count -= 1;
-          
+
           if (gradingConfig[assessmentType].columnNames) {
             gradingConfig[assessmentType].columnNames.splice(columnIndex, 1);
           }
@@ -1287,7 +1263,7 @@
           // Adjust student data to match new column count
           students = students.map(student => {
             const newStudent = { ...student };
-            
+
             // Remove the deleted column's data from each assessment type
             if (assessmentType === 'writtenWork' && newStudent.writtenWork) {
               newStudent.writtenWork.splice(columnIndex, 1);
@@ -1296,7 +1272,7 @@
             } else if (assessmentType === 'quarterlyAssessment' && newStudent.quarterlyAssessment) {
               newStudent.quarterlyAssessment.splice(columnIndex, 1);
             }
-            
+
             return newStudent;
           });
 
@@ -1309,7 +1285,7 @@
           toastStore.error('Failed to delete column. Please try again.');
         }
       },
-      { 
+      {
         size: 'small'
       }
     );
@@ -1318,8 +1294,8 @@
 
 <svelte:window on:keydown={handleGlobalKeydown} />
   <div class="save-section">
-    <button 
-      class="save-grades-button" 
+    <button
+      class="save-grades-button"
       class:saved={isDataSaved && !hasUnsavedChanges}
       onclick={saveGrades}
       disabled={isSaving || (isDataSaved && !hasUnsavedChanges)}
@@ -1336,10 +1312,10 @@
         <span>Save Grades</span>
       {/if}
     </button>
-    
+
     <!-- New Final Grades Upload Button -->
-    <button 
-      class="final-grades-button" 
+    <button
+      class="final-grades-button"
       onclick={saveFinalGrades}
       disabled={isSavingFinalGrades}
       title="Upload final grades (averages and computed final grades) to database"
@@ -1368,9 +1344,10 @@
       <thead>
         <tr>
           {#each spreadsheetData[0] || [] as header, colIndex}
-            <th class="spreadsheet-header" 
-                class:student-info={colIndex < 2} 
+            <th class="spreadsheet-header"
+                class:student-info={colIndex < 2}
                 class:calculated={isCalculatedColumn(colIndex)}
+                class:final-grade={getColumnType(colIndex) === 'final-grade'}
                 class:clickable={isAssessmentColumn(colIndex)}
                 onclick={(e) => handleHeaderClick(colIndex, e)}
                 title={isAssessmentColumn(colIndex) ? 'Click to set total scores' : ''}>
@@ -1388,12 +1365,13 @@
         {#each spreadsheetData.slice(1) as row, rowIndex}
           <tr class="spreadsheet-row">
             {#each row as cell, colIndex}
-              <td 
+              <td
                 class="spreadsheet-cell"
                 class:selected={selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex}
                 class:editing={isEditing && selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex}
                 class:student-info={colIndex < 2}
                 class:calculated={isCalculatedColumn(colIndex)}
+                class:final-grade={getColumnType(colIndex) === 'final-grade'}
                 class:editable={!isCalculatedColumn(colIndex) && colIndex > 1}
                 class:invalid={invalidCells.has(`${rowIndex + 1}-${colIndex}`)}
                 onclick={(e) => handleCellClick(rowIndex + 1, colIndex, e)}

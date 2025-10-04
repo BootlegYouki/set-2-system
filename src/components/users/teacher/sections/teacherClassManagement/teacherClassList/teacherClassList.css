@@ -102,8 +102,8 @@
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--md-sys-typescale-body-medium-size);
@@ -113,8 +113,8 @@
 }
 
 .back-button:hover {
-  background: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
   transform: translateY(-1px);
   box-shadow: var(--elevation-1);
 }
