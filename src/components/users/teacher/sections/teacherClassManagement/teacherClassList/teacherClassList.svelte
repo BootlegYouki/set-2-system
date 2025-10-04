@@ -45,6 +45,66 @@
   // Dynamic student data from database
   let students = $state([]);
 
+  // Fetch existing grade items and build grading configuration
+  async function fetchGradingConfiguration() {
+    if (!selectedClass || !sectionData?.subjects?.[0]?.id) return;
+    
+    const subjectId = sectionData.subjects[0].id;
+    
+    try {
+      const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${subjectId}&grading_period_id=1`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': $authStore.userData.id.toString(),
+          'x-user-account-number': $authStore.userData.accountNumber || '',
+          'x-user-name': encodeURIComponent($authStore.userData.name || '')
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success && result.gradeItems) {
+          // Build grading configuration from fetched grade items
+          const newGradingConfig = {
+            writtenWork: {
+              count: result.gradeItems.writtenWork.length || 1,
+              weight: 0.30,
+              label: "Written Work",
+              totals: result.gradeItems.writtenWork.map(item => item.total_score) || [100],
+              columnNames: result.gradeItems.writtenWork.map(item => item.name) || [],
+              columnPositions: result.gradeItems.writtenWork.map((_, index) => index + 1) || [1]
+            },
+            performanceTasks: {
+              count: result.gradeItems.performanceTasks.length || 1,
+              weight: 0.50,
+              label: "Performance Tasks", 
+              totals: result.gradeItems.performanceTasks.map(item => item.total_score) || [100],
+              columnNames: result.gradeItems.performanceTasks.map(item => item.name) || [],
+              columnPositions: result.gradeItems.performanceTasks.map((_, index) => index + 1) || [1]
+            },
+            quarterlyAssessment: {
+              count: result.gradeItems.quarterlyAssessment.length || 1,
+              weight: 0.20,
+              label: "Quarterly Assessment",
+              totals: result.gradeItems.quarterlyAssessment.map(item => item.total_score) || [100],
+              columnNames: result.gradeItems.quarterlyAssessment.map(item => item.name) || [],
+              columnPositions: result.gradeItems.quarterlyAssessment.map((_, index) => index + 1) || [1]
+            }
+          };
+          
+          gradingConfig = newGradingConfig;
+        }
+      } else {
+        console.error('Failed to fetch grading configuration:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error fetching grading configuration:', error);
+      // Keep default configuration if fetch fails
+    }
+  }
+
   // Fetch class students from API
   async function fetchClassStudents() {
     try {
@@ -93,16 +153,16 @@
   // Grading configuration
   let gradingConfig = $state({
     writtenWork: {
-      count: 3,
+      count: 1,
       weight: 0.30, // 30%
       label: "Written Work",
-      totals: [30, 25, 40] // Total scores for each WW assessment
+      totals: [100] // Total scores for each WW assessment
     },
     performanceTasks: {
-      count: 2,
+      count: 1,
       weight: 0.50, // 50%
       label: "Performance Tasks",
-      totals: [50, 60] // Total scores for each PT assessment
+      totals: [100] // Total scores for each PT assessment
     },
     quarterlyAssessment: {
       count: 1,
@@ -130,10 +190,80 @@
   // Removed dropdown functions since we're using buttons now
 
   // Add column functions
-  function addColumn(category) {
+  async function addColumn(category) {
     if (gradingConfig[category].count < 10) {
-      gradingConfig[category].count += 1;
-      adjustStudentData(); // Ensure student data arrays match the new column count
+      try {
+        // Map category names to category IDs
+        const categoryMap = {
+          'writtenWork': 1,
+          'performanceTasks': 2,
+          'quarterlyAssessment': 3
+        };
+
+        const categoryId = categoryMap[category];
+        if (!categoryId) {
+          console.error('Invalid category:', category);
+          return;
+        }
+
+        // Ensure we have proper authentication
+        if (!$authStore.isAuthenticated || !$authStore.userData?.id) {
+          console.error('User not authenticated');
+          return;
+        }
+
+        // Call API to add grade item to database
+        const response = await fetch('/api/grades/grade-items', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': $authStore.userData.id.toString(),
+            'x-user-account-number': $authStore.userData.accountNumber || '',
+            'x-user-name': encodeURIComponent($authStore.userData.name || '')
+          },
+          body: JSON.stringify({
+            action: 'add',
+            section_id: selectedClass?.sectionId || sectionData?.section?.id,
+            subject_id: selectedClass?.subjectId || (sectionData?.subjects?.[0]?.id),
+            grading_period_id: 1, // Assuming first quarter
+            category_id: categoryId
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Failed to add grade item:', errorData.error);
+          return;
+        }
+
+        const result = await response.json();
+        console.log('Grade item added successfully:', result);
+
+        // Update UI only after successful database operation
+        gradingConfig[category].count += 1;
+        
+        // Initialize columnPositions if it doesn't exist
+        if (!gradingConfig[category].columnPositions) {
+          gradingConfig[category].columnPositions = [];
+          // Initialize with sequential numbers for existing columns
+          for (let i = 0; i < gradingConfig[category].count - 1; i++) {
+            gradingConfig[category].columnPositions[i] = i + 1;
+          }
+        }
+        
+        // Add the new column position (find the next available number)
+        const existingPositions = gradingConfig[category].columnPositions || [];
+        let nextPosition = 1;
+        while (existingPositions.includes(nextPosition)) {
+          nextPosition++;
+        }
+        gradingConfig[category].columnPositions.push(nextPosition);
+        
+        adjustStudentData(); // Ensure student data arrays match the new column count
+        
+      } catch (error) {
+        console.error('Error adding column:', error);
+      }
     }
   }
 
@@ -198,9 +328,15 @@
 
   // Show toast notification
   function showToastNotification(message, type = 'error') {
-    toastMessage = message;
-    toastType = type;
-    showToast = true;
+    // Clear any existing toast first
+    showToast = false;
+    
+    // Use a small delay to ensure the previous toast is fully cleared
+    setTimeout(() => {
+      toastMessage = message;
+      toastType = type;
+      showToast = true;
+    }, 50);
   }
 
   // Validate if input is a valid number
@@ -232,8 +368,9 @@
   }
 
   // Load data on component mount
-  onMount(() => {
-    fetchClassStudents();
+  onMount(async () => {
+    await fetchClassStudents();
+    await fetchGradingConfiguration();
   });
 </script>
 

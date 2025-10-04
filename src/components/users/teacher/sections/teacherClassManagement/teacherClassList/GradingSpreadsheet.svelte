@@ -91,19 +91,19 @@
     
     // Add Written Work columns
     for (let i = 1; i <= gradingConfig.writtenWork.count; i++) {
-      headers.push(getColumnName('writtenWork', i - 1));
+      headers.push(getColumnHeaderWithTotal('writtenWork', i - 1));
     }
     headers.push('WW Avg');
     
     // Add Performance Tasks columns
     for (let i = 1; i <= gradingConfig.performanceTasks.count; i++) {
-      headers.push(getColumnName('performanceTasks', i - 1));
+      headers.push(getColumnHeaderWithTotal('performanceTasks', i - 1));
     }
     headers.push('PT Avg');
     
     // Add Quarterly Assessment columns
     for (let i = 1; i <= gradingConfig.quarterlyAssessment.count; i++) {
-      headers.push(getColumnName('quarterlyAssessment', i - 1));
+      headers.push(getColumnHeaderWithTotal('quarterlyAssessment', i - 1));
     }
     headers.push('QA Avg');
     headers.push('Final Grade');
@@ -479,7 +479,7 @@
   }
 
   // Handle column removal
-  function handleColumnRemove(assessmentType, columnIndex) {
+  async function handleColumnRemove(assessmentType, columnIndex) {
     // Check if gradingConfig and assessmentType exist
     if (!gradingConfig || !gradingConfig[assessmentType]) {
       console.error('Invalid gradingConfig or assessmentType:', assessmentType);
@@ -493,35 +493,85 @@
       return;
     }
 
-    // Decrease column count
-    gradingConfig[assessmentType].count -= 1;
+    try {
+      // Map category names to category IDs
+      const categoryMap = {
+        'writtenWork': 1,
+        'performanceTasks': 2,
+        'quarterlyAssessment': 3
+      };
 
-    // Remove from totals array if it exists
-    if (gradingConfig[assessmentType].totals) {
-      gradingConfig[assessmentType].totals.splice(columnIndex, 1);
-    }
-
-    // Remove from column names array if it exists
-    if (gradingConfig[assessmentType].columnNames) {
-      gradingConfig[assessmentType].columnNames.splice(columnIndex, 1);
-    }
-
-    // Update student data to remove the column
-    students = students.map(student => {
-      const newStudent = { ...student };
-      if (newStudent[assessmentType] && Array.isArray(newStudent[assessmentType])) {
-        newStudent[assessmentType].splice(columnIndex, 1);
+      const categoryId = categoryMap[assessmentType];
+      if (!categoryId) {
+        console.error('Invalid assessment type:', assessmentType);
+        toastStore.error('Invalid assessment type.');
+        return;
       }
-      return newStudent;
-    });
 
-    // Trigger reactivity
-    gradingConfig = { ...gradingConfig };
-    
-    // Recalculate spreadsheet data
-    initializeSpreadsheetData();
-    
-    toastStore.success('Column removed successfully');
+      // Call API to remove grade item from database
+      const response = await fetch('/api/grades/grade-items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': $authStore.userData?.id?.toString() || '',
+          'x-user-account-number': $authStore.userData?.accountNumber || '',
+          'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+        },
+        body: JSON.stringify({
+          action: 'remove',
+          section_id: sectionId,
+          subject_id: subjectId,
+          grading_period_id: gradingPeriodId,
+          category_id: categoryId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to remove grade item:', errorData.error);
+        toastStore.error('Failed to remove column from database: ' + errorData.error);
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Grade item removed successfully:', result);
+
+      // Update UI only after successful database operation
+      // Decrease column count
+      gradingConfig[assessmentType].count -= 1;
+
+      // Remove from totals array if it exists
+      if (gradingConfig[assessmentType].totals) {
+        gradingConfig[assessmentType].totals.splice(columnIndex, 1);
+      }
+
+      // Remove from column names array if it exists
+      if (gradingConfig[assessmentType].columnNames) {
+        gradingConfig[assessmentType].columnNames.splice(columnIndex, 1);
+      }
+
+      // Remove from column positions array if it exists
+      if (gradingConfig[assessmentType].columnPositions) {
+        gradingConfig[assessmentType].columnPositions.splice(columnIndex, 1);
+      }
+
+      // Update student data to remove the column
+      students = students.map(student => {
+        const newStudent = { ...student };
+        if (newStudent[assessmentType] && Array.isArray(newStudent[assessmentType])) {
+          newStudent[assessmentType].splice(columnIndex, 1);
+        }
+        return newStudent;
+      });
+
+      // Trigger reactivity
+      gradingConfig = { ...gradingConfig };
+      
+      toastStore.success('Column removed successfully');
+    } catch (error) {
+      console.error('Error removing column:', error);
+      toastStore.error('Failed to remove column: ' + error.message);
+    }
   }
 
   // Get existing column names for validation
@@ -551,6 +601,13 @@
     return names;
   }
 
+  // Get column name with total score (for headers)
+  function getColumnHeaderWithTotal(assessmentType, columnIndex) {
+    const columnName = getColumnName(assessmentType, columnIndex);
+    const totalScore = gradingConfig[assessmentType].totals[columnIndex] || 100;
+    return `${columnName} - ${totalScore}`;
+  }
+
   // Get column name (custom or default)
   function getColumnName(assessmentType, columnIndex) {
     // Check if custom name exists
@@ -559,9 +616,16 @@
       return gradingConfig[assessmentType].columnNames[columnIndex];
     }
     
-    // Return default name
+    // Return default name using original position numbers
     const prefix = assessmentType === 'writtenWork' ? 'WW' : 
                    assessmentType === 'performanceTasks' ? 'PT' : 'QA';
+    
+    // Use columnPositions if available, otherwise fall back to sequential numbering
+    if (gradingConfig[assessmentType].columnPositions && 
+        gradingConfig[assessmentType].columnPositions[columnIndex] !== undefined) {
+      return `${prefix}${gradingConfig[assessmentType].columnPositions[columnIndex]}`;
+    }
+    
     return `${prefix}${columnIndex + 1}`;
   }
 
