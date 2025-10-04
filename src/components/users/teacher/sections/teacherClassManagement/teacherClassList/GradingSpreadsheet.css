@@ -1,50 +1,43 @@
 
 .save-section {
   display: flex;
+  gap: 12px;
+  padding: 12px;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background-color: var(--md-sys-color-surface-container-low);
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  justify-content: end;
 }
 
-.save-button {
+.save-grades-button, .final-grades-button {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background-color: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #3b82f6;
+  color: white;
   border: none;
-  border-radius: var(--radius-md);
-  font-weight: var(--md-sys-typescale-label-large-weight);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-normal);
-  min-height: 40px;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  justify-content: center;
 }
 
-.save-button:hover:not(:disabled) {
-  background-color: var(--md-sys-color-primary-hover);
-  box-shadow: var(--elevation-1);
+.save-grades-button:hover:not(:disabled), .final-grades-button:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
 }
 
-.save-button:disabled {
-  background-color: var(--md-sys-color-surface-variant);
-  color: var(--md-sys-color-on-surface-variant);
+.save-grades-button:disabled, .final-grades-button:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
-}
-
-.save-button.saved {
-  background-color: var(--md-sys-color-tertiary-container);
-  color: var(--md-sys-color-on-tertiary-container);
-  cursor: default;
-}
-
-.save-button.saved:hover {
-  background-color: var(--md-sys-color-tertiary-container);
+  transform: none;
   box-shadow: none;
 }
+
+
 .save-message {
   display: flex;
   align-items: center;
@@ -283,4 +276,4 @@
     background-color: var(--md-sys-color-error-container);
     transform: scale(1);
   }
-} 
+}

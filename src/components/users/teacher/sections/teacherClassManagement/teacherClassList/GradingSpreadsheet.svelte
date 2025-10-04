@@ -90,6 +90,8 @@
   function initializeSpreadsheetData() {
     const headers = ['Student ID', 'Student Name'];
     
+    console.log('initializeSpreadsheetData - gradingConfig:', gradingConfig);
+    
     // Add Written Work columns
     for (let i = 1; i <= gradingConfig.writtenWork.count; i++) {
       headers.push(getColumnHeaderWithTotal('writtenWork', i - 1));
@@ -151,22 +153,41 @@
     const validScores = scores.filter(score => score !== null && score !== undefined && score !== '');
     if (validScores.length === 0) return '';
     
+    console.log('calculateAverage called with:', { scores, totals, assessmentType });
+    
     let sum = 0;
-    let totalPossible = 0;
     
     // If totals are provided, calculate percentage-based average
     if (totals && totals.length > 0) {
-      for (let i = 0; i < validScores.length; i++) {
-        const score = parseFloat(validScores[i]);
-        const total = totals[i] || 100; // Default to 100 if total not specified
-        const percentage = (score / total) * 100;
-        sum += percentage;
-        totalPossible += 100;
+      let percentageSum = 0;
+      let validPercentageCount = 0;
+      
+      console.log('Using totals-based calculation');
+      
+      // Only iterate through the number of totals we have, not all scores
+      const maxIndex = Math.min(scores.length, totals.length);
+      
+      for (let i = 0; i < maxIndex; i++) {
+        const score = scores[i];
+        if (score !== null && score !== undefined && score !== '') {
+          const scoreValue = parseFloat(score);
+          const total = totals[i];
+          if (total && total > 0) { // Only calculate if we have a valid total
+            const percentage = (scoreValue / total) * 100;
+            console.log(`Score ${i}: ${scoreValue}/${total} = ${percentage}%`);
+            percentageSum += percentage;
+            validPercentageCount++;
+          }
+        }
       }
-      const average = Math.round((sum / validScores.length) * 100) / 100;
+      
+      if (validPercentageCount === 0) return '';
+      const average = Math.round((percentageSum / validPercentageCount) * 100) / 100;
+      console.log(`Final average: ${percentageSum}/${validPercentageCount} = ${average}`);
       return formatScore(average);
     } else {
       // Original calculation for backward compatibility
+      console.log('Using simple average calculation');
       sum = validScores.reduce((acc, score) => acc + parseFloat(score), 0);
       const average = Math.round((sum / validScores.length) * 100) / 100;
       return formatScore(average);
@@ -1036,6 +1057,67 @@
     }
   }
 
+  // New function to save final grades to the final_grades table
+  async function saveFinalGrades() {
+    if (!sectionId || !subjectId) {
+      toastStore.error('Missing section or subject information');
+      return;
+    }
+
+    isSaving = true;
+    saveMessage = '';
+    saveSuccess = false;
+
+    try {
+      // Prepare final grades data for API
+      const finalGradesData = students.map(student => {
+        const wwAvg = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork');
+        const ptAvg = calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks');
+        const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment');
+        const finalGrade = calculateFinalGrade(student);
+
+        return {
+          student_id: student.accountNumber || student.account_number || student.id,
+          written_work_average: wwAvg !== '' ? parseFloat(wwAvg) : null,
+          performance_tasks_average: ptAvg !== '' ? parseFloat(ptAvg) : null,
+          quarterly_assessment_average: qaAvg !== '' ? parseFloat(qaAvg) : null,
+          final_grade: finalGrade !== '' ? parseFloat(finalGrade) : null
+        };
+      });
+
+      const result = await authenticatedFetch('/api/grades/final', {
+        method: 'POST',
+        body: JSON.stringify({
+          section_id: sectionId,
+          subject_id: subjectId,
+          grading_period_id: gradingPeriodId,
+          final_grades: finalGradesData
+        })
+      });
+
+      saveSuccess = true;
+      toastStore.success('Final grades have been uploaded to the database successfully!');
+
+      // Clear the message after 3 seconds
+      setTimeout(() => {
+        saveMessage = '';
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error saving final grades:', error);
+      saveSuccess = false;
+      saveMessage = error.message || 'Failed to save final grades';
+      toastStore.error(saveMessage);
+
+      // Clear the message after 5 seconds for errors
+      setTimeout(() => {
+        saveMessage = '';
+      }, 5000);
+    } finally {
+      isSaving = false;
+    }
+  }
+
   // Effect to reinitialize when students or gradingConfig changes
   $effect(() => {
     // Only track the specific dependencies we care about
@@ -1216,12 +1298,9 @@
 </script>
 
 <svelte:window on:keydown={handleGlobalKeydown} />
-
-<div class="grading-spreadsheet" bind:this={spreadsheetContainer}>
-  <!-- Save Button Section -->
   <div class="save-section">
     <button 
-      class="save-button" 
+      class="save-grades-button" 
       class:saved={isDataSaved && !hasUnsavedChanges}
       onclick={saveGrades}
       disabled={isSaving || (isDataSaved && !hasUnsavedChanges)}
@@ -1238,7 +1317,25 @@
         <span>Save Grades</span>
       {/if}
     </button>
+    
+    <!-- New Final Grades Upload Button -->
+    <button 
+      class="final-grades-button" 
+      onclick={saveFinalGrades}
+      disabled={isSaving}
+      title="Upload final grades (averages and computed final grades) to database"
+    >
+      {#if isSaving}
+        <span class="material-symbols-outlined spinning">sync</span>
+        <span>Uploading...</span>
+      {:else}
+        <span class="material-symbols-outlined">upload</span>
+        <span>Send to Adviser</span>
+      {/if}
+    </button>
   </div>
+<div class="grading-spreadsheet" bind:this={spreadsheetContainer}>
+  <!-- Save Button Section -->
   <div class="spreadsheet-container" bind:this={spreadsheetContainer}>
     <table class="spreadsheet-table">
       <thead>

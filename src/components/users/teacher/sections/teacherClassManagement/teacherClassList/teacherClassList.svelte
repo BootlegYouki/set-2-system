@@ -524,20 +524,6 @@
     </div>
   </div>
 
-  <!-- Submit Section -->
-  <div class="classlist-submit-section">
-    <div class="classlist-stats">
-      <div class="student-list-stat-item">
-        <span class="material-symbols-outlined">group</span>
-        <span>{classInfo.totalStudents} Students</span>
-      </div>
-    </div>
-    <button class="classlist-submit-button" type="button">
-      <span class="material-symbols-outlined">send</span>
-      <span>Submit to Section Adviser</span>
-    </button>
-  </div>
-
   <!-- Grading Spreadsheet Section -->
   <GradingSpreadsheet 
     bind:students 
