@@ -244,11 +244,8 @@
 		
 		{#if loading}
 			<div class="loading-message">
-				<div class="loading-icon">
-					<span class="material-symbols-outlined">schedule</span>
-				</div>
+				<div class="system-loader"></div>
 				<h3>Loading Schedule...</h3>
-				<p>Please wait while we fetch your class schedule.</p>
 			</div>
 		{:else if error}
 			<div class="error-message">

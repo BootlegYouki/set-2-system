@@ -48,6 +48,9 @@
   let selectedCell = $state(null);
   let isEditing = $state(false);
   let editValue = $state('');
+  
+  // Loading state for the entire grading spreadsheet
+  let isSpreadsheetLoading = $state(true);
   let justStartedEditing = $state(false);
   let copiedData = $state(null);
   let invalidCells = $state(new Set()); // Track cells with invalid input that were converted to 0
@@ -151,6 +154,9 @@
     // Don't assume data is saved on initialization - let user decide when to save
     isDataSaved = false;
     hasUnsavedChanges = false;
+    
+    // Set loading to false after initialization
+    isSpreadsheetLoading = false;
   }
 
   function calculateAverage(scores, totals = null, assessmentType = null) {
@@ -1348,8 +1354,16 @@
     </button>
   </div>
 <div class="grading-spreadsheet" bind:this={spreadsheetContainer}>
-  <!-- Save Button Section -->
-  <div class="spreadsheet-container" bind:this={spreadsheetContainer}>
+  {#if isSpreadsheetLoading}
+    <div class="spreadsheet-loading-overlay">
+      <div class="spreadsheet-loader">
+        <div class="loader-spinner"></div>
+        <p>Loading grading spreadsheet...</p>
+      </div>
+    </div>
+  {:else}
+    <!-- Save Button Section -->
+    <div class="spreadsheet-container" bind:this={spreadsheetContainer}>
     <table class="spreadsheet-table">
       <thead>
         <tr>
@@ -1407,82 +1421,6 @@
       </tbody>
     </table>
   </div>
+  {/if}
 </div>
-
-<style>
-  /* Modal form styles */
-  :global(.modal-form-content) {
-    padding: 20px;
-  }
-
-  :global(.modal-form-group) {
-    margin-bottom: 16px;
-  }
-
-  :global(.modal-form-label) {
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 500;
-    color: #374151;
-    font-size: 14px;
-  }
-
-  :global(.modal-input) {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 14px;
-    background-color: #ffffff;
-    transition: border-color 0.2s ease;
-  }
-
-  :global(.modal-input:focus) {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  :global(.modal-actions) {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    margin-top: 24px;
-  }
-
-  :global(.modal-btn) {
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-  }
-
-  :global(.modal-btn-secondary) {
-    background-color: #f3f4f6;
-    color: #374151;
-    border-color: #d1d5db;
-  }
-
-  :global(.modal-btn-secondary:hover) {
-    background-color: #e5e7eb;
-  }
-
-  :global(.modal-btn-primary) {
-    background-color: #3b82f6;
-    color: white;
-  }
-
-  :global(.modal-btn-primary:hover) {
-    background-color: #2563eb;
-  }
-
-  :global(.modal-message) {
-    margin-bottom: 16px;
-    color: #374151;
-    font-size: 14px;
-  }
-</style>
 

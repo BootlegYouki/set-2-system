@@ -522,32 +522,6 @@
     {/if}
   </div>
 
-  {#if loading}
-    <div class="loading-container">
-      <div class="teacher-loading-spinner"></div>
-      <p>Loading class data...</p>
-    </div>
-  {:else if error}
-    <div class="error-container">
-      <div class="error-icon">
-        <span class="material-symbols-outlined">error</span>
-      </div>
-      <p class="error-message">Error: {error}</p>
-      <button class="retry-button" onclick={fetchClassStudents}>
-        <span class="material-symbols-outlined">refresh</span>
-        Retry
-      </button>
-    </div>
-  {:else if students.length === 0}
-    <div class="empty-state">
-      <div class="empty-icon">
-        <span class="material-symbols-outlined">school</span>
-      </div>
-      <h3>No Students Found</h3>
-      <p>This section doesn't have any enrolled students yet.</p>
-    </div>
-  {:else}
-
   <!-- Grading Configuration Section -->
   <div class="grading-config-section">
     <h2 class="config-title">Grading Configuration</h2>
@@ -557,7 +531,13 @@
         <label class="config-label">Written Work ({Math.round(gradingConfig.writtenWork.weight * 100)}%)</label>
         <div class="classlist-column-controls">
           <div class="classlist-column-count">
-            <span class="classlist-column-text">{gradingConfig.writtenWork.count} Column{gradingConfig.writtenWork.count !== 1 ? 's' : ''}</span>
+            <span class="classlist-column-text">
+              {#if loading}
+                Loading...
+              {:else}
+                {gradingConfig.writtenWork.count} Column{gradingConfig.writtenWork.count !== 1 ? 's' : ''}
+              {/if}
+            </span>
           </div>
           <div class="classlist-action-buttons">
             <button 
@@ -578,7 +558,13 @@
         <label class="config-label">Performance Tasks ({Math.round(gradingConfig.performanceTasks.weight * 100)}%)</label>
         <div class="classlist-column-controls">
           <div class="classlist-column-count">
-            <span class="classlist-column-text">{gradingConfig.performanceTasks.count} Column{gradingConfig.performanceTasks.count !== 1 ? 's' : ''}</span>
+            <span class="classlist-column-text">
+              {#if loading}
+                Loading...
+              {:else}
+                {gradingConfig.performanceTasks.count} Column{gradingConfig.performanceTasks.count !== 1 ? 's' : ''}
+              {/if}
+            </span>
           </div>
           <div class="classlist-action-buttons">
             <button 
@@ -599,7 +585,13 @@
         <label class="config-label">Quarterly Assessment ({Math.round(gradingConfig.quarterlyAssessment.weight * 100)}%)</label>
         <div class="classlist-column-controls">
           <div class="classlist-column-count">
-            <span class="classlist-column-text">{gradingConfig.quarterlyAssessment.count} Column{gradingConfig.quarterlyAssessment.count !== 1 ? 's' : ''}</span>
+            <span class="classlist-column-text">
+              {#if loading}
+                Loading...
+              {:else}
+                {gradingConfig.quarterlyAssessment.count} Column{gradingConfig.quarterlyAssessment.count !== 1 ? 's' : ''}
+              {/if}
+            </span>
           </div>
           <div class="classlist-action-buttons">
             <button 
@@ -615,17 +607,42 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Grading Spreadsheet Section -->
-  <GradingSpreadsheet 
-    bind:students 
-    bind:gradingConfig 
-    sectionId={selectedClass?.sectionId}
-    subjectId={activeSubject?.id}
-    gradingPeriodId={1}
-  />
-  {/if}
+    <!-- Grading Spreadsheet Section -->
+    {#if loading}
+    <div class="loading-container">
+      <div class="system-loader"></div>
+      <p>Loading class data...</p>
+    </div>
+    {:else if error}
+    <div class="error-container">
+      <div class="error-icon">
+        <span class="material-symbols-outlined">error</span>
+      </div>
+      <p class="error-message">Error: {error}</p>
+      <button class="retry-button" onclick={fetchClassStudents}>
+        <span class="material-symbols-outlined">refresh</span>
+        Retry
+      </button>
+    </div>
+    {:else if students.length === 0}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <span class="material-symbols-outlined">school</span>
+      </div>
+      <h3>No Students Found</h3>
+      <p>This section doesn't have any enrolled students yet.</p>
+    </div>
+    {:else}
+      <GradingSpreadsheet 
+        bind:students 
+        bind:gradingConfig 
+        sectionId={selectedClass?.sectionId}
+        subjectId={activeSubject?.id}
+        gradingPeriodId={1}
+      />
+    {/if}
+  </div>
 </div>
 
 <!-- Toast Notification -->

@@ -173,7 +173,7 @@
 			<h2 class="section-title">Subject Performance</h2>
 			{#if loading}
 				<div class="loading-container">
-					<div class="loading-spinner"></div>
+					<div class="system-loader"></div>
 					<p>Loading your grades...</p>
 				</div>
 			{:else if subjects.length === 0}

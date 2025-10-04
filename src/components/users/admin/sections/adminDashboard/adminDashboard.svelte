@@ -185,7 +185,7 @@
 		<div class="activities-list">
 			{#if activitiesLoading}
 				<div class="activities-loading">
-					<div class="dashboard-loader"></div>
+					<div class="system-loader"></div>
 					<p>Loading recent activities...</p>
 				</div>
 			{:else if activitiesError}
