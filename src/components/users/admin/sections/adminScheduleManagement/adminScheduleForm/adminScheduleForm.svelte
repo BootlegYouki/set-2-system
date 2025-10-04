@@ -5,6 +5,7 @@
 	import { api } from '../../../../../../routes/api/helper/api-helper.js';
 	import { authStore } from '../../../../../login/js/auth.js';
 	import { onMount, afterUpdate } from 'svelte';
+	import TimeInput from './TimeInput.svelte';
 
 	// Schedule assignment state
 	let selectedFormYear = '';
@@ -527,14 +528,42 @@
 			const results = await Promise.all(responses.map(r => r.json()));
 
 			const failedResults = results.filter(r => !r.success);
+			const successfulResults = results.filter(r => r.success);
+			
+			// Always reload schedules if there were any successful additions
+			if (successfulResults.length > 0) {
+				await loadSchedules(); // Reload schedules to show successful additions
+			}
 			
 			if (failedResults.length === 0) {
 				toastStore.success(`Schedule added successfully for ${selectedDays.length} day(s)`);
 				resetForm();
 				showAddForm = false;
-				await loadSchedules(); // Reload schedules
 			} else {
-				toastStore.error(`Failed to add schedule for ${failedResults.length} day(s)`);
+				// Show success message for partial success
+				if (successfulResults.length > 0) {
+					toastStore.success(`Schedule added successfully for ${successfulResults.length} day(s)`);
+				}
+				
+				// Handle different types of errors
+				const teacherConflicts = failedResults.filter(r => r.conflictType === 'teacher_conflict');
+				const timeConflicts = failedResults.filter(r => r.conflictType !== 'teacher_conflict');
+				
+				if (teacherConflicts.length > 0) {
+					// Show specific teacher conflict messages
+					teacherConflicts.forEach(conflict => {
+						toastStore.error(conflict.error, 8000); // Longer duration for detailed message
+					});
+				}
+				
+				if (timeConflicts.length > 0) {
+					toastStore.error(`Failed to add schedule for ${timeConflicts.length} day(s) due to time conflicts`);
+				}
+				
+				// If there are other types of failures, show generic message
+				if (failedResults.length > teacherConflicts.length + timeConflicts.length) {
+					toastStore.error(`Failed to add schedule for ${failedResults.length - teacherConflicts.length - timeConflicts.length} day(s)`);
+				}
 			}
 		} catch (error) {
 			console.error('Error submitting schedule:', error);
@@ -750,19 +779,19 @@
                                 <div class="scheduleassign-time-section">
                                     <div class="scheduleassign-time-row">
                                         <div class="scheduleassign-input-group">
-                                            <label class="scheduleassign-input-label">Start Time</label>
-                                            <input 
-                                                type="time" 
-                                                class="scheduleassign-time-input"
+                                            <TimeInput 
+                                                label="Start Time"
                                                 bind:value={formData.startTime}
+                                                placeholder="Select start time"
+                                                on:change={(e) => formData.startTime = e.detail.value}
                                             />
                                         </div>
                                         <div class="scheduleassign-input-group">
-                                            <label class="scheduleassign-input-label">End Time</label>
-                                            <input 
-                                                type="time" 
-                                                class="scheduleassign-time-input"
+                                            <TimeInput 
+                                                label="End Time"
                                                 bind:value={formData.endTime}
+                                                placeholder="Select end time"
+                                                on:change={(e) => formData.endTime = e.detail.value}
                                             />
                                         </div>
                                     </div>

@@ -208,7 +208,7 @@ export async function POST({ request, getClientAddress }) {
             return json({ success: false, error: 'Activity Type ID is required for activity schedules' }, { status: 400 });
         }
 
-        // Check for time conflicts
+        // Check for time conflicts within the same section
         const conflictResult = await query(`
             SELECT id, start_time, end_time 
             FROM schedules 
@@ -225,9 +225,45 @@ export async function POST({ request, getClientAddress }) {
         if (conflictResult.rows.length > 0) {
             return json({ 
                 success: false, 
-                error: 'Time conflict detected with existing schedule',
+                error: 'Time conflict detected with existing schedule in this section',
                 conflictingSchedule: conflictResult.rows[0]
             }, { status: 409 });
+        }
+
+        // Check for teacher conflicts across different sections (if teacher is assigned)
+        if (teacherId) {
+            const teacherConflictResult = await query(`
+                SELECT 
+                    sch.id, 
+                    sch.start_time, 
+                    sch.end_time,
+                    sch.section_id,
+                    sec.name as section_name,
+                    sec.grade_level,
+                    u.full_name as teacher_name
+                FROM schedules sch
+                JOIN sections sec ON sch.section_id = sec.id
+                JOIN users u ON sch.teacher_id = u.id
+                WHERE sch.teacher_id = $1 
+                    AND sch.day_of_week = $2 
+                    AND sch.school_year = $3 
+                    AND sch.section_id != $4
+                    AND (
+                        ($5::time >= sch.start_time AND $5::time < sch.end_time) OR
+                        ($6::time > sch.start_time AND $6::time <= sch.end_time) OR
+                        ($5::time <= sch.start_time AND $6::time >= sch.end_time)
+                    )
+            `, [parseInt(teacherId), dayOfWeek, schoolYear, parseInt(sectionId), startTime, endTime]);
+
+            if (teacherConflictResult.rows.length > 0) {
+                const conflict = teacherConflictResult.rows[0];
+                return json({ 
+                    success: false, 
+                    error: `Teacher conflict detected: ${conflict.teacher_name} is already scheduled to teach ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${dayOfWeek}`,
+                    conflictType: 'teacher_conflict',
+                    conflictingSchedule: conflict
+                }, { status: 409 });
+            }
         }
 
         // Start transaction
