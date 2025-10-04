@@ -355,7 +355,18 @@
               </div>
               <div class="grades-grid">
                 {#each student.grades as grade (grade.subject)}
-                  <div class="grade-item {grade.verified ? 'verified' : 'unverified'}">
+                  <button class="grade-item {grade.verified ? 'verified' : 'unverified'}" 
+                          on:click={() => grade.verified ? unverifyIndividualGrade(student.id, grade.subject) : verifyIndividualGrade(student.id, grade.subject)}>
+                    <div class="grade-overlay">
+                      <div class="overlay-content">
+                        <span class="material-symbols-outlined">
+                          {grade.verified ? 'cancel' : 'verified'}
+                        </span>
+                        <div class="overlay-text">
+                          {grade.verified ? 'Unverify' : 'Verify'}
+                        </div>
+                      </div>
+                    </div>
                     <div class="grade-item-header">
                       <div class="grade-info">
                         <div class="subject-name">{grade.subject}</div>
@@ -368,19 +379,9 @@
                           <div class="grade-score-display" style="color: {getGradeColor(grade.grade)}">
                             {grade.grade}%
                           </div>  
-                        {#if grade.verified}
-                          <button class="unverify-grade-btn" on:click|stopPropagation={() => unverifyIndividualGrade(student.id, grade.subject)}>
-                            <span class="material-symbols-outlined">cancel</span>
-                          </button>
-                        {:else}
-                          <button class="verify-grade-btn" on:click|stopPropagation={() => verifyIndividualGrade(student.id, grade.subject)}>
-                            <span class="material-symbols-outlined">verified</span>
-                          </button>
-                        {/if}
-
                       </div>
                     </div>
-                  </div>
+                  </button>
                 {/each}
               </div>
             </div>

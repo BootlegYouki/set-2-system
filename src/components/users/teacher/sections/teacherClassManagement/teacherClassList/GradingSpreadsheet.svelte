@@ -34,6 +34,7 @@
 
   // State for save functionality
   let isSaving = $state(false);
+  let isSavingFinalGrades = $state(false); // Separate state for final grades saving
   let saveMessage = $state('');
   let saveSuccess = $state(false);
   let autoSaveInterval = null;
@@ -147,7 +148,8 @@
 
     // Reset original data snapshot when subject changes
     originalData = createDataSnapshot();
-    isDataSaved = true;
+    // Don't assume data is saved on initialization - let user decide when to save
+    isDataSaved = false;
     hasUnsavedChanges = false;
   }
 
@@ -976,10 +978,8 @@
         })
       });
 
-      // Update save state after successful auto-save
-      originalData = createDataSnapshot();
-      hasUnsavedChanges = false;
-      isDataSaved = true;
+      // Don't update save state after auto-save to keep manual save button available
+      // The manual save button should remain enabled for explicit user action
 
     } catch (error) {
       // Silent auto-save errors - only log critical failures
@@ -1032,7 +1032,7 @@
       });
 
       saveSuccess = true;
-      toastStore.success('All grades have been saved to the database');
+      toastStore.success('Grades saved successfully');
 
       // Update save state after successful save
       originalData = createDataSnapshot();
@@ -1066,7 +1066,7 @@
       return;
     }
 
-    isSaving = true;
+    isSavingFinalGrades = true;
     saveMessage = '';
     saveSuccess = false;
 
@@ -1335,10 +1335,10 @@
     <button 
       class="final-grades-button" 
       onclick={saveFinalGrades}
-      disabled={isSaving}
+      disabled={isSavingFinalGrades}
       title="Upload final grades (averages and computed final grades) to database"
     >
-      {#if isSaving}
+      {#if isSavingFinalGrades}
         <span class="material-symbols-outlined spinning">sync</span>
         <span>Uploading...</span>
       {:else}
