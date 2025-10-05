@@ -1,7 +1,15 @@
 <script>
 	import './studentMenu.css';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
+	import { authStore } from '../../../../login/js/auth.js';
+
 	// Props
 	let { activeSection = $bindable('grades'), isNavRailVisible = true, onnavigate } = $props();
+
+	// Notification state
+	let unreadNotificationCount = $state(0);
 
 	// Navigation items
 	const navigationItems = [
@@ -23,7 +31,8 @@
 		{
 			id: 'notifications',
 			label: 'Notifications',
-			icon: 'notifications'
+			icon: 'notifications',
+			hasBadge: true
 		},
 		{
 			id: 'todo',
@@ -31,6 +40,28 @@
 			icon: 'checklist'
 		}
 	];
+
+	// Fetch notification count
+	async function fetchNotificationCount() {
+		if (!browser) return;
+		
+		const authState = $authStore;
+		if (!authState.isAuthenticated) return;
+		
+		try {
+			console.log('Fetching notification count...');
+			const result = await authenticatedFetch('/api/notifications?limit=1&offset=0');
+			console.log('Notification API result:', result);
+			if (result.success) {
+				unreadNotificationCount = result.data.unreadCount || 0;
+				console.log('Updated unreadNotificationCount to:', unreadNotificationCount);
+			} else {
+				console.error('Failed to fetch notifications:', result.error);
+			}
+		} catch (err) {
+			console.error('Error fetching notification count:', err);
+		}
+	}
 
 	// Handle navigation
 	function handleNavigation(sectionId) {
@@ -40,6 +71,32 @@
 			onnavigate({ detail: { section: sectionId } });
 		}
 	}
+
+	// Component lifecycle
+	onMount(() => {
+		// Wait for auth store to be initialized before fetching
+		let unsubscribe;
+		unsubscribe = authStore.subscribe((authState) => {
+			if (authState.isAuthenticated) {
+				fetchNotificationCount();
+				if (unsubscribe) {
+					unsubscribe();
+				}
+			}
+		});
+
+		// Refresh notification count every 30 seconds
+		const interval = setInterval(() => {
+			if ($authStore.isAuthenticated) {
+				fetchNotificationCount();
+			}
+		}, 30000);
+
+		return () => {
+			clearInterval(interval);
+			if (unsubscribe) unsubscribe();
+		};
+	});
 </script>
 
 <!-- Navigation Rail (Desktop) -->
@@ -57,6 +114,11 @@
 					<span class="material-symbols-outlined rail-icon">
 						{item.icon}
 					</span>
+					{#if item.hasBadge && unreadNotificationCount > 0}
+						<span class="menu-notification-badge menu-rail-badge">
+							{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+						</span>
+					{/if}
 				</div>
 				<span class="rail-label">{item.label}</span>
 			</button>
@@ -80,6 +142,11 @@
 					<span class="material-symbols-outlined nav-icon">
 						{item.icon}
 					</span>
+					{#if item.hasBadge && unreadNotificationCount > 0}
+						<span class="menu-notification-badge menu-nav-badge">
+							{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+						</span>
+					{/if}
 				</div>
 			</button>
 		{/each}
@@ -110,6 +177,11 @@
 					<span class="material-symbols-outlined nav-icon">
 						{item.icon}
 					</span>
+					{#if item.hasBadge && unreadNotificationCount > 0}
+						<span class="menu-notification-badge menu-nav-badge">
+							{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+						</span>
+					{/if}
 				</div>
 			</button>
 		{/each}

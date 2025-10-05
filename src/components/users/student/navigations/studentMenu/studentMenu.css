@@ -1,5 +1,44 @@
 
 
+/* Menu Notification Badge Styles */
+.menu-notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  font-family: var(--md-sys-typescale-label-small-font);
+}
+
+.menu-rail-badge {
+  top: -6px;
+  right: -6px;
+}
+
+.menu-nav-badge {
+  top: -4px;
+  right: -4px;
+}
+
+/* Hide badge when count is 0 */
+.menu-notification-badge:empty {
+  display: none;
+}
+
+
 /* Navigation Rail (Desktop) */
 .navigation-rail {
   position: fixed;
@@ -115,6 +154,12 @@
   justify-content: start;
 }
 
+.navigation-rail.collapsed .menu-notification-badge{
+  position: absolute;
+  top: -2px;
+  right: -2px;
+}
+
 .navigation-rail.collapsed .rail-label {
   font-size: 14px;
   max-width: none;
@@ -196,7 +241,6 @@
   color: var(--md-sys-color-on-primary-container);
   font-variation-settings: 'FILL' 1;
 }
-
 
 
 .nav-label {
