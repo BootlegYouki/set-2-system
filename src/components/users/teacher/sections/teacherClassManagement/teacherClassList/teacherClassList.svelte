@@ -14,6 +14,7 @@
   let isDestroyed = $state(false); // Track component destruction
   let addingColumn = $state(false); // Track column addition in progress
   let sectionData = $state(null);
+  let verificationCheckInterval = null; // For periodic verification status checking
   
   // Subject tab management
   let activeSubjectIndex = $state(0);
@@ -210,6 +211,57 @@
       students = [];
     } finally {
       loading = false;
+    }
+  }
+
+  // Function to check verification status without full reload
+  async function checkVerificationStatus() {
+    if (isDestroyed || !selectedClass?.sectionId || !activeSubject?.id) return;
+    
+    try {
+      // Get current user data from auth store
+      const authState = $authStore;
+      const teacherId = authState.isAuthenticated ? authState.userData?.id : null;
+
+      const params = new URLSearchParams({
+        sectionId: selectedClass.sectionId.toString(),
+        schoolYear: '2024-2025',
+        verificationOnly: 'true' // Flag to indicate we only need verification status
+      });
+
+      if (teacherId) {
+        params.append('teacherId', teacherId.toString());
+      }
+
+      if (activeSubject?.id) {
+        params.append('subjectId', activeSubject.id.toString());
+      }
+
+      const response = await fetch(`/api/class-students?${params}`);
+      const result = await response.json();
+
+      if (result.success && result.data?.students) {
+        // Update only the verification status of existing students
+        const updatedStudents = students.map(student => {
+          const updatedStudent = result.data.students.find(s => s.id === student.id);
+          if (updatedStudent) {
+            return { ...student, isVerified: updatedStudent.isVerified };
+          }
+          return student;
+        });
+        
+        // Only update if there are actual changes
+        const hasChanges = updatedStudents.some((student, index) => 
+          student.isVerified !== students[index]?.isVerified
+        );
+        
+        if (hasChanges) {
+          students = updatedStudents;
+        }
+      }
+    } catch (err) {
+      console.error('Error checking verification status:', err);
+      // Silently fail - don't disrupt user experience
     }
   }
 
@@ -460,6 +512,11 @@
     if (!isDestroyed) { // Only check if component is not destroyed
       await fetchClassStudents();
       await fetchGradingConfiguration();
+      
+      // Start periodic verification status checking every 30 seconds
+      verificationCheckInterval = setInterval(() => {
+        checkVerificationStatus();
+      }, 30000); // 30 seconds
     }
   });
 
@@ -467,6 +524,12 @@
   onDestroy(() => {
     isDestroyed = true;
     loading = false;
+    
+    // Clear the verification check interval
+    if (verificationCheckInterval) {
+      clearInterval(verificationCheckInterval);
+      verificationCheckInterval = null;
+    }
   });
 </script>
 

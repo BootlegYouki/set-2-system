@@ -4,12 +4,15 @@
   gap: 12px;
   padding: 12px 0;
   align-items: center;
-  justify-content: end;
+  justify-content: space-between;
 }
 
+.save-button-container{
+  display: flex;
+  gap: var(--spacing-md);
+}
 
-
-.save-grades-button, .final-grades-button {
+.save-grades-button, .final-grades-button, .refresh-grades-button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -74,8 +77,7 @@
   background-color: var(--md-sys-color-surface);
   border: 1px solid var(--md-sys-color-outline-variant);
   overflow: hidden;
-  border-radius: var(--radius-md);
-
+  border-radius: var(--radius-lg);
 }
 
 .spreadsheet-container {
@@ -85,12 +87,10 @@
 
 .spreadsheet-table {
   width: 100%;
-  /* border-collapse: collapse; */
   border-spacing: 1;
   font-size: var(--md-sys-typescale-body-small-size);
   background-color: var(--md-sys-color-surface);
   overflow: hidden;
-  box-sizing: border-box;
 }
 
 .spreadsheet-header {
@@ -105,6 +105,7 @@
   text-align: center;
   min-width: 80px;
   position: relative;
+  border-radius: var(--radius-md);
 }
 
 .header-text {
@@ -173,6 +174,7 @@
 
 .spreadsheet-cell {
   border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-md);
   padding: 0;
   text-align: center;
   vertical-align: middle;
@@ -273,6 +275,19 @@
 .spreadsheet-cell.invalid .cell-content {
   color: var(--md-sys-color-on-error-container);
   font-weight: 600;
+}
+
+/* Verified/Locked cell styling */
+.spreadsheet-row.verified .spreadsheet-cell.editable {
+  background-color: var(--md-sys-color-surface-container-low) !important;
+  color: var(--md-sys-color-on-surface-variant) !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+  position: relative;
+}
+
+.spreadsheet-row.verified .spreadsheet-cell.editable:hover {
+  background-color: var(--md-sys-color-surface-container-low) !important;
 }
 
 @keyframes errorPulse {

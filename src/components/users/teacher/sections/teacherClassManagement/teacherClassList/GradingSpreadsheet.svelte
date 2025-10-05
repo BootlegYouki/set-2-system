@@ -217,6 +217,15 @@
   function handleCellClick(rowIndex, colIndex, event) {
     if (colIndex < 2) return; // Don't allow editing of student info columns
 
+    // Check if this student's grades are verified by the adviser
+    const studentIndex = rowIndex - 1;
+    const student = students[studentIndex];
+    if (student && student.isVerified) {
+      // Show a toast message to inform the teacher
+      toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
+      return;
+    }
+
     selectedCell = { row: rowIndex, col: colIndex };
 
     // Don't automatically start editing on click - let user navigate first
@@ -255,11 +264,27 @@
 
     // Only handle typing to start editing
     if (/^[0-9.]$/.test(event.key) && !isCalculatedColumn(col) && col > 1) {
+      // Check if this student's grades are verified by the adviser
+      const studentIndex = row - 1;
+      const student = students[studentIndex];
+      if (student && student.isVerified) {
+        toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
+        return;
+      }
+      
       event.preventDefault();
       isEditing = true;
       editValue = event.key;
       justStartedEditing = false; // First character already entered
     } else if (event.key.length === 1 && !isCalculatedColumn(col) && col > 1) {
+      // Check if this student's grades are verified by the adviser
+      const studentIndex = row - 1;
+      const student = students[studentIndex];
+      if (student && student.isVerified) {
+        toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
+        return;
+      }
+      
       event.preventDefault();
       isEditing = true;
       editValue = event.key;
@@ -1063,8 +1088,18 @@
     saveSuccess = false;
 
     try {
-      // Prepare final grades data for API
-      const finalGradesData = students.map(student => {
+      // Filter out students whose grades are already verified
+      const unverifiedStudents = students.filter(student => !student.isVerified);
+      const verifiedCount = students.length - unverifiedStudents.length;
+
+      if (unverifiedStudents.length === 0) {
+        toastStore.warning('All student grades have already been verified by the adviser. No grades to send.');
+        isSavingFinalGrades = false;
+        return;
+      }
+
+      // Prepare final grades data for API (only for unverified students)
+      const finalGradesData = unverifiedStudents.map(student => {
         const wwAvg = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork');
         const ptAvg = calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks');
         const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment');
@@ -1075,7 +1110,11 @@
           written_work_average: wwAvg !== '' ? parseFloat(wwAvg) : null,
           performance_tasks_average: ptAvg !== '' ? parseFloat(ptAvg) : null,
           quarterly_assessment_average: qaAvg !== '' ? parseFloat(qaAvg) : null,
-          final_grade: finalGrade !== '' ? parseFloat(finalGrade) : null
+          final_grade: finalGrade !== '' ? parseFloat(finalGrade) : null,
+          // Include individual grade items
+          written_work_items: student.writtenWork || [],
+          performance_tasks_items: student.performanceTasks || [],
+          quarterly_assessment_items: student.quarterlyAssessment || []
         };
       });
 
@@ -1090,7 +1129,13 @@
       });
 
       saveSuccess = true;
-      toastStore.success('Final grades have been sent to the adviser successfully!');
+      
+      // Show appropriate success message based on whether some students were skipped
+      if (verifiedCount > 0) {
+        toastStore.success(`Final grades sent to adviser for ${unverifiedStudents.length} students. ${verifiedCount} verified students were skipped.`);
+      } else {
+        toastStore.success('Final grades have been sent to the adviser successfully!');
+      }
 
       // Clear the message after 3 seconds
       setTimeout(() => {
@@ -1290,44 +1335,99 @@
       }
     );
   }
+
+  // Function to refresh grades from database
+  async function refreshGrades() {
+    try {
+      // Show loading state
+      toastStore.info('Refreshing grades from database...');
+      
+      // Fetch fresh student data from the API
+      const authState = $authStore;
+      const teacherId = authState.isAuthenticated ? authState.userData?.id : null;
+      
+      const params = new URLSearchParams({
+        sectionId: sectionId.toString(),
+        subjectId: subjectId.toString(),
+        gradingPeriodId: gradingPeriodId.toString()
+      });
+      
+      if (teacherId) {
+        params.append('teacherId', teacherId.toString());
+      }
+      
+      const result = await authenticatedFetch(`/api/class-students?${params}`);
+      
+      if (result.success && result.data?.students) {
+        // Update students data with fresh data from database
+        students = result.data.students;
+        
+        // Reinitialize spreadsheet data to reflect the refreshed grades
+        initializeSpreadsheetData();
+        
+        // Reset save states since we have fresh data
+        isDataSaved = true;
+        hasUnsavedChanges = false;
+        originalData = createDataSnapshot();
+        
+        toastStore.success('Grades refreshed successfully');
+      } else {
+        throw new Error(result.error || 'Failed to refresh grades');
+      }
+    } catch (error) {
+      console.error('Error refreshing grades:', error);
+      toastStore.error('Failed to refresh grades. Please try again.');
+    }
+  }
 </script>
 
 <svelte:window on:keydown={handleGlobalKeydown} />
   <div class="save-section">
-    <button
-      class="save-grades-button"
-      class:saved={isDataSaved && !hasUnsavedChanges}
-      onclick={saveGrades}
-      disabled={isSaving || (isDataSaved && !hasUnsavedChanges)}
-      title={isDataSaved && !hasUnsavedChanges ? "All grades are saved" : "Save all grades to database"}
-    >
-      {#if isSaving}
-        <span class="material-symbols-outlined spinning">sync</span>
-        <span>Saving...</span>
-      {:else if isDataSaved && !hasUnsavedChanges}
-        <span class="material-symbols-outlined">check_circle</span>
-        <span>Grades Saved</span>
-      {:else}
-        <span class="material-symbols-outlined">save</span>
-        <span>Save Grades</span>
-      {/if}
-    </button>
-
-    <!-- New Final Grades Upload Button -->
-    <button
-      class="final-grades-button"
-      onclick={saveFinalGrades}
-      disabled={isSavingFinalGrades}
-      title="Upload final grades (averages and computed final grades) to database"
-    >
-      {#if isSavingFinalGrades}
-        <span class="material-symbols-outlined spinning">sync</span>
-        <span>Uploading...</span>
-      {:else}
-        <span class="material-symbols-outlined">upload</span>
-        <span>Send to Adviser</span>
-      {/if}
-    </button>
+    <div class="refresh-button-container">
+      <button
+        class="refresh-grades-button"
+        onclick={refreshGrades}
+        title="Refresh grades from database"
+      >
+        <span class="material-symbols-outlined">refresh</span>
+        <span>Refresh</span>
+      </button>
+    </div>
+    <div class="save-button-container">
+      <button
+        class="save-grades-button"
+        class:saved={isDataSaved && !hasUnsavedChanges}
+        onclick={saveGrades}
+        disabled={isSaving || (isDataSaved && !hasUnsavedChanges)}
+        title={isDataSaved && !hasUnsavedChanges ? "All grades are saved" : "Save all grades to database"}
+      >
+        {#if isSaving}
+          <span class="material-symbols-outlined spinning">sync</span>
+          <span>Saving...</span>
+        {:else if isDataSaved && !hasUnsavedChanges}
+          <span class="material-symbols-outlined">check_circle</span>
+          <span>Grades Saved</span>
+        {:else}
+          <span class="material-symbols-outlined">save</span>
+          <span>Save Grades</span>
+        {/if}
+      </button>
+      <!-- New Final Grades Upload Button -->
+      <button
+        class="final-grades-button"
+        onclick={saveFinalGrades}
+        disabled={isSavingFinalGrades}
+        title="Upload final grades (averages and computed final grades) to database"
+      >
+        {#if isSavingFinalGrades}
+          <span class="material-symbols-outlined spinning">sync</span>
+          <span>Uploading...</span>
+        {:else}
+          <span class="material-symbols-outlined">upload</span>
+          <span>Send to Adviser</span>
+        {/if}
+      </button>
+    </div>
   </div>
 <div class="grading-spreadsheet" bind:this={spreadsheetContainer}>
   {#if isSpreadsheetLoading}
@@ -1363,7 +1463,7 @@
       </thead>
       <tbody>
         {#each spreadsheetData.slice(1) as row, rowIndex}
-          <tr class="spreadsheet-row">
+          <tr class="spreadsheet-row" class:verified={students[rowIndex]?.isVerified}>
             {#each row as cell, colIndex}
               <td
                 class="spreadsheet-cell"

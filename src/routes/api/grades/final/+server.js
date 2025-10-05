@@ -43,7 +43,10 @@ export async function POST({ request }) {
           performance_tasks_average, 
           quarterly_assessment_average, 
           final_grade,
-          letter_grade 
+          letter_grade,
+          written_work_items,
+          performance_tasks_items,
+          quarterly_assessment_items
         } = studentGrade;
 
         console.log(`Processing final grades for student: ${student_id}`);
@@ -68,6 +71,32 @@ export async function POST({ request }) {
           }
         }
 
+        // Check if grades are already verified - if so, skip this student
+        try {
+          const verificationQuery = `
+            SELECT verified 
+            FROM final_grades 
+            WHERE student_id = $1 
+              AND section_id = $2 
+              AND subject_id = $3 
+              AND grading_period_id = $4
+          `;
+          const verificationResult = await query(verificationQuery, [
+            actualStudentId, 
+            section_id, 
+            subject_id, 
+            grading_period_id
+          ]);
+
+          if (verificationResult.rows.length > 0 && verificationResult.rows[0].verified) {
+            console.log(`Skipping student ${student_id} - grades already verified by adviser`);
+            continue; // Skip this student as grades are already verified
+          }
+        } catch (error) {
+          console.error(`Error checking verification status for student ${student_id}:`, error);
+          continue; // Skip this student on error
+        }
+
         // Calculate letter grade based on final grade
         const calculatedLetterGrade = calculateLetterGrade(final_grade);
 
@@ -83,11 +112,14 @@ export async function POST({ request }) {
             quarterly_assessment_average, 
             final_grade, 
             letter_grade,
+            written_work_items,
+            performance_tasks_items,
+            quarterly_assessment_items,
             computed_at,
             created_at,
             updated_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
           ON CONFLICT (student_id, section_id, subject_id, grading_period_id)
           DO UPDATE SET 
             written_work_average = EXCLUDED.written_work_average,
@@ -95,6 +127,9 @@ export async function POST({ request }) {
             quarterly_assessment_average = EXCLUDED.quarterly_assessment_average,
             final_grade = EXCLUDED.final_grade,
             letter_grade = EXCLUDED.letter_grade,
+            written_work_items = EXCLUDED.written_work_items,
+            performance_tasks_items = EXCLUDED.performance_tasks_items,
+            quarterly_assessment_items = EXCLUDED.quarterly_assessment_items,
             computed_at = EXCLUDED.computed_at,
             updated_at = EXCLUDED.updated_at
           RETURNING *
@@ -109,7 +144,10 @@ export async function POST({ request }) {
           performance_tasks_average || null,
           quarterly_assessment_average || null,
           final_grade || null,
-          calculatedLetterGrade
+          calculatedLetterGrade,
+          JSON.stringify(written_work_items || []),
+          JSON.stringify(performance_tasks_items || []),
+          JSON.stringify(quarterly_assessment_items || [])
         ]);
 
         results.push(result.rows[0]);
