@@ -1,0 +1,77 @@
+/**
+ * SvelteKit Server Hooks
+ * Global middleware for DDoS protection and security
+ */
+
+import { protectAPI } from './lib/middleware/apiProtection.js';
+import { json } from '@sveltejs/kit';
+
+/**
+ * Handle function - runs on every request
+ */
+export async function handle({ event, resolve }) {
+  const { request, url, getClientAddress } = event;
+  
+  // Apply protection to all API routes
+  if (url.pathname.startsWith('/api/')) {
+    // Skip protection for specific endpoints if needed
+    const skipProtection = [
+      // Add any endpoints that should skip protection
+    ];
+    
+    const shouldSkip = skipProtection.some(path => url.pathname.startsWith(path));
+    
+    if (!shouldSkip) {
+      const protectionResult = await protectAPI(request, getClientAddress);
+      
+      // If protection failed, return the error response immediately
+      if (protectionResult.status) {
+        return protectionResult;
+      }
+      
+      // Store protection headers to add to the final response
+      event.locals.securityHeaders = protectionResult.headers;
+    }
+  }
+  
+  // Continue with the request
+  const response = await resolve(event);
+  
+  // Add security headers to all responses
+  if (event.locals.securityHeaders) {
+    Object.entries(event.locals.securityHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+  }
+  
+  return response;
+}
+
+/**
+ * HandleError function - runs when an error occurs
+ */
+export async function handleError({ error, event }) {
+  const { url, getClientAddress } = event;
+  
+  console.error('Server error:', {
+    error: error.message,
+    stack: error.stack,
+    url: url.pathname,
+    ip: getClientAddress(),
+    timestamp: new Date().toISOString()
+  });
+  
+  // Don't expose internal errors to clients
+  return {
+    message: 'Internal server error',
+    code: 'INTERNAL_ERROR'
+  };
+}
+
+/**
+ * HandleFetch function - runs on server-side fetch calls
+ */
+export async function handleFetch({ request, fetch }) {
+  // Add any custom headers or modifications to server-side fetch calls
+  return fetch(request);
+}

@@ -56,90 +56,26 @@
 		}
 	}
 
-	// Calculate GWA from final grades
-	function calculateGWA(studentGrades) {
-		if (!studentGrades || studentGrades.length === 0) return 0;
-		
-		const totalGrades = studentGrades.reduce((sum, grade) => sum + (grade.final_grade || 0), 0);
-		return totalGrades / studentGrades.length;
-	}
+	// Calculate GWA from final grades - no longer needed since bulk endpoint provides GWA
+	// function calculateGWA(studentGrades) {
+	// 	if (!studentGrades || studentGrades.length === 0) return 0;
+	// 	
+	// 	const totalGrades = studentGrades.reduce((sum, grade) => sum + (grade.final_grade || 0), 0);
+	// 	return totalGrades / studentGrades.length;
+	// }
 
-	// Load students data with grades
+	// Load students data with grades using optimized bulk endpoint
 	async function loadStudents() {
 		isLoading = true;
 		try {
-			// Load students with their section information
-			const studentsData = await api.get('/api/accounts?type=student');
+			// Use the new bulk endpoint that gets all data in one query
+			const studentsData = await api.get('/api/students-bulk');
 			if (!studentsData.success) {
 				throw new Error('Failed to load students');
 			}
 
-			// Get section information for all students
-			const studentsWithSections = await Promise.all(
-				studentsData.accounts.map(async (account) => {
-					try {
-						let sectionName = 'No section';
-						let hasSection = false;
-						let gradeLevel = account.gradeLevel || 'Not specified';
-						
-						// Get student's section information using the student-profile API
-						try {
-							const profileData = await api.get(`/api/student-profile?studentId=${account.id}`);
-							if (profileData.success && profileData.data && profileData.data.section) {
-								// Student has a section assignment
-								sectionName = profileData.data.section.name;
-								hasSection = true;
-								// Use grade level from section if available
-								if (profileData.data.section.gradeLevel) {
-									gradeLevel = profileData.data.section.gradeLevel.toString();
-								}
-							}
-						} catch (profileError) {
-							// Student has no section assignment or profile data
-							hasSection = false;
-							sectionName = 'No section';
-						}
-
-						let gwa = 0;
-						if (hasSection) {
-							try {
-								const gradesData = await api.get(`/api/student-grades/verified?student_id=${account.id}`);
-								if (gradesData.success) {
-									gwa = calculateGWA(gradesData.grades);
-								}
-							} catch (e) {
-								// Ignore grade calculation errors for students with sections
-							}
-						}
-
-						return {
-							id: account.number || account.id,
-							name: account.name,
-							gradeLevel: gradeLevel,
-							section: sectionName,
-							gwa: gwa,
-							studentId: account.id,
-							hasSection: hasSection
-						};
-					} catch (error) {
-						// Handle any errors in processing individual students
-						return {
-							id: account.number || account.id,
-							name: account.name,
-							gradeLevel: account.gradeLevel || 'Not specified',
-							section: 'No section',
-							gwa: 0,
-							studentId: account.id,
-							hasSection: false
-						};
-					}
-				})
-			);
-
-			// Filter out students without proper grade level information
-			students = studentsWithSections.filter(student => 
-				student.gradeLevel !== 'Not specified'
-			);
+			// Data is already formatted from the bulk endpoint
+			students = studentsData.students;
 			
 			filterStudents();
 		} catch (error) {

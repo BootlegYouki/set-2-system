@@ -125,7 +125,7 @@
   
   --md-sys-color-error: #f48fb1;
   --md-sys-color-on-error: #b71c1c;
-  --md-sys-color-error-container: #d32f2f;
+  --md-sys-color-error-container: #d32f2fa1;
   --md-sys-color-on-error-container: #ffebee;
   
   /* Grade Performance Colors - Dark Mode */

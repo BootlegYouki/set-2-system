@@ -1,15 +1,51 @@
 import { json } from '@sveltejs/kit';
 import { query } from '../../../database/db.js';
 import bcrypt from 'bcrypt';
+import { createLoginRateLimitMiddleware, rateLimiter } from '../../../lib/middleware/rateLimiter.js';
+
+// Create login rate limiter instance
+const loginRateLimit = createLoginRateLimitMiddleware();
 
 // POST /api/auth - Authenticate user with account number and password
 export async function POST({ request, getClientAddress }) {
   try {
+    // Apply rate limiting first
+    const rateLimitResult = await loginRateLimit(request, getClientAddress);
+    
+    if (rateLimitResult.blocked) {
+      return json(rateLimitResult.body, { 
+        status: rateLimitResult.status,
+        headers: rateLimitResult.headers
+      });
+    }
+    
+    const ip = rateLimitResult.ip;
     const { accountNumber, password } = await request.json();
     
     // Validate required fields
     if (!accountNumber || !password) {
+      // Record failed attempt for missing credentials
+      rateLimiter.recordFailedLogin(ip);
       return json({ error: 'Account number and password are required' }, { status: 400 });
+    }
+    
+    // Additional input validation and sanitization
+    if (typeof accountNumber !== 'string' || typeof password !== 'string') {
+      rateLimiter.recordFailedLogin(ip);
+      return json({ error: 'Invalid input format' }, { status: 400 });
+    }
+    
+    // Sanitize account number (remove any non-alphanumeric characters except hyphens and underscores)
+    const sanitizedAccountNumber = accountNumber.replace(/[^a-zA-Z0-9\-_]/g, '');
+    
+    if (sanitizedAccountNumber !== accountNumber || accountNumber.length > 50) {
+      rateLimiter.recordFailedLogin(ip);
+      return json({ error: 'Invalid account number format' }, { status: 400 });
+    }
+    
+    if (password.length > 200) {
+      rateLimiter.recordFailedLogin(ip);
+      return json({ error: 'Password too long' }, { status: 400 });
     }
     
     // Query user by account number
@@ -27,9 +63,17 @@ export async function POST({ request, getClientAddress }) {
       WHERE u.account_number = $1 AND (u.status IS NULL OR u.status = 'active')
     `;
     
-    const result = await query(userQuery, [accountNumber]);
+    const result = await query(userQuery, [sanitizedAccountNumber]);
     
     if (result.rows.length === 0) {
+      // Record failed login attempt
+      const delay = rateLimiter.recordFailedLogin(ip);
+      
+      // Apply progressive delay if configured
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
       return json({ error: 'Invalid account number or password' }, { status: 401 });
     }
     
@@ -39,8 +83,19 @@ export async function POST({ request, getClientAddress }) {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     
     if (!isPasswordValid) {
+      // Record failed login attempt
+      const delay = rateLimiter.recordFailedLogin(ip);
+      
+      // Apply progressive delay if configured
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
       return json({ error: 'Invalid account number or password' }, { status: 401 });
     }
+    
+    // Clear failed attempts on successful login
+    rateLimiter.clearFailedAttempts(ip);
     
     // Return user data (excluding password hash)
     const userData = {
