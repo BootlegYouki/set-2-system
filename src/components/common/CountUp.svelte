@@ -20,10 +20,17 @@
 	let isInitialized = false;
 	let hasAnimated = false;
 
+	// Helper function to format number and remove .0 decimals
+	function formatNumber(num, decimalPlaces) {
+		const formatted = num.toFixed(decimalPlaces);
+		// Remove .0 if it's a whole number
+		return formatted.replace(/\.0+$/, '');
+	}
+
 	onMount(() => {
 		if (browser && countUpElement) {
 			// Initialize with startVal, don't animate yet
-			countUpElement.textContent = `${prefix}${startVal.toFixed(decimals)}${suffix}`;
+			countUpElement.textContent = `${prefix}${formatNumber(startVal, decimals)}${suffix}`;
 			isInitialized = true;
 			
 			// If value is already available, start animation
@@ -47,7 +54,12 @@
 				separator: separator,
 				decimal: decimal,
 				prefix: prefix,
-				suffix: suffix
+				suffix: suffix,
+				// Custom formatter to remove .0 decimals
+				formattingFn: (n) => {
+					const formatted = n.toFixed(decimals);
+					return formatted.replace(/\.0+$/, '');
+				}
 			});
 
 			if (!countUpInstance.error) {
@@ -56,12 +68,12 @@
 			} else {
 				console.error('CountUp error:', countUpInstance.error);
 				// Fallback to direct display
-				countUpElement.textContent = `${prefix}${value.toFixed(decimals)}${suffix}`;
+				countUpElement.textContent = `${prefix}${formatNumber(value, decimals)}${suffix}`;
 			}
 		} catch (error) {
 			console.error('Failed to initialize CountUp:', error);
 			// Fallback to direct display
-			countUpElement.textContent = `${prefix}${value.toFixed(decimals)}${suffix}`;
+			countUpElement.textContent = `${prefix}${formatNumber(value, decimals)}${suffix}`;
 		}
 	}
 
@@ -77,14 +89,14 @@
 		} catch (error) {
 			console.error('CountUp update error:', error);
 			// Fallback to direct display
-			countUpElement.textContent = `${prefix}${value.toFixed(decimals)}${suffix}`;
+			countUpElement.textContent = `${prefix}${formatNumber(value, decimals)}${suffix}`;
 		}
 	}
 </script>
 
 <span bind:this={countUpElement} class="countup-container">
 	{#if !browser}
-		{prefix}{value.toFixed(decimals)}{suffix}
+		{prefix}{formatNumber(value, decimals)}{suffix}
 	{/if}
 </span>
 
