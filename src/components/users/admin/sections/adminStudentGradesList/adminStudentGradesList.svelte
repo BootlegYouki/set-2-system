@@ -1,10 +1,13 @@
 <script>
 	import './adminStudentGradesList.css';
 	import { onMount } from 'svelte';
+	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
 	// State variables
 	let students = [];
 	let filteredStudents = [];
+	let sections = [];
 	let isLoading = true;
 	let searchQuery = '';
 	let selectedGradeLevel = '';
@@ -23,49 +26,125 @@
 		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
 	];
 
-	// Section options
-	const sectionOptions = [
-		{ id: '', name: 'All Sections' },
-		{ id: 'A', name: 'Section A' },
-		{ id: 'B', name: 'Section B' },
-		{ id: 'C', name: 'Section C' },
-		{ id: 'D', name: 'Section D' },
-		{ id: 'E', name: 'Section E' }
-	];
-
-	// Mock student data
-	const mockStudents = [
-		{ id: 'STU-2024-001', name: 'Juan Carlos Santos', gradeLevel: '7', section: 'A', gwa: 92.5 },
-		{ id: 'STU-2024-002', name: 'Maria Elena Rodriguez', gradeLevel: '7', section: 'B', gwa: 88.3 },
-		{ id: 'STU-2024-003', name: 'Jose Miguel Dela Cruz', gradeLevel: '8', section: 'A', gwa: 85.7 },
-		{ id: 'STU-2024-004', name: 'Ana Sofia Reyes', gradeLevel: '8', section: 'B', gwa: 95.2 },
-		{ id: 'STU-2024-005', name: 'Carlos Antonio Lopez', gradeLevel: '9', section: 'A', gwa: 79.8 },
-		{ id: 'STU-2024-006', name: 'Isabella Marie Garcia', gradeLevel: '9', section: 'B', gwa: 91.4 },
-		{ id: 'STU-2024-007', name: 'Miguel Angel Torres', gradeLevel: '10', section: 'A', gwa: 87.6 },
-		{ id: 'STU-2024-008', name: 'Sophia Grace Mendoza', gradeLevel: '10', section: 'B', gwa: 83.9 },
-		{ id: 'STU-2024-009', name: 'Rafael Luis Morales', gradeLevel: '7', section: 'C', gwa: 74.2 },
-		{ id: 'STU-2024-010', name: 'Camila Rose Fernandez', gradeLevel: '8', section: 'C', gwa: 94.8 },
-		{ id: 'STU-2024-011', name: 'Diego Sebastian Cruz', gradeLevel: '9', section: 'C', gwa: 82.1 },
-		{ id: 'STU-2024-012', name: 'Valentina Joy Ramos', gradeLevel: '10', section: 'C', gwa: 89.7 },
-		{ id: 'STU-2024-013', name: 'Alejandro James Villanueva', gradeLevel: '7', section: 'A', gwa: 78.5 },
-		{ id: 'STU-2024-014', name: 'Natalia Hope Santos', gradeLevel: '8', section: 'B', gwa: 86.3 },
-		{ id: 'STU-2024-015', name: 'Gabriel Faith Martinez', gradeLevel: '9', section: 'A', gwa: 93.1 }
+	// Dynamic section options - will be populated from API
+	let sectionOptions = [
+		{ id: '', name: 'All Sections' }
 	];
 
 	// Computed values
 	$: selectedGradeLevelObj = gradeLevelOptions.find(level => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
 
-	// Load students data
+	// Load sections from API
+	async function loadSections() {
+		try {
+			const data = await api.get('/api/sections');
+			if (data.success) {
+				sections = data.data;
+				// Update section options with dynamic data
+				sectionOptions = [
+					{ id: '', name: 'All Sections' },
+					...sections.map(section => ({
+						id: section.name,
+						name: `Section ${section.name} (Grade ${section.grade_level})`
+					}))
+				];
+			}
+		} catch (error) {
+			console.error('Error loading sections:', error);
+			toastStore.error('Failed to load sections');
+		}
+	}
+
+	// Calculate GWA from final grades
+	function calculateGWA(studentGrades) {
+		if (!studentGrades || studentGrades.length === 0) return 0;
+		
+		const totalGrades = studentGrades.reduce((sum, grade) => sum + (grade.final_grade || 0), 0);
+		return totalGrades / studentGrades.length;
+	}
+
+	// Load students data with grades
 	async function loadStudents() {
 		isLoading = true;
 		try {
-			// Simulate API call delay
-			await new Promise(resolve => setTimeout(resolve, 500));
-			students = mockStudents;
+			// Load students with their section information
+			const studentsData = await api.get('/api/accounts?type=student');
+			if (!studentsData.success) {
+				throw new Error('Failed to load students');
+			}
+
+			// Get section information for all students
+			const studentsWithSections = await Promise.all(
+				studentsData.accounts.map(async (account) => {
+					try {
+						let sectionName = 'No section';
+						let hasSection = false;
+						let gradeLevel = account.gradeLevel || 'Not specified';
+						
+						// Get student's section information using the student-profile API
+						try {
+							const profileData = await api.get(`/api/student-profile?studentId=${account.id}`);
+							if (profileData.success && profileData.data && profileData.data.section) {
+								// Student has a section assignment
+								sectionName = profileData.data.section.name;
+								hasSection = true;
+								// Use grade level from section if available
+								if (profileData.data.section.gradeLevel) {
+									gradeLevel = profileData.data.section.gradeLevel.toString();
+								}
+							}
+						} catch (profileError) {
+							// Student has no section assignment or profile data
+							hasSection = false;
+							sectionName = 'No section';
+						}
+
+						let gwa = 0;
+						if (hasSection) {
+							try {
+								const gradesData = await api.get(`/api/student-grades/verified?student_id=${account.id}`);
+								if (gradesData.success) {
+									gwa = calculateGWA(gradesData.grades);
+								}
+							} catch (e) {
+								// Ignore grade calculation errors for students with sections
+							}
+						}
+
+						return {
+							id: account.number || account.id,
+							name: account.name,
+							gradeLevel: gradeLevel,
+							section: sectionName,
+							gwa: gwa,
+							studentId: account.id,
+							hasSection: hasSection
+						};
+					} catch (error) {
+						// Handle any errors in processing individual students
+						return {
+							id: account.number || account.id,
+							name: account.name,
+							gradeLevel: account.gradeLevel || 'Not specified',
+							section: 'No section',
+							gwa: 0,
+							studentId: account.id,
+							hasSection: false
+						};
+					}
+				})
+			);
+
+			// Filter out students without proper grade level information
+			students = studentsWithSections.filter(student => 
+				student.gradeLevel !== 'Not specified'
+			);
+			
 			filterStudents();
 		} catch (error) {
 			console.error('Error loading students:', error);
+			toastStore.error('Failed to load students. Please try again.');
 			students = [];
 		} finally {
 			isLoading = false;
@@ -77,7 +156,7 @@
 		filteredStudents = students.filter(student => {
 			const matchesSearch = !searchQuery || 
 				student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				student.id.toLowerCase().includes(searchQuery.toLowerCase());
+				student.id.toString().toLowerCase().includes(searchQuery.toLowerCase());
 			
 			const matchesGradeLevel = !selectedGradeLevel || 
 				student.gradeLevel === selectedGradeLevel;
@@ -101,13 +180,13 @@
 	}
 
 	function selectGradeLevel(gradeLevel) {
-		selectedGradeLevel = gradeLevel;
+		selectedGradeLevel = gradeLevel.id;
 		isGradeLevelDropdownOpen = false;
 		filterStudents();
 	}
 
 	function selectSection(section) {
-		selectedSection = section;
+		selectedSection = section.id;
 		isSectionDropdownOpen = false;
 		filterStudents();
 	}
@@ -163,8 +242,9 @@
 	}
 
 	// Load data on component mount
-	onMount(() => {
-		loadStudents();
+	onMount(async () => {
+		await loadSections();
+		await loadStudents();
 		document.addEventListener('click', handleClickOutside);
 		
 		return () => {
@@ -239,7 +319,7 @@
 									type="button"
 									class="sgl-dropdown-option" 
 									class:selected={selectedGradeLevel === gradeLevel.id}
-									on:click={() => selectGradeLevel(gradeLevel.id)}
+									on:click={() => selectGradeLevel(gradeLevel)}
 								>
 									<span class="material-symbols-outlined sgl-option-icon">{gradeLevel.icon}</span>
 									<div class="sgl-option-content">
@@ -275,7 +355,7 @@
 									type="button"
 									class="sgl-dropdown-option" 
 									class:selected={selectedSection === section.id}
-									on:click={() => selectSection(section.id)}
+									on:click={() => selectSection(section)}
 								>
 									<div class="sgl-option-content">
 										<span class="sgl-option-name">{section.name}</span>

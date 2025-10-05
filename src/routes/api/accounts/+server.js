@@ -518,7 +518,7 @@ async function generateAccountNumber(accountType) {
   const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
   const year = new Date().getFullYear();
   
-  // Get all existing account numbers for this type and year
+  // Get all existing account numbers for this type and year (including archived accounts)
   const existingQuery = `
     SELECT account_number 
     FROM users 
@@ -528,22 +528,18 @@ async function generateAccountNumber(accountType) {
   
   const result = await query(existingQuery, [`${prefix}-${year}-%`]);
   
-  // Extract the numeric parts and find the first available number
-  const existingNumbers = result.rows.map(row => {
-    const match = row.account_number.match(/-(\d+)$/);
-    return match ? parseInt(match[1]) : 0;
-  }).sort((a, b) => a - b);
+  // Extract the numeric parts and create a Set for O(1) lookup
+  const existingNumbers = new Set(
+    result.rows.map(row => {
+      const match = row.account_number.match(/-(\d+)$/);
+      return match ? parseInt(match[1]) : 0;
+    }).filter(num => num > 0) // Filter out invalid numbers
+  );
   
+  // Find the lowest available number starting from 1
   let nextNumber = 1;
-  
-  // Find the first gap in the sequence or use the next number after the highest
-  for (let i = 0; i < existingNumbers.length; i++) {
-    if (existingNumbers[i] === nextNumber) {
-      nextNumber++;
-    } else if (existingNumbers[i] > nextNumber) {
-      // Found a gap, use the current nextNumber
-      break;
-    }
+  while (existingNumbers.has(nextNumber)) {
+    nextNumber++;
   }
   
   return `${prefix}-${year}-${nextNumber.toString().padStart(4, '0')}`;

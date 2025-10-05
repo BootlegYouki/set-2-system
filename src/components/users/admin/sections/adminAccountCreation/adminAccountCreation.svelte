@@ -595,25 +595,31 @@
 		return typeMatches && (nameMatches || numberMatches);
 	});
 
-	// Generate next account number for the selected type
-	function getNextAccountNumber(accountType) {
-		const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
-		const filteredAccounts = recentAccounts.filter(account => 
-			account.number && account.number.startsWith(prefix)
-		);
-		
-		if (filteredAccounts.length === 0) {
-			return `${prefix}-2025-0001`;
+	// Preview account number by fetching from backend API
+	let previewAccountNumber = '';
+	let isLoadingPreview = false;
+
+	async function getNextAccountNumber(accountType) {
+		if (!accountType) {
+			previewAccountNumber = '';
+			return;
 		}
 		
-		// Extract numbers and find the highest
-		const numbers = filteredAccounts.map(account => {
-			const match = account.number.match(/-([0-9]+)$/);
-			return match ? parseInt(match[1]) : 0;
-		});
-		
-		const nextNumber = Math.max(...numbers) + 1;
-		return `${prefix}-2025-${nextNumber.toString().padStart(4, '0')}`;
+		isLoadingPreview = true;
+		try {
+			const data = await api.get(`/api/accounts/next-number?type=${accountType}`);
+			previewAccountNumber = data.accountNumber;
+		} catch (error) {
+			console.error('Error fetching next account number:', error);
+			previewAccountNumber = 'Error loading preview';
+		} finally {
+			isLoadingPreview = false;
+		}
+	}
+
+	// Update preview when account type changes
+	$: if (selectedAccountType) {
+		getNextAccountNumber(selectedAccountType);
 	}
 
 	// Load existing accounts from database
@@ -959,13 +965,19 @@
 					</div>
 					<div class="number-display">
 						{#if selectedAccountType}
-							<span class="auto-number">{getNextAccountNumber(selectedAccountType)}</span>
-							<span class="auto-label">(Auto-generated)</span>
+							{#if isLoadingPreview}
+								<span class="auto-label">Loading preview...</span>
+							{:else if previewAccountNumber}
+								<span class="auto-number">{previewAccountNumber}</span>
+								<span class="auto-label">(Preview - will use lowest available)</span>
+							{:else}
+								<span class="auto-label">Will be auto-assigned (lowest available number)</span>
+							{/if}
 						{:else}
 							<span class="placeholder-number">Select account type first</span>
 						{/if}
 					</div>
-					<p class="form-help">Account number will be automatically assigned. Password will be set to the same as the account number.</p>
+					<p class="form-help">Account number will be automatically assigned using the lowest available number. Password will be set to the same as the account number.</p>
 				</div>
 
 				<!-- Submit Button -->
