@@ -80,12 +80,12 @@
 			}
 		});
 
-		// Refresh notification count every 30 seconds
+		// Refresh notification count every 15 seconds
 		const interval = setInterval(() => {
 			if ($authStore.isAuthenticated) {
 				fetchNotificationCount();
 			}
-		}, 30000);
+		}, 15000);
 
 		return () => {
 			clearInterval(interval);
