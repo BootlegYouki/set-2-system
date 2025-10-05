@@ -49,14 +49,9 @@
 		if (!authState.isAuthenticated) return;
 		
 		try {
-			console.log('Fetching notification count...');
 			const result = await authenticatedFetch('/api/notifications?limit=1&offset=0');
-			console.log('Notification API result:', result);
 			if (result.success) {
 				unreadNotificationCount = result.data.unreadCount || 0;
-				console.log('Updated unreadNotificationCount to:', unreadNotificationCount);
-			} else {
-				console.error('Failed to fetch notifications:', result.error);
 			}
 		} catch (err) {
 			console.error('Error fetching notification count:', err);

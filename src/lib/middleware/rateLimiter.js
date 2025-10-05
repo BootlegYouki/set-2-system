@@ -20,21 +20,21 @@ class RateLimiter {
       // General API rate limiting
       general: {
         windowMs: 15 * 60 * 1000, // 15 minutes
-        maxRequests: 100, // Max requests per window
-        blockDuration: 30 * 60 * 1000 // 30 minutes block
+        maxRequests: 1000, // Max requests per window (increased from 300)
+        blockDuration: 5 * 60 * 1000 // 5 minutes block (reduced from 15)
       },
       // Login-specific rate limiting
       login: {
         windowMs: 15 * 60 * 1000, // 15 minutes
-        maxAttempts: 5, // Max login attempts per window
-        blockDuration: 15 * 60 * 1000, // 15 minutes block
+        maxAttempts: 5, // Max login attempts per window (increased from 5)
+        blockDuration: 5 * 60 * 1000, // 5 minutes block (reduced from 15)
         progressiveDelay: true
       },
       // Suspicious activity thresholds
       suspicious: {
-        rapidRequests: 50, // Requests in 1 minute
-        multipleFailures: 10, // Failed attempts in 5 minutes
-        blockDuration: 24 * 60 * 60 * 1000 // 24 hours block
+        rapidRequests: 100, // Requests in 1 minute (increased from 50)
+        multipleFailures: 20, // Failed attempts in 5 minutes (increased from 10)
+        blockDuration: 60 * 60 * 1000 // 1 hour block (reduced from 24 hours)
       }
     };
 
@@ -81,6 +81,33 @@ class RateLimiter {
     });
     
     console.warn(`IP ${ip} blocked for ${duration}ms. Reason: ${reason}`);
+  }
+
+  /**
+   * Clear all blocks (useful for development)
+   */
+  clearAllBlocks() {
+    this.blockedIPs.clear();
+    this.requests.clear();
+    this.failedAttempts.clear();
+    this.suspiciousActivity.clear();
+    console.log('All rate limit blocks and tracking data cleared');
+  }
+
+  /**
+   * Clear blocks for a specific IP
+   */
+  clearIPBlock(ip) {
+    this.blockedIPs.delete(ip);
+    this.requests.delete(ip);
+    this.failedAttempts.delete(ip);
+    // Clear suspicious activity for this IP
+    for (const [key, activities] of this.suspiciousActivity.entries()) {
+      if (key.startsWith(ip + ':')) {
+        this.suspiciousActivity.delete(key);
+      }
+    }
+    console.log(`Rate limit blocks cleared for IP: ${ip}`);
   }
 
   /**

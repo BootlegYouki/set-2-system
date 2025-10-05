@@ -10,28 +10,23 @@ import { json } from '@sveltejs/kit';
  * Handle function - runs on every request
  */
 export async function handle({ event, resolve }) {
-  const { request, url, getClientAddress } = event;
+  const { request, url } = event;
+  const getClientAddress = () => event.getClientAddress();
   
-  // Apply protection to all API routes
-  if (url.pathname.startsWith('/api/')) {
-    // Skip protection for specific endpoints if needed
-    const skipProtection = [
-      // Add any endpoints that should skip protection
-    ];
+  // Skip protection for specific endpoints
+  const skipEndpoints = ['/api/login', '/api/logout'];
+  const shouldSkip = skipEndpoints.some(endpoint => url.pathname === endpoint);
+  
+  if (url.pathname.startsWith('/api/') && !shouldSkip) {
+    const protectionResult = await protectAPI(request, getClientAddress);
     
-    const shouldSkip = skipProtection.some(path => url.pathname.startsWith(path));
-    
-    if (!shouldSkip) {
-      const protectionResult = await protectAPI(request, getClientAddress);
-      
-      // If protection failed, return the error response immediately
-      if (protectionResult.status) {
-        return protectionResult;
-      }
-      
-      // Store protection headers to add to the final response
-      event.locals.securityHeaders = protectionResult.headers;
+    // If protection failed, return the error response immediately
+    if (protectionResult.status) {
+      return protectionResult;
     }
+    
+    // Store protection headers to add to the final response
+    event.locals.securityHeaders = protectionResult.headers;
   }
   
   // Continue with the request
@@ -43,6 +38,11 @@ export async function handle({ event, resolve }) {
       response.headers.set(key, value);
     });
   }
+  
+  // Add general security headers
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   
   return response;
 }
