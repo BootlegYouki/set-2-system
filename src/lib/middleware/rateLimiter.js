@@ -319,8 +319,9 @@ export function createRateLimitMiddleware(options = {}) {
           'X-RateLimit-Reason': blockInfo.reason
         },
         body: {
-          error: 'Too many requests. IP temporarily blocked.',
-          retryAfter
+          retryAfter,
+          retryAfterSeconds: retryAfter,
+          error: `Too many requests. Please wait ${retryAfter} seconds before trying again.`
         }
       };
     }
