@@ -8,7 +8,7 @@
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
   import Notification from '../components/users/student/sections/studentNotification/notification.svelte';
-  import TodoList from '../components/users/student/sections/studentTodolist/todolist.svelte';
+  import StudentTodoList from '../components/users/student/sections/studentTodolist/studentTodolist.svelte';
   import TeacherNavbar from '../components/users/teacher/navigations/teacherNavbar/teacherNavbar.svelte';
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
   import TeacherSchedule from '../components/users/teacher/sections/teacherSchedule/teacherSchedule.svelte';
@@ -176,7 +176,7 @@
         {:else if activeSection === 'notifications'}
           <Notification />
         {:else if activeSection === 'todo'}
-          <TodoList />
+          <StudentTodoList />
         {/if}
       </main>
 

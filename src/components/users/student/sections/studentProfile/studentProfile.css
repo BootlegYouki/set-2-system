@@ -596,12 +596,6 @@ Student Profile Component Styles
 		padding: var(--spacing-md);
 	}
 
-	.profile-header {
-		flex-direction: column;
-		text-align: center;
-		gap: var(--spacing-md);
-	}
-
 	.info-cards-grid {
 		grid-template-columns: 1fr;
 	}

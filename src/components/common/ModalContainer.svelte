@@ -326,9 +326,6 @@
 
   /* Responsive adjustments */
   @media (max-width: 640px) {
-    .modal-actions {
-      flex-direction: column-reverse;
-    }
 
     .modal-btn {
       width: 100%;

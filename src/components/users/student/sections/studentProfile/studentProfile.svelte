@@ -9,6 +9,7 @@
 	// Get basic auth data
 	let authState = $state();
 	let studentData = $state(null);
+	let studentProfileData = $state(null);
 	let isLoading = $state(true);
 	let error = $state(null);
 	
@@ -59,12 +60,38 @@
 			}
 
 			studentData = currentUserData;
+
+			// Fetch additional student profile data (subjects, section, grades, etc.)
+			await fetchStudentProfileData();
+
 		} catch (err) {
 			console.error('Error fetching student data:', err);
 			error = err.message;
 			toastStore.error(`Failed to load profile data: ${err.message}`);
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	// Fetch additional student profile data
+	async function fetchStudentProfileData() {
+		try {
+			if (!authState?.userData?.id) {
+				return;
+			}
+
+			const profileResponse = await api.get(`/api/student-profile?studentId=${authState.userData.id}`);
+			
+			if (profileResponse.success) {
+				studentProfileData = profileResponse.data;
+				console.log('Student Profile Data:', studentProfileData);
+			} else {
+				console.warn('Failed to fetch student profile data:', profileResponse.error);
+				// Don't throw error here as basic profile should still work
+			}
+		} catch (err) {
+			console.warn('Error fetching student profile data:', err);
+			// Don't throw error here as basic profile should still work
 		}
 	}
 
@@ -83,7 +110,7 @@
 		lastName: studentData?.lastName || '',
 		middleInitial: studentData?.middleInitial || '',
 		yearLevel: studentData?.gradeLevel ? `Grade ${studentData.gradeLevel}` : 'Not assigned',
-		section: studentData?.section || 'Not assigned',
+		section: studentProfileData?.section?.name || 'Not assigned',
 		email: studentData?.email || 'Not available',
 		phone: studentData?.contactNumber || 'Not available',
 		address: studentData?.address || 'Not available',
@@ -96,11 +123,12 @@
 		guardian: studentData?.guardian || 'Not available',
 		gender: studentData?.gender || authState?.userData?.gender || 'male',
 		academicSummary: {
-			gpa: 'Not available', // Will be populated from grades API
-			rank: 'Not available', // Will be populated from grades API
-			totalStudents: 'Not available' // Will be populated from grades API
+			adviser: studentProfileData?.section?.adviser || 'Not available',
+			gpa: studentProfileData?.academicSummary?.generalAverage || 'Not available',
+			rank: studentProfileData?.academicSummary?.classRank || 'Not available',
+			totalStudents: studentProfileData?.academicSummary?.totalStudentsInSection || 'Not available'
 		},
-		subjects: [] // Will be populated from subjects API
+		subjects: studentProfileData?.subjects || []
 	});
 
 	// Calculate total subjects (will be 0 initially until subjects are loaded)
@@ -246,7 +274,7 @@
 						</div>
 						<div class="info-content">
 							<div class="info-label">Section</div>
-							<div class="info-value">{studentProfile.section || 'Not assigned'}</div>
+							<div class="info-value">{studentProfile.section}</div>
 						</div>
 					</div>
 
@@ -257,9 +285,10 @@
 						</div>
 						<div class="info-content">
 							<div class="info-label">Total Subjects</div>
-							<div class="info-value">{totalSubjects || 'Not available'}</div>
+							<div class="info-value">{totalSubjects}</div>
 						</div>
 					</div>
+					
 				</div>
 
 				<!-- Row 2: 3 cards -->
@@ -348,8 +377,17 @@
 					<p class="profile-loading-text">Loading academic performance...</p>
 				</div>
 			{:else}
-				<!-- Academic Performance Row (2 cards) -->
-				<div class="info-row row-two">
+				<!-- Academic Performance Row (3 cards) -->
+				<div class="info-row row-three">	
+					<div class="info-card">
+						<div class="info-icon">
+							<span class="material-symbols-outlined">person_outline</span>
+						</div>
+						<div class="info-content">
+							<div class="info-label">Adviser</div>
+							<div class="info-value">{studentProfile.academicSummary.adviser}</div>
+						</div>
+					</div>
 					<!-- GPA Card -->
 					<div class="info-card">
 						<div class="info-icon">
@@ -357,7 +395,7 @@
 						</div>
 						<div class="info-content">
 							<div class="info-label">General Average</div>
-							<div class="info-value">{studentProfile.academicSummary.gpa || 'Not available'}</div>
+							<div class="info-value">{studentProfile.academicSummary.gpa !== 'Not available' ? `${studentProfile.academicSummary.gpa}%` : 'Not available'}</div>
 						</div>
 					</div>
 
@@ -368,7 +406,7 @@
 						</div>
 						<div class="info-content">
 							<div class="info-label">Class Rank</div>
-							<div class="info-value">{studentProfile.academicSummary.rank && studentProfile.academicSummary.totalStudents && studentProfile.academicSummary.rank !== 'Not available' && studentProfile.academicSummary.totalStudents !== 'Not available' ? `${studentProfile.academicSummary.rank} of ${studentProfile.academicSummary.totalStudents}` : 'Not available'}</div>
+							<div class="info-value">{studentProfile.academicSummary.rank !== 'Not available' && studentProfile.academicSummary.totalStudents !== 'Not available' ? `${studentProfile.academicSummary.rank} of ${studentProfile.academicSummary.totalStudents}` : 'Not available'}</div>
 						</div>
 					</div>
 				</div>
@@ -398,10 +436,6 @@
 							<div class="subject-details-column">
 								<h3 class="subject-name">{subject.name}</h3>
 								<p class="teacher-name">{subject.teacher}</p>
-								<div class="subject-id">
-									<span class="material-symbols-outlined">tag</span>
-									<span class="subject-id-text">{subject.id}</span>
-								</div>
 							</div>
 						</div>
 					{/each}

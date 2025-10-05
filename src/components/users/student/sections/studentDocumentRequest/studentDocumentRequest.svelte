@@ -239,12 +239,12 @@
 								<div class="dropdown-menu-document">
 									{#each documentTypes as docType}
 										<button 
-											class="dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''}"
+											class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''}"
 											on:click={() => selectDocumentType(docType)}
 										>
-											<div class="dropdown-item-content">
-												<span class="dropdown-item-name">{docType.name}</span>
-												<span class="dropdown-item-desc">{docType.description}</span>
+											<div class="doc-dropdown-item-content">
+												<span class="doc-dropdown-item-name">{docType.name}</span>
+												<span class="doc-dropdown-item-desc">{docType.description}</span>
 											</div>
 										</button>
 									{/each}
