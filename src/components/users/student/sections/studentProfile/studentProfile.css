@@ -1,58 +1,7 @@
-Student Profile Component Styles
+/* Student Profile Component Styles */
 /* Using 'profile-' prefix to avoid conflicts with other components */
-
-.notification-container {
-	position: fixed;
-	top: 20px;
-	right: 20px;
-	z-index: 1000;
-}
-
-.modal-button-group {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-	width: 100%;
-}
-
-.modal-action-btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: var(--spacing-lg) var(--spacing-xl);
-	border: none;
-	background: transparent;
-	color: var(--md-sys-color-on-surface);
-	font-family: var(--md-sys-typescale-body-large-font);
-	font-size: var(--md-sys-typescale-body-large-size);
-	font-weight: 400;
-	cursor: pointer;
-	transition: background-color 0.2s ease;
-	border-radius: 0;
-	min-height: 48px;
-	width: 100%;
-	text-align: center;
-}
-
-.modal-action-btn:hover {
-	background-color: var(--md-sys-color-surface-container-high);
-}
-
-.modal-action-btn:not(:last-child) {
-	border-bottom: 1px solid var(--md-sys-color-outline-variant);
-}
-
-.modal-action-btn.upload-btn {
-	color: var(--md-sys-color-primary);
-}
-
-.modal-action-btn.remove-btn {
-	color: var(--md-sys-color-error);
-}
-
-.modal-action-btn.cancel-btn {
-	color: var(--md-sys-color-on-surface-variant);
-	font-weight: 500;
+.profile-container::-webkit-scrollbar {
+		display: none;
 }
 
 /* Header Section */
@@ -92,58 +41,7 @@ Student Profile Component Styles
 	color: white;
 }
 
-.profile-avatar {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
 
-.avatar-circle {
-	width: 80px;
-	height: 80px;
-	border-radius: 50%;
-	background-color: rgba(255, 255, 255, 0.2);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border: 3px solid rgba(255, 255, 255, 0.3);
-	transition: all var(--transition-normal);
-	position: relative;
-	cursor: pointer;
-}
-
-.avatar-circle:hover {
-	background-color: rgba(255, 255, 255, 0.3);
-}
-
-.avatar-circle .material-symbols-outlined {
-	font-size: 40px;
-	color: white;
-}
-
-.avatar-overlay {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	border-radius: 50%;
-	background-color: rgba(0, 0, 0, 0.6);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	opacity: 0;
-	transition: opacity var(--transition-normal);
-}
-
-.avatar-circle:hover .avatar-overlay {
-	opacity: 1;
-}
-
-.edit-icon {
-	font-size: 24px !important;
-	color: white !important;
-}
 
 /* Section Titles */
 .section-title {
@@ -159,7 +57,7 @@ Student Profile Component Styles
 
 /* Student Information Section */
 .profile-info-section {
-	margin-bottom: var(--spacing-xl);
+	margin-bottom: var(--spacing-md);
 }
 
 /* Info Rows Layout */
@@ -235,7 +133,6 @@ Student Profile Component Styles
 }
 
 .contact-card:hover {
-	transform: translateY(-2px);
 	box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 	border-color: var(--school-primary);
 }
@@ -301,69 +198,10 @@ Student Profile Component Styles
 
 /* Academic Performance Section */
 .profile-academic-section {
-	margin-bottom: 2rem;
+	margin-bottom: var(--spacing-md);
 }
 
-/* Profile Picture Modal Actions */
-.profile-modal-actions {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-}
 
-.profile-modal-action-btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.75rem;
-	padding: 1rem 1.5rem;
-	border: none;
-	background: transparent;
-	color: var(--text-primary);
-	font-size: 0.95rem;
-	font-weight: 500;
-	cursor: pointer;
-	transition: all 0.2s ease;
-	border-bottom: 1px solid var(--border-color);
-	width: 100%;
-}
-
-.profile-modal-action-btn:last-child {
-	border-bottom: none;
-}
-
-.profile-modal-action-btn:hover {
-	background: var(--hover-background, rgba(0, 0, 0, 0.05));
-}
-
-.profile-modal-action-btn .material-symbols-outlined {
-	font-size: 20px;
-}
-
-.upload-btn {
-	color: var(--school-primary);
-}
-
-.upload-btn:hover {
-	background: rgba(var(--school-primary-rgb, 59, 130, 246), 0.1);
-}
-
-.remove-btn {
-	color: #ef4444;
-}
-
-.remove-btn:hover {
-	background: rgba(239, 68, 68, 0.1);
-}
-
-.cancel-btn {
-	color: var(--text-secondary);
-	font-weight: 400;
-}
-
-.cancel-btn:hover {
-	background: var(--hover-background, rgba(0, 0, 0, 0.05));
-}
 
 .info-card {
 	display: flex;
@@ -381,7 +219,6 @@ Student Profile Component Styles
 
 .info-card:hover {
 	background-color: var(--md-sys-color-surface-container-hover);
-	transform: translateY(-2px);
 	box-shadow: var(--shadow-md);
 }
 
@@ -401,7 +238,10 @@ Student Profile Component Styles
 	font-size: 24px;
 	color: white;
 }
-
+.info-content-container {
+	display: flex;
+	gap: var(--spacing-md);
+}
 .info-content {
 	flex: 1;
 }
@@ -429,7 +269,7 @@ Student Profile Component Styles
 
 /* Subjects Section */
 .profile-subjects-section {
-	margin-bottom: var(--spacing-xl);
+	margin-bottom: var(--spacing-md);
 }
 
 .subjects-grid {
@@ -452,7 +292,7 @@ Student Profile Component Styles
 
 .subject-card:hover {
 	background-color: var(--md-sys-color-surface-container-hover);
-	transform: translateY(-2px);
+	transform: translateY(0);
 	box-shadow: var(--shadow-md);
 }
 
@@ -516,6 +356,172 @@ Student Profile Component Styles
 	font-weight: 500;
 	color: var(--md-sys-color-on-surface-variant);
 	letter-spacing: 0.5px;
+}
+
+/* Account Security Section */
+.profile-security-section {
+	margin-bottom: var(--spacing-md);
+}
+
+.security-action-button {
+	background: var(--school-primary);
+	color: white;
+	border: none;
+	border-radius: var(--radius-sm);
+	padding: var(--spacing-sm) var(--spacing-md);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: 500;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	transition: all var(--transition-normal);
+	white-space: nowrap;
+}
+
+.security-action-button:hover {
+	background: var(--school-secondary);
+	box-shadow: var(--shadow-md);
+}
+
+.security-action-button:active {
+	transform: translateY(0);
+}
+
+.security-action-button .material-symbols-outlined {
+	font-size: 18px;
+}
+
+/* Student Profile Password Form - Modal Specific Styles */
+.student-profile-password-form {
+	padding: var(--spacing-sm);
+	display: flex;
+	flex-direction: column;
+}
+
+.student-profile-form-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.student-profile-form-group label {
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface);
+}
+
+.student-profile-form-input {
+	padding: var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	background-color: var(--md-sys-color-surface-container);
+	color: var(--md-sys-color-on-surface);
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	transition: all var(--transition-normal);
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.student-profile-form-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+
+.student-profile-form-input::placeholder {
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Password Input Wrapper and Toggle Button */
+.student-profile-password-input-wrapper {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+
+.student-profile-password-input-wrapper .student-profile-form-input {
+	padding-right: 48px; /* Make room for the toggle button */
+}
+
+.student-profile-password-toggle {
+	position: absolute;
+	right: 12px;
+	top: 50%;
+	transform: translateY(-50%);
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 4px;
+	border-radius: var(--radius-sm);
+	color: var(--md-sys-color-on-surface-variant);
+	transition: all var(--transition-normal);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.student-profile-password-toggle:hover {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface);
+}
+
+.password-eye-icon {
+	width: 20px;
+	height: 20px;
+	stroke-width: 2;
+}
+
+/* Password Form Styles (for modal) */
+.password-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-md);
+	padding: var(--spacing-md) 0;
+}
+
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+}
+
+.form-group label {
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface);
+}
+
+.form-input {
+	padding: var(--spacing-sm);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-sm);
+	font-size: var(--md-sys-typescale-body-large-size);
+	background: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	transition: border-color var(--transition-normal);
+}
+
+.form-input:focus {
+	outline: none;
+	border-color: var(--school-primary);
+	box-shadow: 0 0 0 3px rgba(var(--school-primary-rgb), 0.1);
+}
+
+.button-loader {
+	width: 16px;
+	height: 16px;
+	border: 2px solid transparent;
+	border-top: 2px solid currentColor;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
 }
 
 /* Empty State */
@@ -593,7 +599,7 @@ Student Profile Component Styles
 /* Responsive Design */
 @media (max-width: 768px) {
 	.profile-container {
-		padding: var(--spacing-md);
+		padding: var(--spacing-lg);
 	}
 
 	.info-cards-grid {
@@ -607,20 +613,11 @@ Student Profile Component Styles
 	.page-title {
 		font-size: 24px;
 	}
-
-	.avatar-circle {
-		width: 60px;
-		height: 60px;
-	}
-
-	.avatar-circle .material-symbols-outlined {
-		font-size: 30px;
-	}
 }
 
 @media (max-width: 480px) {
 	.profile-container {
-		padding: var(--spacing-sm);
+		padding: var(--spacing-lg);
 	}
 
 	.profile-header {
@@ -640,6 +637,16 @@ Student Profile Component Styles
 	.subject-icon-column {
 		align-self: center;
 	}
+
+	.security-actions {
+		justify-content: center;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.security-action-button {
+		justify-content: center;
+	}
 }
 
 /* High contrast mode support */
@@ -658,8 +665,7 @@ Student Profile Component Styles
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
 	.info-card,
-	.subject-card,
-	.avatar-circle {
+	.subject-card {
 		transition: none;
 	}
 
@@ -667,8 +673,105 @@ Student Profile Component Styles
 	.subject-card:hover {
 		transform: none;
 	}
+}
 
-	.avatar-circle:hover {
-		transform: none;
+/* Mobile collapsible sections */
+.section-header-mobile {
+	display: none;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 1rem;
+	padding: 1rem 1rem;
+	background: var(--md-sys-color-surface-container-low);
+	border-radius: 12px;
+	border: 1px solid var(--md-sys-color-outline-variant);
+	cursor: pointer;
+	transition: background-color 0.2s ease, transform 0.1s ease;
+	color: var(--md-sys-color-on-surface);
+	width: 100%;
+	text-align: left;
+}
+
+.section-header-mobile:hover {
+	background: var(--md-sys-color-surface-container);
+}
+
+.section-header-mobile:active {
+	transform: scale(0.99);
+}
+
+.section-header-mobile .section-title {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 500;
+}
+
+.collapse-icon {
+	font-size: 1.5rem;
+	transition: transform 0.3s ease;
+}
+
+.collapse-icon.rotated {
+	transform: rotate(180deg);
+}
+
+.section-content {
+	transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+	overflow: hidden;
+}
+
+.section-content.collapsed {
+	max-height: 0;
+	opacity: 0;
+	padding: 0;
+	margin: 0;
+}
+
+.security-card {
+	justify-content: space-between;
+	align-items: center;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+	.section-header-mobile {
+		display: flex;
+	}
+
+	.section-header-mobile .section-title {
+		margin: 0;
+		font-size: 1.25rem;
+	}
+
+	.section-title-desktop {
+		display: none;
+	}
+
+	.section-content:not(.collapsed) {
+		max-height: none;
+		opacity: 1;
+	}
+
+	.security-card{
+		flex-direction: column;
+		gap: var(--spacing-md);
+	}
+}
+
+/* Desktop styles - ensure sections are always visible */
+@media (min-width: 769px) {
+	.section-content {
+		max-height: none !important;
+		opacity: 1 !important;
+		padding: initial !important;
+		margin: initial !important;
+	}
+
+	.section-header-mobile {
+		display: none !important;
+	}
+
+	.section-title-desktop {
+		display: block !important;
 	}
 }

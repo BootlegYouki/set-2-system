@@ -1,7 +1,8 @@
 <script>
 	import './studentProfile.css';
-	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { showSuccess, showError } from '../../../../common/js/toastStore.js';
 	import { authStore } from '../../../../../components/login/js/auth.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
@@ -134,62 +135,188 @@
 	// Calculate total subjects (will be 0 initially until subjects are loaded)
 	let totalSubjects = $derived(studentProfile.subjects.length || 'Not available');
 
-	// Modal state and functions
-	function openPictureModal() {
-		// Make close function globally accessible
-		window.handleModalClose = () => {
-			modalStore.closeAll();
-		};
+	// Collapsible state for mobile sections (collapsed by default)
+	let isStudentInfoCollapsed = $state(true);
+	let isAcademicPerformanceCollapsed = $state(false);
+	let isEnrolledSubjectsCollapsed = $state(true);
 
-		modalStore.open('CustomModal', {
-			title: 'Change Profile Photo',
-			content: `<div class="profile-picture-modal">
-				<div class="modal-button-group">
-					<button class="modal-action-btn upload-btn" onclick="handleUpload()">
-						Upload Photo
-					</button>
-					<button class="modal-action-btn remove-btn" onclick="handleRemove()">
-						Remove Current Photo
-					</button>
-					<button class="modal-action-btn cancel-btn" onclick="handleModalClose()">
-						Cancel
-					</button>
+	// Toggle functions for collapsible sections
+	function toggleStudentInfo() {
+		isStudentInfoCollapsed = !isStudentInfoCollapsed;
+	}
+
+	function toggleAcademicPerformance() {
+		isAcademicPerformanceCollapsed = !isAcademicPerformanceCollapsed;
+	}
+
+	function toggleEnrolledSubjects() {
+		isEnrolledSubjectsCollapsed = !isEnrolledSubjectsCollapsed;
+	}
+
+	// Password change functionality
+	let passwordLoading = $state(false);
+
+	// Toggle password visibility function
+	function togglePasswordVisibility(inputId) {
+		const input = document.getElementById(inputId);
+		const button = input.nextElementSibling;
+		const icon = button.querySelector('.password-eye-icon');
+		
+		if (input.type === 'password') {
+			input.type = 'text';
+			icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+		} else {
+			input.type = 'password';
+			icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+		}
+	}
+
+	// Make function globally available
+	if (typeof window !== 'undefined') {
+		window.togglePasswordVisibility = togglePasswordVisibility;
+	}
+
+	// Handle password change button click
+	function handlePasswordChangeModal() {
+		const passwordFormContent = `
+			<div class="student-profile-password-form">
+				<div class="student-profile-form-group">
+					<label for="current-password">Current Password</label>
+					<div class="student-profile-password-input-wrapper">
+						<input 
+							id="current-password"
+							type="password" 
+							placeholder="Enter current password"
+							class="student-profile-form-input"
+						/>
+						<button type="button" class="student-profile-password-toggle" onclick="togglePasswordVisibility('current-password')">
+							<svg class="password-eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+								<line x1="1" y1="1" x2="23" y2="23"/>
+							</svg>
+						</button>
+					</div>
 				</div>
-			</div>`
-		}, { 
-			size: 'small',
-			closable: false
-		});
-	}
+				
+				<div class="student-profile-form-group">
+					<label for="new-password">New Password</label>
+					<div class="student-profile-password-input-wrapper">
+						<input 
+							id="new-password"
+							type="password" 
+							placeholder="Enter new password"
+							class="student-profile-form-input"
+						/>
+						<button type="button" class="student-profile-password-toggle" onclick="togglePasswordVisibility('new-password')">
+							<svg class="password-eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+								<line x1="1" y1="1" x2="23" y2="23"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+				
+				<div class="student-profile-form-group">
+					<label for="confirm-password">Confirm New Password</label>
+					<div class="student-profile-password-input-wrapper">
+						<input 
+							id="confirm-password"
+							type="password" 
+							placeholder="Confirm new password"
+							class="student-profile-form-input"
+						/>
+						<button type="button" class="student-profile-password-toggle" onclick="togglePasswordVisibility('confirm-password')">
+							<svg class="password-eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+								<line x1="1" y1="1" x2="23" y2="23"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+			</div>
+		`;
 
-	function handleUpload() {
-		// Create a file input element
-		const fileInput = document.createElement('input');
-		fileInput.type = 'file';
-		fileInput.accept = 'image/*';
-		fileInput.onchange = (e) => {
-			const file = e.target.files[0];
-			if (file) {
-				// Here you would typically upload the file to your server
-				// For now, we'll just show a success message
-				toastStore.success(`Profile picture updated successfully!`);
-				modalStore.closeAll();
-			}
-		};
-		fileInput.click();
-	}
-
-	function handleRemove() {
 		modalStore.confirm(
-			'Remove Profile Picture',
-			'Are you sure you want to remove your profile picture?',
+			'Change Password',
+			passwordFormContent,
+			handlePasswordChange,
 			() => {
-				// Here you would typically make an API call to remove the picture
-				toastStore.success('Profile picture removed successfully!');
+				// Reset password fields - no need to reset state variables since we're using DOM inputs
 			},
-			null,
-			{ size: 'small' }
+			{ size: 'medium' }
 		);
+	}
+
+	async function handlePasswordChange() {
+		// Get values from the modal inputs
+		const currentPasswordInput = document.getElementById('current-password');
+		const newPasswordInput = document.getElementById('new-password');
+		const confirmPasswordInput = document.getElementById('confirm-password');
+		
+		if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+			showError('Password form inputs not found');
+			return;
+		}
+		
+		const currentPassword = currentPasswordInput.value;
+		const newPassword = newPasswordInput.value;
+		const confirmPassword = confirmPasswordInput.value;
+
+		// Validation
+		if (!currentPassword) {
+			showError('Current password is required');
+			return;
+		}
+
+		if (!newPassword) {
+			showError('New password is required');
+			return;
+		}
+
+		if (newPassword !== confirmPassword) {
+			showError('New passwords do not match');
+			return;
+		}
+
+		if (newPassword.length < 8) {
+			showError('Password must be at least 8 characters long');
+			return;
+		}
+
+		// Check if new password is different from current
+		if (currentPassword === newPassword) {
+			showError('New password must be different from current password');
+			return;
+		}
+
+		try {
+			passwordLoading = true;
+			
+			// Call the password change API
+			const response = await api.post('/api/change-password', {
+				currentPassword,
+				newPassword
+			});
+
+			if (response.success) {
+				// Reset form inputs
+				currentPasswordInput.value = '';
+				newPasswordInput.value = '';
+				confirmPasswordInput.value = '';
+				
+				showSuccess('Password changed successfully!');
+				
+				// Close the modal
+				modalStore.close();
+			} else {
+				showError(response.error || 'Failed to change password');
+			}
+		} catch (error) {
+			console.error('Password change error:', error);
+			showError(error.message || 'Failed to change password');
+		} finally {
+			passwordLoading = false;
+		}
 	}
 </script>
 
@@ -213,25 +340,24 @@
 				<h1 class="page-title">Student Profile</h1>
 				<p class="page-subtitle">Personal Information & Academic Details</p>
 			</div>
-			<div class="profile-avatar">
-				<div class="avatar-circle" onclick={openPictureModal}>
-					<span class="material-symbols-outlined">person</span>
-					<div class="avatar-overlay">
-						<span class="material-symbols-outlined edit-icon">edit</span>
-					</div>
-				</div>
-			</div>
 		</div>
 
 		<!-- Student Information Cards -->
 		<div class="profile-info-section">
-			<h2 class="section-title">Student Information</h2>
-			{#if isLoading}
-				<div class="profile-loading-container">
-					<span class="profile-loader"></span>
-					<p class="profile-loading-text">Loading student information...</p>
-				</div>
-			{:else}
+			<h2 class="section-title section-title-desktop">Student Information</h2>
+			<button class="section-header-mobile" onclick={toggleStudentInfo} aria-label="Toggle student information">
+				<h2 class="section-title">Student Information</h2>
+				<span class="material-symbols-outlined collapse-icon" class:rotated={isStudentInfoCollapsed}>
+					expand_more
+				</span>
+			</button>
+			<div class="section-content" class:collapsed={isStudentInfoCollapsed}>
+				{#if isLoading}
+					<div class="profile-loading-container">
+						<span class="profile-loader"></span>
+						<p class="profile-loading-text">Loading student information...</p>
+					</div>
+				{:else}
 				<!-- Row 1: 5 cards -->
 				<div class="info-row row-five">
 					<!-- Student ID Card -->
@@ -365,18 +491,26 @@
 						</div>
 					</div>
 				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
 
 		<!-- Academic Performance Section -->
 		<div class="profile-academic-section">
-			<h2 class="section-title">Academic Performance</h2>
-			{#if isLoading}
-				<div class="profile-loading-container">
-					<span class="profile-loader"></span>
-					<p class="profile-loading-text">Loading academic performance...</p>
-				</div>
-			{:else}
+			<h2 class="section-title section-title-desktop">Academic Performance</h2>
+			<button class="section-header-mobile" onclick={toggleAcademicPerformance} aria-label="Toggle academic performance">
+				<h2 class="section-title">Academic Performance</h2>
+				<span class="material-symbols-outlined collapse-icon" class:rotated={isAcademicPerformanceCollapsed}>
+					expand_more
+				</span>
+			</button>
+			<div class="section-content" class:collapsed={isAcademicPerformanceCollapsed}>
+				{#if isLoading}
+					<div class="profile-loading-container">
+						<span class="profile-loader"></span>
+						<p class="profile-loading-text">Loading academic performance...</p>
+					</div>
+				{:else}
 				<!-- Academic Performance Row (3 cards) -->
 				<div class="info-row row-three">	
 					<div class="info-card">
@@ -410,18 +544,26 @@
 						</div>
 					</div>
 				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
 
 		<!-- Subjects Section -->
 		<div class="profile-subjects-section">
-			<h2 class="section-title">Enrolled Subjects</h2>
-			{#if isLoading}
-				<div class="profile-loading-container">
-					<span class="profile-loader"></span>
-					<p class="profile-loading-text">Loading enrolled subjects...</p>
-				</div>
-			{:else if studentProfile.subjects.length > 0}
+			<h2 class="section-title section-title-desktop">Enrolled Subjects</h2>
+			<button class="section-header-mobile" onclick={toggleEnrolledSubjects} aria-label="Toggle enrolled subjects">
+				<h2 class="section-title">Enrolled Subjects</h2>
+				<span class="material-symbols-outlined collapse-icon" class:rotated={isEnrolledSubjectsCollapsed}>
+					expand_more
+				</span>
+			</button>
+			<div class="section-content" class:collapsed={isEnrolledSubjectsCollapsed}>
+				{#if isLoading}
+					<div class="profile-loading-container">
+						<span class="profile-loader"></span>
+						<p class="profile-loading-text">Loading enrolled subjects...</p>
+					</div>
+				{:else if studentProfile.subjects.length > 0}
 				<div class="subjects-grid">
 					{#each studentProfile.subjects as subject (subject.id)}
 						<div class="subject-card">
@@ -441,11 +583,41 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="subjects-empty">
-					<span class="material-symbols-outlined">menu_book</span>
-					<p>No subjects enrolled yet</p>
+					<div class="subjects-empty">
+						<span class="material-symbols-outlined">menu_book</span>
+						<p>No subjects enrolled yet</p>
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Account Security Section -->
+		<div class="profile-security-section">
+			<h2 class="section-title section-title-desktop">Account Security</h2>
+			<div class="section-content">
+				<div class="info-row row-one">
+					<div class="info-card security-card">
+						<div class="info-content-container">
+							<div class="info-icon">
+								<span class="material-symbols-outlined">lock</span>
+							</div>
+							<div class="info-content">
+								<div class="info-label">Password</div>
+								<div class="info-value">Change your account password for security</div>
+							</div>
+						</div>
+						<div class="security-actions">
+							<button 
+								class="security-action-button" 
+								onclick={handlePasswordChangeModal}
+							>
+								<span class="material-symbols-outlined">lock</span>
+								Change Password
+							</button>
+						</div>
+					</div>
 				</div>
-			{/if}
+			</div>
 		</div>
 	{/if}
 </div>
