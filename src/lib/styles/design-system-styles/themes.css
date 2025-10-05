@@ -56,6 +56,31 @@
   --grade-needs-improvement: #d32f2f;
   --grade-no-grade: #757575;
   
+  /* Subject Card Colors - Light Mode */
+  --subject-card-blue-border: #2196f3;
+  --subject-card-blue-text: #0d47a1;
+  --subject-card-blue-icon: #2196f3;
+  
+  --subject-card-green-border: #4caf50;
+  --subject-card-green-text: #1b5e20;
+  --subject-card-green-icon: #4caf50;
+  
+  --subject-card-purple-border: #9c27b0;
+  --subject-card-purple-text: #4a148c;
+  --subject-card-purple-icon: #9c27b0;
+  
+  --subject-card-yellow-border: #ffc107;
+  --subject-card-yellow-text: #ff6f00;
+  --subject-card-yellow-icon: #ffc107;
+  
+  --subject-card-orange-border: #ff9800;
+  --subject-card-orange-text: #e65100;
+  --subject-card-orange-icon-bg: #ff9800;
+  --subject-card-orange-icon-text: #ffffff;
+  
+  /* Unverified indicator - Light Mode */
+  --unverified-indicator: var(--md-sys-color-warning);
+  
   /* Status Colors - Light Mode */
   /* Completed - Green */
   --status-completed-bg: #e8f5e8;
@@ -132,8 +157,33 @@
   --grade-excellent: #4caf50;
   --grade-good: #ffb300;
   --grade-satisfactory: #ffb74d;
-  --grade-needs-improvement: #f44336;
+  --grade-needs-improvement: #c23f36;
   --grade-no-grade: #bdbdbd;
+  
+  /* Subject Card Colors - Dark Mode */
+  --subject-card-blue-border: #2196f3;
+  --subject-card-blue-text: #90caf9;
+  --subject-card-blue-icon: #73c9fc;
+  
+  --subject-card-green-border: #66bb6a;
+  --subject-card-green-text: #c8e6c9;
+  --subject-card-green-icon: #35c03e;
+  
+  --subject-card-purple-border: #ba68c8;
+  --subject-card-purple-text: #e1bee7;
+  --subject-card-purple-icon: #9a4ff7;
+  
+  --subject-card-yellow-border: #ffcc02;
+  --subject-card-yellow-text: #fff3c4;
+  --subject-card-yellow-icon: #eed889;
+  
+  --subject-card-orange-border: #ffb74d;
+  --subject-card-orange-text: #ffe0b2;
+  --subject-card-orange-icon-bg: #ffb74d;
+  --subject-card-orange-icon-text: #e65100;
+  
+  /* Unverified indicator - Dark Mode */
+  --unverified-indicator: #ff9800;
   
   /* Status Colors - Dark Mode */
   /* Completed - Green */

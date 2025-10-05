@@ -77,8 +77,8 @@ export async function GET({ url, request }) {
       name: row.subject_name,
       teacher: row.teacher_name,
       credits: 3, // Default credits - could be added to subjects table
-      numericGrade: row.verified && row.final_grade ? parseFloat(row.final_grade) : 0,
-      letterGrade: row.verified ? row.letter_grade : null,
+      numericGrade: row.final_grade ? parseFloat(row.final_grade) : 0,
+      letterGrade: row.letter_grade || null,
       verified: row.verified || false,
       computedAt: row.computed_at
     }));

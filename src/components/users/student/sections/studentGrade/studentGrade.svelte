@@ -49,6 +49,31 @@
 		return 'var(--grade-no-grade)';                        // Below 65 or no grade
 	}
 
+	// Generate randomized card color based on subject index/slot
+	function getCardColor(index) {
+		const colors = ['blue', 'green', 'purple', 'yellow', 'orange'];
+		return colors[index % colors.length];
+	}
+
+	// Get grade performance indicator text
+	function getGradeIndicator(grade) {
+		if (grade >= 85) return 'Excellent';
+		if (grade >= 80) return 'Good';
+		if (grade >= 75) return 'Satisfactory';
+		if (grade >= 65) return 'Needs Improvement';
+		return 'No Grade';
+	}
+
+	// Get grade performance color class
+	function getGradeColorClass(grade) {
+		if (grade === null || grade === undefined || grade === 0) return 'grade-no-grade';
+		if (grade >= 85) return 'grade-excellent';
+		if (grade >= 80) return 'grade-good';
+		if (grade >= 75) return 'grade-satisfactory';
+		if (grade >= 65) return 'grade-needs-improvement';
+		return 'grade-needs-improvement'; // For grades below 65 (like 38)
+	}
+
 	// Fetch grades from API
 	async function fetchGrades() {
 		try {
@@ -65,9 +90,12 @@
 
 			if (result.success) {
 				studentData = result.data.student;
-				subjects = result.data.subjects.map(subject => ({
+				subjects = result.data.subjects.map((subject, index) => ({
 					...subject,
-					color: getGradeColor(subject.numericGrade)
+					color: getGradeColor(subject.numericGrade),
+					cardColor: getCardColor(index),
+					gradeIndicator: getGradeIndicator(subject.numericGrade),
+					gradeColorClass: getGradeColorClass(subject.numericGrade)
 				}));
 				totalSubjects = result.data.totalSubjects;
 				overallAverage = result.data.overallAverage;
@@ -94,9 +122,11 @@
 
 	// Update subject colors when subjects change
 	$: {
-		subjects = subjects.map(subject => ({
+		subjects = subjects.map((subject, index) => ({
 			...subject,
-			color: getGradeColor(subject.numericGrade)
+			color: getGradeColor(subject.numericGrade),
+			cardColor: getCardColor(index),
+			gradeIndicator: getGradeIndicator(subject.numericGrade)
 		}));
 	}
 
@@ -185,10 +215,10 @@
 			{:else}
 				<div class="subjects-grid">
 					{#each subjects as subject (subject.id)}
-						<div class="subject-card">
+						<div class="subject-card {subject.cardColor}">
 							<!-- Column 1: Icon -->
 							<div class="subject-icon-column">
-								<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
+								<div class="subject-icon">
 									<span class="material-symbols-outlined">book</span>
 								</div>
 							</div>
@@ -199,19 +229,26 @@
 								<p class="teacher-name" class:no-teacher={subject.teacher === 'No teacher'}>{subject.teacher}</p>
 								{#if subject.verified && subject.numericGrade > 0}
 									<div class="progress-bar">
-										<div class="progress-fill" style="width: {subject.numericGrade}%; background-color: {subject.color}"></div>
+										<div class="progress-fill {subject.gradeColorClass}" style="width: {subject.numericGrade}%"></div>
+									</div>
+								{:else}
+									<div class="progress-bar">
+										<!-- Empty progress bar for no grade -->
 									</div>
 								{/if}
 							</div>
 							
 							<!-- Column 3: Grade Display -->
 							<div class="grade-column">
-								{#if subject.verified && subject.numericGrade > 0}
-									<div class="grade-large" style="color: {subject.color}">
+								{#if subject.numericGrade > 0}
+									<div class="grade-large {subject.gradeColorClass}">
 										<CountUp value={subject.numericGrade} decimals={1} duration={1.5} />
+										{#if !subject.verified}
+											<span class="unverified-indicator" title="Grade not yet verified">*</span>
+										{/if}
 									</div>
 								{:else}
-									<div class="no-grade-large" style="color: {subject.color}">
+									<div class="no-grade-large {subject.gradeColorClass}">
 										<span class="material-symbols-outlined">remove</span>
 										<span class="no-grade-text">No Grade</span>
 									</div>

@@ -376,7 +376,7 @@
 
 /* Subject Card */
 .subject-card {
-  background-color: var(--md-sys-color-surface-container);
+  background-color: transparent;
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   border: 1px solid var(--md-sys-color-outline-variant);
@@ -462,7 +462,7 @@
 /* Large Grade Display */
 .grade-large {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
   min-width: 60px;
 }
@@ -505,7 +505,187 @@
 .progress-fill {
   height: 100%;
   border-radius: var(--radius-full);
-  transition: width var(--transition-normal);
+  transition: width 1.5s ease-out;
+  transform-origin: left;
+  animation: progressSlideIn 1.5s ease-out;
+}
+
+@keyframes progressSlideIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Progress bar color classes to match grade-large colors */
+.progress-fill.grade-excellent {
+  background-color: var(--grade-excellent);
+}
+
+.progress-fill.grade-good {
+  background-color: var(--grade-good);
+}
+
+.progress-fill.grade-satisfactory {
+  background-color: var(--grade-satisfactory);
+}
+
+.progress-fill.grade-needs-improvement {
+  background-color: var(--grade-needs-improvement);
+}
+
+.progress-fill.grade-no-grade {
+  background-color: var(--grade-no-grade);
+  opacity: 0.7;
+}
+
+/* Grade Indicator Badge */
+.grade-indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-xs);
+  width: fit-content;
+}
+
+.grade-indicator-badge.no-grade-badge {
+  opacity: 0.7;
+}
+
+/* Subject Card Color Classes - Similar to studentSchedule */
+
+/* Blue - Primary school brand color */
+.subject-card.blue {
+  background-color: transparent;
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.subject-card.blue .subject-name,
+.subject-card.blue .teacher-name,
+.subject-card.blue .grade-large,
+.subject-card.blue .no-grade-large {
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.subject-card.blue .subject-icon {
+  color: var(--subject-card-blue-icon);
+}
+
+/* Green - Cool complement to blue */
+.subject-card.green {
+  background-color: transparent;
+  border-color: var(--subject-card-green-border);
+  color: var(--subject-card-green-text);
+}
+
+.subject-card.green .subject-name,
+.subject-card.green .teacher-name,
+.subject-card.green .grade-large,
+.subject-card.green .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.green .subject-icon {
+  color: var(--subject-card-green-icon);
+}
+
+/* Purple - Analogous to blue */
+.subject-card.purple {
+  background-color: transparent;
+  border-color: var(--subject-card-purple-border);
+  color: var(--subject-card-purple-text);
+}
+
+.subject-card.purple .subject-name,
+.subject-card.purple .teacher-name,
+.subject-card.purple .grade-large,
+.subject-card.purple .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.purple .subject-icon {
+  color: var(--subject-card-purple-icon);
+}
+
+/* Yellow/Amber - Warm complement to cool blue */
+.subject-card.yellow {
+  background-color: transparent;
+  border-color: var(--subject-card-yellow-border);
+  color: var(--subject-card-yellow-text);
+}
+
+.subject-card.yellow .subject-name,
+.subject-card.yellow .teacher-name,
+.subject-card.yellow .grade-large,
+.subject-card.yellow .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.yellow .subject-icon {
+  color: var(--subject-card-yellow-icon);
+}
+
+/* Orange - Energetic warm tone */
+.subject-card.orange {
+  background-color: transparent;
+  border-color: var(--subject-card-orange-border);
+  color: var(--subject-card-orange-text);
+}
+
+.subject-card.orange .subject-name,
+.subject-card.orange .teacher-name,
+.subject-card.orange .grade-large,
+.subject-card.orange .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.orange .subject-icon {
+  background-color: var(--subject-card-orange-icon-bg);
+  color: var(--subject-card-orange-icon-text);
+}
+
+/* Grade performance color classes - Higher specificity to override card colors */
+.grade-large.grade-excellent,
+.no-grade-large.grade-excellent {
+  color: var(--grade-excellent) !important;
+}
+
+.grade-large.grade-good,
+.no-grade-large.grade-good {
+  color: var(--grade-good) !important;
+}
+
+.grade-large.grade-satisfactory,
+.no-grade-large.grade-satisfactory {
+  color: var(--grade-satisfactory) !important;
+}
+
+.grade-large.grade-needs-improvement,
+.no-grade-large.grade-needs-improvement {
+  color: var(--grade-needs-improvement) !important;
+}
+
+.grade-large.grade-no-grade,
+.no-grade-large.grade-no-grade {
+  color: var(--grade-no-grade) !important;
+  opacity: 0.7;
+}
+
+/* Unverified grade indicator */
+.unverified-indicator {
+  font-size: 0.8em;
+  color: var(--unverified-indicator);
+  margin-left: 4px;
+  vertical-align: super;
 }
 
 /* Responsive Design */
