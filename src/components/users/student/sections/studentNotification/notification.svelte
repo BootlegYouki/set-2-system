@@ -1,72 +1,16 @@
 <script>
   import './notification.css';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
+  import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
+  import { authStore } from '../../../../login/js/auth.js';
 
-  // Notification data - in real app this would come from props or API
-  let notifications = [
-    {
-      id: 1,
-      type: 'todo',
-      title: 'Physics Lab Report Due Tomorrow',
-      message: 'Complete the lab report on gravity experiments - due tomorrow',
-      timestamp: '2024-01-15T14:00:00Z',
-      isRead: false,
-      priority: 'high'
-    },
-    {
-      id: 2,
-      title: 'Grade Posted',
-      message: 'Your grade for Mathematics Quiz #3 has been posted. Check your grades section for details.',
-      type: 'grade',
-      timestamp: '2024-01-15T09:15:00Z',
-      isRead: false,
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      title: 'Document Ready',
-      message: 'Your requested transcript is ready for pickup at the admin office.',
-      type: 'document',
-      timestamp: '2024-01-14T16:45:00Z',
-      isRead: true,
-      priority: 'high'
-    },
-    {
-      id: 4,
-      type: 'todo',
-      title: 'Math Quiz Today',
-      message: 'Study for Math Quiz - Review chapters 5-7 for today\'s quiz',
-      timestamp: '2024-01-15T11:00:00Z',
-      isRead: false,
-      priority: 'high'
-    },
-    {
-      id: 5,
-      title: 'Final Grade Available',
-      message: 'Your final grade for English Literature has been posted. Check your academic record.',
-      type: 'grade',
-      timestamp: '2024-01-13T11:00:00Z',
-      isRead: true,
-      priority: 'medium'
-    },
-    {
-      id: 6,
-      title: 'Enrollment Verification Ready',
-      message: 'Your enrollment verification document is ready for download from the student portal.',
-      type: 'document',
-      timestamp: '2024-01-12T13:30:00Z',
-      isRead: false,
-      priority: 'medium'
-    },
-    {
-      id: 7,
-      type: 'todo',
-      title: 'Assignment Deadline Approaching',
-      message: 'College Application submission due next week - don\'t forget to complete',
-      timestamp: '2024-01-14T10:00:00Z',
-      isRead: false,
-      priority: 'medium'
-    }
-  ];
+  // State variables
+  let notifications = [];
+  let loading = true;
+  let error = null;
+  let unreadCount = 0;
+  let totalCount = 0;
 
   // Filter options
   const filterOptions = [
@@ -81,6 +25,170 @@
   let selectedFilter = 'all';
   let isFilterDropdownOpen = false;
 
+  // API Functions
+  async function fetchNotifications() {
+    if (!browser) return;
+    
+    // Check if user is authenticated
+    const authState = $authStore;
+    if (!authState.isAuthenticated) {
+      error = 'User not authenticated';
+      loading = false;
+      return;
+    }
+    
+    loading = true;
+    error = null;
+    
+    try {
+      const params = new URLSearchParams();
+      if (selectedFilter !== 'all') {
+        params.append('type', selectedFilter);
+      }
+      params.append('limit', '50');
+      params.append('offset', '0');
+      
+      const url = `/api/notifications?${params.toString()}`;
+      const result = await authenticatedFetch(url);
+      
+      if (result.success) {
+        notifications = result.data.notifications;
+        unreadCount = result.data.unreadCount;
+        totalCount = result.data.pagination.total;
+      } else {
+        throw new Error(result.error || 'Failed to fetch notifications');
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      error = err.message;
+      notifications = [];
+      unreadCount = 0;
+      totalCount = 0;
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function updateNotificationStatus(id, isRead) {
+    try {
+      const result = await authenticatedFetch('/api/notifications', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          id: id,
+          action: isRead ? 'mark_read' : 'mark_unread'
+        })
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update notification');
+      }
+
+      // Update local state
+      notifications = notifications.map(notification => 
+        notification.id === id 
+          ? { ...notification, isRead: isRead }
+          : notification
+      );
+
+      // Update unread count
+      if (isRead) {
+        unreadCount = Math.max(0, unreadCount - 1);
+      } else {
+        unreadCount += 1;
+      }
+    } catch (err) {
+      console.error('Error updating notification:', err);
+      error = err.message;
+    }
+  }
+
+  async function deleteNotificationAPI(id) {
+    try {
+      const result = await authenticatedFetch('/api/notifications', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: id })
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete notification');
+      }
+
+      // Update local state
+      const deletedNotification = notifications.find(n => n.id === id);
+      notifications = notifications.filter(notification => notification.id !== id);
+      totalCount = Math.max(0, totalCount - 1);
+      
+      if (deletedNotification && !deletedNotification.isRead) {
+        unreadCount = Math.max(0, unreadCount - 1);
+      }
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+      error = err.message;
+    }
+  }
+
+  async function markAllAsReadAPI() {
+    try {
+      const result = await authenticatedFetch('/api/notifications', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          action: 'mark_all_read'
+        })
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to mark all as read');
+      }
+
+      // Update local state
+      notifications = notifications.map(notification => ({
+        ...notification,
+        isRead: true
+      }));
+      unreadCount = 0;
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+      error = err.message;
+    }
+  }
+
+  async function clearAllReadAPI() {
+    try {
+      const result = await authenticatedFetch('/api/notifications', {
+        method: 'DELETE',
+        body: JSON.stringify({
+          action: 'delete_read'
+        })
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to clear read notifications');
+      }
+
+      // Update local state - remove all read notifications
+      const readCount = notifications.filter(n => n.isRead).length;
+      notifications = notifications.filter(notification => !notification.isRead);
+      totalCount = Math.max(0, totalCount - readCount);
+    } catch (err) {
+      console.error('Error clearing read notifications:', err);
+      error = err.message;
+    }
+  }
+
+  // Component lifecycle
+  onMount(() => {
+    // Wait for auth store to be initialized before fetching
+    let unsubscribe;
+    unsubscribe = authStore.subscribe((authState) => {
+      if (authState.isAuthenticated) {
+        fetchNotifications();
+        if (unsubscribe) {
+          unsubscribe(); // Unsubscribe after first successful fetch
+        }
+      }
+    });
+  });
+
   // Functions
   function toggleFilterDropdown() {
     isFilterDropdownOpen = !isFilterDropdownOpen;
@@ -89,6 +197,7 @@
   function selectFilter(filter) {
     selectedFilter = filter;
     isFilterDropdownOpen = false;
+    fetchNotifications(); // Refetch with new filter
   }
 
   function handleClickOutside(event) {
@@ -98,23 +207,22 @@
   }
 
   function toggleNotificationRead(id) {
-    notifications = notifications.map(notification => 
-      notification.id === id 
-        ? { ...notification, isRead: !notification.isRead }
-        : notification
-    );
+    const notification = notifications.find(n => n.id === id);
+    if (notification) {
+      updateNotificationStatus(id, !notification.isRead);
+    }
   }
 
   function deleteNotification(id) {
-    notifications = notifications.filter(notification => notification.id !== id);
+    deleteNotificationAPI(id);
   }
 
   function markAllAsRead() {
-    notifications = notifications.map(notification => ({ ...notification, isRead: true }));
+    markAllAsReadAPI();
   }
 
   function clearAllRead() {
-    notifications = notifications.filter(notification => !notification.isRead);
+    clearAllReadAPI();
   }
 
   // Helper functions
@@ -163,9 +271,6 @@
       return notifications.filter(n => n.type === selectedFilter);
     }
   })();
-
-  $: unreadCount = notifications.filter(n => !n.isRead).length;
-  $: totalCount = notifications.length;
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -231,7 +336,23 @@
 
   <!-- Notifications List -->
   <div class="notifications-section">
-    {#if filteredNotifications.length > 0}
+    {#if loading}
+      <div class="loading-state">
+        <div class="system-loader"></div>
+        <p>Loading notifications...</p>
+      </div>
+    {:else if error}
+      <div class="error-state">
+        <div class="error-icon">
+          <span class="material-symbols-outlined">error</span>
+        </div>
+        <h3>Error Loading Notifications</h3>
+        <p>{error}</p>
+        <button class="retry-btn" on:click={fetchNotifications}>
+          Reload
+        </button>
+      </div>
+    {:else if filteredNotifications.length > 0}
       <div class="notifications-list">
         {#each filteredNotifications as notification, index (notification.id)}
           <div 

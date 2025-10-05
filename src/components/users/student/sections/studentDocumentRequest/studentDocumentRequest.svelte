@@ -183,14 +183,6 @@
 		</div>
 	</div>
 
-	<!-- Error Message -->
-	{#if error}
-		<div class="error-message">
-			<span class="material-symbols-outlined">error</span>
-			{error}
-		</div>
-	{/if}
-
 	<!-- Quick Actions Section -->
 	<div class="quick-actions-section">
 		<div class="quick-actions-header">

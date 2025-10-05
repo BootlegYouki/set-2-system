@@ -182,7 +182,7 @@
           }}
         >
           {#if isLoading}
-            <div class="loading-spinner"></div>
+            <div class="login-loading-spinner"></div>
           {:else}
             <span>Login</span>
           {/if}

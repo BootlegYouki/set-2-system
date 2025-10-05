@@ -496,7 +496,7 @@
                             </div>
                           {:else}
                             <div class="grade-score-display" style="color: #666;">
-                              Not Available
+                              N/A
                             </div>
                           {/if}
                         </div>

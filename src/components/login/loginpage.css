@@ -402,7 +402,7 @@ input:-webkit-autofill:active {
 }
 
 /* Loading spinner */
-.loading-spinner {
+.login-loading-spinner {
   width: 20px;
   height: 20px;
   border: 2px solid transparent;

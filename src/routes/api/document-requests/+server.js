@@ -120,20 +120,28 @@ export async function GET({ url, request }) {
 /** @type {import('./$types').RequestHandler} */
 export async function PATCH({ request }) {
   try {
+    console.log('PATCH request received for document requests');
+    
     // Verify authentication
     const authResult = await verifyAuth(request);
     if (!authResult.success) {
+      console.log('Authentication failed:', authResult.error);
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
 
     const requestBody = await request.json();
+    console.log('Request body:', requestBody);
+    
     const { id, action } = requestBody;
 
     if (!id || !action) {
+      console.log('Missing required fields - id:', id, 'action:', action);
       return json({ 
         error: 'Request ID and action are required' 
       }, { status: 400 });
     }
+
+    console.log('Processing action:', action, 'for request ID:', id);
 
     if (action === 'cancel') {
       // Update the document request status to cancelled with cancelled_at timestamp
@@ -171,7 +179,9 @@ export async function PATCH({ request }) {
     }
 
     if (action === 'approve') {
+      console.log('Processing approve action');
       const { admin_note } = requestBody;
+      console.log('Admin note:', admin_note);
       
       // Update the document request status to processing with admin note
       const updateQuery = `
@@ -181,7 +191,9 @@ export async function PATCH({ request }) {
         RETURNING *
       `;
 
+      console.log('Executing approve query with params:', [id, admin_note || 'Approved']);
       const result = await query(updateQuery, [id, admin_note || 'Approved']);
+      console.log('Approve query result:', result.rows.length, 'rows affected');
 
       if (result.rows.length === 0) {
         return json({ 
@@ -209,10 +221,13 @@ export async function PATCH({ request }) {
     }
 
     if (action === 'reject') {
+      console.log('Processing reject action');
       const { rejection_reason } = requestBody;
       const rejectionReason = rejection_reason;
+      console.log('Rejection reason:', rejectionReason);
       
       if (!rejectionReason || !rejectionReason.trim()) {
+        console.log('Rejection reason validation failed');
         return json({ 
           error: 'Rejection reason is required' 
         }, { status: 400 });
@@ -226,7 +241,9 @@ export async function PATCH({ request }) {
         RETURNING *
       `;
 
+      console.log('Executing reject query with params:', [id, rejectionReason.trim()]);
       const result = await query(updateQuery, [id, rejectionReason.trim()]);
+      console.log('Reject query result:', result.rows.length, 'rows affected');
 
       if (result.rows.length === 0) {
         return json({ 
@@ -311,11 +328,15 @@ export async function POST({ request }) {
       return json({ error: authResult.error }, { status: authResult.status || 401 });
     }
 
-    const { student_id, document_type, purpose } = await request.json();
+    const requestData = await request.json();
+    
+    const { student_id, document_type, purpose } = requestData;
 
+    // Validate required fields
     if (!student_id || !document_type || !purpose) {
       return json({ 
-        error: 'Student ID, document type, and purpose are required' 
+        success: false, 
+        error: 'Missing required fields' 
       }, { status: 400 });
     }
 

@@ -27,7 +27,7 @@ class RateLimiter {
       login: {
         windowMs: 15 * 60 * 1000, // 15 minutes
         maxAttempts: 5, // Max login attempts per window
-        blockDuration: 60 * 60 * 1000, // 1 hour block
+        blockDuration: 15 * 60 * 1000, // 15 minutes block
         progressiveDelay: true
       },
       // Suspicious activity thresholds
