@@ -196,7 +196,7 @@
 							<!-- Column 2: Subject Details -->
 							<div class="subject-details-column">
 								<h3 class="subject-name">{subject.name}</h3>
-								<p class="teacher-name">{subject.teacher}</p>
+								<p class="teacher-name" class:no-teacher={subject.teacher === 'No teacher'}>{subject.teacher}</p>
 								{#if subject.verified && subject.numericGrade > 0}
 									<div class="progress-bar">
 										<div class="progress-fill" style="width: {subject.numericGrade}%; background-color: {subject.color}"></div>

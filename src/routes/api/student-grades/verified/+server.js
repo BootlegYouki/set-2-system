@@ -41,20 +41,23 @@ export async function GET({ url, request }) {
 
     const studentSection = sectionResult.rows[0];
 
-    // Get subjects scheduled for the student's section with verified final grades only
+    // Get all subjects for the student's grade level, with optional teacher assignments from schedules
     const subjectsQuery = `
       SELECT DISTINCT
         sub.id,
         sub.name as subject_name,
         sub.code as subject_code,
-        u.full_name as teacher_name,
+        COALESCE(u.full_name, 'No teacher') as teacher_name,
         fg.final_grade,
         fg.letter_grade,
         fg.verified,
         fg.computed_at
       FROM subjects sub
-      JOIN schedules sch ON sub.id = sch.subject_id
-      JOIN users u ON sch.teacher_id = u.id
+      LEFT JOIN schedules sch ON (
+        sub.id = sch.subject_id 
+        AND sch.section_id = $2
+      )
+      LEFT JOIN users u ON sch.teacher_id = u.id AND u.status = 'active'
       LEFT JOIN final_grades fg ON (
         fg.student_id = $1 
         AND fg.subject_id = sub.id 
@@ -62,12 +65,11 @@ export async function GET({ url, request }) {
         AND fg.grading_period_id = $3
         AND fg.verified = true
       )
-      WHERE sch.section_id = $2
-      AND u.status = 'active'
+      WHERE sub.grade_level = $4
       ORDER BY sub.name
     `;
 
-    const subjectsResult = await query(subjectsQuery, [studentId, studentSection.section_id, gradingPeriodId]);
+    const subjectsResult = await query(subjectsQuery, [studentId, studentSection.section_id, gradingPeriodId, studentSection.grade_level]);
 
     // Transform the data to match the frontend format
     const subjects = subjectsResult.rows.map(row => ({

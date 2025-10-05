@@ -447,6 +447,12 @@
   line-height: 1.2;
 }
 
+.teacher-name.no-teacher {
+  color: var(--md-sys-color-outline);
+  font-style: italic;
+  opacity: 0.7;
+}
+
 .subject-credits {
   font-size: 14px;
   color: var(--md-sys-color-on-surface-variant);
