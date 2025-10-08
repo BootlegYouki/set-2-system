@@ -48,6 +48,13 @@
 	let editContactNumber = '';
 	let editCalculatedAge = 0;
 	
+	// Get yesterday's date in YYYY-MM-DD format for max attribute
+	function getYesterday() {
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		return yesterday.toISOString().split('T')[0];
+	}
+	
 	// Current account being edited (reactive)
 	$: currentAccount = editingAccountId ? recentAccounts.find(account => account.id === editingAccountId) : null;
 
@@ -125,10 +132,20 @@
 		
 		const date = new Date(dateString);
 		const year = date.getFullYear();
-		const currentYear = new Date().getFullYear();
+		const today = new Date();
+		const currentYear = today.getFullYear();
 		
-		// Check if date is valid and year is reasonable (between 1900 and current year + 10)
-		if (isNaN(date.getTime()) || year < 1900 || year > currentYear + 10) {
+		// Check if date is valid and year is reasonable (between 1900 and current year)
+		if (isNaN(date.getTime()) || year < 1900 || year > currentYear) {
+			return false;
+		}
+		
+		// Prevent today's date and future dates
+		// Set today to start of day for accurate comparison
+		const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+		const inputDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+		
+		if (inputDate >= todayStart) {
 			return false;
 		}
 		
@@ -478,6 +495,25 @@
 				}
 		}
 
+		// Show confirmation modal before creating account
+		const accountTypeLabel = selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin';
+		const fullName = `${firstName} ${middleInitial ? middleInitial + '. ' : ''}${lastName}`;
+		
+		modalStore.confirm(
+			'Confirm Account Creation',
+			`<p>Are you sure you want to create a <strong>${accountTypeLabel}</strong> account for <strong>"${fullName}"</strong>?</p>`,
+			async () => {
+				await createAccountProcess();
+			},
+			() => {
+				// Do nothing on cancel
+			},
+			{ size: 'small' }
+		);
+	}
+
+	// Separate function for the actual account creation process
+	async function createAccountProcess() {
 		isCreating = true;
 
 		try {
@@ -895,6 +931,7 @@
 									id="birthdate"
 									class="form-input" 
 									bind:value={birthdate}
+									max={getYesterday()}
 									on:blur={(e) => {
 										if (birthdate && !validateDate(birthdate)) {
 											toastStore.error('Invalid date. Please enter a valid date.');
@@ -1262,6 +1299,7 @@
 													id="edit-birthdate-{account.id}"
 													class="form-input" 
 													bind:value={editBirthdate}
+													max={getYesterday()}
 													on:blur={(e) => {
 														if (editBirthdate && !validateDate(editBirthdate)) {
 															toastStore.error('Invalid date. Please enter a valid date.');
