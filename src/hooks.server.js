@@ -13,20 +13,34 @@ export async function handle({ event, resolve }) {
   const { request, url } = event;
   const getClientAddress = () => event.getClientAddress();
   
-  // Skip protection for specific endpoints
-  const skipEndpoints = ['/api/login', '/api/logout'];
-  const shouldSkip = skipEndpoints.some(endpoint => url.pathname === endpoint);
+  // Apply rate limiting only to login endpoints
+  const loginEndpoints = ['/api/login'];
+  const shouldApplyRateLimit = loginEndpoints.some(endpoint => url.pathname === endpoint);
   
-  if (url.pathname.startsWith('/api/') && !shouldSkip) {
-    const protectionResult = await protectAPI(request, getClientAddress);
-    
-    // If protection failed, return the error response immediately
-    if (protectionResult.status) {
-      return protectionResult;
+  if (url.pathname.startsWith('/api/')) {
+    // For login endpoints, apply full protection including rate limiting
+    if (shouldApplyRateLimit) {
+      const protectionResult = await protectAPI(request, getClientAddress);
+      
+      // If protection failed, return the error response immediately
+      if (protectionResult.status) {
+        return protectionResult;
+      }
+      
+      // Store protection headers to add to the final response
+      event.locals.securityHeaders = protectionResult.headers;
+    } else {
+      // For other API endpoints, apply protection but skip rate limiting
+      const protectionResult = await protectAPI(request, getClientAddress, { skipRateLimit: true });
+      
+      // If protection failed, return the error response immediately
+      if (protectionResult.status) {
+        return protectionResult;
+      }
+      
+      // Store protection headers to add to the final response
+      event.locals.securityHeaders = protectionResult.headers;
     }
-    
-    // Store protection headers to add to the final response
-    event.locals.securityHeaders = protectionResult.headers;
   }
   
   // Continue with the request
