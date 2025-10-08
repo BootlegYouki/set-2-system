@@ -51,10 +51,13 @@
 	// Current account being edited (reactive)
 	$: currentAccount = editingAccountId ? recentAccounts.find(account => account.id === editingAccountId) : null;
 
-	// Name capitalization function
+	// Name capitalization function - converts to title case (capitalizes each word)
 	function capitalizeFirstLetter(str) {
 		if (!str) return str;
-		return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+		return str
+			.split(' ')
+			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.join(' ');
 	}
 
 	// Handle name input with automatic capitalization

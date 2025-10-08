@@ -43,21 +43,25 @@ export async function GET({ url, request }) {
 
     // Get all subjects for the student's grade level, with optional teacher assignments from schedules
     const subjectsQuery = `
-      SELECT DISTINCT
+      SELECT 
         sub.id,
         sub.name as subject_name,
         sub.code as subject_code,
-        COALESCE(u.full_name, 'No teacher') as teacher_name,
+        COALESCE(
+          (SELECT u.full_name 
+           FROM schedules sch 
+           JOIN users u ON sch.teacher_id = u.id 
+           WHERE sch.subject_id = sub.id 
+             AND sch.section_id = $2 
+             AND u.status = 'active' 
+           LIMIT 1), 
+          'No teacher'
+        ) as teacher_name,
         fg.final_grade,
         fg.letter_grade,
         fg.verified,
         fg.computed_at
       FROM subjects sub
-      LEFT JOIN schedules sch ON (
-        sub.id = sch.subject_id 
-        AND sch.section_id = $2
-      )
-      LEFT JOIN users u ON sch.teacher_id = u.id AND u.status = 'active'
       LEFT JOIN final_grades fg ON (
         fg.student_id = $1 
         AND fg.subject_id = sub.id 
