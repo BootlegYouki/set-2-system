@@ -16,7 +16,20 @@ function createToastStore() {
         duration
       };
       
-      update(toasts => [...toasts, toast]);
+      // Check for duplicate messages of the same type
+      let shouldAdd = true;
+      update(toasts => {
+        const duplicateExists = toasts.some(t => t.message === message && t.type === type);
+        if (duplicateExists) {
+          shouldAdd = false;
+          return toasts; // Don't add duplicate
+        }
+        return [...toasts, toast];
+      });
+      
+      if (!shouldAdd) {
+        return null; // Return null if duplicate was prevented
+      }
       
       // Auto-remove toast after duration
       if (duration > 0) {

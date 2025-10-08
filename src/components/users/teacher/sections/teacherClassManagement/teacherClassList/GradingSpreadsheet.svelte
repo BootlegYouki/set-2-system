@@ -861,13 +861,31 @@
     let value = editValue.trim();
     let numericValue = null;
     let isValid = true;
+    let errorMessage = '';
 
     if (value !== '') {
       numericValue = parseFloat(value);
+      
+      // Check for invalid number format or negative values
       if (isNaN(numericValue) || numericValue < 0) {
-        // Invalid input - convert to 0 and mark as invalid
         numericValue = 0;
         isValid = false;
+        errorMessage = isNaN(parseFloat(value)) ? 'Invalid input. Only numbers are allowed.' : 'Negative scores are not allowed.';
+      } else {
+        // Check if score exceeds total score for this column
+        const totalScore = gradingConfig[assessmentType].totals?.[columnIndex];
+        if (totalScore && numericValue > totalScore) {
+          numericValue = 0;
+          isValid = false;
+          errorMessage = `Score cannot exceed the total score of ${totalScore}.`;
+        }
+      }
+
+      if (!isValid) {
+        // Show error toast
+        toastStore.error(errorMessage);
+        
+        // Mark cell as invalid
         invalidCells.add(`${row}-${col}`);
 
         // Remove invalid marking after 3 seconds
