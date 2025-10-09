@@ -1,5 +1,5 @@
 import { j as json } from './index-CccDCyu_.js';
-import { c as client } from './db-9uwR-1fD.js';
+import { a as connectToDatabase } from './db-9uwR-1fD.js';
 import bcrypt from 'bcrypt';
 import 'mongodb';
 import 'dotenv';
@@ -20,7 +20,7 @@ async function POST({ request, getClientAddress }) {
     if (password.length > 200) {
       return json({ error: "Password too long" }, { status: 400 });
     }
-    const db = client.db(process.env.MONGODB_DB_NAME || "set-2-system");
+    const db = await connectToDatabase();
     const usersCollection = db.collection("users");
     const user = await usersCollection.findOne({
       account_number: sanitizedAccountNumber,
@@ -79,4 +79,4 @@ async function POST({ request, getClientAddress }) {
 }
 
 export { POST };
-//# sourceMappingURL=_server-hEnWSObN.js.map
+//# sourceMappingURL=_server-3YiRus9D.js.map
