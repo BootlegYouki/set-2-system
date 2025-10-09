@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../../database/db.js';
 import { verifyAuth } from '../../helper/auth-helper.js';
 
 /** @type {import('./$types').RequestHandler} */
