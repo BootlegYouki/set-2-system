@@ -1,24 +1,25 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
-import { verifyAuth } from '../helper/auth-helper.js';
+import { connectToDatabase } from '../../database/db.js';
+import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ request }) {
 	try {
-		// Verify authentication and admin role
-		const authResult = await verifyAuth(request, ['admin']);
-		if (!authResult.success) {
-			return json({ error: authResult.error }, { status: authResult.status });
+		// Get user from request
+		const user = getUserFromRequest(request);
+		if (!user || user.account_type !== 'admin') {
+			return json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
 		// Get all admin settings from database
-		const result = await query(
-			'SELECT setting_key, setting_value, setting_type FROM admin_settings ORDER BY setting_key'
-		);
+		const db = await connectToDatabase();
+		const adminSettingsCollection = db.collection('admin_settings');
+		
+		const result = await adminSettingsCollection.find({}).sort({ setting_key: 1 }).toArray();
 
 		// Transform the result into a more usable format
 		const settings = {};
-		result.rows.forEach(row => {
+		result.forEach(row => {
 			let value = row.setting_value;
 			
 			// Convert value based on type
@@ -56,97 +57,100 @@ export async function GET({ request }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function PUT({ request, getClientAddress }) {
-	try {
-		// Verify authentication and admin role
-		const authResult = await verifyAuth(request, ['admin']);
-		if (!authResult.success) {
-			return json({ error: authResult.error }, { status: authResult.status });
-		}
+export async function PUT(event) {
+  const user = getUserFromRequest(event.request);
+  
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
-		const body = await request.json();
-		const { settings } = body;
+  if (user.account_type !== 'admin') {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
-		if (!settings || typeof settings !== 'object') {
-			return json(
-				{ error: 'Invalid settings data provided' },
-				{ status: 400 }
-			);
-		}
+  try {
+    const { settings } = await event.request.json();
+    
+    if (!settings || typeof settings !== 'object') {
+      return new Response(JSON.stringify({ error: 'Invalid settings data' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-		// Begin transaction
-		await query('BEGIN');
+    // Connect to MongoDB
+    const db = await connectToDatabase();
+    const adminSettingsCollection = db.collection('admin_settings');
 
-		try {
-			// Update each setting
-			for (const [key, value] of Object.entries(settings)) {
-				let stringValue = value;
-				
-				// Convert value to string for storage
-				if (typeof value === 'object' && value !== null) {
-					stringValue = JSON.stringify(value);
-				} else if (value !== null) {
-					stringValue = String(value);
-				}
+    // Update each setting
+    for (const [key, value] of Object.entries(settings)) {
+      let stringValue = value;
+      
+      // Convert value to string for storage
+      if (typeof value === 'object' && value !== null) {
+        stringValue = JSON.stringify(value);
+      } else if (value !== null) {
+        stringValue = String(value);
+      }
 
-				// For date settings, validate the MM-DD-YYYY format
-				if (key.includes('date') && value !== null && value !== '') {
-					const dateRegex = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$/;
-					if (!dateRegex.test(value)) {
-						throw new Error(`Invalid date format for ${key}. Expected MM-DD-YYYY format.`);
-					}
-					// Validate that it's a real date by parsing MM-DD-YYYY
-					const [month, day, year] = value.split('-');
-					const date = new Date(year, month - 1, day);
-					if (isNaN(date.getTime()) || 
-						date.getFullYear() != year || 
-						date.getMonth() != month - 1 || 
-						date.getDate() != day) {
-						throw new Error(`Invalid date value for ${key}: ${value}`);
-					}
-				}
+      // For date settings, validate the MM-DD-YYYY format
+      if (key.includes('date') && value !== null && value !== '') {
+        const dateRegex = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])-\d{4}$/;
+        if (!dateRegex.test(value)) {
+          throw new Error(`Invalid date format for ${key}. Expected MM-DD-YYYY format.`);
+        }
+        // Validate that it's a real date by parsing MM-DD-YYYY
+        const [month, day, year] = value.split('-');
+        const date = new Date(year, month - 1, day);
+        if (isNaN(date.getTime()) || 
+          date.getFullYear() != year || 
+          date.getMonth() != month - 1 || 
+          date.getDate() != day) {
+          throw new Error(`Invalid date value for ${key}: ${value}`);
+        }
+      }
 
-				await query(
-					`UPDATE admin_settings 
-					 SET setting_value = $1, updated_at = CURRENT_TIMESTAMP 
-					 WHERE setting_key = $2`,
-					[stringValue, key]
-				);
-			}
+      await adminSettingsCollection.updateOne(
+        { setting_key: key },
+        { 
+          $set: { 
+            setting_value: stringValue, 
+            updated_at: new Date() 
+          } 
+        },
+        { upsert: true }
+      );
+    }
 
-			// Get client IP and user agent
-			const ip_address = getClientAddress();
+    // Log the activity
+    await logActivityWithUser(
+      'admin_settings_updated',
+      JSON.stringify({ updated_settings: Object.keys(settings) }),
+      user,
+      event.getClientAddress()
+    );
 
-			// Log the activity
-			await query(
-				`SELECT log_activity($1, $2, $3, $4, $5, $6)`,
-				[
-					'admin_settings_updated',
-					authResult.user.id,
-					authResult.user.account_number,
-					JSON.stringify({ updated_settings: Object.keys(settings) }),
-					ip_address,
-					request.headers.get('user-agent')
-				]
-			);
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Settings updated successfully'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-			await query('COMMIT');
-
-			return json({
-				success: true,
-				message: 'Admin settings updated successfully'
-			});
-
-		} catch (error) {
-			await query('ROLLBACK');
-			throw error;
-		}
-
-	} catch (error) {
-		console.error('Error updating admin settings:', error);
-		return json(
-			{ error: 'Failed to update admin settings' },
-			{ status: 500 }
-		);
-	}
+  } catch (error) {
+    console.error('Error updating admin settings:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message || 'Internal server error' 
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }

@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../../database/db.js';
+import { client } from '../../../database/db.js';
 
 // Function to generate the next account number (same logic as in accounts/+server.js)
 async function generateAccountNumber(accountType) {
@@ -9,23 +9,24 @@ async function generateAccountNumber(accountType) {
                  accountType === 'admin' ? 'ADM' : 'ACC';
   
   try {
-    // Query all existing account numbers for this type and year
-    const result = await query(
-      'SELECT account_number FROM users WHERE account_number LIKE $1 AND status != $2',
-      [`${prefix}-${currentYear}-%`, 'archived']
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const usersCollection = db.collection('users');
     
-    // The query function returns a result object with rows property
-    const rows = result.rows || [];
+    // Query all existing account numbers for this type and year (excluding archived)
+    const existingAccounts = await usersCollection.find({
+      account_number: { $regex: `^${prefix}-${currentYear}-` },
+      status: { $ne: 'archived' }
+    }).toArray();
     
-    if (rows.length === 0) {
+    if (existingAccounts.length === 0) {
       return `${prefix}-${currentYear}-0001`;
     }
     
     // Extract the numeric parts and create a Set for O(1) lookup
     const existingNumbers = new Set(
-      rows.map(row => {
-        const parts = row.account_number.split('-');
+      existingAccounts.map(account => {
+        const parts = account.account_number.split('-');
         return parseInt(parts[2]);
       }).filter(num => !isNaN(num))
     );

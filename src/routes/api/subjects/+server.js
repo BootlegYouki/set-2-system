@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { client } from '../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 // GET /api/subjects - Fetch all subjects with optional filtering
 export async function GET({ url }) {
@@ -9,118 +10,114 @@ export async function GET({ url }) {
     const searchTerm = url.searchParams.get('search') || '';
     const gradeLevel = url.searchParams.get('grade_level');
     
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const subjectsCollection = db.collection('subjects');
+    const departmentsCollection = db.collection('departments');
+    
     // Handle different actions
     if (action === 'available-subjects') {
       // For schedule form - filter by grade level if provided
-      let sqlQuery = `
-        SELECT 
-          s.id,
-          s.name,
-          s.code,
-          s.grade_level,
-          s.department_id,
-          s.created_at,
-          s.updated_at,
-          d.name as department_name,
-          d.code as department_code
-        FROM subjects s
-        LEFT JOIN departments d ON s.department_id = d.id
-      `;
-      
-      const params = [];
-      let paramIndex = 1;
+      let filter = {};
       
       // Add grade level filter for available-subjects action
       if (gradeLevel && gradeLevel !== '') {
-        sqlQuery += ` WHERE s.grade_level = $${paramIndex}`;
-        params.push(parseInt(gradeLevel));
-        paramIndex++;
+        filter.grade_level = parseInt(gradeLevel);
       }
       
-      sqlQuery += ' ORDER BY s.name ASC';
+      const subjects = await subjectsCollection
+        .find(filter)
+        .sort({ name: 1 })
+        .toArray();
       
-      const result = await query(sqlQuery, params);
-      
-      // Format the data for schedule form dropdown
-      const subjects = result.rows.map(subject => ({
-        id: subject.id,
-        name: subject.name,
-        code: subject.code,
-        grade_level: subject.grade_level,
-        gradeLevel: `Grade ${subject.grade_level}`,
-        department_id: subject.department_id,
-        department_name: subject.department_name,
-        department_code: subject.department_code
-      }));
+      // Get department information for each subject
+      const subjectsWithDepartments = await Promise.all(
+        subjects.map(async (subject) => {
+          let department = null;
+          if (subject.department_id) {
+            department = await departmentsCollection.findOne({ _id: new ObjectId(subject.department_id) });
+          }
+          
+          return {
+            id: subject._id.toString(),
+            name: subject.name,
+            code: subject.code,
+            grade_level: subject.grade_level,
+            gradeLevel: `Grade ${subject.grade_level}`,
+            department_id: subject.department_id,
+            department_name: department?.name || null,
+            department_code: department?.code || null
+          };
+        })
+      );
       
       return json({
         success: true,
-        data: subjects
+        data: subjectsWithDepartments
       });
     }
     
     // Default behavior for admin subjects management
-    
-    let sqlQuery = `
-      SELECT 
-        s.id,
-        s.name,
-        s.code,
-        s.grade_level,
-        s.department_id,
-        s.created_at,
-        s.updated_at,
-        d.name as department_name,
-        d.code as department_code
-      FROM subjects s
-      LEFT JOIN departments d ON s.department_id = d.id
-    `;
-    
-    const params = [];
-    let paramIndex = 1;
-    let whereAdded = false;
+    let filter = {};
     
     // Add search filter
     if (searchTerm) {
-      sqlQuery += ` WHERE (LOWER(name) LIKE $${paramIndex} OR LOWER(code) LIKE $${paramIndex})`;
-      params.push(`%${searchTerm.toLowerCase()}%`);
-      paramIndex++;
-      whereAdded = true;
+      filter.$or = [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { code: { $regex: searchTerm, $options: 'i' } }
+      ];
     }
     
     // Add grade level filter
     if (gradeLevel && gradeLevel !== '') {
-      sqlQuery += whereAdded ? ` AND grade_level = $${paramIndex}` : ` WHERE grade_level = $${paramIndex}`;
-      params.push(parseInt(gradeLevel));
-      paramIndex++;
+      filter.grade_level = parseInt(gradeLevel);
     }
     
-    sqlQuery += ' ORDER BY created_at DESC';
+    const subjects = await subjectsCollection
+      .find(filter)
+      .sort({ created_at: -1 })
+      .toArray();
     
-    const result = await query(sqlQuery, params);
-    
-    // Format the data to match the component's expected structure
-    const subjects = result.rows.map(subject => ({
-      id: subject.id,
-      name: subject.name,
-      code: subject.code,
-      grade_level: subject.grade_level, // Keep the original numeric grade_level for filtering
-      gradeLevel: `Grade ${subject.grade_level}`, // Formatted version for display
-      department_id: subject.department_id,
-      department_name: subject.department_name,
-      department_code: subject.department_code,
-      icon: 'book', // Default icon for subjects
-      createdDate: new Date(subject.created_at).toLocaleDateString('en-US'),
-      updatedDate: new Date(subject.updated_at).toLocaleDateString('en-US')
-    }));
+    // Get department information for each subject
+    const subjectsWithDepartments = await Promise.all(
+      subjects.map(async (subject) => {
+        let department = null;
+        if (subject.department_id) {
+          department = await departmentsCollection.findOne({ _id: new ObjectId(subject.department_id) });
+        }
+        
+        return {
+          id: subject._id.toString(),
+          name: subject.name,
+          code: subject.code,
+          grade_level: subject.grade_level,
+          gradeLevel: `Grade ${subject.grade_level}`,
+          department_id: subject.department_id,
+          department_name: department?.name || null,
+          department_code: department?.code || null,
+          icon: 'book',
+          createdDate: new Date(subject.created_at).toLocaleDateString('en-US'),
+          updatedDate: new Date(subject.updated_at).toLocaleDateString('en-US')
+        };
+      })
+    );
     
     return json({
       success: true,
-      data: subjects
+      data: subjectsWithDepartments
     });
     
   } catch (error) {
     console.error('Error fetching subjects:', error);
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to fetch subjects: ' + error.message
@@ -132,7 +129,7 @@ export async function GET({ url }) {
 export async function POST({ request, getClientAddress }) {
   try {
     const data = await request.json();
-    const { name, code, gradeLevel } = data;
+    const { name, code, gradeLevel, department_id } = data;
     
     // Validation
     if (!name || !code || !gradeLevel) {
@@ -142,28 +139,31 @@ export async function POST({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if subject code already exists
-    const existingSubject = await query(
-      'SELECT id FROM subjects WHERE code = $1',
-      [code]
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const subjectsCollection = db.collection('subjects');
     
-    if (existingSubject.rows.length > 0) {
+    // Check if subject code already exists
+    const existingSubject = await subjectsCollection.findOne({ code: code });
+    
+    if (existingSubject) {
       return json({
         success: false,
         message: 'Subject code already exists'
       }, { status: 409 });
     }
     
-    // Insert new subject
-    const result = await query(
-      `INSERT INTO subjects (name, code, grade_level) 
-       VALUES ($1, $2, $3) 
-       RETURNING id, name, code, grade_level, created_at, updated_at`,
-      [name, code, parseInt(gradeLevel)]
-    );
+    // Create new subject document
+    const newSubject = {
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      grade_level: parseInt(gradeLevel),
+      department_id: department_id || null,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
     
-    const newSubject = result.rows[0];
+    const result = await subjectsCollection.insertOne(newSubject);
     
     // Log the subject creation activity
     try {
@@ -192,7 +192,7 @@ export async function POST({ request, getClientAddress }) {
     
     // Format response to match component structure
     const formattedSubject = {
-      id: newSubject.id,
+      id: result.insertedId.toString(),
       name: newSubject.name,
       code: newSubject.code,
       gradeLevel: `Grade ${newSubject.grade_level}`,
@@ -208,6 +208,23 @@ export async function POST({ request, getClientAddress }) {
     
   } catch (error) {
     console.error('Error creating subject:', error);
+    
+    // MongoDB duplicate key error
+    if (error.code === 11000) {
+      return json({
+        success: false,
+        message: 'Subject code already exists'
+      }, { status: 409 });
+    }
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to create subject: ' + error.message
@@ -216,10 +233,10 @@ export async function POST({ request, getClientAddress }) {
 }
 
 // PUT /api/subjects - Update an existing subject
-export async function PUT({ request }) {
+export async function PUT({ request, getClientAddress }) {
   try {
     const data = await request.json();
-    const { id, name, code, gradeLevel } = data;
+    const { id, name, code, gradeLevel, department_id } = data;
     
     // Validation
     if (!id || !name || !code || !gradeLevel) {
@@ -229,49 +246,104 @@ export async function PUT({ request }) {
       }, { status: 400 });
     }
     
-    // Check if subject exists
-    const existingSubject = await query(
-      'SELECT id FROM subjects WHERE id = $1',
-      [id]
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const subjectsCollection = db.collection('subjects');
     
-    if (existingSubject.rows.length === 0) {
+    // Check if subject exists
+    const existingSubject = await subjectsCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!existingSubject) {
       return json({
         success: false,
         message: 'Subject not found'
       }, { status: 404 });
     }
     
-    // Check if new code conflicts with another subject
-    const codeConflict = await query(
-      'SELECT id FROM subjects WHERE code = $1 AND id != $2',
-      [code, id]
-    );
-    
-    if (codeConflict.rows.length > 0) {
-      return json({
-        success: false,
-        message: 'Subject code already exists'
-      }, { status: 409 });
+    // Check if code is being changed and if new code already exists
+    if (code !== existingSubject.code) {
+      const codeExists = await subjectsCollection.findOne({ 
+        code: code,
+        _id: { $ne: new ObjectId(id) }
+      });
+      
+      if (codeExists) {
+        return json({
+          success: false,
+          message: 'Subject code already exists'
+        }, { status: 409 });
+      }
     }
     
-    // Update subject
-    const result = await query(
-      `UPDATE subjects 
-       SET name = $1, code = $2, grade_level = $3, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4
-       RETURNING id, name, code, grade_level, created_at, updated_at`,
-      [name, code, parseInt(gradeLevel), id]
+    // Update subject document
+    const updateData = {
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      grade_level: parseInt(gradeLevel),
+      department_id: department_id || null,
+      updated_at: new Date()
+    };
+    
+    const result = await subjectsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
     );
     
-    const updatedSubject = result.rows[0];
+    if (result.matchedCount === 0) {
+      return json({
+        success: false,
+        message: 'Subject not found'
+      }, { status: 404 });
+    }
+    
+    // Log the subject update activity
+    try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      
+      await logActivityWithUser(
+        'subject_updated',
+        user,
+        {
+          id: id,
+          name: updateData.name,
+          code: updateData.code,
+          grade_level: updateData.grade_level,
+          previous_name: existingSubject.name,
+          previous_code: existingSubject.code,
+          previous_grade_level: existingSubject.grade_level
+        },
+        ip_address,
+        user_agent
+      );
+    } catch (logError) {
+      console.error('Error logging subject update activity:', logError);
+      // Don't fail the subject update if logging fails
+    }
+    
+    // Get updated subject with department info
+    const updatedSubject = await subjectsCollection.findOne({ _id: new ObjectId(id) });
+    let department = null;
+    if (updatedSubject.department_id) {
+      const departmentsCollection = db.collection('departments');
+      department = await departmentsCollection.findOne({ _id: new ObjectId(updatedSubject.department_id) });
+    }
     
     // Format response to match component structure
     const formattedSubject = {
-      id: updatedSubject.id,
+      id: updatedSubject._id.toString(),
       name: updatedSubject.name,
       code: updatedSubject.code,
+      grade_level: updatedSubject.grade_level,
       gradeLevel: `Grade ${updatedSubject.grade_level}`,
+      department_id: updatedSubject.department_id,
+      department_name: department?.name || null,
+      department_code: department?.code || null,
+      icon: 'book',
       createdDate: new Date(updatedSubject.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(updatedSubject.updated_at).toLocaleDateString('en-US')
     };
@@ -284,6 +356,23 @@ export async function PUT({ request }) {
     
   } catch (error) {
     console.error('Error updating subject:', error);
+    
+    // MongoDB duplicate key error
+    if (error.code === 11000) {
+      return json({
+        success: false,
+        message: 'Subject code already exists'
+      }, { status: 409 });
+    }
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to update subject: ' + error.message
@@ -304,13 +393,14 @@ export async function DELETE({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if subject exists and get its code and name
-    const existingSubject = await query(
-      'SELECT id, name, code FROM subjects WHERE id = $1',
-      [id]
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const subjectsCollection = db.collection('subjects');
     
-    if (existingSubject.rows.length === 0) {
+    // Check if subject exists and get its code and name
+    const existingSubject = await subjectsCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!existingSubject) {
       return json({
         success: false,
         message: 'Subject not found'
@@ -318,10 +408,14 @@ export async function DELETE({ request, getClientAddress }) {
     }
     
     // Hard delete the subject
-    await query(
-      'DELETE FROM subjects WHERE id = $1',
-      [id]
-    );
+    const result = await subjectsCollection.deleteOne({ _id: new ObjectId(id) });
+    
+    if (result.deletedCount === 0) {
+      return json({
+        success: false,
+        message: 'Subject not found'
+      }, { status: 404 });
+    }
     
     // Log the subject deletion activity
     try {
@@ -336,8 +430,8 @@ export async function DELETE({ request, getClientAddress }) {
         'subject_deleted',
         user,
         {
-          subject_code: existingSubject.rows[0].code,
-          subject_name: existingSubject.rows[0].name,
+          subject_code: existingSubject.code,
+          subject_name: existingSubject.name,
           subject_id: id
         },
         ip_address,
@@ -350,11 +444,20 @@ export async function DELETE({ request, getClientAddress }) {
     
     return json({
       success: true,
-      message: `Subject "${existingSubject.rows[0].name} (${existingSubject.rows[0].code})" has been removed successfully`
+      message: `Subject "${existingSubject.name} (${existingSubject.code})" has been removed successfully`
     });
     
   } catch (error) {
     console.error('Error deleting subject:', error);
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to delete subject: ' + error.message

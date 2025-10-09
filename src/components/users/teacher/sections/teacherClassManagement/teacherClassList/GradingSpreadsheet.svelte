@@ -61,7 +61,7 @@
 
   // Initialize spreadsheet data
   function formatScore(score) {
-    if (score === null || score === undefined || score === '') return '';
+    if (score === null || score === undefined || score === '') return '0';
     const num = parseFloat(score);
     if (isNaN(num)) return score;
     // Remove trailing zeros and unnecessary decimal point
@@ -72,9 +72,9 @@
   function createDataSnapshot() {
     return JSON.parse(JSON.stringify(students.map(student => ({
       id: student.id,
-      writtenWork: [...student.writtenWork],
-      performanceTasks: [...student.performanceTasks],
-      quarterlyAssessment: [...student.quarterlyAssessment]
+      writtenWork: Array.isArray(student.writtenWork) ? [...student.writtenWork] : [],
+      performanceTasks: Array.isArray(student.performanceTasks) ? [...student.performanceTasks] : [],
+      quarterlyAssessment: Array.isArray(student.quarterlyAssessment) ? [...student.quarterlyAssessment] : []
     }))));
   }
 
@@ -118,25 +118,34 @@
 
     // Add student data rows
     students.forEach(student => {
+      // Add defensive check for student object and required properties
+      if (!student || !student.id || !student.name) {
+        console.warn('Invalid student data:', student);
+        return;
+      }
+      
       const row = [student.id, student.name];
 
-      // Written Work scores
+      // Written Work scores - ensure array exists
+      const writtenWork = student.writtenWork || [];
       for (let i = 0; i < gradingConfig.writtenWork.count; i++) {
-        row.push(formatScore(student.writtenWork[i]));
+        row.push(formatScore(writtenWork[i]));
       }
-      row.push(calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork'));
+      row.push(calculateAverage(writtenWork, gradingConfig.writtenWork.totals, 'writtenWork'));
 
-      // Performance Tasks scores
+      // Performance Tasks scores - ensure array exists
+      const performanceTasks = student.performanceTasks || [];
       for (let i = 0; i < gradingConfig.performanceTasks.count; i++) {
-        row.push(formatScore(student.performanceTasks[i]));
+        row.push(formatScore(performanceTasks[i]));
       }
-      row.push(calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks'));
+      row.push(calculateAverage(performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks'));
 
-      // Quarterly Assessment scores
+      // Quarterly Assessment scores - ensure array exists
+      const quarterlyAssessment = student.quarterlyAssessment || [];
       for (let i = 0; i < gradingConfig.quarterlyAssessment.count; i++) {
-        row.push(formatScore(student.quarterlyAssessment[i]));
+        row.push(formatScore(quarterlyAssessment[i]));
       }
-      row.push(calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment'));
+      row.push(calculateAverage(quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment'));
 
       // Final Grade
       row.push(calculateFinalGrade(student));
@@ -155,9 +164,21 @@
   }
 
   function calculateAverage(scores, totals = null, assessmentType = null) {
+    // Add defensive check for undefined/null scores
+    if (!scores || !Array.isArray(scores)) {
+      return '';
+    }
+    
+    // Filter out only null, undefined, and empty string values - keep zeros!
     const validScores = scores.filter(score => score !== null && score !== undefined && score !== '');
     if (validScores.length === 0) return '';
 
+    // Debug logging
+    console.log(`calculateAverage for ${assessmentType}:`, {
+      originalScores: scores,
+      validScores: validScores,
+      totals: totals
+    });
 
     let sum = 0;
 
@@ -166,12 +187,12 @@
       let percentageSum = 0;
       let validPercentageCount = 0;
 
-
       // Only iterate through the number of totals we have, not all scores
       const maxIndex = Math.min(scores.length, totals.length);
 
       for (let i = 0; i < maxIndex; i++) {
         const score = scores[i];
+        // Include zero values in the calculation - only exclude null, undefined, and empty string
         if (score !== null && score !== undefined && score !== '') {
           const scoreValue = parseFloat(score);
           const total = totals[i];
@@ -179,12 +200,16 @@
             const percentage = (scoreValue / total) * 100;
             percentageSum += percentage;
             validPercentageCount++;
+            console.log(`Score ${i}: ${scoreValue}/${total} = ${percentage}%`);
           }
         }
       }
 
+      console.log(`Total percentage sum: ${percentageSum}, count: ${validPercentageCount}`);
+
       if (validPercentageCount === 0) return '';
       const average = Math.round((percentageSum / validPercentageCount) * 100) / 100;
+      console.log(`Final average: ${average}`);
       return formatScore(average);
     } else {
       // Original calculation for backward compatibility
@@ -195,6 +220,9 @@
   }
 
   function calculateFinalGrade(student) {
+    // Add defensive check for student object
+    if (!student) return '';
+    
     const wwAvg = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork');
     const ptAvg = calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks');
     const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment');
@@ -220,6 +248,9 @@
     // Check if this student's grades are verified by the adviser
     const studentIndex = rowIndex - 1;
     const student = students[studentIndex];
+    
+    console.log('Cell clicked:', { rowIndex, colIndex, studentIndex, student: student?.name, isVerified: student?.isVerified });
+    
     if (student && student.isVerified) {
       // Show a toast message to inform the teacher
       toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
@@ -267,6 +298,9 @@
       // Check if this student's grades are verified by the adviser
       const studentIndex = row - 1;
       const student = students[studentIndex];
+      
+      console.log('Typing detected:', { key: event.key, row, col, studentIndex, student: student?.name, isVerified: student?.isVerified });
+      
       if (student && student.isVerified) {
         toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
         return;
@@ -280,6 +314,9 @@
       // Check if this student's grades are verified by the adviser
       const studentIndex = row - 1;
       const student = students[studentIndex];
+      
+      console.log('Other key detected:', { key: event.key, row, col, studentIndex, student: student?.name, isVerified: student?.isVerified });
+      
       if (student && student.isVerified) {
         toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
         return;
@@ -785,13 +822,16 @@
       // Get the maximum score for this column
       let maxScore = null;
       if (header?.startsWith('WW')) {
-        const columnIndex = parseInt(header.replace('WW', '')) - 1;
+        const columnNumber = parseInt(header.replace('WW', ''));
+        const columnIndex = gradingConfig.writtenWork.columnPositions?.indexOf(columnNumber) ?? (columnNumber - 1);
         maxScore = gradingConfig.writtenWork.totals?.[columnIndex];
       } else if (header?.startsWith('PT')) {
-        const columnIndex = parseInt(header.replace('PT', '')) - 1;
+        const columnNumber = parseInt(header.replace('PT', ''));
+        const columnIndex = gradingConfig.performanceTasks.columnPositions?.indexOf(columnNumber) ?? (columnNumber - 1);
         maxScore = gradingConfig.performanceTasks.totals?.[columnIndex];
       } else if (header?.startsWith('QA')) {
-        const columnIndex = parseInt(header.replace('QA', '')) - 1;
+        const columnNumber = parseInt(header.replace('QA', ''));
+        const columnIndex = gradingConfig.quarterlyAssessment.columnPositions?.indexOf(columnNumber) ?? (columnNumber - 1);
         maxScore = gradingConfig.quarterlyAssessment.totals?.[columnIndex];
       }
 
@@ -800,14 +840,26 @@
     };
 
     if (header?.startsWith('WW') && !header.includes('Avg')) {
-      const wwIndex = parseInt(header.replace('WW', '')) - 1;
-      students[studentIndex].writtenWork[wwIndex] = parseValueOrZero(value);
+      // Find the actual array index by matching the header with column names
+      const columnNumber = parseInt(header.replace('WW', ''));
+      const wwIndex = gradingConfig.writtenWork.columnPositions?.indexOf(columnNumber) ?? (columnNumber - 1);
+      if (wwIndex >= 0 && wwIndex < students[studentIndex].writtenWork.length) {
+        students[studentIndex].writtenWork[wwIndex] = parseValueOrZero(value);
+      }
     } else if (header?.startsWith('PT') && !header.includes('Avg')) {
-      const ptIndex = parseInt(header.replace('PT', '')) - 1;
-      students[studentIndex].performanceTasks[ptIndex] = parseValueOrZero(value);
+      // Find the actual array index by matching the header with column names
+      const columnNumber = parseInt(header.replace('PT', ''));
+      const ptIndex = gradingConfig.performanceTasks.columnPositions?.indexOf(columnNumber) ?? (columnNumber - 1);
+      if (ptIndex >= 0 && ptIndex < students[studentIndex].performanceTasks.length) {
+        students[studentIndex].performanceTasks[ptIndex] = parseValueOrZero(value);
+      }
     } else if (header?.startsWith('QA') && !header.includes('Avg')) {
-      const qaIndex = parseInt(header.replace('QA', '')) - 1;
-      students[studentIndex].quarterlyAssessment[qaIndex] = parseValueOrZero(value);
+      // Find the actual array index by matching the header with column names
+      const columnNumber = parseInt(header.replace('QA', ''));
+      const qaIndex = gradingConfig.quarterlyAssessment.columnPositions?.indexOf(columnNumber) ?? (columnNumber - 1);
+      if (qaIndex >= 0 && qaIndex < students[studentIndex].quarterlyAssessment.length) {
+        students[studentIndex].quarterlyAssessment[qaIndex] = parseValueOrZero(value);
+      }
     }
   }
 
@@ -996,7 +1048,7 @@
     try {
       // Prepare grades data for API
       const gradesData = students.map(student => ({
-        student_id: student.accountNumber || student.account_number || student.id,
+        student_id: student.account_number || student.accountNumber || student.id,
         writtenWork: student.writtenWork,
         performanceTasks: student.performanceTasks,
         quarterlyAssessment: student.quarterlyAssessment
@@ -1055,7 +1107,7 @@
         quarterlyAssessment: student.quarterlyAssessment
       }));
 
-      const result = await authenticatedFetch('/api/grades/save', {
+      const response = await authenticatedFetch('/api/grades/save', {
         method: 'POST',
         body: JSON.stringify({
           section_id: sectionId,
@@ -1065,6 +1117,13 @@
           grades: gradesData
         })
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
 
       saveSuccess = true;
       toastStore.success('Grades saved successfully');
@@ -1096,11 +1155,15 @@
 
   // New function to save final grades to the final_grades table
   async function saveFinalGrades() {
+    console.log('saveFinalGrades function called');
+    
     if (!sectionId || !subjectId) {
+      console.log('Missing section or subject information:', { sectionId, subjectId });
       toastStore.error('Missing section or subject information');
       return;
     }
 
+    console.log('Starting final grades submission process');
     isSavingFinalGrades = true;
     saveMessage = '';
     saveSuccess = false;
@@ -1109,6 +1172,8 @@
       // Filter out students whose grades are already verified
       const unverifiedStudents = students.filter(student => !student.isVerified);
       const verifiedCount = students.length - unverifiedStudents.length;
+
+      console.log(`Total students: ${students.length}, Unverified: ${unverifiedStudents.length}, Verified: ${verifiedCount}`);
 
       if (unverifiedStudents.length === 0) {
         toastStore.warning('All student grades have already been verified by the adviser. No grades to send.');
@@ -1123,7 +1188,7 @@
         const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment');
         const finalGrade = calculateFinalGrade(student);
 
-        return {
+        const studentData = {
           student_id: student.accountNumber || student.account_number || student.id,
           written_work_average: wwAvg !== '' ? parseFloat(wwAvg) : null,
           performance_tasks_average: ptAvg !== '' ? parseFloat(ptAvg) : null,
@@ -1134,17 +1199,46 @@
           performance_tasks_items: student.performanceTasks || [],
           quarterly_assessment_items: student.quarterlyAssessment || []
         };
+
+        console.log('Preparing student data for submission:', {
+          student_name: student.name,
+          student_id: studentData.student_id,
+          final_grade: studentData.final_grade
+        });
+
+        return studentData;
       });
 
-      const result = await authenticatedFetch('/api/grades/final', {
+      console.log('Final grades data to submit:', {
+        count: finalGradesData.length,
+        section_id: sectionId,
+        subject_id: subjectId,
+        teacher_id: $authStore.userData.id
+      });
+
+      console.log('Making API call to submit final grades');
+      const response = await authenticatedFetch('/api/grades', {
         method: 'POST',
         body: JSON.stringify({
+          action: 'submit_final_grades',
           section_id: sectionId,
           subject_id: subjectId,
           grading_period_id: gradingPeriodId,
+          teacher_id: $authStore.userData.id,
           final_grades: finalGradesData
         })
       });
+
+      console.log('API response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('API error response:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('API success response:', result);
 
       saveSuccess = true;
       
@@ -1374,11 +1468,29 @@
         params.append('teacherId', teacherId.toString());
       }
       
-      const result = await authenticatedFetch(`/api/class-students?${params}`);
+      const response = await authenticatedFetch(`/api/class-students?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
       
       if (result.success && result.data?.students) {
-        // Update students data with fresh data from database
-        students = result.data.students;
+        // Transform student data to match expected structure
+        students = result.data.students.map(student => ({
+          ...student,
+          // Transform grades structure to match frontend expectations
+          writtenWork: student.grades?.written_work || [],
+          performanceTasks: student.grades?.performance_tasks || [],
+          quarterlyAssessment: student.grades?.quarterly_assessment || [],
+          // Keep original grades data for reference
+          grades: student.grades,
+          // Use account_number as id if available, otherwise use existing id
+          id: student.account_number || student.id,
+          name: student.full_name || `${student.first_name} ${student.last_name}`,
+          isVerified: student.grades?.verification?.verified || false
+        }));
         
         // Reinitialize spreadsheet data to reflect the refreshed grades
         initializeSpreadsheetData();
@@ -1494,7 +1606,7 @@
                 class:invalid={invalidCells.has(`${rowIndex + 1}-${colIndex}`)}
                 onclick={(e) => handleCellClick(rowIndex + 1, colIndex, e)}
               >
-                {#if isEditing && selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex}
+                {#if isEditing && selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex && !students[rowIndex]?.isVerified}
                   <input
                     type="text"
                     class="cell-input"
@@ -1507,6 +1619,9 @@
                     }}
                     autofocus
                   />
+                {:else if isEditing && selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex && students[rowIndex]?.isVerified}
+                  <!-- Show read-only content for verified students -->
+                  <span class="cell-content verified-cell">{cell}</span>
                 {:else}
                   <span class="cell-content">{cell}</span>
                 {/if}

@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { client } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
 // GET - Fetch departments (subject groupings), subjects, and teachers
@@ -7,111 +8,189 @@ export async function GET({ url }) {
     try {
         const action = url.searchParams.get('action');
 
+        // Connect to MongoDB
+        await client.connect();
+        const db = client.db('set-2-system');
+
         switch (action) {
             case 'subjects':
-                const subjectsResult = await query(`
-                    SELECT 
-                        s.id,
-                        s.name,
-                        s.code,
-                        s.grade_level,
-                        s.created_at,
-                        s.department_id,
-                        d.name as department_name,
-                        d.code as department_code
-                    FROM subjects s
-                    LEFT JOIN departments d ON s.department_id = d.id
-                    ORDER BY s.grade_level, s.name
-                `);
-                return json({ success: true, data: subjectsResult.rows });
+                const subjectsCollection = db.collection('subjects');
+                
+                // Use aggregation to join subjects with departments
+                const subjectsResult = await subjectsCollection.aggregate([
+                    {
+                        $lookup: {
+                            from: 'departments',
+                            localField: 'department_id',
+                            foreignField: '_id',
+                            as: 'department'
+                        }
+                    },
+                    {
+                        $unwind: {
+                            path: '$department',
+                            preserveNullAndEmptyArrays: true
+                        }
+                    },
+                    {
+                        $project: {
+                            id: { $toString: '$_id' },
+                            name: 1,
+                            code: 1,
+                            grade_level: 1,
+                            created_at: 1,
+                            department_id: { $toString: '$department_id' },
+                            department_name: '$department.name',
+                            department_code: '$department.code'
+                        }
+                    },
+                    {
+                        $sort: { grade_level: 1, name: 1 }
+                    }
+                ]).toArray();
+                
+                return json({ success: true, data: subjectsResult });
 
             case 'teachers':
-                const teachersResult = await query(`
-                    SELECT 
-                        u.id,
-                        u.account_number,
-                        u.first_name,
-                        u.last_name,
-                        u.full_name,
-                        u.email,
-                        u.status,
-                        COALESCE(
-                            json_agg(
-                                CASE WHEN d.id IS NOT NULL THEN
-                                    json_build_object(
-                                        'id', d.id,
-                                        'name', d.name,
-                                        'code', d.code
-                                    )
-                                END
-                            ) FILTER (WHERE d.id IS NOT NULL), 
-                            '[]'::json
-                        ) as departments
-                    FROM users u
-                    LEFT JOIN teacher_departments td ON u.id = td.teacher_id
-                    LEFT JOIN departments d ON td.department_id = d.id
-                    WHERE u.account_type = 'teacher' AND u.status = 'active'
-                    GROUP BY u.id, u.account_number, u.first_name, u.last_name, u.full_name, u.email, u.status
-                    ORDER BY u.full_name
-                `);
-                return json({ success: true, data: teachersResult.rows });
+                const usersCollection = db.collection('users');
+                const teacherDepartmentsCollection = db.collection('teacher_departments');
+                
+                // Use aggregation to get teachers with their departments
+                const teachersResult = await usersCollection.aggregate([
+                    {
+                        $match: {
+                            account_type: 'teacher',
+                            status: 'active'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'teacher_departments',
+                            localField: '_id',
+                            foreignField: 'teacher_id',
+                            as: 'teacher_departments'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'departments',
+                            localField: 'teacher_departments.department_id',
+                            foreignField: '_id',
+                            as: 'departments'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: { $toString: '$_id' },
+                            account_number: 1,
+                            first_name: 1,
+                            last_name: 1,
+                            full_name: 1,
+                            email: 1,
+                            status: 1,
+                            departments: {
+                                $map: {
+                                    input: '$departments',
+                                    as: 'dept',
+                                    in: {
+                                        id: { $toString: '$$dept._id' },
+                                        name: '$$dept.name',
+                                        code: '$$dept.code'
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $sort: { full_name: 1 }
+                    }
+                ]).toArray();
+                
+                return json({ success: true, data: teachersResult });
 
             case 'departments':
             default:
-                // Get departments from the real departments table with their subjects and teachers
-                const departmentsResult = await query(`
-                    SELECT 
-                        d.id,
-                        d.name,
-                        d.code,
-                        d.status,
-                        d.created_at,
-                        COALESCE(
-                            json_agg(
-                                CASE WHEN s.id IS NOT NULL THEN
-                                    json_build_object(
-                                        'id', s.id,
-                                        'name', s.name,
-                                        'code', s.code,
-                                        'grade_level', s.grade_level
-                                    )
-                                END
-                            ) FILTER (WHERE s.id IS NOT NULL), 
-                            '[]'::json
-                        ) as subjects,
-                        (
-                            SELECT COUNT(DISTINCT s2.id) 
-                            FROM subjects s2 
-                            WHERE s2.department_id = d.id
-                        ) as subject_count,
-                        COALESCE(
-                            (
-                                SELECT json_agg(
-                                    json_build_object(
-                                        'id', u.id,
-                                        'full_name', u.full_name,
-                                        'account_number', u.account_number
-                                    )
-                                )
-                                FROM teacher_departments td
-                                JOIN users u ON td.teacher_id = u.id
-                                WHERE td.department_id = d.id AND u.status = 'active'
-                            ),
-                            '[]'::json
-                        ) as teachers,
-                        (
-                            SELECT COUNT(DISTINCT td2.teacher_id) 
-                            FROM teacher_departments td2
-                            JOIN users u2 ON td2.teacher_id = u2.id
-                            WHERE td2.department_id = d.id AND u2.status = 'active'
-                        ) as teacher_count
-                    FROM departments d
-                    LEFT JOIN subjects s ON d.id = s.department_id
-                    WHERE d.status = 'active'
-                    GROUP BY d.id, d.name, d.code, d.status, d.created_at
-                    ORDER BY d.name
-                `);
-                return json({ success: true, data: departmentsResult.rows });
+                const departmentsCollection = db.collection('departments');
+                
+                // Get departments with their subjects and teachers
+                const departmentsResult = await departmentsCollection.aggregate([
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: '_id',
+                            foreignField: 'department_id',
+                            as: 'subjects'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'teacher_departments',
+                            localField: '_id',
+                            foreignField: 'department_id',
+                            as: 'teacher_departments'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'teacher_departments.teacher_id',
+                            foreignField: '_id',
+                            as: 'teachers_data'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: { $toString: '$_id' },
+                            name: 1,
+                            code: 1,
+                            created_at: 1,
+                            subjects: {
+                                $map: {
+                                    input: '$subjects',
+                                    as: 'subject',
+                                    in: {
+                                        id: { $toString: '$$subject._id' },
+                                        name: '$$subject.name',
+                                        code: '$$subject.code',
+                                        grade_level: '$$subject.grade_level'
+                                    }
+                                }
+                            },
+                            subject_count: { $size: '$subjects' },
+                            teachers: {
+                                $map: {
+                                    input: {
+                                        $filter: {
+                                            input: '$teachers_data',
+                                            as: 'teacher',
+                                            cond: { $eq: ['$$teacher.status', 'active'] }
+                                        }
+                                    },
+                                    as: 'teacher',
+                                    in: {
+                                        id: { $toString: '$$teacher._id' },
+                                        full_name: '$$teacher.full_name',
+                                        account_number: '$$teacher.account_number'
+                                    }
+                                }
+                            },
+                            teacher_count: {
+                                $size: {
+                                    $filter: {
+                                        input: '$teachers_data',
+                                        as: 'teacher',
+                                        cond: { $eq: ['$$teacher.status', 'active'] }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $sort: { name: 1 }
+                    }
+                ]).toArray();
+                
+                return json({ success: true, data: departmentsResult });
         }
     } catch (error) {
         console.error('Error fetching departments data:', error);
@@ -133,31 +212,64 @@ export async function POST({ request, getClientAddress }) {
             return json({ success: false, error: 'Department name and code are required' }, { status: 400 });
         }
 
-        // Create the department in the database
-        const departmentResult = await query(`
-            INSERT INTO departments (name, code, status)
-            VALUES ($1, $2, 'active')
-            RETURNING id, name, code, status, created_at
-        `, [name, code]);
+        // Connect to MongoDB
+        await client.connect();
+        const db = client.db('set-2-system');
+        const departmentsCollection = db.collection('departments');
+        const teacherDepartmentsCollection = db.collection('teacher_departments');
+        const usersCollection = db.collection('users');
 
-        const newDepartment = departmentResult.rows[0];
+        // Check if department already exists
+        const existingDept = await departmentsCollection.findOne({
+            $or: [
+                { name: name },
+                { code: code.toUpperCase() }
+            ]
+        });
+
+        if (existingDept) {
+            return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+        }
+
+        // Create the department in the database
+        const newDepartment = {
+            name: name,
+            code: code.toUpperCase(),
+            status: 'active',
+            created_at: new Date()
+        };
+
+        const insertResult = await departmentsCollection.insertOne(newDepartment);
+        
+        if (!insertResult.insertedId) {
+            throw new Error('Failed to create department');
+        }
+
+        // Add the ID to the department object for response
+        newDepartment.id = insertResult.insertedId.toString();
+        newDepartment._id = insertResult.insertedId;
 
         // Assign teachers to the department if provided
         if (teachers.length > 0) {
             const assignedTeachers = [];
             for (const teacherId of teachers) {
-                await query(`
-                    INSERT INTO teacher_departments (teacher_id, department_id)
-                    VALUES ($1, $2)
-                    ON CONFLICT (teacher_id, department_id) DO NOTHING
-                `, [teacherId, newDepartment.id]);
+                // Insert teacher-department relationship
+                await teacherDepartmentsCollection.insertOne({
+                    teacher_id: new ObjectId(teacherId),
+                    department_id: insertResult.insertedId
+                });
                 
                 // Get teacher info for logging
-                const teacherInfo = await query(`
-                    SELECT id, full_name, account_number FROM users WHERE id = $1
-                `, [teacherId]);
-                if (teacherInfo.rows.length > 0) {
-                    assignedTeachers.push(teacherInfo.rows[0]);
+                const teacherInfo = await usersCollection.findOne(
+                    { _id: new ObjectId(teacherId) },
+                    { projection: { full_name: 1, account_number: 1 } }
+                );
+                if (teacherInfo) {
+                    assignedTeachers.push({
+                        id: teacherInfo._id.toString(),
+                        full_name: teacherInfo.full_name,
+                        account_number: teacherInfo.account_number
+                    });
                 }
             }
 
@@ -165,16 +277,14 @@ export async function POST({ request, getClientAddress }) {
             if (assignedTeachers.length > 0) {
                 try {
                     await logActivityWithUser(
-                        'department_teacher_assigned',
                         user,
+                        'department_teacher_assigned',
                         { 
-                            department_id: newDepartment.id, 
+                            department_id: insertResult.insertedId.toString(), 
                             department_name: name, 
-                            department_code: code,
+                            department_code: code.toUpperCase(),
                             teachers: assignedTeachers
-                        },
-                        getClientAddress(),
-                        request.headers.get('user-agent')
+                        }
                     );
                 } catch (logError) {
                     console.error('Error logging teacher assignment activity:', logError);
@@ -185,11 +295,13 @@ export async function POST({ request, getClientAddress }) {
         // Log the department creation
         try {
             await logActivityWithUser(
-                'department_created',
                 user,
-                { department_id: newDepartment.id, department_name: name, department_code: code, teachers },
-                getClientAddress(),
-                request.headers.get('user-agent')
+                'department_created',
+                { 
+                    department_id: insertResult.insertedId.toString(), 
+                    department_name: name, 
+                    department_code: code.toUpperCase()
+                }
             );
         } catch (logError) {
             console.error('Error logging department creation activity:', logError);
@@ -202,20 +314,14 @@ export async function POST({ request, getClientAddress }) {
                 ...newDepartment,
                 subjects: [],
                 teachers: [],
-                subject_count: 0
+                subject_count: 0,
+                teacher_count: teachers.length
             }
         });
     } catch (error) {
         console.error('Error creating department:', error);
-        if (error.code === '23505') { // Unique constraint violation
-            // Check which constraint was violated by examining the error detail
-            if (error.detail && error.detail.includes('name')) {
-                return json({ success: false, error: 'Department name already exists' }, { status: 400 });
-            } else if (error.detail && error.detail.includes('code')) {
-                return json({ success: false, error: 'Department code already exists' }, { status: 400 });
-            } else {
-                return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
-            }
+        if (error.code === 11000) { // MongoDB duplicate key error
+            return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
         }
         return json({ success: false, error: 'Failed to create department' }, { status: 500 });
     }
@@ -247,60 +353,100 @@ export async function PUT({ request, getClientAddress }) {
             return json({ success: false, error: 'Department name cannot exceed 100 characters' }, { status: 400 });
         }
 
-        // Get current department info to check if name or code changed
-        const currentDeptResult = await query(`
-            SELECT name, code FROM departments WHERE id = $1 AND status = 'active'
-        `, [id]);
+        // Connect to MongoDB
+        await client.connect();
+        const db = client.db('set-2-system');
+        const departmentsCollection = db.collection('departments');
+        const teacherDepartmentsCollection = db.collection('teacher_departments');
+        const subjectsCollection = db.collection('subjects');
+        const usersCollection = db.collection('users');
 
-        if (currentDeptResult.rows.length === 0) {
+        // Get current department info to check if name or code changed
+        const currentDept = await departmentsCollection.findOne(
+            { _id: new ObjectId(id), status: 'active' },
+            { projection: { name: 1, code: 1 } }
+        );
+
+        if (!currentDept) {
             return json({ success: false, error: 'Department not found' }, { status: 404 });
         }
 
-        const currentDept = currentDeptResult.rows[0];
         const nameChanged = currentDept.name !== name;
-        const codeChanged = currentDept.code !== code;
+        const codeChanged = currentDept.code !== code.toUpperCase();
         const basicInfoChanged = nameChanged || codeChanged;
 
-        // Update the department in the database
-        const departmentResult = await query(`
-            UPDATE departments 
-            SET name = $1, code = $2, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3 AND status = 'active'
-            RETURNING id, name, code, status, created_at, updated_at
-        `, [name, code, id]);
+        // Check if new name or code already exists (excluding current department)
+        if (basicInfoChanged) {
+            const existingDept = await departmentsCollection.findOne({
+                _id: { $ne: new ObjectId(id) },
+                $or: [
+                    { name: name },
+                    { code: code.toUpperCase() }
+                ]
+            });
 
-        const updatedDepartment = departmentResult.rows[0];
+            if (existingDept) {
+                return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
+            }
+        }
+
+        // Update the department in the database
+        const updateResult = await departmentsCollection.updateOne(
+            { _id: new ObjectId(id), status: 'active' },
+            { 
+                $set: { 
+                    name: name, 
+                    code: code.toUpperCase(), 
+                    updated_at: new Date() 
+                } 
+            }
+        );
+
+        if (updateResult.matchedCount === 0) {
+            return json({ success: false, error: 'Department not found' }, { status: 404 });
+        }
 
         // Update teacher assignments
         // First, get current teacher assignments for logging
-        const currentTeachersResult = await query(`
-            SELECT u.id, u.full_name, u.account_number
-            FROM teacher_departments td
-            JOIN users u ON td.teacher_id = u.id
-            WHERE td.department_id = $1
-        `, [id]);
-        const currentTeachers = currentTeachersResult.rows;
+        const currentTeachersResult = await teacherDepartmentsCollection.aggregate([
+            {
+                $match: { department_id: new ObjectId(id) }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'teacher_id',
+                    foreignField: '_id',
+                    as: 'user'
+                }
+            },
+            {
+                $unwind: '$user'
+            },
+            {
+                $project: {
+                    id: { $toString: '$user._id' },
+                    full_name: '$user.full_name',
+                    account_number: '$user.account_number'
+                }
+            }
+        ]).toArray();
 
         // Remove all existing teacher assignments for this department
-        await query(`
-            DELETE FROM teacher_departments 
-            WHERE department_id = $1
-        `, [id]);
+        await teacherDepartmentsCollection.deleteMany({ department_id: new ObjectId(id) });
 
         // Log teacher removals if any existed
-        if (currentTeachers.length > 0) {
+        if (currentTeachersResult.length > 0) {
             try {
                 await logActivityWithUser(
-                    'department_teacher_removed',
                     user,
+                    'department_teacher_removed',
                     { 
                         department_id: id, 
                         department_name: name, 
-                        department_code: code,
-                        teachers: currentTeachers
-                    },
-                    getClientAddress(),
-                    request.headers.get('user-agent')
+                        department_code: code.toUpperCase(),
+                        teachers: currentTeachersResult
+                    }
                 );
             } catch (logError) {
                 console.error('Error logging teacher removal activity:', logError);
@@ -310,68 +456,83 @@ export async function PUT({ request, getClientAddress }) {
         // Then add the new teacher assignments
         if (teachers.length > 0) {
             const newTeachers = [];
+            const teacherAssignments = [];
+            
             for (const teacherId of teachers) {
-                await query(`
-                    INSERT INTO teacher_departments (teacher_id, department_id)
-                    VALUES ($1, $2)
-                `, [teacherId, id]);
+                teacherAssignments.push({
+                    teacher_id: new ObjectId(teacherId),
+                    department_id: new ObjectId(id)
+                });
                 
                 // Get teacher info for logging
-                const teacherInfo = await query(`
-                    SELECT id, full_name, account_number FROM users WHERE id = $1
-                `, [teacherId]);
-                if (teacherInfo.rows.length > 0) {
-                    newTeachers.push(teacherInfo.rows[0]);
+                const teacherInfo = await usersCollection.findOne(
+                    { _id: new ObjectId(teacherId) },
+                    { projection: { full_name: 1, account_number: 1 } }
+                );
+                if (teacherInfo) {
+                    newTeachers.push({
+                        id: teacherInfo._id.toString(),
+                        full_name: teacherInfo.full_name,
+                        account_number: teacherInfo.account_number
+                    });
                 }
             }
 
+            // Insert all teacher assignments at once
+            if (teacherAssignments.length > 0) {
+                await teacherDepartmentsCollection.insertMany(teacherAssignments);
+            }
+
             // Log teacher assignments
-            try {
-                await logActivityWithUser(
-                    'department_teacher_assigned',
-                    user,
-                    { 
-                        department_id: id, 
-                        department_name: name, 
-                        department_code: code,
-                        teachers: newTeachers
-                    },
-                    getClientAddress(),
-                    request.headers.get('user-agent')
-                );
-            } catch (logError) {
-                console.error('Error logging teacher assignment activity:', logError);
+            if (newTeachers.length > 0) {
+                try {
+                    await logActivityWithUser(
+                        user,
+                        'department_teacher_assigned',
+                        { 
+                            department_id: id, 
+                            department_name: name, 
+                            department_code: code.toUpperCase(),
+                            teachers: newTeachers
+                        }
+                    );
+                } catch (logError) {
+                    console.error('Error logging teacher assignment activity:', logError);
+                }
             }
         }
 
         // Update subject assignments
         // First, get current subject assignments for logging
-        const currentSubjectsResult = await query(`
-            SELECT id, name, code FROM subjects WHERE department_id = $1
-        `, [id]);
-        const currentSubjects = currentSubjectsResult.rows;
+        const currentSubjects = await subjectsCollection.find(
+            { department_id: new ObjectId(id) },
+            { projection: { name: 1, code: 1 } }
+        ).toArray();
 
         // Update all subjects that were previously assigned to this department to have no department
-        await query(`
-            UPDATE subjects 
-            SET department_id = NULL 
-            WHERE department_id = $1
-        `, [id]);
+        await subjectsCollection.updateMany(
+            { department_id: new ObjectId(id) },
+            { $unset: { department_id: "" } }
+        );
 
         // Log subject removals if any existed
         if (currentSubjects.length > 0) {
+            const currentSubjectsForLog = currentSubjects.map(subject => ({
+                id: subject._id.toString(),
+                name: subject.name,
+                code: subject.code
+            }));
+
             try {
                 await logActivityWithUser(
-                    'department_subject_removed',
                     user,
+                    'department_subject_removed',
                     { 
                         department_id: id, 
                         department_name: name, 
-                        department_code: code,
-                        subjects: currentSubjects
-                    },
-                    getClientAddress(),
-                    request.headers.get('user-agent')
+                        department_code: code.toUpperCase(),
+                        subjects: currentSubjectsForLog
+                    }
                 );
             } catch (logError) {
                 console.error('Error logging subject removal activity:', logError);
@@ -381,38 +542,42 @@ export async function PUT({ request, getClientAddress }) {
         // Then assign the selected subjects to this department
         if (subjects.length > 0) {
             const newSubjects = [];
-            for (const subjectId of subjects) {
-                await query(`
-                    UPDATE subjects 
-                    SET department_id = $1 
-                    WHERE id = $2
-                `, [id, subjectId]);
-                
-                // Get subject info for logging
-                const subjectInfo = await query(`
-                    SELECT id, name, code FROM subjects WHERE id = $1
-                `, [subjectId]);
-                if (subjectInfo.rows.length > 0) {
-                    newSubjects.push(subjectInfo.rows[0]);
-                }
-            }
+            const subjectIds = subjects.map(subjectId => new ObjectId(subjectId));
+            
+            // Update subjects to assign them to this department
+            await subjectsCollection.updateMany(
+                { _id: { $in: subjectIds } },
+                { $set: { department_id: new ObjectId(id) } }
+            );
+            
+            // Get subject info for logging
+            const subjectInfos = await subjectsCollection.find(
+                { _id: { $in: subjectIds } },
+                { projection: { name: 1, code: 1 } }
+            ).toArray();
+
+            const newSubjectsForLog = subjectInfos.map(subject => ({
+                id: subject._id.toString(),
+                name: subject.name,
+                code: subject.code
+            }));
 
             // Log subject assignments
-            try {
-                await logActivityWithUser(
-                    'department_subject_assigned',
-                    user,
-                    { 
-                        department_id: id, 
-                        department_name: name, 
-                        department_code: code,
-                        subjects: newSubjects
-                    },
-                    getClientAddress(),
-                    request.headers.get('user-agent')
-                );
-            } catch (logError) {
-                console.error('Error logging subject assignment activity:', logError);
+            if (newSubjectsForLog.length > 0) {
+                try {
+                    await logActivityWithUser(
+                        user,
+                        'department_subject_assigned',
+                        { 
+                            department_id: id, 
+                            department_name: name, 
+                            department_code: code.toUpperCase(),
+                            subjects: newSubjectsForLog
+                        }
+                    );
+                } catch (logError) {
+                    console.error('Error logging subject assignment activity:', logError);
+                }
             }
         }
 
@@ -420,33 +585,41 @@ export async function PUT({ request, getClientAddress }) {
         if (basicInfoChanged) {
             try {
                 await logActivityWithUser(
-                    'department_updated',
                     user,
-                    { department_id: id, department_name: name, department_code: code },
-                    getClientAddress(),
-                    request.headers.get('user-agent')
+                    'department_updated',
+                    { 
+                        department_id: id, 
+                        department_name: name, 
+                        department_code: code.toUpperCase() 
+                    }
                 );
             } catch (logError) {
                 console.error('Error logging department update activity:', logError);
             }
         }
 
+        // Get updated department data for response
+        const updatedDepartment = await departmentsCollection.findOne(
+            { _id: new ObjectId(id) },
+            { projection: { name: 1, code: 1, status: 1, created_at: 1, updated_at: 1 } }
+        );
+
         return json({ 
             success: true, 
             message: 'Department updated successfully',
-            data: updatedDepartment
+            data: {
+                id: updatedDepartment._id.toString(),
+                name: updatedDepartment.name,
+                code: updatedDepartment.code,
+                status: updatedDepartment.status,
+                created_at: updatedDepartment.created_at,
+                updated_at: updatedDepartment.updated_at
+            }
         });
     } catch (error) {
         console.error('Error updating department:', error);
-        if (error.code === '23505') { // Unique constraint violation
-            // Check which constraint was violated by examining the error detail
-            if (error.detail && error.detail.includes('name')) {
-                return json({ success: false, error: 'Department name already exists' }, { status: 400 });
-            } else if (error.detail && error.detail.includes('code')) {
-                return json({ success: false, error: 'Department code already exists' }, { status: 400 });
-            } else {
-                return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
-            }
+        if (error.code === 11000) { // MongoDB duplicate key error
+            return json({ success: false, error: 'Department name or code already exists' }, { status: 400 });
         }
         return json({ success: false, error: 'Failed to update department' }, { status: 500 });
     }
@@ -466,47 +639,57 @@ export async function DELETE({ request, getClientAddress }) {
             return json({ success: false, error: 'Department ID is required' }, { status: 400 });
         }
 
-        // Get department info before deletion for logging
-        const departmentInfo = await query(`
-            SELECT name, code FROM departments WHERE id = $1
-        `, [id]);
+        // Connect to MongoDB
+        await client.connect();
+        const db = client.db('set-2-system');
+        const departmentsCollection = db.collection('departments');
+        const teacherDepartmentsCollection = db.collection('teacher_departments');
+        const subjectsCollection = db.collection('subjects');
 
-        if (departmentInfo.rows.length === 0) {
+        // Get department info for logging before deletion
+        const department = await departmentsCollection.findOne(
+            { _id: new ObjectId(id), status: 'active' },
+            { projection: { name: 1, code: 1 } }
+        );
+
+        if (!department) {
             return json({ success: false, error: 'Department not found' }, { status: 404 });
         }
 
-        const department = departmentInfo.rows[0];
+        // Check if there are subjects assigned to this department and update them
+        const subjectsResult = await subjectsCollection.find(
+            { department_id: new ObjectId(id) },
+            { projection: { _id: 1 } }
+        ).toArray();
 
-        // Check if department has subjects assigned
-        const subjectsCount = await query(`
-            SELECT COUNT(*) as count FROM subjects WHERE department_id = $1
-        `, [id]);
-
-        // If department has subjects, set their department_id to NULL instead of blocking deletion
-        if (parseInt(subjectsCount.rows[0].count) > 0) {
-            await query(`
-                UPDATE subjects SET department_id = NULL WHERE department_id = $1
-            `, [id]);
+        if (subjectsResult.length > 0) {
+            // Update subjects to remove department assignment
+            await subjectsCollection.updateMany(
+                { department_id: new ObjectId(id) },
+                { $unset: { department_id: "" } }
+            );
         }
 
-        // Delete teacher assignments first (due to foreign key constraints)
-        await query(`
-            DELETE FROM teacher_departments WHERE department_id = $1
-        `, [id]);
+        // Delete teacher assignments for this department
+        await teacherDepartmentsCollection.deleteMany({ department_id: new ObjectId(id) });
 
-        // Hard delete the department from the database
-        await query(`
-            DELETE FROM departments WHERE id = $1
-        `, [id]);
+        // Delete the department
+        const deleteResult = await departmentsCollection.deleteOne({ _id: new ObjectId(id) });
+
+        if (deleteResult.deletedCount === 0) {
+            return json({ success: false, error: 'Department not found' }, { status: 404 });
+        }
 
         // Log the department deletion
         try {
             await logActivityWithUser(
-                'department_deleted',
                 user,
-                { department_id: id, department_name: department.name, department_code: department.code },
-                getClientAddress(),
-                request.headers.get('user-agent')
+                'department_deleted',
+                { 
+                    department_id: id, 
+                    department_name: department.name, 
+                    department_code: department.code 
+                }
             );
         } catch (logError) {
             console.error('Error logging department deletion activity:', logError);

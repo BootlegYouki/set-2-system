@@ -1,45 +1,38 @@
 import { json } from '@sveltejs/kit';
-import pool, { query } from '../../../database/db.js';
-import { verifyAuth, logActivityWithUser } from '../helper/auth-helper.js';
+import { connectToDatabase } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
 
 export async function GET({ request, url }) {
     try {
-        // Verify authentication and ensure user is a teacher
-        const authResult = await verifyAuth(request, ['teacher']);
-        if (!authResult.success) {
-            return json({ 
-                success: false, 
-                error: authResult.error 
-            }, { status: authResult.status });
+        const db = await connectToDatabase();
+        
+        // Get query parameters
+        const teacherId = url.searchParams.get('teacher_id');
+        const schoolYear = url.searchParams.get('school_year') || '2024-2025';
+        const quarter = parseInt(url.searchParams.get('quarter')) || 1;
+
+        console.log('Teacher Advisory API - Parameters:', { teacherId, schoolYear, quarter });
+
+        if (!teacherId) {
+            return json({ error: 'Teacher ID is required' }, { status: 400 });
         }
 
-        const user = authResult.user;
-        const teacherId = user.id;
-        const schoolYear = url.searchParams.get('schoolYear') || '2024-2025';
+        // Validate ObjectId format
+        if (!ObjectId.isValid(teacherId)) {
+            console.error('Invalid teacher ID format:', teacherId);
+            return json({ error: 'Invalid teacher ID format' }, { status: 400 });
+        }
 
         // Get the section where this teacher is the adviser
-        const advisorySectionQuery = `
-            SELECT 
-                s.id as section_id,
-                s.name as section_name,
-                s.grade_level,
-                s.school_year,
-                r.name as room_name,
-                r.building,
-                r.floor,
-                COUNT(ss.student_id) as total_students
-            FROM sections s
-            LEFT JOIN rooms r ON s.room_id = r.id
-            LEFT JOIN section_students ss ON s.id = ss.section_id AND ss.status = 'active'
-            WHERE s.adviser_id = $1 
-                AND s.school_year = $2
-                AND s.status = 'active'
-            GROUP BY s.id, s.name, s.grade_level, s.school_year, r.name, r.building, r.floor
-        `;
+        const section = await db.collection('sections').findOne({
+            adviser_id: new ObjectId(teacherId),
+            school_year: schoolYear,
+            status: 'active'
+        });
 
-        const sectionResult = await query(advisorySectionQuery, [teacherId, schoolYear]);
+        console.log('Found section:', section);
 
-        if (sectionResult.rows.length === 0) {
+        if (!section) {
             return json({
                 success: true,
                 data: {
@@ -50,347 +43,304 @@ export async function GET({ request, url }) {
             });
         }
 
-        const section = sectionResult.rows[0];
+        // Get students in the advisory section
+        console.log('Getting section students for section:', section._id);
+        const sectionStudents = await db.collection('section_students').find({
+            section_id: section._id,
+            status: 'active'
+        }).toArray();
+
+        console.log('Found section students:', sectionStudents.length);
+        const studentIds = sectionStudents.map(ss => ss.student_id);
+
+        // Get student details
+        console.log('Getting student details for IDs:', studentIds);
+        const students = await db.collection('users').find({
+            _id: { $in: studentIds },
+            account_type: 'student',
+            status: 'active'
+        }).sort({ full_name: 1 }).toArray();
+
+        console.log('Found students:', students.length);
+
+        // Get all grades for these students in this section
+        console.log('Getting grades for students in section:', section._id);
+        const gradesData = await db.collection('grades').find({
+            student_id: { $in: studentIds },
+            section_id: section._id,
+            school_year: schoolYear,
+            quarter,
+            submitted_to_adviser: true // Only get grades that have been submitted to adviser
+        }).toArray();
+
+        console.log('Found grades:', gradesData.length);
+
+        // Get subjects for this section with teacher information
+        console.log('Getting schedules for section:', section._id);
+        const schedules = await db.collection('schedules').find({
+            section_id: section._id,
+            school_year: schoolYear
+        }).toArray();
+
+        console.log('Found schedules:', schedules.length);
+        const subjectIds = [...new Set(schedules.map(s => s.subject_id))];
         
-        // Get students in the advisory section with their grades
-        const studentsQuery = `
-            SELECT DISTINCT
-                u.id as student_id,
-                u.account_number as student_number,
-                u.full_name as student_name,
-                u.grade_level,
-                ss.enrolled_at,
-                ss.status as enrollment_status
-            FROM section_students ss
-            JOIN users u ON ss.student_id = u.id
-            WHERE ss.section_id = $1 
-                AND ss.status = 'active'
-                AND u.account_type = 'student'
-                AND u.status = 'active'
-            ORDER BY u.full_name
-        `;
+        console.log('Getting subjects for IDs:', subjectIds);
+        const subjects = await db.collection('subjects').find({
+            _id: { $in: subjectIds }
+        }).toArray();
 
-        const studentsResult = await query(studentsQuery, [section.section_id]);
+        // Get teacher information for each subject
+        const teacherIds = [...new Set(schedules.map(s => s.teacher_id))];
+        const teachers = await db.collection('users').find({
+            _id: { $in: teacherIds },
+            account_type: 'teacher'
+        }).toArray();
 
-        // Get grades for each student
-        const studentsWithGrades = [];
-        
-        for (const student of studentsResult.rows) {
-            // Get student's grades from all subjects in their section
-            const gradesQuery = `
-                SELECT 
-                    sub.name as subject_name,
-                    sub.code as subject_code,
-                    t.full_name as teacher_name,
-                    gi.name as grade_item_name,
-                    gi.total_score,
-                    sg.score,
-                    gi.date_given,
-                    sg.graded_at,
-                    gp.name as grading_period,
-                    gc.name as category_name,
-                    CASE 
-                        WHEN gi.total_score > 0 THEN ROUND((sg.score / gi.total_score * 100)::numeric, 2)
-                        ELSE 0
-                    END as percentage_score
-                FROM grade_items gi
-                JOIN subjects sub ON gi.subject_id = sub.id
-                JOIN users t ON gi.teacher_id = t.id
-                JOIN grading_periods gp ON gi.grading_period_id = gp.id
-                JOIN grade_categories gc ON gi.category_id = gc.id
-                LEFT JOIN student_grades sg ON gi.id = sg.grade_item_id AND sg.student_id = $1
-                WHERE gi.section_id = $2
-                    AND gi.status = 'active'
-                ORDER BY sub.name, gi.date_given DESC
-            `;
+        // Create a map of subject to teacher
+        const subjectTeacherMap = {};
+        schedules.forEach(schedule => {
+            const teacher = teachers.find(t => t._id.toString() === schedule.teacher_id.toString());
+            if (teacher) {
+                subjectTeacherMap[schedule.subject_id.toString()] = teacher.full_name;
+            }
+        });
 
-            const gradesResult = await query(gradesQuery, [student.student_id, section.section_id]);
+        console.log('Found subjects:', subjects.length);
+        console.log('Subject-teacher mapping:', subjectTeacherMap);
 
-            // Group grades by subject and calculate averages
-            const gradesBySubject = {};
-            
-            gradesResult.rows.forEach(grade => {
-                const subjectKey = grade.subject_name;
+        // Process students with their grades
+        console.log('Processing students with grades...');
+        const studentsWithGrades = students.map(student => {
+            console.log('Processing student:', student.full_name);
+            const studentGrades = gradesData.filter(g => 
+                g.student_id.toString() === student._id.toString()
+            );
+
+            console.log('Student grades found:', studentGrades.length);
+
+            // Group grades by subject
+            const subjectGrades = subjects.map(subject => {
+                const subjectGrade = studentGrades.find(g => 
+                    g.subject_id.toString() === subject._id.toString()
+                );
+
+                console.log(`Subject ${subject.name}: grade found =`, !!subjectGrade);
                 
-                if (!gradesBySubject[subjectKey]) {
-                    gradesBySubject[subjectKey] = {
-                        subject: grade.subject_name,
-                        teacher: grade.teacher_name,
-                        grades: [],
-                        totalScore: 0,
-                        totalPossible: 0,
-                        average: 0,
-                        verified: false // For now, we'll set this to false by default
-                    };
-                }
+                // Check if grades have been submitted to adviser
+                const isSubmittedToAdviser = subjectGrade?.submitted_to_adviser || false;
+                console.log(`Subject ${subject.name}: submitted to adviser =`, isSubmittedToAdviser);
 
-                if (grade.score !== null) {
-                    gradesBySubject[subjectKey].grades.push({
-                        name: grade.grade_item_name,
-                        score: parseFloat(grade.score),
-                        totalScore: grade.total_score,
-                        percentage: parseFloat(grade.percentage_score),
-                        dateGiven: grade.date_given,
-                        gradedAt: grade.graded_at,
-                        period: grade.grading_period,
-                        category: grade.category_name
-                    });
-
-                    gradesBySubject[subjectKey].totalScore += parseFloat(grade.score);
-                    gradesBySubject[subjectKey].totalPossible += grade.total_score;
-                }
+                return {
+                    subject_id: subject._id,
+                    subject_name: subject.name,
+                    subject_code: subject.code,
+                    teacher_name: subjectTeacherMap[subject._id.toString()] || 'Unknown Teacher',
+                    averages: isSubmittedToAdviser ? (subjectGrade?.averages || {
+                        written_work: 0,
+                        performance_tasks: 0,
+                        quarterly_assessment: 0,
+                        final_grade: 0
+                    }) : {
+                        written_work: null,
+                        performance_tasks: null,
+                        quarterly_assessment: null,
+                        final_grade: null
+                    },
+                    verified: subjectGrade?.verified || false,
+                    verified_at: subjectGrade?.verified_at || null,
+                    submitted_to_adviser: isSubmittedToAdviser,
+                    submitted_at: subjectGrade?.submitted_at || null,
+                    submitted_by: subjectGrade?.submitted_by || null,
+                    grade_counts: isSubmittedToAdviser ? {
+                        written_work: subjectGrade?.written_work?.length || 0,
+                        performance_tasks: subjectGrade?.performance_tasks?.length || 0,
+                        quarterly_assessment: subjectGrade?.quarterly_assessment?.length || 0
+                    } : {
+                        written_work: 0,
+                        performance_tasks: 0,
+                        quarterly_assessment: 0
+                    }
+                };
             });
 
-            // Get final grades for the student
-            const finalGradesQuery = `
-                SELECT 
-                    fg.id,
-                    fg.written_work_average,
-                    fg.performance_tasks_average,
-                    fg.quarterly_assessment_average,
-                    fg.final_grade,
-                    fg.letter_grade,
-                    fg.verified,
-                    fg.computed_at,
-                    sub.name as subject_name,
-                    sub.code as subject_code,
-                    COALESCE(t.full_name, 'Unknown Teacher') as teacher_name,
-                    gp.name as grading_period
-                FROM final_grades fg
-                JOIN subjects sub ON fg.subject_id = sub.id
-                JOIN grading_periods gp ON fg.grading_period_id = gp.id
-                LEFT JOIN (
-                    SELECT DISTINCT subject_id, section_id, teacher_id
-                    FROM schedules
-                ) sch ON sch.subject_id = sub.id AND sch.section_id = fg.section_id
-                LEFT JOIN users t ON sch.teacher_id = t.id AND t.account_type = 'teacher'
-                WHERE fg.student_id = $1 
-                    AND fg.section_id = $2
-                ORDER BY sub.name
-            `;
+            console.log('Subject grades processed:', subjectGrades.length);
 
-            const finalGradesResult = await query(finalGradesQuery, [student.student_id, section.section_id]);
+            // Calculate overall average
+            const validFinalGrades = subjectGrades
+                .map(sg => sg.averages.final_grade)
+                .filter(grade => grade !== null && grade > 0);
+            
+            const overallAverage = validFinalGrades.length > 0
+                ? Math.round((validFinalGrades.reduce((sum, grade) => sum + grade, 0) / validFinalGrades.length) * 100) / 100
+                : null;
 
-            // Calculate subject averages
-            const subjects = Object.values(gradesBySubject).map(subject => {
-                if (subject.totalPossible > 0) {
-                    subject.average = Math.round((subject.totalScore / subject.totalPossible * 100) * 100) / 100;
-                }
-                return subject;
-            });
+            // Check if all grades are verified
+            const allGradesVerified = subjectGrades.length > 0 && subjectGrades.every(sg => sg.verified);
 
-            // Calculate overall student average
-            const validAverages = subjects.filter(s => s.average > 0).map(s => s.average);
-            const overallAverage = validAverages.length > 0 
-                ? Math.round((validAverages.reduce((sum, avg) => sum + avg, 0) / validAverages.length) * 100) / 100
-                : 0;
-
-            studentsWithGrades.push({
-                id: student.student_id,
-                name: student.student_name,
-                studentNumber: student.student_number,
-                gradeLevel: student.grade_level,
-                enrolledAt: student.enrolled_at,
-                enrollmentStatus: student.enrollment_status,
-                subjects: subjects,
-                finalGrades: finalGradesResult.rows.map(fg => ({
-                    id: fg.id,
-                    subjectName: fg.subject_name,
-                    subjectCode: fg.subject_code,
-                    teacherName: fg.teacher_name,
-                    gradingPeriod: fg.grading_period,
-                    writtenWorkAverage: parseFloat(fg.written_work_average) || 0,
-                    performanceTasksAverage: parseFloat(fg.performance_tasks_average) || 0,
-                    quarterlyAssessmentAverage: parseFloat(fg.quarterly_assessment_average) || 0,
-                    finalGrade: parseFloat(fg.final_grade) || 0,
-                    letterGrade: fg.letter_grade,
-                    verified: fg.verified || false,
-                    computedAt: fg.computed_at
-                })),
-                overallAverage: overallAverage,
-                gradesVerified: false // Default to false, can be updated later
-            });
-        }
+            return {
+                id: student._id,
+                name: student.full_name,
+                student_number: student.account_number,
+                grade_level: student.grade_level,
+                subjects: subjectGrades,
+                overall_average: overallAverage,
+                grades_verified: allGradesVerified,
+                total_subjects: subjects.length
+            };
+        });
 
         // Calculate class statistics
         const validAverages = studentsWithGrades
-            .map(s => s.overallAverage)
-            .filter(avg => avg > 0);
+            .map(s => s.overall_average)
+            .filter(avg => avg !== null && avg > 0);
         
         const classAverage = validAverages.length > 0 
             ? Math.round((validAverages.reduce((sum, avg) => sum + avg, 0) / validAverages.length) * 100) / 100
-            : 0;
+            : null;
 
-        // Get unique subjects count
-        const allSubjects = new Set();
-        studentsWithGrades.forEach(student => {
-            student.subjects.forEach(subject => {
-                allSubjects.add(subject.subject);
-            });
+        // Get room information
+        const room = section.room_id ? await db.collection('rooms').findOne({
+            _id: section.room_id
+        }) : null;
+
+        // Get teacher information
+        const teacher = await db.collection('users').findOne({
+            _id: new ObjectId(teacherId),
+            account_type: 'teacher'
         });
 
         const advisoryData = {
-            sectionId: section.section_id,
-            sectionName: section.section_name,
+            section_id: section._id,
+            sectionName: section.name,
             gradeLevel: section.grade_level,
             schoolYear: section.school_year,
-            roomName: section.room_name ? `${section.room_name}` : 'No room assigned',
-            building: section.building,
-            floor: section.floor,
-            totalStudents: parseInt(section.total_students),
-            classAverage: classAverage,
-            subjectsCount: allSubjects.size
+            roomName: room ? room.name : 'No room assigned',
+            building: room?.building || '',
+            floor: room?.floor || '',
+            totalStudents: students.length,
+            averageGrade: classAverage,
+            subjectsCount: subjects.length,
+            quarter: quarter,
+            teacherName: teacher ? teacher.full_name : 'Unknown Teacher',
+            submittedDate: new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            })
         };
-
-        // Log the activity
-        await logActivityWithUser(
-            'teacher_advisory_view',
-            user,
-            { 
-                section_id: section.section_id,
-                section_name: section.section_name,
-                student_count: studentsWithGrades.length
-            },
-            request.headers.get('x-forwarded-for') || 'unknown',
-            request.headers.get('user-agent') || 'unknown'
-        );
 
         return json({
             success: true,
             data: {
-                advisoryData: advisoryData,
+                advisoryData,
                 students: studentsWithGrades
             }
         });
 
     } catch (error) {
-        console.error('Error fetching teacher advisory data:', error);
+        console.error('Error in teacher-advisory GET:', error);
+        console.error('Error stack:', error.stack);
+        console.error('Error message:', error.message);
         return json({ 
             success: false, 
-            error: 'Failed to fetch advisory data' 
+            error: 'Internal server error',
+            details: error.message
         }, { status: 500 });
     }
 }
 
-// POST endpoint for updating grade verification status
 export async function POST({ request }) {
     try {
-        // Verify authentication and ensure user is a teacher
-        const authResult = await verifyAuth(request, ['teacher']);
-        if (!authResult.success) {
-            return json({ 
-                success: false, 
-                error: authResult.error 
-            }, { status: authResult.status });
-        }
+        const db = await connectToDatabase();
+        const body = await request.json();
+        const { action } = body;
 
-        const user = authResult.user;
-        const { action, studentId, subjectName, gradeId } = await request.json();
+        // Verify grades for a student
+        if (action === 'verify_student_grades') {
+            const {
+                student_id,
+                section_id,
+                teacher_id,
+                school_year = '2024-2025',
+                quarter = 1,
+                verified = true
+            } = body;
 
-        // Validate input
-        if (!action || !['verify_all', 'unverify_all', 'verify_subject', 'unverify_subject', 'verify_grade', 'unverify_grade'].includes(action)) {
-            return json({
-                success: false,
-                error: 'Invalid action'
-            }, { status: 400 });
-        }
-
-        const client = await pool.connect();
-        
-        try {
-            let updateQuery = '';
-            let queryParams = [];
-            
-            switch (action) {
-                case 'verify_all':
-                    // Verify all grades for a student
-                    updateQuery = `
-                        UPDATE final_grades 
-                        SET verified = true 
-                        WHERE student_id = $1
-                    `;
-                    queryParams = [studentId];
-                    break;
-                    
-                case 'unverify_all':
-                    // Unverify all grades for a student
-                    updateQuery = `
-                        UPDATE final_grades 
-                        SET verified = false 
-                        WHERE student_id = $1
-                    `;
-                    queryParams = [studentId];
-                    break;
-                    
-                case 'verify_subject':
-                    // Verify all grades for a specific subject for a student
-                    updateQuery = `
-                        UPDATE final_grades 
-                        SET verified = true 
-                        WHERE student_id = $1 AND subject_id IN (
-                            SELECT id FROM subjects WHERE name = $2
-                        )
-                    `;
-                    queryParams = [studentId, subjectName];
-                    break;
-                    
-                case 'unverify_subject':
-                    // Unverify all grades for a specific subject for a student
-                    updateQuery = `
-                        UPDATE final_grades 
-                        SET verified = false 
-                        WHERE student_id = $1 AND subject_id IN (
-                            SELECT id FROM subjects WHERE name = $2
-                        )
-                    `;
-                    queryParams = [studentId, subjectName];
-                    break;
-                    
-                case 'verify_grade':
-                    // Verify a specific grade
-                    updateQuery = `UPDATE final_grades SET verified = true WHERE id = $1`;
-                    queryParams = [gradeId];
-                    break;
-                    
-                case 'unverify_grade':
-                    // Unverify a specific grade
-                    updateQuery = `UPDATE final_grades SET verified = false WHERE id = $1`;
-                    queryParams = [gradeId];
-                    break;
+            if (!student_id || !section_id || !teacher_id) {
+                return json({ error: 'Missing required fields' }, { status: 400 });
             }
-            
-            const result = await client.query(updateQuery, queryParams);
-            
-            // Log the activity
-            await logActivityWithUser(
-                'grade_verification_update',
-                user,
-                { 
-                    action: action,
-                    student_id: studentId,
-                    subject_name: subjectName,
-                    grade_id: gradeId,
-                    affected_rows: result.rowCount
+
+            // Update all grades for this student in this section
+            const result = await db.collection('grades').updateMany(
+                {
+                    student_id: new ObjectId(student_id),
+                    section_id: new ObjectId(section_id),
+                    school_year,
+                    quarter
                 },
-                request.headers.get('x-forwarded-for') || 'unknown',
-                request.headers.get('user-agent') || 'unknown'
+                {
+                    $set: {
+                        verified: verified,
+                        verified_at: verified ? new Date() : null,
+                        verified_by: verified ? new ObjectId(teacher_id) : null,
+                        updated_at: new Date()
+                    }
+                }
             );
 
             return json({
                 success: true,
-                message: 'Grade verification updated successfully',
-                affectedRows: result.rowCount
+                message: verified ? 'Student grades verified successfully' : 'Student grades unverified successfully',
+                modified_count: result.modifiedCount
             });
-            
-        } finally {
-            client.release();
         }
 
+        // Verify all grades for the section
+        if (action === 'verify_all_grades') {
+            const {
+                section_id,
+                teacher_id,
+                school_year = '2024-2025',
+                quarter = 1,
+                verified = true
+            } = body;
+
+            if (!section_id || !teacher_id) {
+                return json({ error: 'Missing required fields' }, { status: 400 });
+            }
+
+            // Update all grades for this section
+            const result = await db.collection('grades').updateMany(
+                {
+                    section_id: new ObjectId(section_id),
+                    school_year,
+                    quarter
+                },
+                {
+                    $set: {
+                        verified: verified,
+                        verified_at: verified ? new Date() : null,
+                        verified_by: verified ? new ObjectId(teacher_id) : null,
+                        updated_at: new Date()
+                    }
+                }
+            );
+
+            return json({
+                success: true,
+                message: verified ? 'All grades verified successfully' : 'All grades unverified successfully',
+                modified_count: result.modifiedCount
+            });
+        }
+
+        return json({ error: 'Invalid action' }, { status: 400 });
+
     } catch (error) {
-        console.error('Error updating grade verification:', error);
+        console.error('Error in teacher-advisory POST:', error);
         return json({ 
             success: false, 
-            error: 'Failed to update grade verification'
+            error: 'Internal server error' 
         }, { status: 500 });
     }
 }

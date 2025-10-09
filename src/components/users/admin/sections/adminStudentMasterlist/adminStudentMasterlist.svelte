@@ -2,6 +2,7 @@
 	import './adminStudentMasterlist.css';
 	import { onMount } from 'svelte';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
 	// State variables
@@ -25,14 +26,9 @@
 		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
 	];
 
-	// Section options
-	const sectionOptions = [
-		{ id: '', name: 'All Sections' },
-		{ id: 'section-a', name: 'Section A' },
-		{ id: 'section-b', name: 'Section B' },
-		{ id: 'section-c', name: 'Section C' },
-		{ id: 'section-d', name: 'Section D' },
-		{ id: 'section-e', name: 'Section E' }
+	// Section options - will be populated from database
+	let sectionOptions = [
+		{ id: '', name: 'All Sections' }
 	];
 
 	// Computed values
@@ -70,6 +66,29 @@
 			students = [];
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	// Load sections data
+	async function loadSections() {
+		try {
+			const data = await api.get('/api/sections');
+			if (data.success && data.data) {
+				// Transform sections data and add to dropdown options
+				const sectionsFromDB = data.data.map(section => ({
+					id: section.name, // Use section name as ID for filtering
+					name: section.name
+				}));
+				
+				// Combine "All Sections" with actual sections
+				sectionOptions = [
+					{ id: '', name: 'All Sections' },
+					...sectionsFromDB
+				];
+			}
+		} catch (error) {
+			console.error('Error loading sections:', error);
+			// Keep default "All Sections" option if loading fails
 		}
 	}
 
@@ -157,25 +176,35 @@
 		}
 	}
 
-	// Archive student function
+	// Archive student function with confirmation
 	async function archiveStudent(studentId, studentName) {
-		try {
-			const result = await api.patch('/api/accounts', { id: studentId, action: 'archive' });
+		modalStore.confirm(
+			'Archive Student',
+			`Are you sure you want to archive ${studentName}? This action will move the student to the archived list.`,
+			async () => {
+				try {
+					const result = await api.patch('/api/accounts', { id: studentId, action: 'archive' });
 
-			if (result.success) {
-				toastStore.success(result.message);
-				// Reload students to reflect the change
-				await loadStudents();
-			} else {
-				toastStore.error(result.message || 'Failed to archive student');
+					if (result.success) {
+						toastStore.success(result.message);
+						// Reload students to reflect the change
+						await loadStudents();
+					} else {
+						toastStore.error(result.message || 'Failed to archive student');
+					}
+				} catch (error) {
+					console.error('Error archiving student:', error);
+					toastStore.error('Failed to archive student. Please try again.');
+				}
+			},
+			() => {
+				// User cancelled - do nothing
 			}
-		} catch (error) {
-			console.error('Error archiving student:', error);
-			toastStore.error('Failed to archive student. Please try again.');
-		}
+		);
 	}
 
 	onMount(() => {
+		loadSections(); // Load sections first
 		loadStudents();
 		document.addEventListener('click', handleClickOutside);
 		

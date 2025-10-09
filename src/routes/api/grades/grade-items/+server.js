@@ -1,531 +1,249 @@
 import { json } from '@sveltejs/kit';
-import { query, getClient } from '../../../../database/db.js';
-import { verifyAuth } from '../../../api/helper/auth-helper.js';
+import { connectToDatabase } from '../../../database/db.js';
+import { ObjectId } from 'mongodb';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request, ['teacher']);
-    
-    if (!authResult.success) {
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
-    }
-
     const sectionId = url.searchParams.get('section_id');
     const subjectId = url.searchParams.get('subject_id');
     const gradingPeriodId = url.searchParams.get('grading_period_id');
+    const teacherId = url.searchParams.get('teacher_id');
 
     // Validate required fields
     if (!sectionId || !subjectId || !gradingPeriodId) {
-      return json({ error: 'Missing required parameters: section_id, subject_id, grading_period_id' }, { status: 400 });
+      return json({ 
+        error: 'Missing required parameters: section_id, subject_id, grading_period_id' 
+      }, { status: 400 });
     }
 
-    const teacherId = authResult.user.id;
+    const db = await connectToDatabase();
 
-    // Get grade items for this section, subject, and grading period
-    const gradeItemsQuery = `
-      SELECT 
-        gi.id,
-        gi.name,
-        gi.total_score,
-        gi.category_id,
-        gc.name as category_name,
-        gc.code as category_code,
-        gc.weight as category_weight
-      FROM grade_items gi
-      JOIN grade_categories gc ON gi.category_id = gc.id
-      WHERE gi.section_id = $1
-      AND gi.subject_id = $2
-      AND gi.grading_period_id = $3
-      AND gi.teacher_id = $4
-      AND gi.status = 'active'
-      ORDER BY gc.id, gi.created_at
-    `;
-    
-    const result = await query(gradeItemsQuery, [sectionId, subjectId, gradingPeriodId, teacherId]);
-    
-    // Group grade items by category
-    const gradeItemsByCategory = {
-      writtenWork: [],
-      performanceTasks: [],
-      quarterlyAssessment: []
-    };
-
-    result.rows.forEach(item => {
-      const categoryKey = item.category_id === 1 ? 'writtenWork' : 
-                         item.category_id === 2 ? 'performanceTasks' : 'quarterlyAssessment';
-      gradeItemsByCategory[categoryKey].push(item);
+    // Check if there are any existing grade configurations in MongoDB
+    const existingConfig = await db.collection('grade_configurations').findOne({
+      section_id: sectionId,
+      subject_id: subjectId,
+      grading_period_id: parseInt(gradingPeriodId),
+      teacher_id: teacherId
     });
 
-    return json({ 
-      success: true, 
-      gradeItems: gradeItemsByCategory
+    let gradeItemsByCategory;
+
+    if (existingConfig) {
+      gradeItemsByCategory = existingConfig.grade_items;
+    } else {
+      // Start with empty configuration - no mock data
+      gradeItemsByCategory = {
+        writtenWork: [],
+        performanceTasks: [],
+        quarterlyAssessment: []
+      };
+      
+      // Save the empty configuration to MongoDB for future use
+      await db.collection('grade_configurations').insertOne({
+        section_id: sectionId,
+        subject_id: subjectId,
+        grading_period_id: parseInt(gradingPeriodId),
+        teacher_id: teacherId,
+        grade_items: gradeItemsByCategory,
+        created_at: new Date(),
+        updated_at: new Date(),
+        status: 'active'
+      });
+    }
+
+    return json({
+      success: true,
+      data: gradeItemsByCategory
     });
 
   } catch (error) {
-    console.error('Error fetching grade items:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error in grades/grade-items GET:', error);
+    return json({ 
+      success: false,
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
-  console.log('=== GRADE ITEMS API CALLED ===');
-  
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request, ['teacher']);
-    
-    if (!authResult.success) {
-      console.log('Authentication failed:', authResult.error);
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
-    }
+    const { action, ...data } = await request.json();
+    const db = await connectToDatabase();
 
-    console.log('User authenticated:', authResult.user.account_number);
+    switch (action) {
+      case 'create_grade_item':
+        const { section_id, subject_id, grading_period_id, teacher_id, category, name, total_score } = data;
+        
+        // Find existing configuration
+        const config = await db.collection('grade_configurations').findOne({
+          section_id,
+          subject_id,
+          grading_period_id: parseInt(grading_period_id),
+          teacher_id
+        });
 
-    const body = await request.json();
-    console.log('Request body received:', JSON.stringify(body, null, 2));
-    
-    const { action, section_id, subject_id, grading_period_id, category_id, grade_item_data } = body;
+        if (config) {
+          // Add new grade item to the appropriate category
+          const newItem = {
+            id: new ObjectId().toString(),
+            name,
+            totalScore: total_score
+          };
 
-    // Validate required fields
-    if (!action || !section_id || !subject_id || !grading_period_id || !category_id) {
-      return json({ error: 'Missing required fields' }, { status: 400 });
-    }
+          const updatePath = `grade_items.${category}`;
+          await db.collection('grade_configurations').updateOne(
+            { _id: config._id },
+            { 
+              $push: { [updatePath]: newItem },
+              $set: { updated_at: new Date() }
+            }
+          );
 
-    const teacherId = authResult.user.id;
+          return json({ success: true, data: newItem });
+        } else {
+          return json({ 
+            success: false, 
+            error: 'Grade configuration not found' 
+          }, { status: 404 });
+        }
 
-    if (action === 'add') {
-      const gradeItem = await addGradeItem(teacherId, section_id, subject_id, grading_period_id, category_id, grade_item_data);
-      return json({ 
-        success: true, 
-        message: 'Grade item added successfully',
-        grade_item: gradeItem
-      });
-    } else if (action === 'remove') {
-      return await removeGradeItem(teacherId, section_id, subject_id, grading_period_id, category_id, grade_item_data);
-    } else {
-      return json({ error: 'Invalid action. Use "add" or "remove"' }, { status: 400 });
+      case 'update_grade_item':
+        const { item_id, new_name, new_total_score } = data;
+        
+        // Update grade item in the configuration
+        const updateResult = await db.collection('grade_configurations').updateOne(
+          {
+            $or: [
+              { 'grade_items.writtenWork.id': item_id },
+              { 'grade_items.performanceTasks.id': item_id },
+              { 'grade_items.quarterlyAssessment.id': item_id }
+            ]
+          },
+          {
+            $set: {
+              'grade_items.writtenWork.$[elem].name': new_name,
+              'grade_items.writtenWork.$[elem].totalScore': new_total_score,
+              'grade_items.performanceTasks.$[elem].name': new_name,
+              'grade_items.performanceTasks.$[elem].totalScore': new_total_score,
+              'grade_items.quarterlyAssessment.$[elem].name': new_name,
+              'grade_items.quarterlyAssessment.$[elem].totalScore': new_total_score,
+              updated_at: new Date()
+            }
+          },
+          {
+            arrayFilters: [{ 'elem.id': item_id }]
+          }
+        );
+
+        return json({ success: true });
+
+      case 'delete_grade_item':
+        const { delete_item_id } = data;
+        
+        // Remove grade item from all categories
+        await db.collection('grade_configurations').updateMany(
+          {},
+          {
+            $pull: {
+              'grade_items.writtenWork': { id: delete_item_id },
+              'grade_items.performanceTasks': { id: delete_item_id },
+              'grade_items.quarterlyAssessment': { id: delete_item_id }
+            },
+            $set: { updated_at: new Date() }
+          }
+        );
+
+        return json({ success: true });
+
+      default:
+        return json({ 
+          success: false, 
+          error: 'Invalid action' 
+        }, { status: 400 });
     }
 
   } catch (error) {
-    console.error('Grade items API error:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error in grades/grade-items POST:', error);
+    return json({ 
+      success: false,
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }
 
 /** @type {import('./$types').RequestHandler} */
 export async function PUT({ request }) {
-  console.log('=== GRADE ITEMS UPDATE API CALLED ===');
-  
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request, ['teacher']);
-    
-    if (!authResult.success) {
-      console.log('Authentication failed:', authResult.error);
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
-    }
+    const data = await request.json();
+    const db = await connectToDatabase();
 
-    console.log('User authenticated:', authResult.user.account_number);
+    const { section_id, subject_id, grading_period_id, teacher_id, grade_items } = data;
 
-    const body = await request.json();
-    console.log('Update request body received:', JSON.stringify(body, null, 2));
-    
-    const { grade_item_id, name, total_score } = body;
+    // Update or create grade configuration
+    const result = await db.collection('grade_configurations').updateOne(
+      {
+        section_id,
+        subject_id,
+        grading_period_id: parseInt(grading_period_id),
+        teacher_id
+      },
+      {
+        $set: {
+          grade_items,
+          updated_at: new Date()
+        },
+        $setOnInsert: {
+          created_at: new Date(),
+          status: 'active'
+        }
+      },
+      { upsert: true }
+    );
 
-    // Validate required fields
-    if (!grade_item_id) {
-      return json({ error: 'Missing required field: grade_item_id' }, { status: 400 });
-    }
-
-    // At least one field to update must be provided
-    if (name === undefined && total_score === undefined) {
-      return json({ error: 'At least one field (name or total_score) must be provided for update' }, { status: 400 });
-    }
-
-    const teacherId = authResult.user.id;
-
-    const updatedGradeItem = await updateGradeItem(teacherId, grade_item_id, { name, total_score });
-    
-    return json({ 
-      success: true, 
-      message: 'Grade item updated successfully',
-      grade_item: updatedGradeItem
-    });
+    return json({ success: true });
 
   } catch (error) {
-    console.error('Grade items update API error:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error in grades/grade-items PUT:', error);
+    return json({ 
+      success: false,
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function DELETE({ request }) {
-  console.log('=== GRADE ITEMS DELETE API CALLED ===');
-  
+export async function DELETE({ url }) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request, ['teacher']);
-    
-    if (!authResult.success) {
-      console.log('Authentication failed:', authResult.error);
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
+    const sectionId = url.searchParams.get('section_id');
+    const subjectId = url.searchParams.get('subject_id');
+    const gradingPeriodId = url.searchParams.get('grading_period_id');
+    const teacherId = url.searchParams.get('teacher_id');
+
+    if (!sectionId || !subjectId || !gradingPeriodId || !teacherId) {
+      return json({ 
+        error: 'Missing required parameters' 
+      }, { status: 400 });
     }
 
-    console.log('User authenticated:', authResult.user.account_number);
+    const db = await connectToDatabase();
 
-    const body = await request.json();
-    console.log('Delete request body received:', JSON.stringify(body, null, 2));
-    
-    const { grade_item_id } = body;
-
-    // Validate required fields
-    if (!grade_item_id) {
-      return json({ error: 'Missing required field: grade_item_id' }, { status: 400 });
-    }
-
-    const teacherId = authResult.user.id;
-
-    const deletedGradeItem = await deleteGradeItem(teacherId, grade_item_id);
-    
-    return json({ 
-      success: true, 
-      message: 'Grade item deleted successfully',
-      deleted_item: deletedGradeItem
+    // Delete grade configuration
+    await db.collection('grade_configurations').deleteOne({
+      section_id: sectionId,
+      subject_id: subjectId,
+      grading_period_id: parseInt(gradingPeriodId),
+      teacher_id: teacherId
     });
 
-  } catch (error) {
-    console.error('Grade items delete API error:', error);
-    return json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-async function updateGradeItem(teacherId, gradeItemId, updateData) {
-  const client = await getClient();
-  
-  try {
-    // Start transaction
-    await client.query('BEGIN');
-    
-    // First, verify that the grade item belongs to the teacher
-    const verifyResult = await client.query(`
-      SELECT id, name, total_score, section_id, subject_id, grading_period_id, category_id
-      FROM grade_items 
-      WHERE id = $1 AND teacher_id = $2 AND status = 'active'
-    `, [gradeItemId, teacherId]);
-
-    if (verifyResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      throw new Error('Grade item not found or unauthorized');
-    }
-
-    const currentItem = verifyResult.rows[0];
-    
-    // Build dynamic update query
-    const updateFields = [];
-    const updateValues = [];
-    let paramIndex = 1;
-
-    if (updateData.name !== undefined && updateData.name !== null) {
-      updateFields.push(`name = $${paramIndex}`);
-      updateValues.push(updateData.name.trim());
-      paramIndex++;
-    }
-
-    if (updateData.total_score !== undefined && updateData.total_score !== null) {
-      // Validate total score
-      const totalScore = parseFloat(updateData.total_score);
-      if (isNaN(totalScore) || totalScore <= 0 || totalScore > 1000) {
-        await client.query('ROLLBACK');
-        throw new Error('Total score must be a positive number between 1 and 1000');
-      }
-      updateFields.push(`total_score = $${paramIndex}`);
-      updateValues.push(totalScore);
-      paramIndex++;
-    }
-
-    if (updateFields.length === 0) {
-      await client.query('ROLLBACK');
-      throw new Error('No valid fields to update');
-    }
-
-    // Add updated_at timestamp
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-    
-    // Add WHERE clause parameters
-    updateValues.push(gradeItemId, teacherId);
-    const whereClause = `WHERE id = $${paramIndex} AND teacher_id = $${paramIndex + 1}`;
-
-    const updateQuery = `
-      UPDATE grade_items 
-      SET ${updateFields.join(', ')}
-      ${whereClause}
-      RETURNING *
-    `;
-
-    console.log('Update query:', updateQuery);
-    console.log('Update values:', updateValues);
-
-    const updateResult = await client.query(updateQuery, updateValues);
-
-    if (updateResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      throw new Error('Failed to update grade item');
-    }
-
-    // Commit transaction
-    await client.query('COMMIT');
-    
-    console.log('Grade item updated:', updateResult.rows[0]);
-
-    return updateResult.rows[0];
+    return json({ success: true });
 
   } catch (error) {
-    // Rollback transaction on error
-    await client.query('ROLLBACK');
-    console.error('Error updating grade item:', error);
-    throw error;
-  } finally {
-    // Release the client back to the pool
-    client.release();
-  }
-}
-
-async function addGradeItem(teacherId, sectionId, subjectId, gradingPeriodId, categoryId, gradeItemData) {
-  const client = await getClient();
-  
-  try {
-    // Start transaction
-    await client.query('BEGIN');
-    
-    // Get the current count of grade items for this category within the transaction
-    // First, lock the table to prevent concurrent insertions
-    await client.query(`LOCK TABLE grade_items IN EXCLUSIVE MODE`);
-    
-    // Get existing grade items to find the next sequential number
-    const existingItemsResult = await client.query(`
-      SELECT name 
-      FROM grade_items 
-      WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
-      ORDER BY created_at
-    `, [sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
-
-    // Get category name for generating item name
-    const categoryResult = await client.query(`
-      SELECT name, code FROM grade_categories WHERE id = $1
-    `, [categoryId]);
-
-    if (categoryResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      throw new Error('Invalid category');
-    }
-
-    const categoryCode = categoryResult.rows[0].code; // Use code instead of name
-    
-    // Find the next available number by checking existing names
-    let newItemNumber = 1;
-    const existingNumbers = existingItemsResult.rows
-      .map(row => {
-        const match = row.name.match(new RegExp(`${categoryCode}\\s+(\\d+)$`));
-        return match ? parseInt(match[1]) : 0;
-      })
-      .filter(num => num > 0)
-      .sort((a, b) => a - b);
-    
-    // Find the first gap or use the next sequential number
-    for (let i = 0; i < existingNumbers.length; i++) {
-      if (existingNumbers[i] !== i + 1) {
-        newItemNumber = i + 1;
-        break;
-      }
-      newItemNumber = existingNumbers[i] + 1;
-    }
-    
-    const itemName = gradeItemData?.name || `${categoryCode} ${newItemNumber}`;
-    const totalScore = gradeItemData?.total_score || 100;
-
-    // Insert new grade item within the same transaction
-    const insertResult = await client.query(`
-      INSERT INTO grade_items (section_id, subject_id, teacher_id, grading_period_id, category_id, name, total_score, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
-      RETURNING *
-    `, [sectionId, subjectId, teacherId, gradingPeriodId, categoryId, itemName, totalScore]);
-
-    // Commit transaction
-    await client.query('COMMIT');
-    
-    console.log('Grade item added:', insertResult.rows[0]);
-
-    return insertResult.rows[0];
-
-  } catch (error) {
-    // Rollback transaction on error
-    await client.query('ROLLBACK');
-    console.error('Error adding grade item:', error);
-    throw error;
-  } finally {
-    // Release the client back to the pool
-    client.release();
-  }
-}
-
-async function removeGradeItem(teacherId, sectionId, subjectId, gradingPeriodId, categoryId, gradeItemData) {
-  try {
-    // Check if a specific grade item ID is provided
-    const gradeItemId = gradeItemData?.grade_item_id;
-    
-    let itemToRemove;
-    
-    if (gradeItemId) {
-      // Remove specific grade item by ID
-      const specificItemResult = await query(`
-        SELECT id, name 
-        FROM grade_items 
-        WHERE id = $1 AND section_id = $2 AND subject_id = $3 AND grading_period_id = $4 AND category_id = $5 AND teacher_id = $6 AND status = 'active'
-      `, [gradeItemId, sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
-
-      if (specificItemResult.rows.length === 0) {
-        return json({ error: 'Grade item not found or unauthorized' }, { status: 404 });
-      }
-      
-      itemToRemove = specificItemResult.rows[0];
-    } else {
-      // Fallback to removing the most recently created grade item
-      const itemsResult = await query(`
-        SELECT id, name 
-        FROM grade_items 
-        WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
-        ORDER BY created_at DESC
-      `, [sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
-
-      if (itemsResult.rows.length === 0) {
-        return json({ error: 'No grade items found to remove' }, { status: 400 });
-      }
-
-      if (itemsResult.rows.length <= 1) {
-        return json({ error: 'Cannot remove the last grade item. At least one item is required.' }, { status: 400 });
-      }
-
-      itemToRemove = itemsResult.rows[0];
-    }
-
-    // Check if this would leave the category with no items
-    const countResult = await query(`
-      SELECT COUNT(*) as count 
-      FROM grade_items 
-      WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
-    `, [sectionId, subjectId, gradingPeriodId, categoryId, teacherId]);
-
-    if (parseInt(countResult.rows[0].count) <= 1) {
-      return json({ error: 'Cannot remove the last grade item. At least one item is required.' }, { status: 400 });
-    }
-    
-    // Start transaction
-    await query('BEGIN');
-
-    try {
-      // First, delete any grades associated with this grade item
-      await query(`
-        DELETE FROM student_grades 
-        WHERE grade_item_id = $1
-      `, [itemToRemove.id]);
-
-      // Then, delete the grade item itself
-      const deleteResult = await query(`
-        DELETE FROM grade_items 
-        WHERE id = $1 AND teacher_id = $2
-        RETURNING *
-      `, [itemToRemove.id, teacherId]);
-
-      if (deleteResult.rows.length === 0) {
-        await query('ROLLBACK');
-        return json({ error: 'Grade item not found or unauthorized' }, { status: 404 });
-      }
-
-      await query('COMMIT');
-
-      console.log('Grade item removed:', deleteResult.rows[0]);
-
-      return json({ 
-        success: true, 
-        message: 'Grade item removed successfully',
-        removed_item: deleteResult.rows[0]
-      });
-
-    } catch (error) {
-      await query('ROLLBACK');
-      throw error;
-    }
-
-  } catch (error) {
-    console.error('Error removing grade item:', error);
-    return json({ error: 'Failed to remove grade item' }, { status: 500 });
-  }
-}
-
-async function deleteGradeItem(teacherId, gradeItemId) {
-  const client = await getClient();
-  
-  try {
-    // Start transaction
-    await client.query('BEGIN');
-    
-    // First, verify that the grade item belongs to the teacher
-    const verifyResult = await client.query(`
-      SELECT id, name, total_score, section_id, subject_id, grading_period_id, category_id
-      FROM grade_items 
-      WHERE id = $1 AND teacher_id = $2 AND status = 'active'
-    `, [gradeItemId, teacherId]);
-
-    if (verifyResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      throw new Error('Grade item not found or unauthorized');
-    }
-
-    const gradeItem = verifyResult.rows[0];
-
-    // Check if this would leave the category with no items
-    const countResult = await client.query(`
-      SELECT COUNT(*) as count 
-      FROM grade_items 
-      WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 AND category_id = $4 AND teacher_id = $5 AND status = 'active'
-    `, [gradeItem.section_id, gradeItem.subject_id, gradeItem.grading_period_id, gradeItem.category_id, teacherId]);
-
-    if (parseInt(countResult.rows[0].count) <= 1) {
-      await client.query('ROLLBACK');
-      throw new Error('Cannot delete the last grade item. At least one item is required per category.');
-    }
-
-    // Delete associated student grades first
-    await client.query(`
-      DELETE FROM student_grades 
-      WHERE grade_item_id = $1
-    `, [gradeItemId]);
-
-    // Delete the grade item
-    const deleteResult = await client.query(`
-      DELETE FROM grade_items 
-      WHERE id = $1 AND teacher_id = $2
-      RETURNING id, name, total_score
-    `, [gradeItemId, teacherId]);
-
-    if (deleteResult.rows.length === 0) {
-      await client.query('ROLLBACK');
-      throw new Error('Failed to delete grade item');
-    }
-
-    await client.query('COMMIT');
-
-    console.log('Grade item deleted:', deleteResult.rows[0]);
-
-    return deleteResult.rows[0];
-
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
+    console.error('Error in grades/grade-items DELETE:', error);
+    return json({ 
+      success: false,
+      error: 'Internal server error' 
+    }, { status: 500 });
   }
 }

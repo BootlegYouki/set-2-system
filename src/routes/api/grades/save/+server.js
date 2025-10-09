@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../../database/db.js';
+import { connectToDatabase } from '../../../database/db.js';
+import { ObjectId } from 'mongodb';
 import { verifyAuth } from '../../../api/helper/auth-helper.js';
 
 /** @type {import('./$types').RequestHandler} */
@@ -29,52 +30,126 @@ export async function POST({ request }) {
 
     const teacherId = authResult.user.id;
 
-    // Start transaction
-    await query('BEGIN');
+    // Connect to MongoDB
+    const db = await connectToDatabase();
 
     try {
-      // Get or create grade categories
-      const categories = await getOrCreateCategories();
-      
-      // Process each assessment type
+      // Process each student's grades
       const results = {
         writtenWork: [],
         performanceTasks: [],
         quarterlyAssessment: []
       };
 
-      // Process WW grades
-      if (grading_config.writtenWork) {
-        results.writtenWork = await processAssessmentGrades(
-          grades,
-          'writtenWork',
-          await getExistingGradeItems(section_id, subject_id, grading_period_id, categories.writtenWork, teacherId, grading_config.writtenWork, 'writtenWork'),
-          teacherId
-        );
-      }
+      for (const studentGrade of grades) {
+        const studentAccountNumber = studentGrade.student_id;
+        
+        console.log(`Processing student: ${studentAccountNumber}`);
+        console.log('Student grade data:', JSON.stringify(studentGrade, null, 2));
 
-      // Process PT grades
-      if (grading_config.performanceTasks) {
-        results.performanceTasks = await processAssessmentGrades(
-          grades,
-          'performanceTasks',
-          await getExistingGradeItems(section_id, subject_id, grading_period_id, categories.performanceTasks, teacherId, grading_config.performanceTasks, 'performanceTasks'),
-          teacherId
-        );
-      }
+        // Convert student account number to student ID
+        let studentId;
+        try {
+          const student = await db.collection('users').findOne({
+            account_number: studentAccountNumber,
+            account_type: 'student'
+          });
+          
+          if (!student) {
+            console.log(`Student not found: ${studentAccountNumber}`);
+            continue; // Skip this student
+          }
+          
+          studentId = student._id.toString();
+          console.log(`Found student ID: ${studentId} for account: ${studentAccountNumber}`);
+        } catch (error) {
+          console.error(`Error finding student ${studentAccountNumber}:`, error);
+          continue; // Skip this student
+        }
 
-      // Process QA grades
-      if (grading_config.quarterlyAssessment) {
-        results.quarterlyAssessment = await processAssessmentGrades(
-          grades,
-          'quarterlyAssessment',
-          await getExistingGradeItems(section_id, subject_id, grading_period_id, categories.quarterlyAssessment, teacherId, grading_config.quarterlyAssessment, 'quarterlyAssessment'),
-          teacherId
-        );
-      }
+        // Prepare grade data for MongoDB
+        const gradeData = {
+          student_id: new ObjectId(studentId),
+          section_id: new ObjectId(section_id),
+          subject_id: new ObjectId(subject_id),
+          school_year: '2024-2025', // You might want to make this dynamic
+          quarter: 1, // You might want to make this dynamic
+          written_work: studentGrade.writtenWork || [],
+          performance_tasks: studentGrade.performanceTasks || [],
+          quarterly_assessment: studentGrade.quarterlyAssessment || [],
+          averages: {
+            written_work: 0,
+            performance_tasks: 0,
+            quarterly_assessment: 0,
+            final_grade: 0
+          },
+          verification: {
+            verified: false,
+            verified_by: null,
+            verified_at: null
+          },
+          updated_at: new Date(),
+          updated_by: teacherId
+        };
 
-      // Commit transaction
-      await query('COMMIT');
+        console.log('Prepared grade data for MongoDB:', JSON.stringify(gradeData, null, 2));
+
+        // Calculate averages
+        if (gradeData.written_work.length > 0) {
+          const validScores = gradeData.written_work.filter(score => score !== null && score !== undefined && score !== '' && score !== 0);
+          if (validScores.length > 0) {
+            gradeData.averages.written_work = validScores.reduce((sum, score) => sum + parseFloat(score), 0) / validScores.length;
+          }
+        }
+
+        if (gradeData.performance_tasks.length > 0) {
+          const validScores = gradeData.performance_tasks.filter(score => score !== null && score !== undefined && score !== '' && score !== 0);
+          if (validScores.length > 0) {
+            gradeData.averages.performance_tasks = validScores.reduce((sum, score) => sum + parseFloat(score), 0) / validScores.length;
+          }
+        }
+
+        if (gradeData.quarterly_assessment.length > 0) {
+          const validScores = gradeData.quarterly_assessment.filter(score => score !== null && score !== undefined && score !== '' && score !== 0);
+          if (validScores.length > 0) {
+            gradeData.averages.quarterly_assessment = validScores.reduce((sum, score) => sum + parseFloat(score), 0) / validScores.length;
+          }
+        }
+
+        // Calculate final grade (you might want to adjust the weights)
+        const wwWeight = 0.3;
+        const ptWeight = 0.5;
+        const qaWeight = 0.2;
+        
+        gradeData.averages.final_grade = 
+          (gradeData.averages.written_work * wwWeight) +
+          (gradeData.averages.performance_tasks * ptWeight) +
+          (gradeData.averages.quarterly_assessment * qaWeight);
+
+        // Save or update the grade record in MongoDB
+        const filter = {
+          student_id: new ObjectId(studentId),
+          section_id: new ObjectId(section_id),
+          subject_id: new ObjectId(subject_id),
+          school_year: gradeData.school_year,
+          quarter: gradeData.quarter
+        };
+
+        // Check if grades are already verified
+        const existingGrade = await db.collection('grades').findOne(filter);
+        if (existingGrade && existingGrade.verification && existingGrade.verification.verified) {
+          console.log(`Skipping update for verified grades - student ${studentAccountNumber}`);
+          continue; // Skip this student and continue with the next one
+        }
+
+        const result = await db.collection('grades').updateOne(
+          filter,
+          { $set: gradeData },
+          { upsert: true }
+        );
+
+        console.log(`Grade record updated for student ${studentAccountNumber}:`, result);
+      }
 
       return json({ 
         success: true, 
@@ -83,10 +158,8 @@ export async function POST({ request }) {
       });
 
     } catch (error) {
-      // Rollback transaction on error
-      await query('ROLLBACK');
-      console.error('Transaction error:', error);
-      console.error('Transaction error details:', {
+      console.error('Database operation error:', error);
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         sectionId: section_id,
@@ -101,129 +174,8 @@ export async function POST({ request }) {
     console.error('Error saving grades:', error);
     console.error('Error details:', {
       message: error.message,
-      stack: error.stack,
-      body: body
+      stack: error.stack
     });
     return json({ error: 'Internal server error', details: error.message }, { status: 500 });
-  }
-}
-
-async function getOrCreateCategories() {
-  // Get existing categories or create them if they don't exist
-  const categoryQuery = `
-    SELECT id, name, code FROM grade_categories 
-    WHERE code IN ('WW', 'PT', 'QA')
-  `;
-  
-  const existingCategories = await query(categoryQuery);
-  const categoryMap = {};
-  
-  existingCategories.rows.forEach(cat => {
-    if (cat.code === 'WW') categoryMap.writtenWork = cat.id;
-    if (cat.code === 'PT') categoryMap.performanceTasks = cat.id;
-    if (cat.code === 'QA') categoryMap.quarterlyAssessment = cat.id;
-  });
-
-  // Create missing categories
-  if (!categoryMap.writtenWork) {
-    const result = await query(
-      `INSERT INTO grade_categories (name, code, weight) VALUES ('Written Work', 'WW', 0.30) RETURNING id`
-    );
-    categoryMap.writtenWork = result.rows[0].id;
-  }
-
-  if (!categoryMap.performanceTasks) {
-    const result = await query(
-      `INSERT INTO grade_categories (name, code, weight) VALUES ('Performance Tasks', 'PT', 0.50) RETURNING id`
-    );
-    categoryMap.performanceTasks = result.rows[0].id;
-  }
-
-  if (!categoryMap.quarterlyAssessment) {
-    const result = await query(
-      `INSERT INTO grade_categories (name, code, weight) VALUES ('Quarterly Assessment', 'QA', 0.20) RETURNING id`
-    );
-    categoryMap.quarterlyAssessment = result.rows[0].id;
-  }
-
-  return categoryMap;
-}
-
-async function processAssessmentGrades(grades, assessmentType, gradeItems, teacherId) {
-  const results = [];
-
-  // Process each student's grades for this assessment type
-  for (const studentGrade of grades) {
-    const studentAccountNumber = studentGrade.student_id;
-    const assessmentGrades = studentGrade[assessmentType];
-
-    console.log(`Processing student: ${studentAccountNumber}, assessment: ${assessmentType}`);
-
-    // Convert student account number to student ID
-    let studentId;
-    try {
-      const studentQuery = 'SELECT id FROM users WHERE account_number = $1 AND account_type = $2';
-      const studentResult = await query(studentQuery, [studentAccountNumber, 'student']);
-      
-      if (studentResult.rows.length === 0) {
-        console.log(`Student not found: ${studentAccountNumber}`);
-        continue; // Skip this student
-      }
-      
-      studentId = studentResult.rows[0].id;
-      console.log(`Found student ID: ${studentId} for account: ${studentAccountNumber}`);
-    } catch (error) {
-      console.error(`Error finding student ${studentAccountNumber}:`, error);
-      continue; // Skip this student
-    }
-
-    if (assessmentGrades && Array.isArray(assessmentGrades)) {
-      for (let i = 0; i < assessmentGrades.length; i++) {
-        const score = assessmentGrades[i];
-        const gradeItem = gradeItems[i];
-
-        if (gradeItem && score !== null && score !== undefined && score !== '') {
-          // Save or update the grade
-          const upsertQuery = `
-            INSERT INTO student_grades (student_id, grade_item_id, score, graded_by, graded_at)
-            VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-            ON CONFLICT (student_id, grade_item_id)
-            DO UPDATE SET 
-              score = EXCLUDED.score,
-              graded_by = EXCLUDED.graded_by,
-              graded_at = EXCLUDED.graded_at,
-              updated_at = CURRENT_TIMESTAMP
-            RETURNING *
-          `;
-
-          const result = await query(upsertQuery, [studentId, gradeItem.id, parseFloat(score), teacherId]);
-          results.push(result.rows[0]);
-        }
-      }
-    }
-  }
-
-  return results;
-}
-
-async function getExistingGradeItems(sectionId, subjectId, gradingPeriodId, categoryId, teacherId, config, assessmentType) {
-  console.log(`Getting existing grade items for ${assessmentType}:`, { sectionId, subjectId, gradingPeriodId, categoryId, config });
-
-  try {
-    // Only get existing grade items, don't create new ones
-    const existingQuery = `
-      SELECT * FROM grade_items 
-      WHERE section_id = $1 AND subject_id = $2 AND grading_period_id = $3 
-      AND category_id = $4
-      ORDER BY created_at ASC
-    `;
-
-    const existing = await query(existingQuery, [sectionId, subjectId, gradingPeriodId, categoryId]);
-
-    console.log(`Found ${existing.rows.length} existing grade items for ${assessmentType}`);
-    return existing.rows;
-  } catch (error) {
-    console.error(`Error getting existing grade items for ${assessmentType}:`, error);
-    throw error;
   }
 }

@@ -11,9 +11,6 @@
 	let recentActivities = [];
 	let activitiesLoading = false;
 	let activitiesError = null;
-	let hasMoreActivities = true;
-	let activityLimit = 4;
-	let loadingMore = false;
 
 	// Fetch dashboard statistics from API
 	async function fetchDashboardStats(silent = false) {
@@ -53,11 +50,10 @@
 				activitiesError = null;
 			}
 			
-			const data = await api.get(`/api/activity-logs?limit=${activityLimit}`);
+			const data = await api.get('/api/activity-logs');
 			
 			if (data.success) {
 				recentActivities = data.activities;
-				hasMoreActivities = data.activities.length === activityLimit;
 			} else {
 				throw new Error(data.error || 'Failed to fetch activities');
 			}
@@ -66,29 +62,6 @@
 			activitiesError = error.message;
 		} finally {
 			activitiesLoading = false;
-		}
-	}
-
-	// Load more activities
-	async function loadMoreActivities() {
-		try {
-			loadingMore = true;
-			
-			const newLimit = activityLimit + 4;
-			const data = await api.get(`/api/activity-logs?limit=${newLimit}`);
-			
-			if (data.success) {
-				recentActivities = data.activities;
-				activityLimit = newLimit;
-				hasMoreActivities = data.activities.length === newLimit;
-			} else {
-				throw new Error(data.error || 'Failed to fetch more activities');
-			}
-		} catch (error) {
-			console.error('Error loading more activities:', error);
-			activitiesError = error.message;
-		} finally {
-			loadingMore = false;
 		}
 	}
 
@@ -213,24 +186,6 @@
 						<span class="activity-timestamp">{activity.timestamp}</span>
 					</div>
 				{/each}
-				
-				<!-- View More Button -->
-				{#if hasMoreActivities && !activitiesLoading}
-					<div class="view-more-container">
-						<button 
-							class="view-more-button" 
-							on:click={loadMoreActivities}
-							disabled={loadingMore}
-						>
-							{#if loadingMore}
-								<div class="load-more"></div>
-							{:else}
-								<span class="material-symbols-outlined">expand_more</span>
-								View More Activities
-							{/if}
-						</button>
-					</div>
-				{/if}
 			{/if}
 		</div>
 	</div>

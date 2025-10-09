@@ -1,93 +1,104 @@
-import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
-import { verifyAuth } from '../helper/auth-helper.js';
 import bcrypt from 'bcrypt';
+import { connectToDatabase } from '../../database/db.js';
+import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
-/** @type {import('./$types').RequestHandler} */
-export async function POST({ request, getClientAddress }) {
-	try {
-		// Verify authentication
-		const authResult = await verifyAuth(request, ['admin', 'teacher', 'student']);
-		if (!authResult.success) {
-			return json({ error: authResult.error }, { status: authResult.status });
-		}
+export async function POST(event) {
+  const user = getUserFromRequest(event.request);
+  
+  console.log('Password change request - User data:', user); // Debug log
+  
+  if (!user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
-		const body = await request.json();
-		const { currentPassword, newPassword } = body;
+  try {
+    const { currentPassword, newPassword } = await event.request.json();
+    
+    if (!currentPassword || !newPassword) {
+      return new Response(JSON.stringify({ 
+        error: 'Current password and new password are required' 
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-		// Validate input
-		if (!currentPassword || !newPassword) {
-			return json(
-				{ error: 'Current password and new password are required' },
-				{ status: 400 }
-			);
-		}
+    if (newPassword.length < 8) {
+      return new Response(JSON.stringify({ 
+        error: 'New password must be at least 8 characters long' 
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-		if (newPassword.length < 8) {
-			return json(
-				{ error: 'New password must be at least 8 characters long' },
-				{ status: 400 }
-			);
-		}
+    // Connect to MongoDB
+    const db = await connectToDatabase();
+    const usersCollection = db.collection('users');
+    
+    // Get user's current password hash using account_number
+    const userDoc = await usersCollection.findOne({ account_number: user.account_number });
+    
+    if (!userDoc) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-		// Get current user's password hash
-		const userResult = await query(
-			'SELECT password_hash FROM users WHERE id = $1',
-			[authResult.user.id]
-		);
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, userDoc.password_hash);
+    
+    if (!isCurrentPasswordValid) {
+      return new Response(JSON.stringify({ 
+        error: 'Current password is incorrect' 
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-		if (userResult.rows.length === 0) {
-			return json({ error: 'User not found' }, { status: 404 });
-		}
+    // Hash the new password
+    const saltRounds = 12;
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
 
-		// Verify current password
-		const isCurrentPasswordValid = await bcrypt.compare(
-			currentPassword, 
-			userResult.rows[0].password_hash
-		);
+    // Update password in database
+    await usersCollection.updateOne(
+      { account_number: user.account_number },
+      { 
+        $set: { 
+          password_hash: newPasswordHash,
+          updated_at: new Date()
+        } 
+      }
+    );
 
-		if (!isCurrentPasswordValid) {
-			return json(
-				{ error: 'Current password is incorrect' },
-				{ status: 401 }
-			);
-		}
+    // Log the activity
+    await logActivityWithUser(
+      'password_changed',
+      'User changed their password',
+      user,
+      event.getClientAddress()
+    );
 
-		// Hash new password
-		const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Password changed successfully'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
 
-		// Update password in database
-		await query(
-			'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-			[newPasswordHash, authResult.user.id]
-		);
-
-		// Get client IP and user agent
-		const ip_address = getClientAddress();
-
-		// Log the activity (without sensitive data)
-		await query(
-			`SELECT log_activity($1, $2, $3, $4, $5, $6)`,
-			[
-				'password_changed',
-				authResult.user.id,
-				authResult.user.account_number,
-				JSON.stringify({ action: 'password_change_successful' }),
-				ip_address,
-				request.headers.get('user-agent')
-			]
-		);
-
-		return json({
-			success: true,
-			message: 'Password changed successfully'
-		});
-
-	} catch (error) {
-		console.error('Error changing password:', error);
-		return json(
-			{ error: 'Failed to change password' },
-			{ status: 500 }
-		);
-	}
+  } catch (error) {
+    console.error('Error changing password:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error' 
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }

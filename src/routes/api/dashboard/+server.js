@@ -1,43 +1,43 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
 
 // GET /api/dashboard - Fetch dashboard statistics
 export async function GET() {
   try {
+    // Connect to MongoDB
+    const db = await connectToDatabase();
+    
     // Get total students count
-    const studentsResult = await query(`
-      SELECT COUNT(*) as count 
-      FROM users 
-      WHERE account_type = 'student' 
-      AND (status IS NULL OR status = 'active')
-    `);
+    const studentsCount = await db.collection('users').countDocuments({
+      account_type: 'student',
+      $or: [
+        { status: { $exists: false } },
+        { status: 'active' }
+      ]
+    });
     
     // Get total teachers count
-    const teachersResult = await query(`
-      SELECT COUNT(*) as count 
-      FROM users 
-      WHERE account_type = 'teacher' 
-      AND (status IS NULL OR status = 'active')
-    `);
+    const teachersCount = await db.collection('users').countDocuments({
+      account_type: 'teacher',
+      $or: [
+        { status: { $exists: false } },
+        { status: 'active' }
+      ]
+    });
     
     // Get total sections count
-    const sectionsResult = await query(`
-      SELECT COUNT(*) as count 
-      FROM sections 
-      WHERE status = 'active'
-    `);
+    const sectionsCount = await db.collection('sections').countDocuments({
+      status: 'active'
+    });
     
     // Get total rooms count
-    const roomsResult = await query(`
-      SELECT COUNT(*) as count 
-      FROM rooms
-    `);
+    const roomsCount = await db.collection('rooms').countDocuments({});
     
     const statistics = {
-      students: parseInt(studentsResult.rows[0].count),
-      teachers: parseInt(teachersResult.rows[0].count),
-      sections: parseInt(sectionsResult.rows[0].count),
-      rooms: parseInt(roomsResult.rows[0].count)
+      students: studentsCount,
+      teachers: teachersCount,
+      sections: sectionsCount,
+      rooms: roomsCount
     };
     
     return json({ 

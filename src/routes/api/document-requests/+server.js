@@ -1,83 +1,74 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
-import { verifyAuth } from '../helper/auth-helper.js';
+import { connectToDatabase } from '../../database/db.js';
+import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
+    // Verify authentication and get user
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return json({ error: 'Authentication required' }, { status: 401 });
     }
+
+    const db = await connectToDatabase();
+    const documentRequestsCollection = db.collection('document_requests');
+    const usersCollection = db.collection('users');
 
     const studentId = url.searchParams.get('student_id');
     const adminView = url.searchParams.get('admin_view') === 'true';
     
+    // Check authorization
+    if (adminView && user.account_type !== 'admin') {
+      return json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     if (!adminView && !studentId) {
       return json({ error: 'Student ID is required' }, { status: 400 });
     }
 
-    let documentRequestsQuery;
-    let queryParams;
+    let documentRequests;
 
     if (adminView) {
-      // Admin view: fetch all document requests with student information
-      documentRequestsQuery = `
-        SELECT 
-          dr.id,
-          dr.student_id,
-          dr.document_type,
-          dr.purpose,
-          dr.status,
-          dr.admin_note,
-          dr.rejection_reason,
-          dr.requested_at,
-          dr.processed_at,
-          dr.completed_at,
-          dr.cancelled_at,
-          dr.created_at,
-          dr.updated_at,
-          u.first_name,
-          u.last_name,
-          u.account_number,
-          u.grade_level
-        FROM document_requests dr
-        JOIN users u ON dr.student_id = u.id
-        WHERE u.account_type = 'student'
-        ORDER BY dr.created_at DESC
-      `;
-      queryParams = [];
+      // Admin view: fetch all document requests with student information using aggregation
+      documentRequests = await documentRequestsCollection.aggregate([
+        {
+          $addFields: {
+            student_id_obj: { $toObjectId: "$student_id" }
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'student_id_obj',
+            foreignField: '_id',
+            as: 'student'
+          }
+        },
+        {
+          $unwind: '$student'
+        },
+        {
+          $match: {
+            'student.account_type': 'student'
+          }
+        },
+        {
+          $sort: { created_at: -1 }
+        }
+      ]).toArray();
     } else {
       // Student view: fetch document requests for specific student
-      documentRequestsQuery = `
-        SELECT 
-          id,
-          student_id,
-          document_type,
-          purpose,
-          status,
-          admin_note,
-          rejection_reason,
-          requested_at,
-          processed_at,
-          completed_at,
-          cancelled_at,
-          created_at,
-          updated_at
-        FROM document_requests
-        WHERE student_id = $1
-        ORDER BY created_at DESC
-      `;
-      queryParams = [studentId];
+      documentRequests = await documentRequestsCollection.find({
+        student_id: studentId
+      }).sort({ created_at: -1 }).toArray();
     }
-    
-    const result = await query(documentRequestsQuery, queryParams);
 
     // Format the data to match the component's expected structure
-    const formattedRequests = result.rows.map(request => {
+    const formattedRequests = documentRequests.map(request => {
       const baseRequest = {
-        id: request.id,
+        id: request.id || request._id.toString(),
         type: formatDocumentType(request.document_type),
         purpose: request.purpose,
         requestedDate: formatDate(request.requested_at || request.created_at),
@@ -92,10 +83,10 @@ export async function GET({ url, request }) {
       };
 
       // Add student information for admin view
-      if (adminView) {
-        baseRequest.studentName = `${request.first_name} ${request.last_name}`;
-        baseRequest.studentId = request.account_number;
-        baseRequest.gradeLevel = `Grade ${request.grade_level}`;
+      if (adminView && request.student) {
+        baseRequest.studentName = `${request.student.first_name} ${request.student.last_name}`;
+        baseRequest.studentId = request.student.account_number;
+        baseRequest.gradeLevel = `Grade ${request.student.grade_level}`;
         baseRequest.documentType = formatDocumentType(request.document_type);
         baseRequest.requestDate = formatDate(request.requested_at || request.created_at);
       }
@@ -122,12 +113,14 @@ export async function PATCH({ request }) {
   try {
     console.log('PATCH request received for document requests');
     
-    // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      console.log('Authentication failed:', authResult.error);
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
+    // Verify authentication and get user
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return json({ error: 'Authentication required' }, { status: 401 });
     }
+
+    const db = await connectToDatabase();
+    const documentRequestsCollection = db.collection('document_requests');
 
     const requestBody = await request.json();
     console.log('Request body:', requestBody);
@@ -143,28 +136,50 @@ export async function PATCH({ request }) {
 
     console.log('Processing action:', action, 'for request ID:', id);
 
+    // Convert string ID to ObjectId if needed
+    const requestId = ObjectId.isValid(id) ? new ObjectId(id) : id;
+
     if (action === 'cancel') {
+      // Students can cancel their own requests, admins can cancel any request
+      let query = { 
+        $or: [{ _id: requestId }, { id: id }],
+        status: 'pending'
+      };
+
+      // If not admin, restrict to user's own requests
+      if (user.account_type !== 'admin') {
+        query.student_id = user.id;
+      }
+
       // Update the document request status to cancelled with cancelled_at timestamp
-      const updateQuery = `
-        UPDATE document_requests 
-        SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
-        WHERE id = $1 AND status = 'pending'
-        RETURNING *
-      `;
+      const result = await documentRequestsCollection.updateOne(
+        query,
+        {
+          $set: {
+            status: 'cancelled',
+            cancelled_at: new Date(),
+            updated_at: new Date()
+          }
+        }
+      );
 
-      const result = await query(updateQuery, [id]);
-
-      if (result.rows.length === 0) {
+      if (result.matchedCount === 0) {
         return json({ 
           error: 'Request not found or cannot be cancelled' 
         }, { status: 404 });
       }
 
-      const updatedRequest = result.rows[0];
+      // Fetch the updated document
+      const updatedRequest = await documentRequestsCollection.findOne({
+        $or: [{ _id: requestId }, { id: id }]
+      });
+
+      // Log activity
+      await logActivityWithUser(user, 'Document Request Cancelled', `Cancelled document request: ${updatedRequest.document_type}`);
 
       // Format the response to match component structure
       const formattedRequest = {
-        id: updatedRequest.id,
+        id: updatedRequest.id || updatedRequest._id.toString(),
         type: formatDocumentType(updatedRequest.document_type),
         purpose: updatedRequest.purpose,
         requestedDate: formatDate(updatedRequest.requested_at || updatedRequest.created_at),
@@ -179,33 +194,50 @@ export async function PATCH({ request }) {
     }
 
     if (action === 'approve') {
+      // Only admins can approve requests
+      if (user.account_type !== 'admin') {
+        return json({ error: 'Admin access required' }, { status: 403 });
+      }
+
       console.log('Processing approve action');
       const { admin_note } = requestBody;
       console.log('Admin note:', admin_note);
       
       // Update the document request status to processing with admin note
-      const updateQuery = `
-        UPDATE document_requests 
-        SET status = 'processing', admin_note = $2, processed_at = NOW(), updated_at = NOW()
-        WHERE id = $1 AND status = 'pending'
-        RETURNING *
-      `;
+      const result = await documentRequestsCollection.updateOne(
+        { 
+          $or: [{ _id: requestId }, { id: id }],
+          status: 'pending'
+        },
+        {
+          $set: {
+            status: 'processing',
+            admin_note: admin_note || 'Approved',
+            processed_at: new Date(),
+            updated_at: new Date()
+          }
+        }
+      );
 
-      console.log('Executing approve query with params:', [id, admin_note || 'Approved']);
-      const result = await query(updateQuery, [id, admin_note || 'Approved']);
-      console.log('Approve query result:', result.rows.length, 'rows affected');
+      console.log('Approve query result:', result.matchedCount, 'documents matched');
 
-      if (result.rows.length === 0) {
+      if (result.matchedCount === 0) {
         return json({ 
           error: 'Request not found or cannot be approved' 
         }, { status: 404 });
       }
 
-      const updatedRequest = result.rows[0];
+      // Fetch the updated document
+      const updatedRequest = await documentRequestsCollection.findOne({
+        $or: [{ _id: requestId }, { id: id }]
+      });
+
+      // Log activity
+      await logActivityWithUser(user, 'Document Request Approved', `Approved document request: ${updatedRequest.document_type}`);
 
       // Format the response to match component structure
       const formattedRequest = {
-        id: updatedRequest.id,
+        id: updatedRequest.id || updatedRequest._id.toString(),
         type: formatDocumentType(updatedRequest.document_type),
         purpose: updatedRequest.purpose,
         requestedDate: formatDate(updatedRequest.requested_at || updatedRequest.created_at),
@@ -221,6 +253,11 @@ export async function PATCH({ request }) {
     }
 
     if (action === 'reject') {
+      // Only admins can reject requests
+      if (user.account_type !== 'admin') {
+        return json({ error: 'Admin access required' }, { status: 403 });
+      }
+
       console.log('Processing reject action');
       const { rejection_reason } = requestBody;
       const rejectionReason = rejection_reason;
@@ -234,28 +271,39 @@ export async function PATCH({ request }) {
       }
 
       // Update the document request status to rejected with rejection reason
-      const updateQuery = `
-        UPDATE document_requests 
-        SET status = 'rejected', rejection_reason = $2, updated_at = NOW()
-        WHERE id = $1 AND status = 'pending'
-        RETURNING *
-      `;
+      const result = await documentRequestsCollection.updateOne(
+        { 
+          $or: [{ _id: requestId }, { id: id }],
+          status: 'pending'
+        },
+        {
+          $set: {
+            status: 'rejected',
+            rejection_reason: rejectionReason.trim(),
+            updated_at: new Date()
+          }
+        }
+      );
 
-      console.log('Executing reject query with params:', [id, rejectionReason.trim()]);
-      const result = await query(updateQuery, [id, rejectionReason.trim()]);
-      console.log('Reject query result:', result.rows.length, 'rows affected');
+      console.log('Reject query result:', result.matchedCount, 'documents matched');
 
-      if (result.rows.length === 0) {
+      if (result.matchedCount === 0) {
         return json({ 
           error: 'Request not found or cannot be rejected' 
         }, { status: 404 });
       }
 
-      const updatedRequest = result.rows[0];
+      // Fetch the updated document
+      const updatedRequest = await documentRequestsCollection.findOne({
+        $or: [{ _id: requestId }, { id: id }]
+      });
+
+      // Log activity
+      await logActivityWithUser(user, 'Document Request Rejected', `Rejected document request: ${updatedRequest.document_type} - Reason: ${rejectionReason.trim()}`);
 
       // Format the response to match component structure
       const formattedRequest = {
-        id: updatedRequest.id,
+        id: updatedRequest.id || updatedRequest._id.toString(),
         type: formatDocumentType(updatedRequest.document_type),
         purpose: updatedRequest.purpose,
         requestedDate: formatDate(updatedRequest.requested_at || updatedRequest.created_at),
@@ -270,27 +318,43 @@ export async function PATCH({ request }) {
     }
 
     if (action === 'complete') {
+      // Only admins can complete requests
+      if (user.account_type !== 'admin') {
+        return json({ error: 'Admin access required' }, { status: 403 });
+      }
+
       // Update the document request status to completed with completion date
-      const updateQuery = `
-        UPDATE document_requests 
-        SET status = 'completed', completed_at = NOW(), updated_at = NOW()
-        WHERE id = $1 AND status = 'processing'
-        RETURNING *
-      `;
+      const result = await documentRequestsCollection.updateOne(
+        { 
+          $or: [{ _id: requestId }, { id: id }],
+          status: 'processing'
+        },
+        {
+          $set: {
+            status: 'completed',
+            completed_at: new Date(),
+            updated_at: new Date()
+          }
+        }
+      );
 
-      const result = await query(updateQuery, [id]);
-
-      if (result.rows.length === 0) {
+      if (result.matchedCount === 0) {
         return json({ 
           error: 'Request not found or cannot be completed (must be in processing status)' 
         }, { status: 404 });
       }
 
-      const updatedRequest = result.rows[0];
+      // Fetch the updated document
+      const updatedRequest = await documentRequestsCollection.findOne({
+        $or: [{ _id: requestId }, { id: id }]
+      });
+
+      // Log activity
+      await logActivityWithUser(user, 'Document Request Completed', `Completed document request: ${updatedRequest.document_type}`);
 
       // Format the response to match component structure
       const formattedRequest = {
-        id: updatedRequest.id,
+        id: updatedRequest.id || updatedRequest._id.toString(),
         type: formatDocumentType(updatedRequest.document_type),
         purpose: updatedRequest.purpose,
         requestedDate: formatDate(updatedRequest.requested_at || updatedRequest.created_at),
@@ -322,53 +386,70 @@ export async function PATCH({ request }) {
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
+    console.log('POST request received for document requests');
+    
+    // Verify authentication and get user
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const requestData = await request.json();
+    const db = await connectToDatabase();
+    const documentRequestsCollection = db.collection('document_requests');
+
+    const requestBody = await request.json();
+    console.log('Request body:', requestBody);
     
-    const { student_id, document_type, purpose } = requestData;
+    const { student_id, document_type, purpose } = requestBody;
 
     // Validate required fields
     if (!student_id || !document_type || !purpose) {
+      console.log('Missing required fields - student_id:', student_id, 'document_type:', document_type, 'purpose:', purpose);
       return json({ 
-        success: false, 
-        error: 'Missing required fields' 
+        error: 'Student ID, document type, and purpose are required' 
       }, { status: 400 });
     }
 
-    // Insert new document request
-    const insertQuery = `
-      INSERT INTO document_requests (
-        student_id, 
-        document_type, 
-        purpose, 
-        status, 
-        requested_at,
-        created_at,
-        updated_at
-      ) VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
-      RETURNING *
-    `;
+    // For students, ensure they can only create requests for themselves
+    if (user.account_type === 'student' && user.id !== student_id) {
+      return json({ error: 'Students can only create requests for themselves' }, { status: 403 });
+    }
 
-    const result = await query(insertQuery, [
-      student_id,
-      document_type,
-      purpose,
-      'pending'
-    ]);
+    console.log('Creating document request for student:', student_id);
 
-    const newRequest = result.rows[0];
+    // Generate a unique ID for the document request
+    const requestId = new ObjectId().toString();
+
+    // Create the document request
+    const newRequest = {
+      id: requestId,
+      student_id: student_id,
+      document_type: document_type,
+      purpose: purpose.trim(),
+      status: 'pending',
+      requested_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    const result = await documentRequestsCollection.insertOne(newRequest);
+
+    if (!result.insertedId) {
+      return json({ 
+        error: 'Failed to create document request' 
+      }, { status: 500 });
+    }
+
+    // Log activity
+    await logActivityWithUser(user, 'Document Request Created', `Created document request: ${document_type} for student ${student_id}`);
 
     // Format the response to match component structure
     const formattedRequest = {
       id: newRequest.id,
       type: formatDocumentType(newRequest.document_type),
       purpose: newRequest.purpose,
-      requestedDate: formatDate(newRequest.requested_at || newRequest.created_at),
+      requestedDate: formatDate(newRequest.requested_at),
+      estimatedCompletion: getEstimatedCompletion(newRequest.document_type),
       status: newRequest.status
     };
 
@@ -389,38 +470,75 @@ export async function POST({ request }) {
 /** @type {import('./$types').RequestHandler} */
 export async function DELETE({ request }) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.success) {
-      return json({ error: authResult.error }, { status: authResult.status || 401 });
+    console.log('DELETE request received for document requests');
+    
+    // Verify authentication and get user
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { id } = await request.json();
+    const db = await connectToDatabase();
+    const documentRequestsCollection = db.collection('document_requests');
+
+    const requestBody = await request.json();
+    console.log('Request body:', requestBody);
+    
+    const { id } = requestBody;
 
     if (!id) {
+      console.log('Missing required field - id:', id);
       return json({ 
         error: 'Request ID is required' 
       }, { status: 400 });
     }
 
-    // Delete the document request (only allow deletion of completed or cancelled requests)
-    const deleteQuery = `
-      DELETE FROM document_requests 
-      WHERE id = $1 AND (status = 'completed' OR status = 'cancelled')
-      RETURNING id
-    `;
+    console.log('Deleting document request with ID:', id);
 
-    const result = await query(deleteQuery, [id]);
+    // Convert string ID to ObjectId if needed
+    const requestId = ObjectId.isValid(id) ? new ObjectId(id) : id;
 
-    if (result.rows.length === 0) {
+    // First, check if the request exists and get its details
+    const existingRequest = await documentRequestsCollection.findOne({
+      $or: [{ _id: requestId }, { id: id }]
+    });
+
+    if (!existingRequest) {
       return json({ 
-        error: 'Request not found or cannot be deleted (only completed or cancelled requests can be removed)' 
+        error: 'Document request not found' 
       }, { status: 404 });
     }
 
+    // For students, ensure they can only delete their own requests
+    if (user.account_type === 'student' && user.id !== existingRequest.student_id) {
+      return json({ error: 'Students can only delete their own requests' }, { status: 403 });
+    }
+
+    // Check if the request can be deleted (only completed or cancelled requests)
+    if (!['completed', 'cancelled'].includes(existingRequest.status)) {
+      return json({ 
+        error: 'Only completed or cancelled requests can be deleted' 
+      }, { status: 400 });
+    }
+
+    // Delete the document request
+    const result = await documentRequestsCollection.deleteOne({
+      $or: [{ _id: requestId }, { id: id }],
+      status: { $in: ['completed', 'cancelled'] }
+    });
+
+    if (result.deletedCount === 0) {
+      return json({ 
+        error: 'Request not found or cannot be deleted' 
+      }, { status: 404 });
+    }
+
+    // Log activity
+    await logActivityWithUser(user, 'Document Request Deleted', `Deleted document request: ${existingRequest.document_type} (ID: ${id})`);
+
     return json({
       success: true,
-      message: 'Document request removed successfully'
+      message: 'Document request deleted successfully'
     });
 
   } catch (error) {

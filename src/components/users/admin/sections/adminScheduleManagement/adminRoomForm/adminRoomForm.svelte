@@ -292,7 +292,7 @@
 		try {
 			const data = await api.patch('/api/rooms', {
 				roomId: assigningRoomId,
-				sectionIds: [parseInt(assignSelectedSection)],
+				sectionIds: [assignSelectedSection],
 				action: 'assign'
 			});
 			

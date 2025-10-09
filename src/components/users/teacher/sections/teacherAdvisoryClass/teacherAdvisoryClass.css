@@ -116,6 +116,33 @@
   color: var(--school-primary);
 }
 
+/* Teacher Submission Info */
+.teacher-submission-info {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-md);
+}
+
+.teacher-info,
+.submission-date {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--md-sys-color-surface-container-high);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.teacher-info .material-symbols-outlined,
+.submission-date .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--school-secondary);
+}
+
 /* Stats Section */
 .advisory-stats-section {
   margin-bottom: var(--spacing-2xl);
@@ -339,7 +366,7 @@
 }
 
 
-.verify-btn, .unverify-btn {
+.verify-btn {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -351,9 +378,6 @@
   cursor: pointer;
   transition: all var(--transition-normal);
   box-sizing: border-box;
-}
-
-.verify-btn {
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
   border: 1px solid var(--md-sys-color-primary);
@@ -362,18 +386,6 @@
 .verify-btn:hover {
   background: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
-  box-shadow: var(--shadow-sm);
-}
-
-.unverify-btn {
-  background: var(--md-sys-color-error);
-  color: var(--md-sys-color-on-error);
-  border: 1px solid var(--md-sys-color-error);
-}
-
-.unverify-btn:hover {
-  background: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
   box-shadow: var(--shadow-sm);
 }
 
@@ -613,7 +625,7 @@
   gap: var(--spacing-sm);
 }
 
-.verify-grade-btn, .unverify-grade-btn {
+.verify-grade-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -624,18 +636,8 @@
   cursor: pointer;
   transition: all var(--transition-normal);
   font-size: 10px;
-}
-
-
-
-.verify-grade-btn {
   background: transparent;
   color: var(--md-sys-color-on-primary-container);
-}
-
-.unverify-grade-btn {
-  background-color: transparent;
-  color: var(--md-sys-color-on-error-container);
 }
 
 .submitted-date {
@@ -694,7 +696,7 @@
   gap: var(--spacing-sm);
 }
 
-.verify-all-btn, .unverify-all-btn {
+.verify-all-btn {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -704,9 +706,6 @@
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-normal);
-}
-
-.verify-all-btn {
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
   border: 1px solid var(--md-sys-color-primary);
@@ -717,18 +716,6 @@
   color: var(--md-sys-color-on-primary-container);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--md-sys-color-primary);
-}
-
-.unverify-all-btn {
-  background: var(--md-sys-color-error);
-  color: var(--md-sys-color-on-error);
-  border: 1px solid var(--md-sys-color-error);
-}
-
-.unverify-all-btn:hover {
-  background: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
-  box-shadow: var(--shadow-sm);
 }
 
 .verification-status {

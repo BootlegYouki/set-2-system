@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 // GET - Fetch schedules with optional filtering
 export async function GET({ url }) {
@@ -11,150 +12,504 @@ export async function GET({ url }) {
         const dayOfWeek = url.searchParams.get('dayOfWeek');
         const scheduleId = url.searchParams.get('scheduleId');
 
+        const db = await connectToDatabase();
+
         switch (action) {
             case 'schedule-details':
-                const scheduleDetailsResult = await query(
-                    'SELECT * FROM get_schedule_details($1, $2, $3)', 
-                    [sectionId ? parseInt(sectionId) : null, schoolYear, dayOfWeek]
-                );
-                return json({ success: true, data: scheduleDetailsResult.rows });
+                const pipeline = [
+                    {
+                        $match: {
+                            ...(sectionId && { section_id: new ObjectId(sectionId) }),
+                            school_year: schoolYear,
+                            ...(dayOfWeek && { day_of_week: dayOfWeek })
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: 'subject_id',
+                            foreignField: '_id',
+                            as: 'subject'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'activity_types',
+                            localField: 'activity_type_id',
+                            foreignField: '_id',
+                            as: 'activity_type'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'teacher_id',
+                            foreignField: '_id',
+                            as: 'teacher'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'rooms',
+                            localField: 'section.room_id',
+                            foreignField: '_id',
+                            as: 'room'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            section_id: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            day_of_week: 1,
+                            start_time: 1,
+                            end_time: 1,
+                            schedule_type: 1,
+                            subject_id: 1,
+                            subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                            subject_code: { $arrayElemAt: ['$subject.code', 0] },
+                            activity_type_id: 1,
+                            activity_type_name: { $arrayElemAt: ['$activity_type.name', 0] },
+                            activity_type_icon: { $arrayElemAt: ['$activity_type.icon', 0] },
+                            teacher_id: 1,
+                            teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] },
+                            teacher_account_number: { $arrayElemAt: ['$teacher.account_number', 0] },
+                            room_name: { $arrayElemAt: ['$room.name', 0] },
+                            school_year: 1,
+                            created_at: 1,
+                            updated_at: 1
+                        }
+                    }
+                ];
+
+                const scheduleDetails = await db.collection('schedules').aggregate(pipeline).toArray();
+                return json({ success: true, data: scheduleDetails });
 
             case 'single-schedule':
                 if (!scheduleId) {
                     return json({ success: false, error: 'Schedule ID is required' }, { status: 400 });
                 }
-                const singleScheduleResult = await query(`
-                    SELECT 
-                        sch.id,
-                        sch.section_id,
-                        sec.name as section_name,
-                        sec.grade_level,
-                        sch.day_of_week,
-                        sch.start_time,
-                        sch.end_time,
-                        sch.schedule_type,
-                        sch.subject_id,
-                        sub.name as subject_name,
-                        sub.code as subject_code,
-                        sch.activity_type_id,
-                        act.name as activity_type_name,
-                        act.icon as activity_type_icon,
-                        sch.teacher_id,
-                        u.full_name as teacher_name,
-                        u.account_number as teacher_account_number,
-                        sch.school_year,
-                        sch.created_at,
-                        sch.updated_at
-                    FROM schedules sch
-                    JOIN sections sec ON sch.section_id = sec.id
-                    LEFT JOIN subjects sub ON sch.subject_id = sub.id
-                    LEFT JOIN activity_types act ON sch.activity_type_id = act.id
-                    LEFT JOIN users u ON sch.teacher_id = u.id
-                    WHERE sch.id = $1
-                `, [parseInt(scheduleId)]);
+
+                const singleSchedule = await db.collection('schedules').aggregate([
+                    { $match: { _id: new ObjectId(scheduleId) } },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: 'subject_id',
+                            foreignField: '_id',
+                            as: 'subject'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'activity_types',
+                            localField: 'activity_type_id',
+                            foreignField: '_id',
+                            as: 'activity_type'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'teacher_id',
+                            foreignField: '_id',
+                            as: 'teacher'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            section_id: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            day_of_week: 1,
+                            start_time: 1,
+                            end_time: 1,
+                            schedule_type: 1,
+                            subject_id: 1,
+                            subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                            subject_code: { $arrayElemAt: ['$subject.code', 0] },
+                            activity_type_id: 1,
+                            activity_type_name: { $arrayElemAt: ['$activity_type.name', 0] },
+                            activity_type_icon: { $arrayElemAt: ['$activity_type.icon', 0] },
+                            teacher_id: 1,
+                            teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] },
+                            teacher_account_number: { $arrayElemAt: ['$teacher.account_number', 0] },
+                            school_year: 1,
+                            created_at: 1,
+                            updated_at: 1
+                        }
+                    }
+                ]).toArray();
                 
-                if (singleScheduleResult.rows.length === 0) {
+                if (singleSchedule.length === 0) {
                     return json({ success: false, error: 'Schedule not found' }, { status: 404 });
                 }
                 
-                return json({ success: true, data: singleScheduleResult.rows[0] });
+                return json({ success: true, data: singleSchedule[0] });
 
             case 'section-schedules':
                 if (!sectionId) {
                     return json({ success: false, error: 'Section ID is required' }, { status: 400 });
                 }
-                const sectionSchedulesResult = await query(
-                    'SELECT * FROM get_schedule_details($1, $2, NULL)', 
-                    [parseInt(sectionId), schoolYear]
-                );
-                return json({ success: true, data: sectionSchedulesResult.rows });
+
+                const sectionSchedules = await db.collection('schedules').aggregate([
+                    {
+                        $match: {
+                            section_id: new ObjectId(sectionId),
+                            school_year: schoolYear
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: 'subject_id',
+                            foreignField: '_id',
+                            as: 'subject'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'activity_types',
+                            localField: 'activity_type_id',
+                            foreignField: '_id',
+                            as: 'activity_type'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'teacher_id',
+                            foreignField: '_id',
+                            as: 'teacher'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'rooms',
+                            localField: 'section.room_id',
+                            foreignField: '_id',
+                            as: 'room'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            section_id: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            day_of_week: 1,
+                            start_time: 1,
+                            end_time: 1,
+                            schedule_type: 1,
+                            subject_id: 1,
+                            subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                            subject_code: { $arrayElemAt: ['$subject.code', 0] },
+                            activity_type_id: 1,
+                            activity_type_name: { $arrayElemAt: ['$activity_type.name', 0] },
+                            activity_type_icon: { $arrayElemAt: ['$activity_type.icon', 0] },
+                            teacher_id: 1,
+                            teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] },
+                            teacher_account_number: { $arrayElemAt: ['$teacher.account_number', 0] },
+                            room_name: { $arrayElemAt: ['$room.name', 0] },
+                            school_year: 1,
+                            created_at: 1,
+                            updated_at: 1
+                        }
+                    }
+                ]).toArray();
+
+                return json({ success: true, data: sectionSchedules });
 
             case 'teacher-schedules':
                 const teacherId = url.searchParams.get('teacherId');
                 if (!teacherId) {
                     return json({ success: false, error: 'Teacher ID is required' }, { status: 400 });
                 }
-                const teacherSchedulesResult = await query(`
-                    SELECT 
-                        sch.id,
-                        sch.section_id,
-                        sec.name as section_name,
-                        sec.grade_level,
-                        sch.day_of_week,
-                        sch.start_time,
-                        sch.end_time,
-                        sch.schedule_type,
-                        sch.subject_id,
-                        sub.name as subject_name,
-                        sub.code as subject_code,
-                        sch.activity_type_id,
-                        act.name as activity_type_name,
-                        r.name as room_name,
-                        sch.school_year
-                    FROM schedules sch
-                    JOIN sections sec ON sch.section_id = sec.id
-                    LEFT JOIN subjects sub ON sch.subject_id = sub.id
-                    LEFT JOIN activity_types act ON sch.activity_type_id = act.id
-                    LEFT JOIN rooms r ON sec.room_id = r.id
-                    WHERE sch.teacher_id = $1 AND sch.school_year = $2
-                    ORDER BY sch.day_of_week, sch.start_time
-                `, [parseInt(teacherId), schoolYear]);
-                return json({ success: true, data: teacherSchedulesResult.rows });
+
+                const teacherSchedules = await db.collection('schedules').aggregate([
+                    {
+                        $match: {
+                            teacher_id: new ObjectId(teacherId),
+                            school_year: schoolYear
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: 'subject_id',
+                            foreignField: '_id',
+                            as: 'subject'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'activity_types',
+                            localField: 'activity_type_id',
+                            foreignField: '_id',
+                            as: 'activity_type'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'rooms',
+                            localField: 'section.room_id',
+                            foreignField: '_id',
+                            as: 'room'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            section_id: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            day_of_week: 1,
+                            start_time: 1,
+                            end_time: 1,
+                            schedule_type: 1,
+                            subject_id: 1,
+                            subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                            subject_code: { $arrayElemAt: ['$subject.code', 0] },
+                            activity_type_id: 1,
+                            activity_type_name: { $arrayElemAt: ['$activity_type.name', 0] },
+                            room_name: { $arrayElemAt: ['$room.name', 0] },
+                            school_year: 1
+                        }
+                    },
+                    {
+                        $sort: {
+                            day_of_week: 1,
+                            start_time: 1
+                        }
+                    }
+                ]).toArray();
+
+                return json({ success: true, data: teacherSchedules });
 
             case 'student-schedules':
                 const studentId = url.searchParams.get('studentId');
                 if (!studentId) {
                     return json({ success: false, error: 'Student ID is required' }, { status: 400 });
                 }
-                const studentSchedulesResult = await query(`
-                    SELECT 
-                        sch.id,
-                        sch.section_id,
-                        sec.name as section_name,
-                        sec.grade_level,
-                        sch.day_of_week,
-                        sch.start_time,
-                        sch.end_time,
-                        sch.schedule_type,
-                        sch.subject_id,
-                        sub.name as subject_name,
-                        sub.code as subject_code,
-                        sch.activity_type_id,
-                        act.name as activity_type_name,
-                        act.icon as activity_type_icon,
-                        sch.teacher_id,
-                        u.full_name as teacher_name,
-                        r.name as room_name,
-                        sch.school_year
-                    FROM schedules sch
-                    JOIN sections sec ON sch.section_id = sec.id
-                    JOIN section_students ss ON sec.id = ss.section_id
-                    LEFT JOIN subjects sub ON sch.subject_id = sub.id
-                    LEFT JOIN activity_types act ON sch.activity_type_id = act.id
-                    LEFT JOIN users u ON sch.teacher_id = u.id
-                    LEFT JOIN rooms r ON sec.room_id = r.id
-                    WHERE ss.student_id = $1 AND sch.school_year = $2 AND ss.status = 'active'
-                    ORDER BY 
-                        CASE sch.day_of_week
-                            WHEN 'monday' THEN 1
-                            WHEN 'tuesday' THEN 2
-                            WHEN 'wednesday' THEN 3
-                            WHEN 'thursday' THEN 4
-                            WHEN 'friday' THEN 5
-                            WHEN 'saturday' THEN 6
-                            WHEN 'sunday' THEN 7
-                        END,
-                        sch.start_time
-                `, [parseInt(studentId), schoolYear]);
-                return json({ success: true, data: studentSchedulesResult.rows });
+
+                const studentSchedules = await db.collection('schedules').aggregate([
+                    {
+                        $lookup: {
+                            from: 'section_students',
+                            localField: 'section_id',
+                            foreignField: 'section_id',
+                            as: 'section_student'
+                        }
+                    },
+                    {
+                        $match: {
+                            'section_student.student_id': new ObjectId(studentId),
+                            'section_student.status': 'active',
+                            school_year: schoolYear
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: 'subject_id',
+                            foreignField: '_id',
+                            as: 'subject'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'activity_types',
+                            localField: 'activity_type_id',
+                            foreignField: '_id',
+                            as: 'activity_type'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'teacher_id',
+                            foreignField: '_id',
+                            as: 'teacher'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'rooms',
+                            localField: 'section.room_id',
+                            foreignField: '_id',
+                            as: 'room'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            section_id: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            day_of_week: 1,
+                            start_time: 1,
+                            end_time: 1,
+                            schedule_type: 1,
+                            subject_id: 1,
+                            subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                            subject_code: { $arrayElemAt: ['$subject.code', 0] },
+                            activity_type_id: 1,
+                            activity_type_name: { $arrayElemAt: ['$activity_type.name', 0] },
+                            activity_type_icon: { $arrayElemAt: ['$activity_type.icon', 0] },
+                            teacher_id: 1,
+                            teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] },
+                            room_name: { $arrayElemAt: ['$room.name', 0] },
+                            school_year: 1
+                        }
+                    },
+                    {
+                        $addFields: {
+                            day_order: {
+                                $switch: {
+                                    branches: [
+                                        { case: { $eq: ['$day_of_week', 'monday'] }, then: 1 },
+                                        { case: { $eq: ['$day_of_week', 'tuesday'] }, then: 2 },
+                                        { case: { $eq: ['$day_of_week', 'wednesday'] }, then: 3 },
+                                        { case: { $eq: ['$day_of_week', 'thursday'] }, then: 4 },
+                                        { case: { $eq: ['$day_of_week', 'friday'] }, then: 5 },
+                                        { case: { $eq: ['$day_of_week', 'saturday'] }, then: 6 },
+                                        { case: { $eq: ['$day_of_week', 'sunday'] }, then: 7 }
+                                    ],
+                                    default: 8
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $sort: {
+                            day_order: 1,
+                            start_time: 1
+                        }
+                    }
+                ]).toArray();
+
+                return json({ success: true, data: studentSchedules });
 
             default:
                 // Default: Get all schedules with optional filtering
-                const allSchedulesResult = await query(
-                    'SELECT * FROM get_schedule_details($1, $2, $3)', 
-                    [sectionId ? parseInt(sectionId) : null, schoolYear, dayOfWeek]
-                );
-                return json({ success: true, data: allSchedulesResult.rows });
+                const allSchedules = await db.collection('schedules').aggregate([
+                    {
+                        $match: {
+                            ...(sectionId && { section_id: new ObjectId(sectionId) }),
+                            school_year: schoolYear,
+                            ...(dayOfWeek && { day_of_week: dayOfWeek })
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: 'subject_id',
+                            foreignField: '_id',
+                            as: 'subject'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'activity_types',
+                            localField: 'activity_type_id',
+                            foreignField: '_id',
+                            as: 'activity_type'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: 'teacher_id',
+                            foreignField: '_id',
+                            as: 'teacher'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'rooms',
+                            localField: 'section.room_id',
+                            foreignField: '_id',
+                            as: 'room'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            section_id: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            day_of_week: 1,
+                            start_time: 1,
+                            end_time: 1,
+                            schedule_type: 1,
+                            subject_id: 1,
+                            subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                            subject_code: { $arrayElemAt: ['$subject.code', 0] },
+                            activity_type_id: 1,
+                            activity_type_name: { $arrayElemAt: ['$activity_type.name', 0] },
+                            activity_type_icon: { $arrayElemAt: ['$activity_type.icon', 0] },
+                            teacher_id: 1,
+                            teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] },
+                            teacher_account_number: { $arrayElemAt: ['$teacher.account_number', 0] },
+                            room_name: { $arrayElemAt: ['$room.name', 0] },
+                            school_year: 1,
+                            created_at: 1,
+                            updated_at: 1
+                        }
+                    }
+                ]).toArray();
+
+                return json({ success: true, data: allSchedules });
         }
     } catch (error) {
         console.error('Error fetching schedules data:', error);
@@ -208,55 +563,111 @@ export async function POST({ request, getClientAddress }) {
             return json({ success: false, error: 'Activity Type ID is required for activity schedules' }, { status: 400 });
         }
 
-        // Check for time conflicts within the same section
-        const conflictResult = await query(`
-            SELECT id, start_time, end_time 
-            FROM schedules 
-            WHERE section_id = $1 
-                AND day_of_week = $2 
-                AND school_year = $3 
-                AND (
-                    ($4::time >= start_time AND $4::time < end_time) OR
-                    ($5::time > start_time AND $5::time <= end_time) OR
-                    ($4::time <= start_time AND $5::time >= end_time)
-                )
-        `, [parseInt(sectionId), dayOfWeek, schoolYear, startTime, endTime]);
+        const db = await connectToDatabase();
 
-        if (conflictResult.rows.length > 0) {
+        // Check for time conflicts within the same section
+        const conflictQuery = {
+            section_id: new ObjectId(sectionId),
+            day_of_week: dayOfWeek,
+            school_year: schoolYear,
+            $or: [
+                {
+                    $and: [
+                        { start_time: { $lte: startTime } },
+                        { end_time: { $gt: startTime } }
+                    ]
+                },
+                {
+                    $and: [
+                        { start_time: { $lt: endTime } },
+                        { end_time: { $gte: endTime } }
+                    ]
+                },
+                {
+                    $and: [
+                        { start_time: { $gte: startTime } },
+                        { end_time: { $lte: endTime } }
+                    ]
+                }
+            ]
+        };
+
+        const conflictingSchedule = await db.collection('schedules').findOne(conflictQuery);
+
+        if (conflictingSchedule) {
             return json({ 
                 success: false, 
                 error: 'Time conflict detected with existing schedule in this section',
-                conflictingSchedule: conflictResult.rows[0]
+                conflictingSchedule: {
+                    id: conflictingSchedule._id,
+                    start_time: conflictingSchedule.start_time,
+                    end_time: conflictingSchedule.end_time
+                }
             }, { status: 409 });
         }
 
         // Check for teacher conflicts across different sections (if teacher is assigned)
         if (teacherId) {
-            const teacherConflictResult = await query(`
-                SELECT 
-                    sch.id, 
-                    sch.start_time, 
-                    sch.end_time,
-                    sch.section_id,
-                    sec.name as section_name,
-                    sec.grade_level,
-                    u.full_name as teacher_name
-                FROM schedules sch
-                JOIN sections sec ON sch.section_id = sec.id
-                JOIN users u ON sch.teacher_id = u.id
-                WHERE sch.teacher_id = $1 
-                    AND sch.day_of_week = $2 
-                    AND sch.school_year = $3 
-                    AND sch.section_id != $4
-                    AND (
-                        ($5::time >= sch.start_time AND $5::time < sch.end_time) OR
-                        ($6::time > sch.start_time AND $6::time <= sch.end_time) OR
-                        ($5::time <= sch.start_time AND $6::time >= sch.end_time)
-                    )
-            `, [parseInt(teacherId), dayOfWeek, schoolYear, parseInt(sectionId), startTime, endTime]);
+            const teacherConflictQuery = {
+                teacher_id: new ObjectId(teacherId),
+                day_of_week: dayOfWeek,
+                school_year: schoolYear,
+                section_id: { $ne: new ObjectId(sectionId) },
+                $or: [
+                    {
+                        $and: [
+                            { start_time: { $lte: startTime } },
+                            { end_time: { $gt: startTime } }
+                        ]
+                    },
+                    {
+                        $and: [
+                            { start_time: { $lt: endTime } },
+                            { end_time: { $gte: endTime } }
+                        ]
+                    },
+                    {
+                        $and: [
+                            { start_time: { $gte: startTime } },
+                            { end_time: { $lte: endTime } }
+                        ]
+                    }
+                ]
+            };
 
-            if (teacherConflictResult.rows.length > 0) {
-                const conflict = teacherConflictResult.rows[0];
+            const teacherConflict = await db.collection('schedules').aggregate([
+                { $match: teacherConflictQuery },
+                {
+                    $lookup: {
+                        from: 'sections',
+                        localField: 'section_id',
+                        foreignField: '_id',
+                        as: 'section'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'teacher_id',
+                        foreignField: '_id',
+                        as: 'teacher'
+                    }
+                },
+                {
+                    $project: {
+                        id: '$_id',
+                        start_time: 1,
+                        end_time: 1,
+                        section_id: 1,
+                        section_name: { $arrayElemAt: ['$section.name', 0] },
+                        grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                        teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] }
+                    }
+                }
+            ]).toArray();
+
+            if (teacherConflict.length > 0) {
+                const conflict = teacherConflict[0];
                 return json({ 
                     success: false, 
                     error: `Teacher conflict detected: ${conflict.teacher_name} is already scheduled to teach ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${dayOfWeek}`,
@@ -266,69 +677,57 @@ export async function POST({ request, getClientAddress }) {
             }
         }
 
-        // Start transaction
-        await query('BEGIN');
-
         try {
-            // Create schedule
-            console.log('About to execute INSERT query with values:', [
-                parseInt(sectionId), 
-                dayOfWeek, 
-                startTime, 
-                endTime, 
-                scheduleType, 
-                subjectId ? parseInt(subjectId) : null, 
-                activityTypeId ? parseInt(activityTypeId) : null, 
-                teacherId ? parseInt(teacherId) : null, 
-                schoolYear
-            ]);
+            // Create schedule document
+            const scheduleDoc = {
+                section_id: new ObjectId(sectionId),
+                day_of_week: dayOfWeek,
+                start_time: startTime,
+                end_time: endTime,
+                schedule_type: scheduleType,
+                subject_id: subjectId ? new ObjectId(subjectId) : null,
+                activity_type_id: activityTypeId ? new ObjectId(activityTypeId) : null,
+                teacher_id: teacherId ? new ObjectId(teacherId) : null,
+                school_year: schoolYear,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
 
-            const scheduleResult = await query(`
-                INSERT INTO schedules (
-                    section_id, 
-                    day_of_week, 
-                    start_time, 
-                    end_time, 
-                    schedule_type, 
-                    subject_id, 
-                    activity_type_id, 
-                    teacher_id, 
-                    school_year
-                )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                RETURNING id, section_id, day_of_week, start_time, end_time, schedule_type, 
-                         subject_id, activity_type_id, teacher_id, school_year, created_at
-            `, [
-                parseInt(sectionId), 
-                dayOfWeek, 
-                startTime, 
-                endTime, 
-                scheduleType, 
-                subjectId ? parseInt(subjectId) : null, 
-                activityTypeId ? parseInt(activityTypeId) : null, 
-                teacherId ? parseInt(teacherId) : null, 
-                schoolYear
-            ]);
+            console.log('About to insert schedule document:', scheduleDoc);
 
-            const newSchedule = scheduleResult.rows[0];
+            const result = await db.collection('schedules').insertOne(scheduleDoc);
+
+            const newSchedule = {
+                id: result.insertedId,
+                section_id: scheduleDoc.section_id,
+                day_of_week: scheduleDoc.day_of_week,
+                start_time: scheduleDoc.start_time,
+                end_time: scheduleDoc.end_time,
+                schedule_type: scheduleDoc.schedule_type,
+                subject_id: scheduleDoc.subject_id,
+                activity_type_id: scheduleDoc.activity_type_id,
+                teacher_id: scheduleDoc.teacher_id,
+                school_year: scheduleDoc.school_year,
+                created_at: scheduleDoc.created_at
+            };
 
             // Log activity
             try {
-                const user = await getUserFromRequest(request);
+                const user = getUserFromRequest(request);
                 
                 // Only log activity if user is authenticated
-                if (user && user.id) {
+                if (user && user.account_number) {
                     await logActivityWithUser(
                         'schedule_created',
                         user,
                         {
-                            schedule_id: newSchedule.id,
-                            section_id: newSchedule.section_id,
-                            day_of_week: newSchedule.day_of_week,
-                            start_time: newSchedule.start_time,
-                            end_time: newSchedule.end_time,
-                            schedule_type: newSchedule.schedule_type,
-                            school_year: newSchedule.school_year
+                            schedule_id: result.insertedId.toString(),
+                            section_id: scheduleDoc.section_id.toString(),
+                            day_of_week: scheduleDoc.day_of_week,
+                            start_time: scheduleDoc.start_time,
+                            end_time: scheduleDoc.end_time,
+                            schedule_type: scheduleDoc.schedule_type,
+                            school_year: scheduleDoc.school_year
                         },
                         clientIP,
                         userAgent
@@ -339,8 +738,6 @@ export async function POST({ request, getClientAddress }) {
                 // Don't fail the request if logging fails
             }
 
-            await query('COMMIT');
-
             return json({
                 success: true,
                 message: 'Schedule created successfully',
@@ -348,7 +745,6 @@ export async function POST({ request, getClientAddress }) {
             });
 
         } catch (error) {
-            await query('ROLLBACK');
             throw error;
         }
 
@@ -370,45 +766,42 @@ export async function DELETE({ url, request, getClientAddress }) {
             return json({ success: false, error: 'Schedule ID is required' }, { status: 400 });
         }
 
+        const db = await connectToDatabase();
+
         // Check if schedule exists
-        const existingSchedule = await query('SELECT * FROM schedules WHERE id = $1', [parseInt(scheduleId)]);
-        if (existingSchedule.rows.length === 0) {
+        const existingSchedule = await db.collection('schedules').findOne({ _id: new ObjectId(scheduleId) });
+        if (!existingSchedule) {
             return json({ success: false, error: 'Schedule not found' }, { status: 404 });
         }
 
-        const scheduleToDelete = existingSchedule.rows[0];
-
-        // Start transaction
-        await query('BEGIN');
-
         try {
             // Delete the schedule
-            await query('DELETE FROM schedules WHERE id = $1', [parseInt(scheduleId)]);
+            await db.collection('schedules').deleteOne({ _id: new ObjectId(scheduleId) });
 
             // Log activity
             try {
-                const user = await getUserFromRequest(request);
+                const user = getUserFromRequest(request);
                 
-                await logActivityWithUser(
-                    'schedule_deleted',
-                    user,
-                    {
-                        schedule_id: parseInt(scheduleId),
-                        section_id: scheduleToDelete.section_id,
-                        day_of_week: scheduleToDelete.day_of_week,
-                        start_time: scheduleToDelete.start_time,
-                        end_time: scheduleToDelete.end_time,
-                        schedule_type: scheduleToDelete.schedule_type
-                    },
-                    clientIP,
-                    userAgent
-                );
+                if (user && user.account_number) {
+                    await logActivityWithUser(
+                        'schedule_deleted',
+                        user,
+                        {
+                            schedule_id: scheduleId,
+                            section_id: existingSchedule.section_id.toString(),
+                            day_of_week: existingSchedule.day_of_week,
+                            start_time: existingSchedule.start_time,
+                            end_time: existingSchedule.end_time,
+                            schedule_type: existingSchedule.schedule_type
+                        },
+                        clientIP,
+                        userAgent
+                    );
+                }
             } catch (logError) {
                 console.error('Error logging activity:', logError);
                 // Don't fail the request if logging fails
             }
-
-            await query('COMMIT');
 
             return json({
                 success: true,
@@ -416,7 +809,6 @@ export async function DELETE({ url, request, getClientAddress }) {
             });
 
         } catch (error) {
-            await query('ROLLBACK');
             throw error;
         }
 

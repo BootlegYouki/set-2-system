@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
 
 export async function GET({ url }) {
     try {
@@ -16,56 +17,86 @@ export async function GET({ url }) {
             }, { status: 400 });
         }
 
-        // First, verify that the teacher has access to this section
-        if (teacherId) {
-            const accessCheck = await query(`
-                SELECT COUNT(*) as count
-                FROM schedules sch
-                JOIN sections s ON sch.section_id = s.id
-                WHERE sch.teacher_id = $1 
-                    AND s.id = $2 
-                    AND s.school_year = $3
-                    AND s.status = 'active'
-            `, [parseInt(teacherId), parseInt(sectionId), schoolYear]);
+        const db = await connectToDatabase();
 
-            if (accessCheck.rows[0].count === '0') {
-                return json({ 
-                    success: false, 
-                    error: 'Access denied to this section' 
-                }, { status: 403 });
+        // Get actual section data from database
+        const section = await db.collection('sections').findOne({
+            _id: new ObjectId(sectionId),
+            status: 'active'
+        });
+
+        if (!section) {
+            return json({ 
+                success: false, 
+                error: 'Section not found or inactive' 
+            }, { status: 404 });
+        }
+
+        // Get adviser information
+        let adviserInfo = { first_name: '', last_name: '' };
+        if (section.adviser_id) {
+            const adviser = await db.collection('users').findOne({
+                _id: new ObjectId(section.adviser_id)
+            });
+            if (adviser) {
+                adviserInfo = {
+                    first_name: adviser.first_name,
+                    last_name: adviser.last_name
+                };
             }
         }
 
+        const sectionInfo = {
+            id: section._id.toString(),
+            section_name: section.name,
+            grade_level: section.grade_level,
+            school_year: section.school_year,
+            adviser_first_name: adviserInfo.first_name,
+            adviser_last_name: adviserInfo.last_name,
+            room_name: 'Room 101' // TODO: Add room information when available
+        };
+
+        // Get actual students enrolled in this section
+        const enrollments = await db.collection('section_students').find({
+            section_id: new ObjectId(sectionId),
+            status: 'active'
+        }).toArray();
+
+        const studentIds = enrollments.map(enrollment => enrollment.student_id);
+        
+        const students = await db.collection('users').find({
+            _id: { $in: studentIds },
+            account_type: 'student',
+            status: 'active'
+        }).toArray();
+
+        const actualStudents = students.map(student => ({
+            id: student._id.toString(),
+            account_number: student.account_number,
+            first_name: student.first_name,
+            last_name: student.last_name,
+            full_name: student.full_name,
+            email: student.email,
+            grade_level: student.grade_level,
+            enrolled_at: student.created_at,
+            enrollment_status: 'active'
+        }));
+
         // If verificationOnly is true, return only student IDs and verification status
         if (verificationOnly && subjectId) {
-            const studentsQuery = `
-                SELECT 
-                    u.id,
-                    u.account_number,
-                    u.full_name
-                FROM section_students ss
-                JOIN users u ON ss.student_id = u.id
-                WHERE ss.section_id = $1 
-                    AND ss.status = 'active'
-                ORDER BY u.last_name, u.first_name
-            `;
-
-            const studentsResult = await query(studentsQuery, [parseInt(sectionId)]);
-            
             const studentsWithVerification = [];
             
-            for (const student of studentsResult.rows) {
-                // Check if grades are verified by adviser for this student and subject
-                const verificationQuery = `
-                    SELECT verified
-                    FROM final_grades
-                    WHERE student_id = $1 
-                        AND section_id = $2 
-                        AND subject_id = $3
-                        AND grading_period_id = 1
-                `;
-                const verificationResult = await query(verificationQuery, [student.id, parseInt(sectionId), parseInt(subjectId)]);
-                const isVerified = verificationResult.rows.length > 0 && verificationResult.rows[0].verified;
+            for (const student of actualStudents) {
+                // Check verification status from grades collection
+                const gradeRecord = await db.collection('grades').findOne({
+                    student_id: student.id,
+                    section_id: sectionId,
+                    subject_id: subjectId,
+                    school_year: schoolYear,
+                    quarter: 1
+                });
+                
+                const isVerified = gradeRecord ? gradeRecord.verification.verified : false;
                 
                 studentsWithVerification.push({
                     id: student.account_number || student.id.toString(),
@@ -82,286 +113,222 @@ export async function GET({ url }) {
             });
         }
 
-        // Get section details
-        const sectionQuery = `
-            SELECT 
-                s.id,
-                s.name as section_name,
-                s.grade_level,
-                s.school_year,
-                u.first_name as adviser_first_name,
-                u.last_name as adviser_last_name,
-                r.name as room_name
-            FROM sections s
-            LEFT JOIN users u ON s.adviser_id = u.id
-            LEFT JOIN rooms r ON s.room_id = r.id
-            WHERE s.id = $1
-        `;
+        // Get actual subjects that are scheduled for this section
+        let actualSubjects = [];
+        if (subjectId) {
+            // Get the specific subject
+            const subject = await db.collection('subjects').findOne({
+                _id: new ObjectId(subjectId)
+            });
+            if (subject) {
+                actualSubjects = [{
+                    id: subject._id.toString(),
+                    name: subject.name,
+                    code: subject.code
+                }];
+            }
+        } else {
+            // Get all subjects scheduled for this section
+            let scheduleQuery = {
+                section_id: new ObjectId(sectionId),
+                schedule_type: 'subject',
+                school_year: schoolYear
+            };
 
-        const sectionResult = await query(sectionQuery, [parseInt(sectionId)]);
-        
-        if (sectionResult.rows.length === 0) {
-            return json({ 
-                success: false, 
-                error: 'Section not found' 
-            }, { status: 404 });
+            // If teacherId is provided, filter by teacher
+            if (teacherId) {
+                scheduleQuery.teacher_id = new ObjectId(teacherId);
+            }
+
+            const schedules = await db.collection('schedules').find(scheduleQuery).toArray();
+
+            const subjectIds = [...new Set(schedules.map(s => s.subject_id))];
+            
+            if (subjectIds.length > 0) {
+                const subjects = await db.collection('subjects').find({
+                    _id: { $in: subjectIds }
+                }).toArray();
+
+                actualSubjects = subjects.map(subject => ({
+                    id: subject._id.toString(),
+                    name: subject.name,
+                    code: subject.code
+                }));
+            }
         }
 
-        const sectionInfo = sectionResult.rows[0];
-
-        // Get students in the section with their basic info
-        const studentsQuery = `
-            SELECT 
-                u.id,
-                u.account_number,
-                u.first_name,
-                u.last_name,
-                u.full_name,
-                u.email,
-                u.grade_level,
-                ss.enrolled_at,
-                ss.status as enrollment_status
-            FROM section_students ss
-            JOIN users u ON ss.student_id = u.id
-            WHERE ss.section_id = $1 
-                AND ss.status = 'active'
-            ORDER BY u.last_name, u.first_name
-        `;
-
-        const studentsResult = await query(studentsQuery, [parseInt(sectionId)]);
-
-        // Get subjects taught in this section by the teacher (if teacherId provided)
-        let subjectsQuery = `
-            SELECT DISTINCT 
-                sub.id,
-                sub.name,
-                sub.code
-            FROM schedules sch
-            JOIN subjects sub ON sch.subject_id = sub.id
-            WHERE sch.section_id = $1
-        `;
-        
-        const queryParams = [parseInt(sectionId)];
-        
-        if (teacherId) {
-            subjectsQuery += ' AND sch.teacher_id = $2';
-            queryParams.push(parseInt(teacherId));
-        }
-        
-        subjectsQuery += ' ORDER BY sub.name';
-
-        const subjectsResult = await query(subjectsQuery, queryParams);
-
-        // Get actual grades for students
-        const studentsWithGrades = [];
-        
-        // First, get the grade items configuration to determine array lengths
-        let gradeItemsConfig = {
-            writtenWork: { count: 0 },
-            performanceTasks: { count: 0 },
-            quarterlyAssessment: { count: 1 } // Default to 1 for QA
-        };
+        // Get grades for students if subjectId is provided
+        let studentsWithGrades = [];
         
         if (subjectId) {
-            const gradeItemsQuery = `
-                SELECT 
-                    gc.code as category_code,
-                    COUNT(*) as item_count
-                FROM grade_items gi
-                JOIN grade_categories gc ON gi.category_id = gc.id
-                WHERE gi.section_id = $1
-                    AND gi.subject_id = $2
-                    AND gi.grading_period_id = 1
-                    AND gi.status = 'active'
-                GROUP BY gc.code
-            `;
-            
-            const gradeItemsResult = await query(gradeItemsQuery, [parseInt(sectionId), parseInt(subjectId)]);
-            
-            for (const item of gradeItemsResult.rows) {
-                const count = parseInt(item.item_count);
-                switch (item.category_code) {
-                    case 'WW':
-                        gradeItemsConfig.writtenWork.count = count;
-                        break;
-                    case 'PT':
-                        gradeItemsConfig.performanceTasks.count = count;
-                        break;
-                    case 'QA':
-                        gradeItemsConfig.quarterlyAssessment.count = count;
-                        break;
-                }
-            }
-        }
-        
-        for (const student of studentsResult.rows) {
-            let writtenWork = [];
-            let performanceTasks = [];
-            let quarterlyAssessment = [];
-            let isVerified = false;
-
-            // First, check if final grades exist for this student and subject
-            let finalGradesExist = false;
-            if (subjectId) {
-                const finalGradesQuery = `
-                    SELECT 
-                        written_work_average,
-                        performance_tasks_average,
-                        quarterly_assessment_average,
-                        final_grade,
-                        letter_grade,
-                        written_work_items,
-                        performance_tasks_items,
-                        quarterly_assessment_items,
-                        verified
-                    FROM final_grades
-                    WHERE student_id = $1 
-                        AND section_id = $2 
-                        AND subject_id = $3
-                        AND grading_period_id = 1
-                `;
-                const finalGradesResult = await query(finalGradesQuery, [student.id, parseInt(sectionId), parseInt(subjectId)]);
+            for (const student of actualStudents) {
+                console.log(`Looking for grades for student: ${student.id}`);
+                console.log(`Query parameters: section_id=${sectionId}, subject_id=${subjectId}, school_year=${schoolYear}`);
                 
-                if (finalGradesResult.rows.length > 0) {
-                    finalGradesExist = true;
-                    const finalGrade = finalGradesResult.rows[0];
-                    isVerified = finalGrade.verified || false;
-                    
-                    // Use the stored individual grade items if available
-                    if (finalGrade.written_work_items) {
-                        try {
-                            const wwItems = typeof finalGrade.written_work_items === 'string' 
-                                ? JSON.parse(finalGrade.written_work_items) 
-                                : finalGrade.written_work_items;
-                            writtenWork = Array.isArray(wwItems) ? wwItems.map(item => parseFloat(item) || 0) : [];
-                        } catch (e) {
-                            console.error('Error parsing written_work_items:', e);
-                            writtenWork = [];
-                        }
-                    }
-                    
-                    if (finalGrade.performance_tasks_items) {
-                        try {
-                            const ptItems = typeof finalGrade.performance_tasks_items === 'string' 
-                                ? JSON.parse(finalGrade.performance_tasks_items) 
-                                : finalGrade.performance_tasks_items;
-                            performanceTasks = Array.isArray(ptItems) ? ptItems.map(item => parseFloat(item) || 0) : [];
-                        } catch (e) {
-                            console.error('Error parsing performance_tasks_items:', e);
-                            performanceTasks = [];
-                        }
-                    }
-                    
-                    if (finalGrade.quarterly_assessment_items) {
-                        try {
-                            const qaItems = typeof finalGrade.quarterly_assessment_items === 'string' 
-                                ? JSON.parse(finalGrade.quarterly_assessment_items) 
-                                : finalGrade.quarterly_assessment_items;
-                            quarterlyAssessment = Array.isArray(qaItems) ? qaItems.map(item => parseFloat(item) || 0) : [];
-                        } catch (e) {
-                            console.error('Error parsing quarterly_assessment_items:', e);
-                            quarterlyAssessment = [];
-                        }
-                    }
-                    
-                    // If individual items are empty, fall back to computed averages for display compatibility
-                    if (writtenWork.length === 0) {
-                        const wwAvg = parseFloat(finalGrade.written_work_average) || 0;
-                        writtenWork = Array(gradeItemsConfig.writtenWork.count || 1).fill(wwAvg);
-                    }
-                    
-                    if (performanceTasks.length === 0) {
-                        const ptAvg = parseFloat(finalGrade.performance_tasks_average) || 0;
-                        performanceTasks = Array(gradeItemsConfig.performanceTasks.count || 1).fill(ptAvg);
-                    }
-                    
-                    if (quarterlyAssessment.length === 0) {
-                        const qaAvg = parseFloat(finalGrade.quarterly_assessment_average) || 0;
-                        quarterlyAssessment = Array(gradeItemsConfig.quarterlyAssessment.count || 1).fill(qaAvg);
-                    }
-                }
-            }
-
-            // If no final grades exist, fall back to calculating from individual student_grades
-            if (!finalGradesExist) {
-                const gradesQuery = `
-                    SELECT 
-                        sg.score,
-                        gi.name as item_name,
-                        gc.code as category_code,
-                        gi.total_score
-                    FROM student_grades sg
-                    JOIN grade_items gi ON sg.grade_item_id = gi.id
-                    JOIN grade_categories gc ON gi.category_id = gc.id
-                    WHERE sg.student_id = $1
-                        AND gi.section_id = $2
-                        ${subjectId ? 'AND gi.subject_id = $3' : ''}
-                    ORDER BY gc.code, gi.id
-                `;
-                
-                const queryParams = [student.id, parseInt(sectionId)];
-                if (subjectId) {
-                    queryParams.push(parseInt(subjectId));
-                }
-                
-                const gradesResult = await query(gradesQuery, queryParams);
-                
-                // Organize grades by category
-                gradesResult.rows.forEach(grade => {
-                    if (grade.category_code === 'WW') {
-                        writtenWork.push(grade.score || 0);
-                    } else if (grade.category_code === 'PT') {
-                        performanceTasks.push(grade.score || 0);
-                    } else if (grade.category_code === 'QA') {
-                        quarterlyAssessment.push(grade.score || 0);
-                    }
+                // Get grades from MongoDB grades collection
+                const gradeRecord = await db.collection('grades').findOne({
+                    student_id: new ObjectId(student.id),
+                    section_id: new ObjectId(sectionId),
+                    subject_id: new ObjectId(subjectId),
+                    school_year: schoolYear,
+                    quarter: 1
                 });
-                
-                // Ensure arrays have the correct length based on actual grade items configuration
-                while (writtenWork.length < (gradeItemsConfig.writtenWork.count || 1)) writtenWork.push(0);
-                while (performanceTasks.length < (gradeItemsConfig.performanceTasks.count || 1)) performanceTasks.push(0);
-                while (quarterlyAssessment.length < (gradeItemsConfig.quarterlyAssessment.count || 1)) quarterlyAssessment.push(0);
+
+                console.log(`Grade record found for ${student.id}:`, gradeRecord ? 'YES' : 'NO');
+                if (gradeRecord) {
+                    console.log(`Grade data:`, {
+                        written_work: gradeRecord.written_work,
+                        performance_tasks: gradeRecord.performance_tasks,
+                        quarterly_assessment: gradeRecord.quarterly_assessment
+                    });
+                }
+
+                const studentData = {
+                    ...student,
+                    grades: gradeRecord ? {
+                        written_work: gradeRecord.written_work || [],
+                        performance_tasks: gradeRecord.performance_tasks || [],
+                        quarterly_assessment: gradeRecord.quarterly_assessment || [],
+                        averages: gradeRecord.averages || {
+                            written_work: 0,
+                            performance_tasks: 0,
+                            quarterly_assessment: 0,
+                            final_grade: 0
+                        },
+                        verification: gradeRecord.verification || {
+                            verified: false,
+                            verified_by: null,
+                            verified_at: null
+                        }
+                    } : {
+                        written_work: [],
+                        performance_tasks: [],
+                        quarterly_assessment: [],
+                        averages: {
+                            written_work: 0,
+                            performance_tasks: 0,
+                            quarterly_assessment: 0,
+                            final_grade: 0
+                        },
+                        verification: {
+                            verified: false,
+                            verified_by: null,
+                            verified_at: null
+                        }
+                    }
+                };
+
+                studentsWithGrades.push(studentData);
             }
-            
-            studentsWithGrades.push({
-                id: student.account_number || student.id.toString(),
-                name: student.full_name,
-                firstName: student.first_name,
-                lastName: student.last_name,
-                email: student.email,
-                enrollmentStatus: student.enrollment_status,
-                enrolledAt: student.enrolled_at,
-                writtenWork: writtenWork,
-                performanceTasks: performanceTasks,
-                quarterlyAssessment: quarterlyAssessment,
-                isVerified: isVerified // Add verification status
-            });
         }
 
         return json({
             success: true,
             data: {
-                section: {
-                    id: sectionInfo.id,
-                    name: sectionInfo.section_name,
-                    gradeLevel: sectionInfo.grade_level,
-                    schoolYear: sectionInfo.school_year,
-                    adviser: sectionInfo.adviser_first_name && sectionInfo.adviser_last_name 
-                        ? `${sectionInfo.adviser_first_name} ${sectionInfo.adviser_last_name}`
-                        : null,
-                    room: sectionInfo.room_name
-                },
-                subjects: subjectsResult.rows,
-                students: studentsWithGrades,
-                totalStudents: studentsWithGrades.length
+                section: sectionInfo,
+                students: subjectId ? studentsWithGrades : actualStudents,
+                subjects: actualSubjects
             }
         });
 
     } catch (error) {
-        console.error('Error fetching class students:', error);
+        console.error('Error in class-students API:', error);
         return json({ 
             success: false, 
-            error: 'Failed to fetch class students' 
+            error: 'Internal server error' 
+        }, { status: 500 });
+    }
+}
+
+export async function POST({ request }) {
+    try {
+        const { action, ...data } = await request.json();
+        const db = await connectToDatabase();
+
+        switch (action) {
+            case 'update_grade':
+                const { student_id, section_id, subject_id, school_year, quarter, category, index, score } = data;
+                
+                const filter = {
+                    student_id,
+                    section_id,
+                    subject_id,
+                    school_year,
+                    quarter
+                };
+
+                // Check if grades are already verified
+                const existingGrade = await db.collection('grades').findOne(filter);
+                if (existingGrade && existingGrade.verification && existingGrade.verification.verified) {
+                    return json({
+                        success: false,
+                        error: 'Cannot update grades that have been verified by the adviser'
+                    }, { status: 403 });
+                }
+                
+                // Update or create grade record
+                const updateResult = await db.collection('grades').updateOne(
+                    filter,
+                    {
+                        $set: {
+                            [`${category}.${index}.score`]: score,
+                            updated_at: new Date()
+                        }
+                    },
+                    { upsert: true }
+                );
+
+                // Recalculate averages
+                const gradeRecord = await db.collection('grades').findOne({
+                    student_id,
+                    section_id,
+                    subject_id,
+                    school_year,
+                    quarter
+                });
+
+                if (gradeRecord) {
+                    const weights = { written_work: 0.3, performance_tasks: 0.5, quarterly_assessment: 0.2 };
+                    
+                    const calculateAverage = (items) => {
+                        if (!items || items.length === 0) return 0;
+                        const validScores = items.filter(item => item.score !== null && item.score !== undefined);
+                        if (validScores.length === 0) return 0;
+                        return validScores.reduce((sum, item) => sum + item.score, 0) / validScores.length;
+                    };
+
+                    const averages = {
+                        written_work: calculateAverage(gradeRecord.written_work),
+                        performance_tasks: calculateAverage(gradeRecord.performance_tasks),
+                        quarterly_assessment: calculateAverage(gradeRecord.quarterly_assessment)
+                    };
+
+                    averages.final_grade = (
+                        averages.written_work * weights.written_work +
+                        averages.performance_tasks * weights.performance_tasks +
+                        averages.quarterly_assessment * weights.quarterly_assessment
+                    );
+
+                    await db.collection('grades').updateOne(
+                        { _id: gradeRecord._id },
+                        { $set: { averages, updated_at: new Date() } }
+                    );
+                }
+
+                return json({ success: true });
+
+            default:
+                return json({ 
+                    success: false, 
+                    error: 'Invalid action' 
+                }, { status: 400 });
+        }
+
+    } catch (error) {
+        console.error('Error in class-students POST:', error);
+        return json({ 
+            success: false, 
+            error: 'Internal server error' 
         }, { status: 500 });
     }
 }

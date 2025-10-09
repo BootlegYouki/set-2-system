@@ -119,8 +119,8 @@
       
       const result = await response.json();
 
-      // The API returns { success: true, gradeItems: { writtenWork: [], performanceTasks: [], quarterlyAssessment: [] } }
-      const data = result.gradeItems || {};
+      // The API returns { success: true, data: { writtenWork: [], performanceTasks: [], quarterlyAssessment: [] } }
+      const data = result.data || {};
 
       // Create new grading config based on fetched data
       const newGradingConfig = {
@@ -128,7 +128,7 @@
           count: data.writtenWork?.length || 0,
           weight: 0.30,
           label: "Written Work",
-          totals: data.writtenWork?.map(item => item.total_score) || [],
+          totals: data.writtenWork?.map(item => item.totalScore) || [],
           columnNames: data.writtenWork?.map(item => item.name) || [],
           columnPositions: data.writtenWork?.map((_, index) => index + 1) || [],
           gradeItemIds: data.writtenWork?.map(item => item.id) || []
@@ -137,7 +137,7 @@
           count: data.performanceTasks?.length || 0,
           weight: 0.50,
           label: "Performance Tasks",
-          totals: data.performanceTasks?.map(item => item.total_score) || [],
+          totals: data.performanceTasks?.map(item => item.totalScore) || [],
           columnNames: data.performanceTasks?.map(item => item.name) || [],
           columnPositions: data.performanceTasks?.map((_, index) => index + 1) || [],
           gradeItemIds: data.performanceTasks?.map(item => item.id) || []
@@ -146,7 +146,7 @@
           count: data.quarterlyAssessment?.length || 0,
           weight: 0.20,
           label: "Quarterly Assessment",
-          totals: data.quarterlyAssessment?.map(item => item.total_score) || [],
+          totals: data.quarterlyAssessment?.map(item => item.totalScore) || [],
           columnNames: data.quarterlyAssessment?.map(item => item.name) || [],
           columnPositions: data.quarterlyAssessment?.map((_, index) => index + 1) || [],
           gradeItemIds: data.quarterlyAssessment?.map(item => item.id) || []
@@ -162,6 +162,50 @@
   }
 
   // Fetch class students from API
+  // Fetch basic section data without subject filtering
+  async function fetchSectionData() {
+    if (isDestroyed) return;
+    
+    try {
+      loading = true;
+      error = null;
+
+      if (!selectedClass?.sectionId) {
+        throw new Error('No section selected');
+      }
+
+      // Get current user data from auth store
+      const authState = $authStore;
+      const teacherId = authState.isAuthenticated ? authState.userData?.id : null;
+
+      const params = new URLSearchParams({
+        sectionId: selectedClass.sectionId.toString(),
+        schoolYear: '2024-2025'
+      });
+
+      if (teacherId) {
+        params.append('teacherId', teacherId.toString());
+      }
+
+      // Don't add subjectId to get all subjects for the section
+      const response = await fetch(`/api/class-students?${params}`);
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch section data');
+      }
+
+      // Update sectionData only (without students)
+      sectionData = result.data;
+
+    } catch (err) {
+      console.error('Error fetching section data:', err);
+      error = err.message;
+    } finally {
+      loading = false;
+    }
+  }
+
   async function fetchClassStudents() {
     
     if (isDestroyed) return; // Only prevent calls after destruction
@@ -201,7 +245,21 @@
 
       // Update state with fetched data
       sectionData = result.data;
-      students = result.data.students;
+      
+      // Transform student data to match expected structure
+      students = result.data.students.map(student => ({
+        ...student,
+        // Transform grades structure to match frontend expectations
+        writtenWork: student.grades?.written_work || [],
+        performanceTasks: student.grades?.performance_tasks || [],
+        quarterlyAssessment: student.grades?.quarterly_assessment || [],
+        // Keep original grades data for reference
+        grades: student.grades,
+        // Use account_number as id if available, otherwise use existing id
+        id: student.account_number || student.id,
+        name: student.full_name || `${student.first_name} ${student.last_name}`,
+        isVerified: student.grades?.verification?.verified || false
+      }));
 
     } catch (err) {
       console.error('Error fetching class students:', err);
@@ -339,6 +397,15 @@
           return;
         }
 
+        // Generate default name for the new grade item
+        const categoryLabels = {
+          'writtenWork': 'WW',
+          'performanceTasks': 'PT', 
+          'quarterlyAssessment': 'QA'
+        };
+        const currentCount = gradingConfig[category].count;
+        const defaultName = `${categoryLabels[category]} ${currentCount + 1}`;
+
         // Call API to add grade item to database
         const response = await fetch('/api/grades/grade-items', {
           method: 'POST',
@@ -349,11 +416,14 @@
             'x-user-name': encodeURIComponent($authStore.userData.name || '')
           },
           body: JSON.stringify({
-            action: 'add',
+            action: 'create_grade_item',
             section_id: selectedClass?.sectionId || sectionData?.section?.id,
             subject_id: activeSubject?.id || selectedClass?.subjectId || (sectionData?.subjects?.[0]?.id),
             grading_period_id: 1, // Assuming first quarter
-            category_id: categoryId
+            teacher_id: $authStore.userData.id,
+            category: category,
+            name: defaultName,
+            total_score: 100
           })
         });
 
@@ -372,13 +442,13 @@
         if (!gradingConfig[category].gradeItemIds) {
           gradingConfig[category].gradeItemIds = [];
         }
-        gradingConfig[category].gradeItemIds.push(result.grade_item.id);
+        gradingConfig[category].gradeItemIds.push(result.data.id);
         
         // Add the new column name to the columnNames array
         if (!gradingConfig[category].columnNames) {
           gradingConfig[category].columnNames = [];
         }
-        gradingConfig[category].columnNames.push(result.grade_item.name);
+        gradingConfig[category].columnNames.push(result.data.name);
         
         // Initialize columnPositions if it doesn't exist
         if (!gradingConfig[category].columnPositions) {
@@ -410,6 +480,9 @@
   // Adjust student data based on column configuration
   function adjustStudentData() {
     students = students.map(student => {
+      // Ensure student object exists and has required properties
+      if (!student) return student;
+      
       const newStudent = {
         ...student,
         writtenWork: Array(gradingConfig.writtenWork.count).fill(0).map((_, i) => student.writtenWork?.[i] || 0),
@@ -422,6 +495,11 @@
 
   // Calculate average with totals support
   function calculateAverage(scores, totals = null) {
+    // Add defensive check for undefined/null scores
+    if (!scores || !Array.isArray(scores)) {
+      return '';
+    }
+    
     const validScores = scores.filter(score => score !== null && score !== undefined && score !== '');
     if (validScores.length === 0) return '';
     
@@ -444,6 +522,9 @@
 
   // Calculate final grade
   function calculateFinalGrade(student) {
+    // Ensure student object exists and has required properties
+    if (!student) return '';
+    
     const wwAvg = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals);
     const ptAvg = calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals);
     const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals);
@@ -510,6 +591,11 @@
   // Load data on component mount
   onMount(async () => {
     if (!isDestroyed) { // Only check if component is not destroyed
+      // First fetch basic section data without subject filtering
+      await fetchSectionData();
+      
+      // Now that sectionData is available, activeSubject will be properly derived
+      // Then fetch students with proper subject filtering
       await fetchClassStudents();
       await fetchGradingConfiguration();
       

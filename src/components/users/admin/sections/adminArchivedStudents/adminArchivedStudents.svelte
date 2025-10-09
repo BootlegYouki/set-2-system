@@ -2,6 +2,7 @@
 	import './adminArchivedStudents.css';
 	import { onMount } from 'svelte';
 	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
 	// State variables
@@ -25,14 +26,9 @@
 		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
 	];
 
-	// Section options
-	const sectionOptions = [
-		{ id: '', name: 'All Sections' },
-		{ id: 'section-a', name: 'Section A' },
-		{ id: 'section-b', name: 'Section B' },
-		{ id: 'section-c', name: 'Section C' },
-		{ id: 'section-d', name: 'Section D' },
-		{ id: 'section-e', name: 'Section E' }
+	// Section options - will be populated from database
+	let sectionOptions = [
+		{ id: '', name: 'All Sections' }
 	];
 
 	// Computed values
@@ -43,11 +39,12 @@
 	async function loadArchivedStudents() {
 		isLoading = true;
 		try {
-			const response = await fetch('/api/archived-students');
-			if (!response.ok) {
-				throw new Error('Failed to load archived students');
+			const data = await api.get('/api/archived-students');
+			
+			// Check if we have students data (API returns { students: [...] })
+			if (!data.students) {
+				throw new Error('No students data received');
 			}
-			const data = await response.json();
 			
 			// Transform API data to match our component structure
 			students = data.students.map(student => ({
@@ -71,6 +68,29 @@
 			students = [];
 		} finally {
 			isLoading = false;
+		}
+	}
+
+	// Load sections data
+	async function loadSections() {
+		try {
+			const data = await api.get('/api/sections');
+			if (data.success && data.data) {
+				// Transform sections data and add to dropdown options
+				const sectionsFromDB = data.data.map(section => ({
+					id: section.name, // Use section name as ID for filtering
+					name: section.name
+				}));
+				
+				// Combine "All Sections" with actual sections
+				sectionOptions = [
+					{ id: '', name: 'All Sections' },
+					...sectionsFromDB
+				];
+			}
+		} catch (error) {
+			console.error('Error loading sections:', error);
+			// Keep default "All Sections" option if loading fails
 		}
 	}
 
@@ -150,20 +170,29 @@
 		});
 	}
 
-	// Restore student from archive
-	async function restoreStudent(studentId) {
-		try {
-			const result = await api.put('/api/archived-students', { id: studentId });
-			
-			// Show success toast
-			toastStore.success(result.message || 'Student restored successfully');
-			
-			// Reload the archived students list
-			await loadArchivedStudents();
-		} catch (error) {
-			console.error('Error restoring student:', error);
-			toastStore.error(error.message || 'Failed to restore student. Please try again.');
-		}
+	// Restore student from archive with confirmation
+	async function restoreStudent(studentId, studentName) {
+		modalStore.confirm(
+			'Restore Student',
+			`Are you sure you want to restore ${studentName}? This action will move the student back to the active list.`,
+			async () => {
+				try {
+					const result = await api.put('/api/archived-students', { id: studentId });
+					
+					// Show success toast
+					toastStore.success(result.message || 'Student restored successfully');
+					
+					// Reload the archived students list
+					await loadArchivedStudents();
+				} catch (error) {
+					console.error('Error restoring student:', error);
+					toastStore.error(error.message || 'Failed to restore student. Please try again.');
+				}
+			},
+			() => {
+				// User cancelled - do nothing
+			}
+		);
 	}
 
 	// Clear all filters
@@ -186,6 +215,7 @@
 	}
 
 	onMount(() => {
+		loadSections(); // Load sections first
 		loadArchivedStudents();
 		document.addEventListener('click', handleClickOutside);
 		
@@ -342,7 +372,7 @@
 									type="button"
 									class="aas-restore-button"
 									title="Restore Student"
-									on:click={() => restoreStudent(student.id)}
+									on:click={() => restoreStudent(student.id, student.name)}
 								>
 									<span class="material-symbols-outlined">unarchive</span>
 								</button>

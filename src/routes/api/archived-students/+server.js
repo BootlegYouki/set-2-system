@@ -1,76 +1,67 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 // GET /api/archived-students - Fetch archived students
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
-    const limit = url.searchParams.get('limit') || '50';
+    // Authenticate user first
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    if (user.account_type !== 'admin') {
+      return json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const limit = parseInt(url.searchParams.get('limit') || '50');
     const search = url.searchParams.get('search') || '';
     const gradeLevel = url.searchParams.get('gradeLevel') || '';
     const gender = url.searchParams.get('gender') || '';
     
-    // Build the query with WHERE clause for archived students
-    let selectQuery = `
-      SELECT 
-        u.id,
-        u.account_number,
-        u.full_name,
-        u.first_name,
-        u.last_name,
-        u.middle_initial,
-        u.email,
-        u.grade_level,
-        u.birthdate,
-        u.address,
-        u.age,
-        u.guardian,
-        u.contact_number,
-        u.gender,
-        u.archived_at,
-        u.created_at,
-        u.updated_at
-      FROM users u
-      WHERE u.account_type = 'student' AND u.status = 'archived'
-    `;
+    // Connect to MongoDB
+    const db = await connectToDatabase();
+    const usersCollection = db.collection('users');
     
-    const queryParams = [];
-    let paramIndex = 1;
+    // Build MongoDB query for archived students
+    const query = {
+      account_type: 'student',
+      status: 'archived'
+    };
     
     // Add search filter
     if (search) {
-      selectQuery += ` AND (
-        u.full_name ILIKE $${paramIndex} OR 
-        u.account_number ILIKE $${paramIndex} OR
-        u.first_name ILIKE $${paramIndex} OR
-        u.last_name ILIKE $${paramIndex}
-      )`;
-      queryParams.push(`%${search}%`);
-      paramIndex++;
+      query.$or = [
+        { full_name: { $regex: search, $options: 'i' } },
+        { account_number: { $regex: search, $options: 'i' } },
+        { first_name: { $regex: search, $options: 'i' } },
+        { last_name: { $regex: search, $options: 'i' } }
+      ];
     }
     
     // Add grade level filter
     if (gradeLevel) {
-      selectQuery += ` AND u.grade_level = $${paramIndex}`;
-      queryParams.push(gradeLevel);
-      paramIndex++;
+      query.grade_level = gradeLevel;
     }
     
     // Add gender filter
     if (gender) {
-      selectQuery += ` AND u.gender = $${paramIndex}`;
-      queryParams.push(gender);
-      paramIndex++;
+      query.gender = gender;
     }
     
-    selectQuery += ` ORDER BY u.archived_at DESC LIMIT $${paramIndex}`;
-    queryParams.push(parseInt(limit));
-    
-    const result = await query(selectQuery, queryParams);
+    // Execute query with limit and sort by archived_at descending
+    const archivedStudents = await usersCollection
+      .find(query)
+      .sort({ archived_at: -1 })
+      .limit(limit)
+      .toArray();
     
     // Format the data to match frontend expectations
-    const archivedStudents = result.rows.map(student => ({
-      id: student.id,
+    const formattedStudents = archivedStudents.map(student => ({
+      id: student._id.toString(),
       name: student.full_name,
       firstName: student.first_name,
       lastName: student.last_name,
@@ -90,19 +81,19 @@ export async function GET({ url }) {
       status: 'archived'
     }));
     
-    return json({ students: archivedStudents });
+    return json({ students: formattedStudents });
     
   } catch (error) {
     console.error('Error fetching archived students:', error);
     
-    // Database connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-      return json({ error: 'Database connection failed' }, { status: 503 });
+    // Authentication/Authorization errors
+    if (error.message === 'Authentication required' || error.message === 'Admin access required') {
+      return json({ error: error.message }, { status: error.message === 'Authentication required' ? 401 : 403 });
     }
     
-    // Invalid limit parameter
-    if (error.message && error.message.includes('invalid input syntax')) {
-      return json({ error: 'Invalid limit parameter' }, { status: 400 });
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({ error: 'Database connection failed' }, { status: 503 });
     }
     
     return json({ error: 'Failed to fetch archived students' }, { status: 500 });
@@ -112,6 +103,17 @@ export async function GET({ url }) {
 // PUT /api/archived-students - Restore a student from archive
 export async function PUT({ request, getClientAddress }) {
   try {
+    // Authenticate user first
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    if (user.account_type !== 'admin') {
+      return json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { id } = await request.json();
     
     // Validate required fields
@@ -119,18 +121,18 @@ export async function PUT({ request, getClientAddress }) {
       return json({ error: 'Student ID is required' }, { status: 400 });
     }
     
+    // Connect to MongoDB
+    const db = await connectToDatabase();
+    const usersCollection = db.collection('users');
+    
     // Check if student exists and is archived
-    const checkQuery = `SELECT id, account_type, status FROM users WHERE id = $1`;
-    const checkResult = await query(checkQuery, [id]);
+    const student = await usersCollection.findOne({ 
+      _id: new ObjectId(id),
+      account_type: 'student'
+    });
     
-    if (checkResult.rows.length === 0) {
+    if (!student) {
       return json({ error: 'Student not found' }, { status: 404 });
-    }
-    
-    const student = checkResult.rows[0];
-    
-    if (student.account_type !== 'student') {
-      return json({ error: 'Only students can be restored from archive' }, { status: 400 });
     }
     
     if (student.status !== 'archived') {
@@ -138,24 +140,28 @@ export async function PUT({ request, getClientAddress }) {
     }
     
     // Restore student by updating status to active and clearing archived_at
-    const updateQuery = `
-      UPDATE users 
-      SET 
-        status = 'active',
-        archived_at = NULL,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING id, full_name, account_number
-    `;
+    const updateResult = await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { 
+        $set: { 
+          status: 'active',
+          updated_at: new Date()
+        },
+        $unset: { 
+          archived_at: ""
+        }
+      }
+    );
     
-    const result = await query(updateQuery, [id]);
-    const restoredStudent = result.rows[0];
+    if (updateResult.matchedCount === 0) {
+      return json({ error: 'Student not found' }, { status: 404 });
+    }
+    
+    // Get updated student data
+    const restoredStudent = await usersCollection.findOne({ _id: new ObjectId(id) });
     
     // Log the student restoration activity
     try {
-      // Get user info from request headers
-      const user = await getUserFromRequest(request);
-      
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
@@ -179,7 +185,7 @@ export async function PUT({ request, getClientAddress }) {
       success: true, 
       message: `Student ${restoredStudent.full_name} (${restoredStudent.account_number}) has been restored from archive`,
       student: {
-        id: restoredStudent.id,
+        id: restoredStudent._id.toString(),
         name: restoredStudent.full_name,
         number: restoredStudent.account_number
       }
@@ -188,8 +194,13 @@ export async function PUT({ request, getClientAddress }) {
   } catch (error) {
     console.error('Error restoring student:', error);
     
-    // Database connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    // Authentication/Authorization errors
+    if (error.message === 'Authentication required' || error.message === 'Admin access required') {
+      return json({ error: error.message }, { status: error.message === 'Authentication required' ? 401 : 403 });
+    }
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
     

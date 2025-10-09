@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
 
 // GET /api/users - Handle user data requests
 export async function GET({ url }) {
@@ -8,28 +8,21 @@ export async function GET({ url }) {
     
     switch (action) {
       case 'teachers':
+        // Connect to MongoDB
+        const db = await connectToDatabase();
+        
         // Fetch all active teachers
-        const teachersResult = await query(`
-          SELECT 
-            id,
-            account_number,
-            full_name,
-            first_name,
-            last_name,
-            middle_initial,
-            email,
-            account_type,
-            created_at,
-            updated_at
-          FROM users 
-          WHERE account_type = 'teacher' 
-          AND (status IS NULL OR status = 'active')
-          ORDER BY first_name, last_name
-        `);
+        const teachers = await db.collection('users').find({
+          account_type: 'teacher',
+          $or: [
+            { status: { $exists: false } },
+            { status: 'active' }
+          ]
+        }).sort({ first_name: 1, last_name: 1 }).toArray();
         
         // Format the data to match frontend expectations
-        const teachers = teachersResult.rows.map(teacher => ({
-          id: teacher.id,
+        const formattedTeachers = teachers.map(teacher => ({
+          id: teacher._id,
           accountNumber: teacher.account_number,
           fullName: teacher.full_name,
           first_name: teacher.first_name,
@@ -41,7 +34,7 @@ export async function GET({ url }) {
           updatedAt: teacher.updated_at
         }));
         
-        return json({ success: true, data: teachers });
+        return json({ success: true, data: formattedTeachers });
         
       default:
         return json({ error: 'Invalid action parameter' }, { status: 400 });

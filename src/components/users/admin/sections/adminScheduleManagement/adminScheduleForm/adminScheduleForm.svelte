@@ -50,7 +50,7 @@
 			
 			if (result.success) {
 				sections = result.data.map(section => ({
-					id: section.id,
+					id: section._id,
 					name: section.name,
 					grade: `Grade ${section.grade_level}`,
 					year: `grade-${section.grade_level}`,

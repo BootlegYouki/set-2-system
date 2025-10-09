@@ -3,7 +3,7 @@
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { onMount } from 'svelte';
-	import { authStore } from '../../../../login/js/auth.js';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
 	// Document requests state
 	let searchTerm = '';
@@ -109,21 +109,7 @@
 		error = null;
 		
 		try {
-			const response = await fetch('/api/document-requests?admin_view=true', {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-user-id': $authStore.userData?.id?.toString() || '',
-					'x-user-account-number': $authStore.userData?.accountNumber || '',
-					'x-user-name': encodeURIComponent($authStore.userData?.name || '')
-				}
-			});
-			
-			if (!response.ok) {
-				throw new Error(`Failed to load document requests: ${response.status}`);
-			}
-			
-			const data = await response.json();
+			const data = await api.get('/api/document-requests?admin_view=true');
 			documentRequests = data.data || [];
 		} catch (err) {
 			console.error('Error loading document requests:', err);
@@ -206,22 +192,11 @@
 			'Enter approval note...',
 			async (note) => {
 				try {
-					const response = await fetch('/api/document-requests', {
-						method: 'PATCH',
-						headers: {
-							'Content-Type': 'application/json',
-							'x-user-id': $authStore.userData?.id?.toString() || '',
-							'x-user-account-number': $authStore.userData?.accountNumber || '',
-							'x-user-name': encodeURIComponent($authStore.userData?.name || '')
-						},
-						body: JSON.stringify({
-							id: requestId,
-							action: 'approve',
-							admin_note: note && note.trim() ? note.trim() : null
-						})
+					const result = await api.patch('/api/document-requests', {
+						id: requestId,
+						action: 'approve',
+						admin_note: note && note.trim() ? note.trim() : null
 					});
-
-					const result = await response.json();
 					
 					if (result.success) {
 						// Update local state
@@ -263,22 +238,11 @@
 				}
 
 				try {
-					const response = await fetch('/api/document-requests', {
-						method: 'PATCH',
-						headers: {
-							'Content-Type': 'application/json',
-							'x-user-id': $authStore.userData?.id?.toString() || '',
-							'x-user-account-number': $authStore.userData?.accountNumber || '',
-							'x-user-name': encodeURIComponent($authStore.userData?.name || '')
-						},
-						body: JSON.stringify({
-							id: requestId,
-							action: 'reject',
-							rejection_reason: reason.trim()
-						})
+					const result = await api.patch('/api/document-requests', {
+						id: requestId,
+						action: 'reject',
+						rejection_reason: reason.trim()
 					});
-
-					const result = await response.json();
 					
 					if (result.success) {
 						// Update local state
@@ -310,21 +274,10 @@
 
 	async function handleCompleteRequest(requestId) {
 		try {
-			const response = await fetch('/api/document-requests', {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-user-id': $authStore.userData?.id?.toString() || '',
-					'x-user-account-number': $authStore.userData?.accountNumber || '',
-					'x-user-name': encodeURIComponent($authStore.userData?.name || '')
-				},
-				body: JSON.stringify({
-					id: requestId,
-					action: 'complete'
-				})
+			const result = await api.patch('/api/document-requests', {
+				id: requestId,
+				action: 'complete'
 			});
-
-			const result = await response.json();
 			
 			if (result.success) {
 				// Update local state
@@ -356,20 +309,7 @@
 			'Are you sure you want to permanently remove this document request? This action cannot be undone.',
 			async () => {
 				try {
-					const response = await fetch('/api/document-requests', {
-						method: 'DELETE',
-						headers: {
-							'Content-Type': 'application/json',
-							'x-user-id': $authStore.userData?.id?.toString() || '',
-							'x-user-account-number': $authStore.userData?.accountNumber || '',
-							'x-user-name': encodeURIComponent($authStore.userData?.name || '')
-						},
-						body: JSON.stringify({
-							id: requestId
-						})
-					});
-
-					const result = await response.json();
+					const result = await api.delete('/api/document-requests', { id: requestId });
 					
 					if (result.success) {
 						// Remove from local state

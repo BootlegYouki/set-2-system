@@ -362,7 +362,7 @@
 				};
 				// Reload teachers for the section's grade level to get the correct name
 				await loadAvailableTeachers(section.grade_level);
-				editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id) || editSelectedAdviser;
+				editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id) || editSelectedAdviser; // Use .id instead of ._id
 			}
 			
 			// Load students for this section
@@ -387,8 +387,8 @@
 			const requestData = {
 				sectionId: editingSectionId,
 				sectionName: editSectionName,
-				adviserId: editSelectedAdviser.id,
-				studentIds: editSelectedStudents.map(s => s.id),
+				adviserId: editSelectedAdviser.id, // Use .id instead of ._id
+				studentIds: editSelectedStudents.map(s => s.id || s._id), // Handle both id formats
 				roomId: null
 			};
 
@@ -465,11 +465,11 @@
 	// Handle section removal
 	async function handleRemoveSection(section) {
 		try {
-			const result = await api.delete(`/api/sections?sectionId=${section.id}`);
+			const result = await api.delete(`/api/sections?sectionId=${section._id}`);
 
 			if (result.success) {
 				toastStore.success('Section deleted successfully');
-				sectionManagementStore.removeSection(section.id);
+				sectionManagementStore.removeSection(section._id);
 			} else {
 				toastStore.error(result.error || 'Failed to delete section');
 			}

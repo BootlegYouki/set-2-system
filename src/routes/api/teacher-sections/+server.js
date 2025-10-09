@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
 
 export async function GET({ url }) {
     try {
@@ -13,35 +14,106 @@ export async function GET({ url }) {
             }, { status: 400 });
         }
 
-        // Query to get sections that the teacher is teaching, grouped by grade level
-        const sectionsQuery = `
-            SELECT DISTINCT 
-                s.id as section_id,
-                s.name as section_name,
-                s.grade_level,
-                s.school_year,
-                COUNT(DISTINCT ss.student_id) as student_count,
-                COUNT(DISTINCT sch.subject_id) as subject_count,
-                ARRAY_AGG(DISTINCT sub.name) FILTER (WHERE sub.name IS NOT NULL) as subjects
-            FROM schedules sch
-            JOIN sections s ON sch.section_id = s.id
-            LEFT JOIN section_students ss ON s.id = ss.section_id AND ss.status = 'active'
-            LEFT JOIN subjects sub ON sch.subject_id = sub.id
-            WHERE sch.teacher_id = $1 
-                AND s.school_year = $2
-                AND s.status = 'active'
-            GROUP BY s.id, s.name, s.grade_level, s.school_year
-            ORDER BY s.grade_level, s.name
-        `;
+        const db = await connectToDatabase();
 
-        const result = await query(sectionsQuery, [parseInt(teacherId), schoolYear]);
+        // MongoDB aggregation pipeline to get sections that the teacher is teaching
+        const pipeline = [
+            // Match schedules for the specific teacher and school year
+            {
+                $match: {
+                    teacher_id: new ObjectId(teacherId),
+                    school_year: schoolYear
+                }
+            },
+            // Lookup section details
+            {
+                $lookup: {
+                    from: 'sections',
+                    localField: 'section_id',
+                    foreignField: '_id',
+                    as: 'section'
+                }
+            },
+            // Unwind section array
+            {
+                $unwind: '$section'
+            },
+            // Match only active sections
+            {
+                $match: {
+                    'section.status': 'active'
+                }
+            },
+            // Lookup subject details
+            {
+                $lookup: {
+                    from: 'subjects',
+                    localField: 'subject_id',
+                    foreignField: '_id',
+                    as: 'subject'
+                }
+            },
+            // Lookup section students
+            {
+                $lookup: {
+                    from: 'section_students',
+                    let: { sectionId: '$section._id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$section_id', '$$sectionId'] },
+                                        { $eq: ['$status', 'active'] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: 'students'
+                }
+            },
+            // Group by section to aggregate data
+            {
+                $group: {
+                    _id: '$section._id',
+                    section_name: { $first: '$section.name' },
+                    grade_level: { $first: '$section.grade_level' },
+                    school_year: { $first: '$section.school_year' },
+                    student_count: { $first: { $size: '$students' } },
+                    subjects: { $addToSet: { $arrayElemAt: ['$subject.name', 0] } },
+                    subject_count: { $addToSet: '$subject_id' }
+                }
+            },
+            // Project final structure
+            {
+                $project: {
+                    section_id: '$_id',
+                    section_name: 1,
+                    grade_level: 1,
+                    school_year: 1,
+                    student_count: 1,
+                    subjects: { $filter: { input: '$subjects', cond: { $ne: ['$$this', null] } } },
+                    subject_count: { $size: '$subject_count' }
+                }
+            },
+            // Sort by grade level and section name
+            {
+                $sort: {
+                    grade_level: 1,
+                    section_name: 1
+                }
+            }
+        ];
+
+        const result = await db.collection('schedules').aggregate(pipeline).toArray();
 
         // Group sections by grade level
         const sectionsByGrade = {};
         let totalSections = 0;
         let totalStudents = 0;
 
-        result.rows.forEach(row => {
+        result.forEach(row => {
             const gradeLevel = row.grade_level;
             
             if (!sectionsByGrade[gradeLevel]) {
@@ -53,15 +125,15 @@ export async function GET({ url }) {
             }
 
             sectionsByGrade[gradeLevel].sections.push({
-                id: row.section_id,
+                id: row.section_id.toString(),
                 name: row.section_name,
-                students: parseInt(row.student_count) || 0,
+                students: row.student_count || 0,
                 subjects: row.subjects || [],
-                subjectCount: parseInt(row.subject_count) || 0
+                subjectCount: row.subject_count || 0
             });
 
             totalSections++;
-            totalStudents += parseInt(row.student_count) || 0;
+            totalStudents += row.student_count || 0;
         });
 
         // Convert to array format expected by the frontend

@@ -1,116 +1,104 @@
-import { query } from '../../../database/db.js';
+import { client } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
 
 /**
  * Extract user information from request headers
- * This assumes the client sends user info in headers after authentication
+ * @param {Request} request - The request object
+ * @returns {Object} User information object
  */
-export async function getUserFromRequest(request) {
-  try {
-    // Check for user info in headers (sent by authenticated client)
-    const userId = request.headers.get('x-user-id');
-    const userAccountNumber = request.headers.get('x-user-account-number');
-    const userName = request.headers.get('x-user-name');
-    
-    if (userId && userAccountNumber && userName) {
-      return {
-        id: parseInt(userId),
-        account_number: userAccountNumber,
-        full_name: decodeURIComponent(userName)
-      };
-    }
-    
-    // If no headers, try to get from session/cookie (fallback)
-    // For now, return null to indicate no user info available
+export function getUserFromRequest(request) {
+  const userHeader = request.headers.get('x-user-info');
+  if (!userHeader) {
     return null;
-    
+  }
+  
+  try {
+    return JSON.parse(userHeader);
   } catch (error) {
-    console.error('Error extracting user from request:', error);
+    console.error('Error parsing user header:', error);
     return null;
   }
 }
 
 /**
- * Log activity with proper user attribution
+ * Log activity with user attribution using MongoDB
+ * @param {string} action - The action being performed
+ * @param {string} details - Additional details about the action
+ * @param {Object} user - User object from getUserFromRequest
+ * @param {string} [ipAddress] - IP address of the user
  */
-export async function logActivityWithUser(activityType, user, data, ipAddress, userAgent) {
+export async function logActivityWithUser(action, details, user, ipAddress = null) {
   try {
-    await query(
-      'SELECT log_activity($1, $2, $3, $4, $5, $6)',
-      [
-        activityType,
-        user?.id || null,
-        user?.account_number || null,
-        JSON.stringify(data),
-        ipAddress,
-        userAgent
-      ]
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const activityLogsCollection = db.collection('activity_logs');
+    
+    const logEntry = {
+      action,
+      details,
+      user_id: user?.id || null,
+      user_name: user?.name || 'Unknown',
+      user_account_type: user?.account_type || 'Unknown',
+      ip_address: ipAddress,
+      timestamp: new Date()
+    };
+    
+    await activityLogsCollection.insertOne(logEntry);
   } catch (error) {
-    console.error(`Error logging ${activityType} activity:`, error);
-    // Don't throw - logging failures shouldn't break the main operation
+    console.error('Error logging activity:', error);
+    // Don't throw error to prevent breaking the main operation
   }
 }
 
 /**
- * Verify authentication and authorization for API endpoints
- * @param {Request} request - The incoming request
- * @param {string[]} allowedRoles - Array of allowed account types (e.g., ['admin', 'teacher'])
- * @returns {Promise<{success: boolean, user?: object, error?: string, status?: number}>}
+ * Verify authentication and authorization using MongoDB
+ * @param {Request} request - The request object
+ * @param {string[]} allowedRoles - Array of allowed account types
+ * @returns {Promise<{success: boolean, user?: Object, error?: string}>}
  */
 export async function verifyAuth(request, allowedRoles = []) {
   try {
-    // Get user information from request headers
-    const user = await getUserFromRequest(request);
+    const user = getUserFromRequest(request);
     
-    if (!user) {
-      return {
-        success: false,
-        error: 'Authentication required',
-        status: 401
+    if (!user || !user.id) {
+      return { success: false, error: 'Authentication required' };
+    }
+    
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const usersCollection = db.collection('users');
+    
+    // Verify user exists and get current account type
+    const userRecord = await usersCollection.findOne(
+      { _id: new ObjectId(user.id) },
+      { projection: { account_type: 1, status: 1 } }
+    );
+    
+    if (!userRecord) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    if (userRecord.status === 'archived') {
+      return { success: false, error: 'Account is archived' };
+    }
+    
+    // Check if user has required role
+    if (allowedRoles.length > 0 && !allowedRoles.includes(userRecord.account_type)) {
+      return { 
+        success: false, 
+        error: `Access denied. Required roles: ${allowedRoles.join(', ')}` 
       };
     }
-
-    // If specific roles are required, check user's account type
-    if (allowedRoles.length > 0) {
-      // Get user's account type from database
-      const result = await query(
-        'SELECT account_type FROM users WHERE id = $1 AND status = $2',
-        [user.id, 'active']
-      );
-
-      if (result.rows.length === 0) {
-        return {
-          success: false,
-          error: 'User not found or inactive',
-          status: 401
-        };
-      }
-
-      const userAccountType = result.rows[0].account_type;
-      
-      if (!allowedRoles.includes(userAccountType)) {
-        return {
-          success: false,
-          error: 'Insufficient permissions',
-          status: 403
-        };
-      }
-
-      // Add account type to user object
-      user.account_type = userAccountType;
-    }
-
-    return {
-      success: true,
-      user: user
+    
+    // Update user object with current account type
+    const updatedUser = {
+      ...user,
+      account_type: userRecord.account_type
     };
-
+    
+    return { success: true, user: updatedUser };
   } catch (error) {
     console.error('Error verifying authentication:', error);
-    return {
-      success: false,
-      error: 'Authentication verification failed',
-      status: 500
-    };
+    return { success: false, error: 'Authentication verification failed' };
   }
 }

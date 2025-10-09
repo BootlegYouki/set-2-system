@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { client } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 
 // Function to generate random colors
@@ -17,51 +18,52 @@ export async function GET({ url }) {
   try {
     const searchTerm = url.searchParams.get('search') || '';
     
-    let sqlQuery = `
-      SELECT 
-        id,
-        name,
-        code,
-        color,
-        icon,
-        created_at,
-        updated_at
-      FROM activity_types
-    `;
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const activityTypesCollection = db.collection('activity_types');
     
-    const params = [];
-    let paramIndex = 1;
-    
-    // Add search filter
+    // Build query filter
+    let filter = {};
     if (searchTerm) {
-      sqlQuery += ` WHERE (LOWER(name) LIKE $${paramIndex} OR LOWER(code) LIKE $${paramIndex})`;
-      params.push(`%${searchTerm.toLowerCase()}%`);
-      paramIndex++;
+      filter = {
+        $or: [
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { code: { $regex: searchTerm, $options: 'i' } }
+        ]
+      };
     }
     
-    sqlQuery += ' ORDER BY created_at DESC';
+    // Fetch activity types from MongoDB
+    const activityTypes = await activityTypesCollection.find(filter).toArray();
     
-    const result = await query(sqlQuery, params);
-    
-    // Format the data to match the component's expected structure
-    const activityTypes = result.rows.map(activity => ({
-      id: activity.id,
+    // Format response to match component structure
+    const formattedActivityTypes = activityTypes.map(activity => ({
+      id: activity._id.toString(),
       name: activity.name,
       code: activity.code,
       color: activity.color,
       icon: activity.icon,
       createdAt: activity.created_at,
       createdDate: new Date(activity.created_at).toLocaleDateString('en-US'),
-      updatedDate: new Date(activity.updated_at).toLocaleDateString('en-US')
+      updatedDate: new Date(activity.updated_at || activity.created_at).toLocaleDateString('en-US')
     }));
     
     return json({
       success: true,
-      data: activityTypes
+      data: formattedActivityTypes
     });
     
   } catch (error) {
     console.error('Error fetching activity types:', error);
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to fetch activity types: ' + error.message
@@ -83,13 +85,14 @@ export async function POST({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if activity type code already exists
-    const existingActivity = await query(
-      'SELECT id FROM activity_types WHERE code = $1',
-      [code]
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const activityTypesCollection = db.collection('activity_types');
     
-    if (existingActivity.rows.length > 0) {
+    // Check if activity type code already exists
+    const existingActivity = await activityTypesCollection.findOne({ code: code.trim().toUpperCase() });
+    
+    if (existingActivity) {
       return json({
         success: false,
         message: 'Activity type code already exists'
@@ -99,15 +102,28 @@ export async function POST({ request, getClientAddress }) {
     // Generate random color
     const randomColor = getRandomColor();
     
-    // Insert new activity type
-    const result = await query(
-      `INSERT INTO activity_types (name, code, color, icon) 
-       VALUES ($1, $2, $3, $4) 
-       RETURNING id, name, code, color, icon, created_at, updated_at`,
-      [name, code, randomColor, icon || 'event']
-    );
+    // Create new activity type document
+    const newActivityData = {
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      color: randomColor,
+      icon: icon || 'event',
+      created_at: new Date(),
+      updated_at: new Date()
+    };
     
-    const newActivity = result.rows[0];
+    // Insert new activity type
+    const result = await activityTypesCollection.insertOne(newActivityData);
+    
+    if (!result.insertedId) {
+      return json({
+        success: false,
+        message: 'Failed to create activity type'
+      }, { status: 500 });
+    }
+    
+    // Get the created activity type
+    const newActivity = await activityTypesCollection.findOne({ _id: result.insertedId });
     
     // Log the activity type creation activity
     try {
@@ -137,7 +153,7 @@ export async function POST({ request, getClientAddress }) {
     
     // Format response to match component structure
     const formattedActivity = {
-      id: newActivity.id,
+      id: newActivity._id.toString(),
       name: newActivity.name,
       code: newActivity.code,
       color: newActivity.color,
@@ -155,6 +171,23 @@ export async function POST({ request, getClientAddress }) {
     
   } catch (error) {
     console.error('Error creating activity type:', error);
+    
+    // MongoDB duplicate key error
+    if (error.code === 11000) {
+      return json({
+        success: false,
+        message: 'Activity type code already exists'
+      }, { status: 409 });
+    }
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to create activity type: ' + error.message
@@ -176,13 +209,14 @@ export async function PUT({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if activity type exists
-    const existingActivity = await query(
-      'SELECT * FROM activity_types WHERE id = $1',
-      [id]
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const activityTypesCollection = db.collection('activity_types');
     
-    if (existingActivity.rows.length === 0) {
+    // Check if activity type exists
+    const existingActivity = await activityTypesCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!existingActivity) {
       return json({
         success: false,
         message: 'Activity type not found'
@@ -190,13 +224,13 @@ export async function PUT({ request, getClientAddress }) {
     }
     
     // Check if code is being changed and if new code already exists
-    if (existingActivity.rows[0].code !== code) {
-      const codeExists = await query(
-        'SELECT id FROM activity_types WHERE code = $1 AND id != $2',
-        [code, id]
-      );
+    if (existingActivity.code !== code) {
+      const codeExists = await activityTypesCollection.findOne({ 
+        code: code,
+        _id: { $ne: new ObjectId(id) }
+      });
       
-      if (codeExists.rows.length > 0) {
+      if (codeExists) {
         return json({
           success: false,
           message: 'Activity type code already exists'
@@ -204,20 +238,32 @@ export async function PUT({ request, getClientAddress }) {
       }
     }
     
-    // Update activity type
-    const result = await query(
-      `UPDATE activity_types 
-       SET name = $1, code = $2, icon = $3, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4
-       RETURNING id, name, code, color, icon, created_at, updated_at`,
-      [name, code, icon || 'event', id]
+    // Update activity type document
+    const updateData = {
+      name: name.trim(),
+      code: code.trim().toUpperCase(),
+      icon: icon || existingActivity.icon,
+      updated_at: new Date()
+    };
+    
+    const result = await activityTypesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
     );
     
-    const updatedActivity = result.rows[0];
+    if (result.matchedCount === 0) {
+      return json({
+        success: false,
+        message: 'Activity type not found'
+      }, { status: 404 });
+    }
     
     // Log the activity type update activity
     try {
+      // Get user info from request headers
       const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
@@ -225,22 +271,28 @@ export async function PUT({ request, getClientAddress }) {
         'activity_type_updated',
         user,
         {
-          id: updatedActivity.id,
-          name: updatedActivity.name,
-          code: updatedActivity.code,
-          previous_name: existingActivity.rows[0].name,
-          previous_code: existingActivity.rows[0].code
+          id: id,
+          name: updateData.name,
+          code: updateData.code,
+          icon: updateData.icon,
+          previous_name: existingActivity.name,
+          previous_code: existingActivity.code,
+          previous_icon: existingActivity.icon
         },
         ip_address,
         user_agent
       );
     } catch (logError) {
       console.error('Error logging activity type update activity:', logError);
+      // Don't fail the activity type update if logging fails
     }
     
-    // Format response
+    // Get updated activity type
+    const updatedActivity = await activityTypesCollection.findOne({ _id: new ObjectId(id) });
+    
+    // Format response to match component structure
     const formattedActivity = {
-      id: updatedActivity.id,
+      id: updatedActivity._id.toString(),
       name: updatedActivity.name,
       code: updatedActivity.code,
       color: updatedActivity.color,
@@ -252,12 +304,29 @@ export async function PUT({ request, getClientAddress }) {
     
     return json({
       success: true,
-      message: 'Activity type updated successfully',
+      message: `Activity type "${name}" updated successfully`,
       data: formattedActivity
     });
     
   } catch (error) {
     console.error('Error updating activity type:', error);
+    
+    // MongoDB duplicate key error
+    if (error.code === 11000) {
+      return json({
+        success: false,
+        message: 'Activity type code already exists'
+      }, { status: 409 });
+    }
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to update activity type: ' + error.message
@@ -271,6 +340,7 @@ export async function DELETE({ request, getClientAddress }) {
     const data = await request.json();
     const { id } = data;
     
+    // Validation
     if (!id) {
       return json({
         success: false,
@@ -278,25 +348,36 @@ export async function DELETE({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if activity type exists
-    const existingActivity = await query(
-      'SELECT * FROM activity_types WHERE id = $1',
-      [id]
-    );
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const activityTypesCollection = db.collection('activity_types');
     
-    if (existingActivity.rows.length === 0) {
+    // Check if activity type exists
+    const existingActivity = await activityTypesCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!existingActivity) {
       return json({
         success: false,
         message: 'Activity type not found'
       }, { status: 404 });
     }
     
-    // Delete the activity type
-    await query('DELETE FROM activity_types WHERE id = $1', [id]);
+    // Delete activity type
+    const result = await activityTypesCollection.deleteOne({ _id: new ObjectId(id) });
     
-    // Log the activity type deletion
+    if (result.deletedCount === 0) {
+      return json({
+        success: false,
+        message: 'Activity type not found'
+      }, { status: 404 });
+    }
+    
+    // Log the activity type deletion activity
     try {
+      // Get user info from request headers
       const user = await getUserFromRequest(request);
+      
+      // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
@@ -304,24 +385,36 @@ export async function DELETE({ request, getClientAddress }) {
         'activity_type_deleted',
         user,
         {
-          id: existingActivity.rows[0].id,
-          name: existingActivity.rows[0].name,
-          code: existingActivity.rows[0].code
+          id: id,
+          name: existingActivity.name,
+          code: existingActivity.code,
+          color: existingActivity.color,
+          icon: existingActivity.icon
         },
         ip_address,
         user_agent
       );
     } catch (logError) {
       console.error('Error logging activity type deletion activity:', logError);
+      // Don't fail the activity type deletion if logging fails
     }
     
     return json({
       success: true,
-      message: 'Activity type deleted successfully'
+      message: `Activity type "${existingActivity.name}" deleted successfully`
     });
     
   } catch (error) {
     console.error('Error deleting activity type:', error);
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
+      return json({
+        success: false,
+        message: 'Database connection failed'
+      }, { status: 503 });
+    }
+    
     return json({
       success: false,
       message: 'Failed to delete activity type: ' + error.message

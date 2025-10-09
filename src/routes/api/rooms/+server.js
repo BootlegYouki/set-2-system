@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 // GET /api/rooms - Fetch all rooms with optional filtering and assigned sections
 export async function GET({ url }) {
@@ -9,92 +10,70 @@ export async function GET({ url }) {
     const building = url.searchParams.get('building');
     const status = url.searchParams.get('status');
     
-    let sqlQuery = `
-      SELECT 
-        r.id,
-        r.name,
-        r.building,
-        r.floor,
-        r.status,
-        r.assigned_to,
-        r.created_at,
-        r.updated_at,
-        s.id as section_id,
-        s.name as section_name,
-        s.grade_level,
-        s.school_year
-      FROM rooms r
-      LEFT JOIN sections s ON r.id = s.room_id AND s.status = 'active'
-    `;
+    const db = await connectToDatabase();
+    const roomsCollection = db.collection('rooms');
+    const sectionsCollection = db.collection('sections');
     
-    const params = [];
-    let paramIndex = 1;
-    let whereAdded = false;
+    // Build MongoDB query
+    let query = {};
     
     // Add search filter
     if (searchTerm) {
-      sqlQuery += ` WHERE (LOWER(r.name) LIKE $${paramIndex} OR LOWER(r.building) LIKE $${paramIndex} OR LOWER(r.floor) LIKE $${paramIndex})`;
-      params.push(`%${searchTerm.toLowerCase()}%`);
-      paramIndex++;
-      whereAdded = true;
+      query.$or = [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { building: { $regex: searchTerm, $options: 'i' } },
+        { floor: { $regex: searchTerm, $options: 'i' } }
+      ];
     }
     
     // Add building filter
     if (building && building !== '') {
-      sqlQuery += whereAdded ? ` AND LOWER(r.building) = $${paramIndex}` : ` WHERE LOWER(r.building) = $${paramIndex}`;
-      params.push(building.toLowerCase());
-      paramIndex++;
-      whereAdded = true;
+      query.building = { $regex: `^${building}$`, $options: 'i' };
     }
     
     // Add status filter
     if (status && status !== '') {
-      sqlQuery += whereAdded ? ` AND r.status = $${paramIndex}` : ` WHERE r.status = $${paramIndex}`;
-      params.push(status);
-      paramIndex++;
+      query.status = status;
     }
     
-    sqlQuery += ' ORDER BY r.created_at DESC';
+    // Fetch rooms with aggregation to include assigned sections
+    const rooms = await roomsCollection.aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: 'sections',
+          localField: '_id',
+          foreignField: 'room_id',
+          as: 'assignedSections',
+          pipeline: [
+            { $match: { status: 'active' } }
+          ]
+        }
+      },
+      { $sort: { created_at: -1 } }
+    ]).toArray();
     
-    const result = await query(sqlQuery, params);
-    
-    // Group rooms with their assigned sections
-    const roomsMap = new Map();
-    
-    result.rows.forEach(row => {
-      const roomId = row.id;
-      
-      if (!roomsMap.has(roomId)) {
-        roomsMap.set(roomId, {
-          id: row.id,
-          name: row.name,
-          building: row.building,
-          floor: row.floor,
-          status: row.status,
-          assignedTo: row.assigned_to,
-          createdDate: new Date(row.created_at).toLocaleDateString('en-US'),
-          updatedDate: new Date(row.updated_at).toLocaleDateString('en-US'),
-          assignedSections: []
-        });
-      }
-      
-      // Add section if it exists
-      if (row.section_id) {
-        roomsMap.get(roomId).assignedSections.push({
-          id: row.section_id,
-          name: row.section_name,
-          gradeLevel: row.grade_level,
-          schoolYear: row.school_year
-        });
-      }
-    });
-    
-    // Convert map to array
-    const rooms = Array.from(roomsMap.values());
+    // Format response to match frontend expectations
+    const formattedRooms = rooms.map(room => ({
+      id: room._id.toString(),
+      name: room.name,
+      building: room.building,
+      floor: room.floor,
+      status: room.status,
+      assignedTo: room.assigned_to,
+      createdDate: new Date(room.created_at).toLocaleDateString('en-US'),
+      updatedDate: new Date(room.updated_at).toLocaleDateString('en-US'),
+      assignedSections: room.assignedSections.map(section => ({
+        id: section._id.toString(),
+        name: section.name,
+        gradeLevel: section.grade_level,
+        schoolYear: section.school_year
+      }))
+    }));
     
     return json({
       success: true,
-      data: rooms
+      data: formattedRooms
     });
     
   } catch (error) {
@@ -120,13 +99,17 @@ export async function POST({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if room with same name in same building and floor already exists
-    const existingRoom = await query(
-      'SELECT id FROM rooms WHERE LOWER(name) = $1 AND LOWER(building) = $2 AND LOWER(floor) = $3',
-      [name.toLowerCase(), building.toLowerCase(), floor.toLowerCase()]
-    );
+    const db = await connectToDatabase();
+    const roomsCollection = db.collection('rooms');
     
-    if (existingRoom.rows.length > 0) {
+    // Check if room with same name in same building and floor already exists
+    const existingRoom = await roomsCollection.findOne({
+      name: { $regex: `^${name}$`, $options: 'i' },
+      building: { $regex: `^${building}$`, $options: 'i' },
+      floor: { $regex: `^${floor}$`, $options: 'i' }
+    });
+    
+    if (existingRoom) {
       return json({
         success: false,
         message: 'A room with this name already exists in the same building and floor'
@@ -134,14 +117,18 @@ export async function POST({ request, getClientAddress }) {
     }
     
     // Insert new room
-    const result = await query(
-      `INSERT INTO rooms (name, building, floor) 
-       VALUES ($1, $2, $3) 
-       RETURNING id, name, building, floor, status, assigned_to, created_at, updated_at`,
-      [name, building, floor]
-    );
+    const newRoom = {
+      name,
+      building,
+      floor,
+      status: 'available',
+      assigned_to: null,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
     
-    const newRoom = result.rows[0];
+    const result = await roomsCollection.insertOne(newRoom);
+    newRoom._id = result.insertedId;
     
     // Log the room creation activity
     try {
@@ -170,7 +157,7 @@ export async function POST({ request, getClientAddress }) {
     
     // Format response to match component structure
     const formattedRoom = {
-      id: newRoom.id,
+      id: newRoom._id.toString(),
       name: newRoom.name,
       building: newRoom.building,
       floor: newRoom.floor,
@@ -217,25 +204,30 @@ export async function PATCH({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
+    const db = await connectToDatabase();
+    const roomsCollection = db.collection('rooms');
+    const sectionsCollection = db.collection('sections');
+    
     // Check if room exists
-    const roomCheck = await query('SELECT id, name FROM rooms WHERE id = $1', [roomId]);
-    if (roomCheck.rows.length === 0) {
+    const room = await roomsCollection.findOne({ _id: new ObjectId(roomId) });
+    if (!room) {
       return json({
         success: false,
         message: 'Room not found'
       }, { status: 404 });
     }
     
-    const room = roomCheck.rows[0];
-    
     if (action === 'assign') {
-      // Check if sections exist and are not already assigned to other rooms
-      const sectionCheck = await query(
-        'SELECT id, name, room_id FROM sections WHERE id = ANY($1) AND status = $2',
-        [sectionIds, 'active']
-      );
+      // Convert section IDs to ObjectIds
+      const sectionObjectIds = sectionIds.map(id => new ObjectId(id));
       
-      if (sectionCheck.rows.length !== sectionIds.length) {
+      // Check if sections exist and are not already assigned to other rooms
+      const sections = await sectionsCollection.find({
+        _id: { $in: sectionObjectIds },
+        status: 'active'
+      }).toArray();
+      
+      if (sections.length !== sectionIds.length) {
         return json({
           success: false,
           message: 'One or more sections not found or inactive'
@@ -243,8 +235,8 @@ export async function PATCH({ request, getClientAddress }) {
       }
       
       // Check for conflicts with other rooms
-      const conflictingSections = sectionCheck.rows.filter(section => 
-        section.room_id && section.room_id !== roomId
+      const conflictingSections = sections.filter(section => 
+        section.room_id && section.room_id.toString() !== roomId
       );
       
       if (conflictingSections.length > 0) {
@@ -255,15 +247,25 @@ export async function PATCH({ request, getClientAddress }) {
       }
       
       // Assign sections to room
-      await query(
-        'UPDATE sections SET room_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = ANY($2)',
-        [roomId, sectionIds]
+      await sectionsCollection.updateMany(
+        { _id: { $in: sectionObjectIds } },
+        { 
+          $set: { 
+            room_id: new ObjectId(roomId),
+            updated_at: new Date()
+          }
+        }
       );
       
       // Update room status to assigned
-      await query(
-        'UPDATE rooms SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-        ['assigned', roomId]
+      await roomsCollection.updateOne(
+        { _id: new ObjectId(roomId) },
+        { 
+          $set: { 
+            status: 'assigned',
+            updated_at: new Date()
+          }
+        }
       );
       
       // Log the assignment activity
@@ -279,7 +281,7 @@ export async function PATCH({ request, getClientAddress }) {
             room_id: roomId,
             room_name: room.name,
             section_ids: sectionIds,
-            section_names: sectionCheck.rows.map(s => s.name)
+            section_names: sections.map(s => s.name)
           },
           ip_address,
           user_agent
@@ -295,15 +297,25 @@ export async function PATCH({ request, getClientAddress }) {
       
     } else if (action === 'unassign') {
       // Unassign all sections from the room
-      const unassignResult = await query(
-        'UPDATE sections SET room_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE room_id = $1 RETURNING id, name',
-        [roomId]
+      const unassignResult = await sectionsCollection.find({ room_id: new ObjectId(roomId) }).toArray();
+      
+      await sectionsCollection.updateMany(
+        { room_id: new ObjectId(roomId) },
+        { 
+          $unset: { room_id: "" },
+          $set: { updated_at: new Date() }
+        }
       );
       
       // Update room status to available
-      await query(
-        'UPDATE rooms SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-        ['available', roomId]
+      await roomsCollection.updateOne(
+        { _id: new ObjectId(roomId) },
+        { 
+          $set: { 
+            status: 'available',
+            updated_at: new Date()
+          }
+        }
       );
       
       // Log the unassignment activity
@@ -318,7 +330,7 @@ export async function PATCH({ request, getClientAddress }) {
           {
             room_id: roomId,
             room_name: room.name,
-            unassigned_sections: unassignResult.rows.map(s => ({ id: s.id, name: s.name }))
+            unassigned_sections: unassignResult.map(s => ({ id: s._id.toString(), name: s.name }))
           },
           ip_address,
           user_agent
@@ -362,13 +374,13 @@ export async function PUT({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if room exists
-    const existingRoom = await query(
-      'SELECT id, name FROM rooms WHERE id = $1',
-      [id]
-    );
+    const db = await connectToDatabase();
+    const roomsCollection = db.collection('rooms');
     
-    if (existingRoom.rows.length === 0) {
+    // Check if room exists
+    const existingRoom = await roomsCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!existingRoom) {
       return json({
         success: false,
         message: 'Room not found'
@@ -376,12 +388,14 @@ export async function PUT({ request, getClientAddress }) {
     }
     
     // Check if new name/building/floor conflicts with another room
-    const nameConflict = await query(
-      'SELECT id FROM rooms WHERE LOWER(name) = $1 AND LOWER(building) = $2 AND LOWER(floor) = $3 AND id != $4',
-      [name.toLowerCase(), building.toLowerCase(), floor.toLowerCase(), id]
-    );
+    const nameConflict = await roomsCollection.findOne({
+      name: { $regex: `^${name}$`, $options: 'i' },
+      building: { $regex: `^${building}$`, $options: 'i' },
+      floor: { $regex: `^${floor}$`, $options: 'i' },
+      _id: { $ne: new ObjectId(id) }
+    });
     
-    if (nameConflict.rows.length > 0) {
+    if (nameConflict) {
       return json({
         success: false,
         message: 'A room with this name already exists in the same building and floor'
@@ -389,15 +403,21 @@ export async function PUT({ request, getClientAddress }) {
     }
     
     // Update room
-    const result = await query(
-      `UPDATE rooms 
-       SET name = $1, building = $2, floor = $3, status = $4, assigned_to = $5, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $6
-       RETURNING id, name, building, floor, status, assigned_to, created_at, updated_at`,
-      [name, building, floor, status || 'available', assignedTo || null, id]
+    const updateData = {
+      name,
+      building,
+      floor,
+      status: status || 'available',
+      assigned_to: assignedTo || null,
+      updated_at: new Date()
+    };
+    
+    await roomsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
     );
     
-    const updatedRoom = result.rows[0];
+    const updatedRoom = await roomsCollection.findOne({ _id: new ObjectId(id) });
     
     // Log the room update activity
     try {
@@ -429,7 +449,7 @@ export async function PUT({ request, getClientAddress }) {
     
     // Format response to match component structure
     const formattedRoom = {
-      id: updatedRoom.id,
+      id: updatedRoom._id.toString(),
       name: updatedRoom.name,
       building: updatedRoom.building,
       floor: updatedRoom.floor,
@@ -467,13 +487,13 @@ export async function DELETE({ request, getClientAddress }) {
       }, { status: 400 });
     }
     
-    // Check if room exists and get its details
-    const existingRoom = await query(
-      'SELECT id, name, building, floor FROM rooms WHERE id = $1',
-      [id]
-    );
+    const db = await connectToDatabase();
+    const roomsCollection = db.collection('rooms');
     
-    if (existingRoom.rows.length === 0) {
+    // Check if room exists and get its details
+    const existingRoom = await roomsCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!existingRoom) {
       return json({
         success: false,
         message: 'Room not found'
@@ -481,10 +501,7 @@ export async function DELETE({ request, getClientAddress }) {
     }
     
     // Delete the room
-    await query(
-      'DELETE FROM rooms WHERE id = $1',
-      [id]
-    );
+    await roomsCollection.deleteOne({ _id: new ObjectId(id) });
     
     // Log the room deletion activity
     try {
@@ -499,9 +516,9 @@ export async function DELETE({ request, getClientAddress }) {
         'room_deleted',
         user,
         {
-          room_name: existingRoom.rows[0].name,
-          building: existingRoom.rows[0].building,
-          floor: existingRoom.rows[0].floor,
+          room_name: existingRoom.name,
+          building: existingRoom.building,
+          floor: existingRoom.floor,
           room_id: id
         },
         ip_address,
@@ -514,7 +531,7 @@ export async function DELETE({ request, getClientAddress }) {
     
     return json({
       success: true,
-      message: `Room "${existingRoom.rows[0].name}" has been removed successfully`
+      message: `Room "${existingRoom.name}" has been removed successfully`
     });
     
   } catch (error) {

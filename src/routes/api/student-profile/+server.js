@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { query } from '../../database/db.js';
 
 // GET /api/student-profile - Get comprehensive student profile data
 export async function GET({ url }) {

@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
-import { query } from '../../../database/db.js';
+import { client } from '../../database/db.js';
 import bcrypt from 'bcrypt';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 // POST /api/accounts - Create a new account
 export async function POST({ request, getClientAddress }) {
@@ -51,49 +52,41 @@ export async function POST({ request, getClientAddress }) {
     // Construct full name
     const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
     
-    // Insert into database
-    const insertQuery = `
-      INSERT INTO users (
-        account_number, 
-        account_type, 
-        first_name, 
-        last_name, 
-        middle_initial, 
-        full_name,
-        gender, 
-        email, 
-        grade_level,
-        birthdate,
-        address,
-        age,
-        guardian,
-        contact_number,
-        password_hash,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
-      RETURNING id, account_number, full_name, account_type, created_at, updated_at
-    `;
+    // Connect to MongoDB and insert document
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const usersCollection = db.collection('users');
     
-    const values = [
-      accountNumber,
-      accountType,
-      firstName,
-      lastName,
-      middleInitial || null,
-      fullName,
-      gender,
-      email || null,
-      gradeLevel || null,
-      birthdate || null,
-      address || null,
-      age,
-      guardian || null,
-      contactNumber || null,
-      hashedPassword
-    ];
+    // Create user document
+    const userDoc = {
+      account_number: accountNumber,
+      account_type: accountType,
+      first_name: firstName,
+      last_name: lastName,
+      middle_initial: middleInitial || null,
+      full_name: fullName,
+      gender: gender,
+      email: email || null,
+      grade_level: gradeLevel || null,
+      birthdate: birthdate ? new Date(birthdate) : null,
+      address: address || null,
+      age: age,
+      guardian: guardian || null,
+      contact_number: contactNumber || null,
+      password_hash: hashedPassword,
+      status: 'active',
+      created_at: new Date(),
+      updated_at: new Date()
+    };
     
-    const result = await query(insertQuery, values);
-    const newAccount = result.rows[0];
+    const result = await usersCollection.insertOne(userDoc);
+    const newAccount = { 
+      id: result.insertedId.toString(),
+      account_number: accountNumber,
+      full_name: fullName,
+      account_type: accountType,
+      created_at: userDoc.created_at,
+      updated_at: userDoc.updated_at
+    };
     
     // Log the account creation activity
     try {
@@ -101,21 +94,21 @@ export async function POST({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await query(
-        'SELECT log_activity($1, $2, $3, $4, $5, $6)',
-        [
-          'account_created',
-          createdBy || null, // Use the ID of the user who created the account
-          newAccount.account_number,
-          JSON.stringify({
-            account_type: accountType,
-            full_name: fullName,
-            grade_level: gradeLevel
-          }),
-          ip_address, // Now capturing actual IP address
-          user_agent  // Now capturing actual user agent
-        ]
-      );
+      // For MongoDB, we'll create a simple activity log collection
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        action: 'account_created',
+        user_id: createdBy || null,
+        target_account: newAccount.account_number,
+        details: {
+          account_type: accountType,
+          full_name: fullName,
+          grade_level: gradeLevel
+        },
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging account creation activity:', logError);
       // Don't fail the account creation if logging fails
@@ -137,26 +130,18 @@ export async function POST({ request, getClientAddress }) {
   } catch (error) {
     console.error('Error creating account:', error);
     
-    // Handle specific database errors
-    if (error.code === '23505') { // Unique constraint violation
-      if (error.constraint === 'users_email_key') {
+    // Handle specific MongoDB errors
+    if (error.code === 11000) { // Duplicate key error
+      if (error.keyPattern && error.keyPattern.email) {
         return json({ error: 'An account with this email already exists' }, { status: 409 });
       }
-      if (error.constraint === 'users_account_number_key') {
+      if (error.keyPattern && error.keyPattern.account_number) {
         return json({ error: 'Account number already exists' }, { status: 409 });
       }
     }
     
-    if (error.code === '23502') { // Not null constraint violation
-      return json({ error: 'Missing required fields' }, { status: 400 });
-    }
-    
-    if (error.code === '23514') { // Check constraint violation
-      return json({ error: 'Invalid data provided' }, { status: 400 });
-    }
-    
-    // Database connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
     
@@ -168,48 +153,35 @@ export async function POST({ request, getClientAddress }) {
 // GET /api/accounts - Fetch recent accounts
 export async function GET({ url }) {
   try {
-    const limit = url.searchParams.get('limit') || '10';
+    const limit = parseInt(url.searchParams.get('limit') || '10');
     const type = url.searchParams.get('type'); // Get the type parameter
     
-    // Build the query with optional WHERE clause for type filtering
-    let selectQuery = `
-      SELECT 
-        u.id,
-        u.account_number,
-        u.full_name,
-        u.first_name,
-        u.last_name,
-        u.middle_initial,
-        u.email,
-        u.account_type,
-        u.grade_level,
-        u.birthdate,
-        u.address,
-        u.age,
-        u.guardian,
-        u.contact_number,
-        u.created_at,
-        u.updated_at
-      FROM users u
-    `;
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const usersCollection = db.collection('users');
     
-    const queryParams = [parseInt(limit)];
+    // Build the query filter
+    let filter = { 
+      $or: [
+        { status: { $exists: false } },
+        { status: 'active' }
+      ]
+    };
     
-    // Add WHERE clause if type parameter is provided
+    // Add type filter if provided
     if (type) {
-      selectQuery += ` WHERE u.account_type = $2 AND (u.status IS NULL OR u.status = 'active')`;
-      queryParams.push(type);
-    } else {
-      selectQuery += ` WHERE (u.status IS NULL OR u.status = 'active')`;
+      filter.account_type = type;
     }
     
-    selectQuery += ` ORDER BY u.created_at DESC LIMIT $1`;
-    
-    const result = await query(selectQuery, queryParams);
+    const accounts = await usersCollection
+      .find(filter)
+      .sort({ created_at: -1 })
+      .limit(limit)
+      .toArray();
     
     // Format the data to match frontend expectations
-    const accounts = result.rows.map(account => ({
-      id: account.id,
+    const formattedAccounts = accounts.map(account => ({
+      id: account._id.toString(),
       name: account.full_name,
       firstName: account.first_name,
       lastName: account.last_name,
@@ -228,26 +200,20 @@ export async function GET({ url }) {
       status: 'active'
     }));
     
-    return json({ success: true, accounts });
+    return json({ success: true, accounts: formattedAccounts });
     
   } catch (error) {
     console.error('Error fetching accounts:', error);
     
-    // Database connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
-    }
-    
-    // Invalid limit parameter
-    if (error.message && error.message.includes('invalid input syntax')) {
-      return json({ error: 'Invalid limit parameter' }, { status: 400 });
     }
     
     return json({ error: 'Failed to fetch accounts' }, { status: 500 });
   }
 }
 
-// PUT /api/accounts - Update an existing account
 // PUT /api/accounts - Update an existing account
 export async function PUT({ request, getClientAddress }) {
   try {
@@ -258,16 +224,19 @@ export async function PUT({ request, getClientAddress }) {
       return json({ error: 'Account ID, first name, and last name are required' }, { status: 400 });
     }
     
-    // Check if account exists and get its type
-    const checkQuery = `SELECT id, account_type, full_name FROM users WHERE id = $1`;
-    const checkResult = await query(checkQuery, [id]);
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const usersCollection = db.collection('users');
     
-    if (checkResult.rows.length === 0) {
+    // Check if account exists and get its type
+    const existingAccount = await usersCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!existingAccount) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
     
-    const accountType = checkResult.rows[0].account_type;
-    const oldFullName = checkResult.rows[0].full_name;
+    const accountType = existingAccount.account_type;
+    const oldFullName = existingAccount.full_name;
     
     // Validate additional information for students
     if (accountType === 'student') {
@@ -291,86 +260,40 @@ export async function PUT({ request, getClientAddress }) {
     // Construct full name
     const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
     
-    // Prepare update query based on account type
-    let updateQuery;
-    let values;
+    // Prepare update document based on account type
+    let updateDoc = {
+      first_name: firstName,
+      last_name: lastName,
+      middle_initial: middleInitial || null,
+      full_name: fullName,
+      updated_at: new Date()
+    };
 
-    if (accountType === 'teacher') {
-      // Update teacher accounts (subject functionality removed)
-      updateQuery = `
-        UPDATE users 
-        SET 
-          first_name = $1,
-          last_name = $2,
-          middle_initial = $3,
-          full_name = $4,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $5
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
-      `;
-      values = [
-        firstName,
-        lastName,
-        middleInitial || null,
-        fullName,
-        id
-      ];
-    } else if (accountType === 'student') {
+    if (accountType === 'student') {
       // Update with grade_level and additional information for student accounts
-      updateQuery = `
-        UPDATE users 
-        SET 
-          first_name = $1,
-          last_name = $2,
-          middle_initial = $3,
-          full_name = $4,
-          grade_level = $5,
-          birthdate = $6,
-          address = $7,
-          age = $8,
-          guardian = $9,
-          contact_number = $10,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $11
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
-      `;
-      values = [
-        firstName,
-        lastName,
-        middleInitial || null,
-        fullName,
-        gradeLevel || null,
-        birthdate || null,
-        address || null,
-        age,
-        guardian || null,
-        contactNumber || null,
-        id
-      ];
-    } else {
-      // Update without grade_level for admin accounts
-      updateQuery = `
-        UPDATE users 
-        SET 
-          first_name = $1,
-          last_name = $2,
-          middle_initial = $3,
-          full_name = $4,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE id = $5
-        RETURNING id, account_number, full_name, first_name, last_name, middle_initial, account_type, grade_level, birthdate, address, age, guardian, contact_number, created_at, updated_at
-      `;
-      values = [
-        firstName,
-        lastName,
-        middleInitial || null,
-        fullName,
-        id
-      ];
+      updateDoc = {
+        ...updateDoc,
+        grade_level: gradeLevel || null,
+        birthdate: birthdate ? new Date(birthdate) : null,
+        address: address || null,
+        age: age,
+        guardian: guardian || null,
+        contact_number: contactNumber || null
+      };
     }
     
-    const result = await query(updateQuery, values);
-    const updatedAccount = result.rows[0];
+    // Update the document in MongoDB
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateDoc }
+    );
+    
+    if (result.matchedCount === 0) {
+      return json({ error: 'Account not found' }, { status: 404 });
+    }
+    
+    // Get the updated document
+    const updatedAccount = await usersCollection.findOne({ _id: new ObjectId(id) });
     
     // Log the account update activity
     try {
@@ -381,18 +304,22 @@ export async function PUT({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'account_updated',
-        user,
-        {
+      // For MongoDB, we'll create a simple activity log collection
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        action: 'account_updated',
+        user_id: user?.id || null,
+        target_account: updatedAccount.account_number,
+        details: {
           account_type: updatedAccount.account_type,
           old_full_name: oldFullName,
           new_full_name: updatedAccount.full_name,
           account_number: updatedAccount.account_number
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging account update activity:', logError);
       // Don't fail the update if logging fails
@@ -400,7 +327,7 @@ export async function PUT({ request, getClientAddress }) {
     
     // Format response to match frontend expectations
     const response = {
-      id: updatedAccount.id,
+      id: updatedAccount._id.toString(),
       name: updatedAccount.full_name,
       firstName: updatedAccount.first_name,
       lastName: updatedAccount.last_name,
@@ -427,16 +354,19 @@ export async function PUT({ request, getClientAddress }) {
   } catch (error) {
     console.error('Error updating account:', error);
     
-    // Database connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    // Handle specific MongoDB errors
+    if (error.code === 11000) { // Duplicate key error
+      if (error.keyPattern && error.keyPattern.email) {
+        return json({ error: 'An account with this email already exists' }, { status: 409 });
+      }
+    }
+    
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
     
-    // Not null constraint violation
-    if (error.code === '23502') {
-      return json({ error: 'Missing required fields' }, { status: 400 });
-    }
-    
+    // Generic error
     return json({ error: 'Failed to update account. Please try again.' }, { status: 500 });
   }
 }
@@ -450,20 +380,23 @@ export async function DELETE({ request, getClientAddress }) {
       return json({ error: 'Account ID is required' }, { status: 400 });
     }
     
-    // Check if account exists
-    const checkQuery = `SELECT id, full_name, account_type FROM users WHERE id = $1`;
-    const checkResult = await query(checkQuery, [id]);
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const usersCollection = db.collection('users');
     
-    if (checkResult.rows.length === 0) {
+    // Check if account exists
+    const account = await usersCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!account) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
     
-    const account = checkResult.rows[0];
+    // Delete the account permanently
+    const deleteResult = await usersCollection.deleteOne({ _id: new ObjectId(id) });
     
-    // Handle different account types - now delete all account types permanently
-    // Actually delete the account permanently
-    const deleteQuery = `DELETE FROM users WHERE id = $1`;
-    await query(deleteQuery, [id]);
+    if (deleteResult.deletedCount === 0) {
+      return json({ error: 'Failed to delete account' }, { status: 500 });
+    }
     
     // Log the account deletion activity
     try {
@@ -474,16 +407,20 @@ export async function DELETE({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'account_deleted',
-        user,
-        {
+      // For MongoDB, we'll create a simple activity log collection
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        action: 'account_deleted',
+        user_id: user?.id || null,
+        target_account: account.account_number,
+        details: {
           account_type: account.account_type,
           full_name: account.full_name
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging account deletion activity:', logError);
       // Don't fail the deletion if logging fails
@@ -497,16 +434,11 @@ export async function DELETE({ request, getClientAddress }) {
     });
     
   } catch (error) {
-    console.error('Error deleting/archiving account:', error);
+    console.error('Error deleting account:', error);
     
-    // Database connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
-    }
-    
-    // Foreign key constraint violation (if account is referenced elsewhere)
-    if (error.code === '23503') {
-      return json({ error: 'Cannot delete account as it is referenced by other records' }, { status: 409 });
     }
     
     return json({ error: 'Failed to delete account. Please try again.' }, { status: 500 });
@@ -518,20 +450,19 @@ async function generateAccountNumber(accountType) {
   const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
   const year = new Date().getFullYear();
   
-  // Get all existing account numbers for this type and year (including archived accounts)
-  const existingQuery = `
-    SELECT account_number 
-    FROM users 
-    WHERE account_number LIKE $1 
-    ORDER BY account_number ASC
-  `;
+  // Connect to MongoDB
+  const db = client.db(process.env.MONGODB_DB_NAME);
+  const usersCollection = db.collection('users');
   
-  const result = await query(existingQuery, [`${prefix}-${year}-%`]);
+  // Get all existing account numbers for this type and year (including archived accounts)
+  const existingAccounts = await usersCollection.find({
+    account_number: { $regex: `^${prefix}-${year}-` }
+  }).toArray();
   
   // Extract the numeric parts and create a Set for O(1) lookup
   const existingNumbers = new Set(
-    result.rows.map(row => {
-      const match = row.account_number.match(/-(\d+)$/);
+    existingAccounts.map(account => {
+      const match = account.account_number.match(/-(\d+)$/);
       return match ? parseInt(match[1]) : 0;
     }).filter(num => num > 0) // Filter out invalid numbers
   );
@@ -558,49 +489,47 @@ export async function PATCH({ request, getClientAddress }) {
       return json({ error: 'Invalid action. Only "archive" is supported.' }, { status: 400 });
     }
     
-    // Check if account exists and is a student
-    const checkQuery = `SELECT id, full_name, account_type FROM users WHERE id = $1`;
-    const checkResult = await query(checkQuery, [id]);
+    // Connect to MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME);
+    const usersCollection = db.collection('users');
     
-    if (checkResult.rows.length === 0) {
+    // Check if account exists and is a student
+    const account = await usersCollection.findOne({ _id: new ObjectId(id) });
+    
+    if (!account) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
-    
-    const account = checkResult.rows[0];
     
     if (account.account_type !== 'student') {
       return json({ error: 'Only student accounts can be archived' }, { status: 400 });
     }
     
     // Archive the student
-    const archiveQuery = `
-      UPDATE users 
-      SET 
-        status = 'archived',
-        archived_at = CURRENT_TIMESTAMP,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-    `;
-    await query(archiveQuery, [id]);
+    const updateResult = await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { 
+        $set: { 
+          status: 'archived',
+          archived_at: new Date(),
+          updated_at: new Date()
+        }
+      }
+    );
     
-    // Log the account archiving activity
+    if (updateResult.matchedCount === 0) {
+      return json({ error: 'Account not found' }, { status: 404 });
+    }
+    
+    // Log the account archiving activity with user information
     try {
-      // Get user info from request headers
       const user = await getUserFromRequest(request);
-      
-      // Get client IP and user agent
       const ip_address = getClientAddress();
-      const user_agent = request.headers.get('user-agent');
       
       await logActivityWithUser(
-        'account_archived',
+        'student_archived',
+        `Student "${account.full_name}" (${account.account_number}) has been archived`,
         user,
-        {
-          account_type: account.account_type,
-          full_name: account.full_name
-        },
-        ip_address,
-        user_agent
+        ip_address
       );
     } catch (logError) {
       console.error('Error logging account archiving activity:', logError);
@@ -615,14 +544,9 @@ export async function PATCH({ request, getClientAddress }) {
   } catch (error) {
     console.error('Error archiving account:', error);
     
-    // Database connection errors
-    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+    // MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed. Please try again.' }, { status: 503 });
-    }
-    
-    // Foreign key constraint errors
-    if (error.code === '23503') {
-      return json({ error: 'Cannot archive account as it is referenced by other records' }, { status: 409 });
     }
     
     return json({ error: 'Failed to archive account. Please try again.' }, { status: 500 });
