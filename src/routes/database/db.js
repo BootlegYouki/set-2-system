@@ -13,7 +13,11 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
+  tls: true,
+  tlsAllowInvalidCertificates: false,
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 30000,
 });
 
 let isConnected = false;
@@ -25,10 +29,21 @@ export async function connectToDatabase() {
     console.log('MongoDB URI:', uri ? 'URI is set' : 'URI is missing');
     console.log('Database name:', dbName);
     
+    // Validate MongoDB URI format
+    if (!uri) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+    
+    if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+      throw new Error('Invalid MongoDB URI format. Must start with mongodb:// or mongodb+srv://');
+    }
+    
     if (!isConnected) {
       await client.connect();
+      // Ping the database to verify connection
+      await client.db(dbName).admin().ping();
       isConnected = true;
-      console.log('Connected to MongoDB successfully');
+      console.log('Connected to MongoDB successfully and verified with ping');
     }
     
     const db = client.db(dbName);
@@ -37,6 +52,14 @@ export async function connectToDatabase() {
     return db;
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
+    isConnected = false;
+    
+    // Handle specific SSL errors
+    if (error.code === 'ERR_SSL_TLSV1_ALERT_INTERNAL_ERROR') {
+      console.error('SSL/TLS error detected. This might be due to network restrictions or SSL configuration issues.');
+      throw new Error('Database connection failed due to SSL/TLS error. Please check network connectivity and SSL settings.');
+    }
+    
     throw error;
   }
 }
