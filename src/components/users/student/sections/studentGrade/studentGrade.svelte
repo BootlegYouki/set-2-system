@@ -40,19 +40,44 @@
 		}
 	}
 
-	// Get grade color based on numeric value - using CSS variables
+	// Function to determine grade color based on value using CSS custom properties
 	function getGradeColor(grade) {
-		if (grade >= 85) return 'var(--grade-excellent)';      // 85-100: Excellent
-		if (grade >= 80) return 'var(--grade-good)';           // 80-84: Good
-		if (grade >= 75) return 'var(--grade-satisfactory)';   // 75-79: Satisfactory
-		if (grade >= 65) return 'var(--grade-needs-improvement)'; // 65-74: Needs Improvement
-		return 'var(--grade-no-grade)';                        // Below 65 or no grade
+		if (grade === 0 || grade === null || grade === undefined) return 'var(--grade-no-grade)';
+		if (grade >= 85) return 'var(--grade-excellent)';
+		if (grade >= 80) return 'var(--grade-good)';
+		if (grade >= 75) return 'var(--grade-satisfactory)';
+		if (grade >= 65) return 'var(--grade-needs-improvement)';
+		return 'var(--grade-needs-improvement)';
+	}
+
+
+	// Function to format grade display
+	function formatGrade(grade, hasTeacher, hasGrade, verified) {
+		if (!hasTeacher) return 'N/A';
+		if (!hasGrade || !verified) return 'N/A';
+		return grade > 0 ? grade.toFixed(1) : 'N/A';
+	}
+
+	// Function to get progress bar width
+	function getProgressWidth(grade, hasTeacher, hasGrade, verified) {
+		if (!hasTeacher || !hasGrade || !verified || grade === 0) return 0;
+		return Math.min((grade / 100) * 100, 100);
 	}
 
 	// Generate randomized card color based on subject index/slot
 	function getCardColor(index) {
 		const colors = ['blue', 'green', 'purple', 'yellow', 'orange'];
 		return colors[index % colors.length];
+	}
+
+	// Get card color classes for styling
+	function getCardColorClasses(index) {
+		const color = getCardColor(index);
+		return {
+			border: `var(--subject-card-${color}-border)`,
+			text: `var(--subject-card-${color}-text)`,
+			icon: `var(--subject-card-${color}-icon)`
+		};
 	}
 
 	// Get grade performance indicator text
@@ -74,42 +99,6 @@
 		return 'grade-needs-improvement'; // For grades below 65 (like 38)
 	}
 
-	// Fetch grades from API
-	async function fetchGrades() {
-		try {
-			loading = true;
-			error = null;
-
-			if (!$authStore.userData?.id) {
-				error = 'User not authenticated';
-				return;
-			}
-
-			const gradingPeriodId = quarterToGradingPeriod[currentQuarter];
-			const result = await api.get(`/api/student-grades/verified?student_id=${$authStore.userData.id}&grading_period_id=${gradingPeriodId}`);
-
-			if (result.success) {
-				studentData = result.data.student;
-				subjects = result.data.subjects.map((subject, index) => ({
-					...subject,
-					color: getGradeColor(subject.numericGrade),
-					cardColor: getCardColor(index),
-					gradeIndicator: getGradeIndicator(subject.numericGrade),
-					gradeColorClass: getGradeColorClass(subject.numericGrade)
-				}));
-				totalSubjects = result.data.totalSubjects;
-				overallAverage = result.data.overallAverage;
-			} else {
-				error = result.error || 'Failed to fetch grades';
-			}
-		} catch (err) {
-			console.error('Error fetching grades:', err);
-			error = 'Failed to load grades. Please try again.';
-		} finally {
-			loading = false;
-		}
-	}
-
 	// Load data when component mounts
 	onMount(() => {
 		if ($authStore.userData?.id) {
@@ -120,14 +109,39 @@
 		}
 	});
 
-	// Update subject colors when subjects change
-	$: {
-		subjects = subjects.map((subject, index) => ({
-			...subject,
-			color: getGradeColor(subject.numericGrade),
-			cardColor: getCardColor(index),
-			gradeIndicator: getGradeIndicator(subject.numericGrade)
-		}));
+	// Fetch grades from MongoDB API
+	async function fetchGrades() {
+		try {
+			loading = true;
+			error = null;
+
+			const quarter = quarterToGradingPeriod[currentQuarter];
+			const response = await api.get(`/api/student-grades?student_id=${$authStore.userData.id}&quarter=${quarter}&school_year=2024-2025`);
+			
+			if (response.success) {
+				const { grades, statistics } = response.data;
+				
+				// Update subjects with the new API response structure
+				subjects = grades;
+				
+				// Update statistics - fix the property name mismatch
+				overallAverage = statistics.overallAverage || 0;
+				totalSubjects = statistics.totalSubjects || 0;
+				
+				// Set student data from auth store
+				studentData = {
+					name: $authStore.userData.full_name || 'Student',
+					id: $authStore.userData.id
+				};
+			} else {
+				error = response.error || 'Failed to fetch grades';
+			}
+		} catch (err) {
+			console.error('Error fetching grades:', err);
+			error = 'Unable to load grades. Please try again.';
+		} finally {
+			loading = false;
+		}
 	}
 
 </script>
@@ -214,45 +228,42 @@
 				</div>
 			{:else}
 				<div class="subjects-grid">
-					{#each subjects as subject (subject.id)}
-						<div class="subject-card {subject.cardColor}">
+					{#each subjects as subject, index (subject.subject_id || subject.id)}
+						{@const cardColors = getCardColorClasses(index)}
+						<div class="subject-card" style="border-left: 4px solid {cardColors.border};">
 							<!-- Column 1: Icon -->
 							<div class="subject-icon-column">
-								<div class="subject-icon">
+								<div class="subject-icon" style="color: {cardColors.icon};">
 									<span class="material-symbols-outlined">book</span>
 								</div>
 							</div>
 							
 							<!-- Column 2: Subject Details -->
 							<div class="subject-details-column">
-								<h3 class="subject-name">{subject.name}</h3>
-								<p class="teacher-name" class:no-teacher={subject.teacher === 'No teacher'}>{subject.teacher}</p>
-								{#if subject.verified && subject.numericGrade > 0}
-									<div class="progress-bar">
-										<div class="progress-fill {subject.gradeColorClass}" style="width: {subject.numericGrade}%"></div>
-									</div>
-								{:else}
-									<div class="progress-bar">
-										<!-- Empty progress bar for no grade -->
-									</div>
-								{/if}
+								<h3 class="subject-name" style="color: {cardColors.text};">{subject.name}</h3>
+								<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher assigned yet"}>{subject.teacher}</p>
+								<div class="progress-bar">
+									{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified) > 0}
+										<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}%; background-color: {cardColors.border}"></div>
+									{/if}
+								</div>
 							</div>
 							
 							<!-- Column 3: Grade Display -->
 							<div class="grade-column">
-								{#if subject.numericGrade > 0}
-									<div class="grade-large {subject.gradeColorClass}">
-										<CountUp value={subject.numericGrade} decimals={1} duration={1.5} />
-										{#if !subject.verified}
-											<span class="unverified-indicator" title="Grade not yet verified">*</span>
-										{/if}
-									</div>
-								{:else}
-									<div class="no-grade-large {subject.gradeColorClass}">
-										<span class="material-symbols-outlined">remove</span>
-										<span class="no-grade-text">No Grade</span>
-									</div>
-								{/if}
+								<div class="grade-large" style="color: {getGradeColor(subject.numericGrade)}">
+									{#if subject.numericGrade > 0 && subject.teacher !== "No teacher assigned yet" && subject.verified}
+										<CountUp value={subject.numericGrade} decimals={1} duration={2.5} />
+									{:else}
+										{formatGrade(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}
+									{/if}
+									{#if subject.numericGrade > 0 && !subject.verified}
+										<span class="unverified-indicator" title="Grade not yet verified">*</span>
+									{/if}
+								</div>
+								<div class="grade-indicator {getGradeIndicator(subject.numericGrade).color}">
+									{getGradeIndicator(subject.numericGrade).text}
+								</div>
 							</div>
 						</div>
 					{/each}
