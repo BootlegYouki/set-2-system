@@ -61,7 +61,7 @@
 } 
 
 /* Search and Filter Container */
-.search-filter-container {
+.studmaster-search-filter-container {
   display: flex;
   gap: var(--spacing-md);
   align-items: flex-end;
@@ -144,7 +144,7 @@
 }
 
 /* Filter Container */
-.filter-container {
+.studmaster-filter-container {
   display: flex;
   gap: var(--spacing-md);
   align-items: flex-end;

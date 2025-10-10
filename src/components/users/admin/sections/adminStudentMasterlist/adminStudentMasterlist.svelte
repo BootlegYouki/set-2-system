@@ -225,7 +225,7 @@
 
 	<!-- Filters Section -->
 	<div class="filters-section">
-		<div class="search-filter-container">
+		<div class="studmaster-search-filter-container">
 			<!-- Search Bar -->
 			<div class="search-container">
 				<div class="search-input-wrapper">
@@ -249,7 +249,7 @@
 			</div>
 
 			<!-- Filter Dropdowns -->
-			<div class="filter-container">
+			<div class="studmaster-filter-container">
 				<!-- Grade Level Filter -->
 				<div class="filter-group">
 					<label class="filter-label">Grade Level</label>
