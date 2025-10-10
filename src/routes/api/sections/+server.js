@@ -487,21 +487,22 @@ export async function POST({ request, getClientAddress }) {
 
         // Log activity
         try {
-            await logActivityWithUser(
-                'section_created',
-                user,
-                {
-                    section_id: newSectionId,
+            // Create activity log with proper structure
+            const activityCollection = db.collection('activity_logs');
+            await activityCollection.insertOne({
+                activity_type: 'section_created',
+                user_id: user?.id ? new ObjectId(user.id) : null,
+                user_account_number: user?.account_number || null,
+                activity_data: {
                     section_name: sectionName,
                     grade_level: parseInt(gradeLevel),
                     school_year: schoolYear,
-                    adviser_id: adviserId,
-                    student_count: studentIds ? studentIds.length : 0,
-                    room_id: roomId
+                    student_count: studentIds ? studentIds.length : 0
                 },
-                clientIP,
-                userAgent
-            );
+                ip_address: clientIP,
+                user_agent: userAgent,
+                created_at: new Date()
+            });
 
             // Log individual student enrollments
             if (studentIds && studentIds.length > 0) {
@@ -509,25 +510,21 @@ export async function POST({ request, getClientAddress }) {
                     // Get student details for logging
                     const student = await db.collection('users').findOne({ _id: new ObjectId(studentId) });
                     
-                    await logActivityWithUser(
-                        'student_enrolled_to_section',
-                        user,
-                        {
-                            section_id: newSectionId,
+                    await activityCollection.insertOne({
+                        activity_type: 'student_enrolled_to_section',
+                        user_id: user?.id ? new ObjectId(user.id) : null,
+                        user_account_number: user?.account_number || null,
+                        activity_data: {
                             section_name: sectionName,
-                            grade_level: parseInt(gradeLevel),
-                            school_year: schoolYear,
                             student: {
-                                id: student?._id,
                                 name: student?.full_name,
-                                account_number: student?.account_number,
-                                grade_level: student?.grade_level
-                            },
-                            action: 'enrolled'
+                                account_number: student?.account_number
+                            }
                         },
-                        clientIP,
-                        userAgent
-                    );
+                        ip_address: clientIP,
+                        user_agent: userAgent,
+                        created_at: new Date()
+                    });
                 }
             }
         } catch (logError) {
@@ -818,23 +815,23 @@ export async function PUT({ request, getClientAddress }) {
                 changes.push(`Added ${validStudentIds.length} students`);
 
                 // Log individual student additions
+                const activityCollection = db.collection('activity_logs');
                 for (const student of students) {
-                    await logActivityWithUser(
-                        'student_enrolled',
-                        user,
-                        {
-                            section_id: new ObjectId(sectionId),
+                    await activityCollection.insertOne({
+                        activity_type: 'student_added_to_section',
+                        user_id: user?.id ? new ObjectId(user.id) : null,
+                        user_account_number: user?.account_number || null,
+                        activity_data: {
                             section_name: currentSection.name,
                             student: {
-                                id: student._id,
                                 name: student.full_name,
-                                account_number: student.account_number,
-                                grade_level: student.grade_level
+                                account_number: student.account_number
                             }
                         },
-                        clientIP,
-                        userAgent
-                    );
+                        ip_address: clientIP,
+                        user_agent: userAgent,
+                        created_at: new Date()
+                    });
                 }
             }
             
@@ -872,23 +869,23 @@ export async function PUT({ request, getClientAddress }) {
                         _id: { $in: validRemoveIds.map(id => new ObjectId(id)) }
                     }).toArray();
 
+                    const activityCollection = db.collection('activity_logs');
                     for (const student of removedStudents) {
-                        await logActivityWithUser(
-                            'student_unenrolled',
-                            user,
-                            {
-                                section_id: new ObjectId(sectionId),
+                        await activityCollection.insertOne({
+                            activity_type: 'student_removed_from_section',
+                            user_id: user?.id ? new ObjectId(user.id) : null,
+                            user_account_number: user?.account_number || null,
+                            activity_data: {
                                 section_name: currentSection.name,
                                 student: {
-                                    id: student._id,
                                     name: student.full_name,
-                                    account_number: student.account_number,
-                                    grade_level: student.grade_level
+                                    account_number: student.account_number
                                 }
                             },
-                            clientIP,
-                            userAgent
-                        );
+                            ip_address: clientIP,
+                            user_agent: userAgent,
+                            created_at: new Date()
+                        });
                     }
                 }
             }
@@ -903,19 +900,27 @@ export async function PUT({ request, getClientAddress }) {
             );
         }
 
-        // Log section update activity
-        if (changes.length > 0) {
-            await logActivityWithUser(
-                'section_updated',
-                user,
-                {
-                    section_id: new ObjectId(sectionId),
-                    section_name: currentSection.name,
-                    changes: changes
+        // Log section update activity (only for non-student changes)
+        const nonStudentChanges = changes.filter(change => 
+            !change.includes('Added') && 
+            !change.includes('Removed') && 
+            !change.includes('students')
+        );
+        
+        if (nonStudentChanges.length > 0) {
+            // Create activity log with proper structure for non-student changes only
+            const activityCollection = db.collection('activity_logs');
+            await activityCollection.insertOne({
+                activity_type: 'section_updated',
+                user_id: user?.id ? new ObjectId(user.id) : null,
+                user_account_number: user?.account_number || null,
+                activity_data: {
+                    section_name: currentSection.name
                 },
-                clientIP,
-                userAgent
-            );
+                ip_address: clientIP,
+                user_agent: userAgent,
+                created_at: new Date()
+            });
         }
 
         // Get updated section details
@@ -1049,20 +1054,22 @@ export async function DELETE({ request, getClientAddress, url }) {
 
         // Log section deletion
         try {
-            await logActivityWithUser(
-                'section_deleted',
-                user,
-                {
-                    section_id: new ObjectId(sectionId),
+            // Create activity log with proper structure
+            const activityCollection = db.collection('activity_logs');
+            await activityCollection.insertOne({
+                activity_type: 'section_deleted',
+                user_id: user?.id ? new ObjectId(user.id) : null,
+                user_account_number: user?.account_number || null,
+                activity_data: {
                     section_name: section.name,
                     grade_level: section.grade_level,
                     school_year: section.school_year,
-                    student_count: studentCount,
-                    room_freed: section.room_id ? true : false
+                    student_count: studentCount
                 },
-                clientIP,
-                userAgent
-            );
+                ip_address: clientIP,
+                user_agent: userAgent,
+                created_at: new Date()
+            });
         } catch (logError) {
             console.error('Error logging section deletion activity:', logError);
             // Don't fail the deletion if logging fails

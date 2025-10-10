@@ -166,16 +166,21 @@ export async function PUT({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'account_restored',
-        user,
-        {
+      // Create activity log with proper structure
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'student_restored',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.account_number || null,
+        activity_data: {
           account_type: 'student',
-          full_name: restoredStudent.full_name
+          full_name: restoredStudent.full_name,
+          account_number: restoredStudent.account_number
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging student restoration activity:', logError);
       // Don't fail the restoration if logging fails

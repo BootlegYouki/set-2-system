@@ -225,7 +225,7 @@ export async function GET({ url }) {
 					break;
 				
 				case 'section_created':
-					message = `New section created: ${data.section_name}`;
+					message = `New section created: ${data.section_name} (Grade ${data.grade_level})`;
 					icon = 'class';
 					break;
 				
@@ -280,7 +280,13 @@ export async function GET({ url }) {
 				case 'account_archived':
 				case 'student_archived':
 				case 'archive':
-					message = `Account archived: ${data.full_name || performedBy}`;
+					if (data.account_type === 'student') {
+						message = `Student archived: ${data.full_name || performedBy} (${data.account_number || 'N/A'})`;
+					} else if (data.account_type === 'teacher') {
+						message = `Teacher archived: ${data.full_name || performedBy} (${data.account_number || 'N/A'})`;
+					} else {
+						message = `Account archived: ${data.full_name || performedBy} (${data.account_number || 'N/A'})`;
+					}
 					icon = 'archive';
 					break;
 				
@@ -300,13 +306,14 @@ export async function GET({ url }) {
 					break;
 				
 				case 'account_restored':
+				case 'student_restored':
 				case 'restore':
 					if (data.account_type === 'student') {
-						message = `Student restored: ${data.full_name || performedBy}`;
+						message = `Student restored: ${data.full_name || performedBy} (${data.account_number || 'N/A'})`;
 					} else if (data.account_type === 'teacher') {
-						message = `Teacher restored: ${data.full_name || performedBy}`;
+						message = `Teacher restored: ${data.full_name || performedBy} (${data.account_number || 'N/A'})`;
 					} else {
-						message = `Account restored: ${data.full_name || performedBy}`;
+						message = `Account restored: ${data.full_name || performedBy} (${data.account_number || 'N/A'})`;
 					}
 					icon = 'restore';
 					break;
@@ -396,9 +403,13 @@ export async function GET({ url }) {
 				case 'section_assigned':
 				case 'assignment':
 					const assignedSectionNames = data.section_names ? 
-						(Array.isArray(data.section_names) ? data.section_names.join(', ') : data.section_names) : 
-						data.sections || 'sections';
-					message = `Sections assigned to room "${data.room_name}": ${assignedSectionNames}`;
+						(Array.isArray(data.section_names) ? data.section_names : [data.section_names]) : 
+						(data.sections ? [data.sections] : ['sections']);
+					if (assignedSectionNames.length === 1) {
+						message = `Section ${assignedSectionNames[0]} assigned to ${data.room_name}`;
+					} else {
+						message = `Sections ${assignedSectionNames.join(', ')} assigned to ${data.room_name}`;
+					}
 					icon = 'assignment';
 					break;
 				
@@ -406,9 +417,14 @@ export async function GET({ url }) {
 				case 'section_unassigned':
 				case 'assignment_return':
 					const unassignedSectionNames = data.unassigned_sections ? 
-						data.unassigned_sections.map(s => s.name).join(', ') : 
-						data.section_names || data.sections || 'all sections';
-					message = `Sections unassigned from room "${data.room_name}": ${unassignedSectionNames}`;
+						data.unassigned_sections.map(s => s.name) : 
+						(data.section_names ? (Array.isArray(data.section_names) ? data.section_names : [data.section_names]) : 
+						(data.sections ? [data.sections] : ['all sections']));
+					if (unassignedSectionNames.length === 1) {
+						message = `Section ${unassignedSectionNames[0]} unassigned from ${data.room_name}`;
+					} else {
+						message = `Sections ${unassignedSectionNames.join(', ')} unassigned from ${data.room_name}`;
+					}
 					icon = 'assignment_return';
 					break;
 				

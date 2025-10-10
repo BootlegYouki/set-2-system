@@ -277,7 +277,7 @@
 	}
 
 	function selectAssignSection(section) {
-		assignSelectedSection = section.id;
+		assignSelectedSection = section.id || section._id?.toString();
 		isAssignSectionDropdownOpen = false;
 	}
 
@@ -341,6 +341,8 @@
 		};
 	});
 </script>
+
+<svelte:window on:click={handleClickOutside} />
 
 <div class="admin-room-creation-form-container">
     <div class="admin-room-creation-form-section">
@@ -600,11 +602,11 @@
                                                 type="button"
                                                 class="dropdown-trigger" 
                                                 class:selected={assignSelectedSection}
-                                                on:click={toggleAssignSectionDropdown}
+                                                on:click|stopPropagation={toggleAssignSectionDropdown}
                                                 id="assign-section-select"
                                             >
                                                 {#if assignSelectedSection}
-                                                                {@const selectedSectionObj = availableSections.find(section => section.id === assignSelectedSection)}
+                                                                {@const selectedSectionObj = availableSections.find(section => (section.id || section._id?.toString()) === assignSelectedSection)}
                                                                 {#if selectedSectionObj}
                                                                     <div class="selected-option">
                                                                         <span class="material-symbols-outlined option-icon">group</span>
@@ -620,12 +622,12 @@
                                                             <span class="material-symbols-outlined dropdown-arrow">expand_more</span>
                                                     </button>
                                                     <div class="dropdown-menu">
-                                                        {#each availableSections as section (section.id)}
+                                                        {#each availableSections as section (section.id || section._id)}
                                                     <button 
                                                         type="button"
                                                         class="dropdown-option" 
-                                                        class:selected={assignSelectedSection === section.id}
-                                                        on:click={() => selectAssignSection(section)}
+                                                        class:selected={assignSelectedSection === (section.id || section._id?.toString())}
+                                                        on:click|stopPropagation={() => selectAssignSection(section)}
                                                     >
                                                         <span class="material-symbols-outlined option-icon">group</span>
                                                         <div class="option-content">

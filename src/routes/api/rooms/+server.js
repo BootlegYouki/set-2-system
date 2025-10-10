@@ -139,17 +139,21 @@ export async function POST({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'room_created',
-        user,
-        {
+      // Create activity log with proper structure
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'room_created',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.account_number || null,
+        activity_data: {
           room_name: newRoom.name,
           building: newRoom.building,
           floor: newRoom.floor
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging room creation activity:', logError);
       // Don't fail the room creation if logging fails
@@ -274,18 +278,20 @@ export async function PATCH({ request, getClientAddress }) {
         const ip_address = getClientAddress();
         const user_agent = request.headers.get('user-agent');
         
-        await logActivityWithUser(
-          'room_sections_assigned',
-          user,
-          {
-            room_id: roomId,
+        // Create activity log with proper structure
+        const activityCollection = db.collection('activity_logs');
+        await activityCollection.insertOne({
+          activity_type: 'room_sections_assigned',
+          user_id: user?.id ? new ObjectId(user.id) : null,
+          user_account_number: user?.account_number || null,
+          activity_data: {
             room_name: room.name,
-            section_ids: sectionIds,
             section_names: sections.map(s => s.name)
           },
-          ip_address,
-          user_agent
-        );
+          ip_address: ip_address,
+          user_agent: user_agent,
+          created_at: new Date()
+        });
       } catch (logError) {
         console.error('Error logging room assignment activity:', logError);
       }
@@ -324,17 +330,20 @@ export async function PATCH({ request, getClientAddress }) {
         const ip_address = getClientAddress();
         const user_agent = request.headers.get('user-agent');
         
-        await logActivityWithUser(
-          'room_sections_unassigned',
-          user,
-          {
-            room_id: roomId,
+        // Create activity log with proper structure
+        const activityCollection = db.collection('activity_logs');
+        await activityCollection.insertOne({
+          activity_type: 'room_sections_unassigned',
+          user_id: user?.id ? new ObjectId(user.id) : null,
+          user_account_number: user?.account_number || null,
+          activity_data: {
             room_name: room.name,
-            unassigned_sections: unassignResult.map(s => ({ id: s._id.toString(), name: s.name }))
+            unassigned_sections: unassignResult.map(s => ({ name: s.name }))
           },
-          ip_address,
-          user_agent
-        );
+          ip_address: ip_address,
+          user_agent: user_agent,
+          created_at: new Date()
+        });
       } catch (logError) {
         console.error('Error logging room unassignment activity:', logError);
       }
@@ -428,20 +437,21 @@ export async function PUT({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'room_updated',
-        user,
-        {
-          room_id: id,
-          name: updatedRoom.name,
+      // Create activity log with proper structure
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'room_updated',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.account_number || null,
+        activity_data: {
+          room_name: updatedRoom.name,
           building: updatedRoom.building,
-          floor: updatedRoom.floor,
-          status: updatedRoom.status,
-          assigned_to: updatedRoom.assigned_to
+          floor: updatedRoom.floor
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging room update activity:', logError);
       // Don't fail the update if logging fails
@@ -512,18 +522,21 @@ export async function DELETE({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'room_deleted',
-        user,
-        {
+      // Create activity log with proper structure
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'room_deleted',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.account_number || null,
+        activity_data: {
           room_name: existingRoom.name,
           building: existingRoom.building,
-          floor: existingRoom.floor,
-          room_id: id
+          floor: existingRoom.floor
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging room deletion activity:', logError);
       // Don't fail the deletion if logging fails

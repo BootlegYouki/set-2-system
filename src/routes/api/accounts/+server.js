@@ -90,6 +90,9 @@ export async function POST({ request, getClientAddress }) {
     
     // Log the account creation activity
     try {
+      // Get user info from request headers
+      const user = await getUserFromRequest(request);
+      
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
@@ -97,12 +100,13 @@ export async function POST({ request, getClientAddress }) {
       // For MongoDB, we'll create a simple activity log collection
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
-        action: 'account_created',
-        user_id: createdBy || null,
-        target_account: newAccount.account_number,
-        details: {
+        activity_type: 'account_created',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           account_type: accountType,
           full_name: fullName,
+          account_number: newAccount.account_number,
           grade_level: gradeLevel
         },
         ip_address: ip_address,
@@ -307,13 +311,13 @@ export async function PUT({ request, getClientAddress }) {
       // For MongoDB, we'll create a simple activity log collection
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
-        action: 'account_updated',
-        user_id: user?.id || null,
-        target_account: updatedAccount.account_number,
-        details: {
+        activity_type: 'account_updated',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           account_type: updatedAccount.account_type,
           old_full_name: oldFullName,
-          new_full_name: updatedAccount.full_name,
+          full_name: updatedAccount.full_name,
           account_number: updatedAccount.account_number
         },
         ip_address: ip_address,
@@ -410,12 +414,13 @@ export async function DELETE({ request, getClientAddress }) {
       // For MongoDB, we'll create a simple activity log collection
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
-        action: 'account_deleted',
-        user_id: user?.id || null,
-        target_account: account.account_number,
-        details: {
+        activity_type: 'account_deleted',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           account_type: account.account_type,
-          full_name: account.full_name
+          full_name: account.full_name,
+          account_number: account.account_number
         },
         ip_address: ip_address,
         user_agent: user_agent,
@@ -524,13 +529,23 @@ export async function PATCH({ request, getClientAddress }) {
     try {
       const user = await getUserFromRequest(request);
       const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'student_archived',
-        `Student "${account.full_name}" (${account.account_number}) has been archived`,
-        user,
-        ip_address
-      );
+      // Create activity log with proper structure
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'student_archived',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.account_number || null,
+        activity_data: {
+          account_type: account.account_type,
+          full_name: account.full_name,
+          account_number: account.account_number
+        },
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging account archiving activity:', logError);
       // Don't fail the archiving if logging fails
