@@ -1877,10 +1877,14 @@ const options = {
 			<span class="status">` + status + '</span>\n			<div class="message">\n				<h1>' + message + "</h1>\n			</div>\n		</div>\n	</body>\n</html>\n"
   },
 <<<<<<< HEAD
+<<<<<<< HEAD
   version_hash: "l0nu1r"
 =======
   version_hash: "1moai9g"
 >>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection)
+=======
+  version_hash: "udrxp5"
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
 };
 async function get_hooks() {
   let handle;
