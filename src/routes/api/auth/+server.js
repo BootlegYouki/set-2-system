@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { connectToDatabase } from '../../database/db.js';
+import { client } from '../../database/db.js';
 import bcrypt from 'bcrypt';
 
 // POST /api/auth - Authenticate user with account number and password
@@ -28,8 +28,8 @@ export async function POST({ request, getClientAddress }) {
       return json({ error: 'Password too long' }, { status: 400 });
     }
     
-    // Connect to MongoDB and query user by account number
-    const db = await connectToDatabase();
+    // Query user by account number from MongoDB
+    const db = client.db(process.env.MONGODB_DB_NAME || 'set-2-system');
     const usersCollection = db.collection('users');
     
     const user = await usersCollection.findOne({
