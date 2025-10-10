@@ -1,13 +1,37 @@
 import { j as json } from './index-CccDCyu_.js';
+<<<<<<< HEAD
 <<<<<<<< HEAD:build/server/chunks/_server-hEnWSObN.js
+=======
+<<<<<<<< HEAD:build/server/chunks/_server-3YiRus9D.js
+<<<<<<< HEAD
+<<<<<<< HEAD:build/server/chunks/_server-BDTGGGjq.js
+=======
+<<<<<<<< HEAD:build/server/chunks/_server-hEnWSObN.js
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
+>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection)
 <<<<<<<< HEAD:build/server/chunks/_server-BDTGGGjq.js
 import { a as connectToDatabase } from './db-B_8POatj.js';
 ========
 import { c as client } from './db-9uwR-1fD.js';
 >>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection):build/server/chunks/_server-hEnWSObN.js
+<<<<<<< HEAD
 ========
 import { a as connectToDatabase } from './db-9uwR-1fD.js';
 >>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling):build/server/chunks/_server-3YiRus9D.js
+=======
+<<<<<<< HEAD
+=======
+import { a as connectToDatabase } from './db-9uwR-1fD.js';
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling):build/server/chunks/_server-3YiRus9D.js
+=======
+========
+import { a as connectToDatabase } from './db-9uwR-1fD.js';
+>>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling):build/server/chunks/_server-3YiRus9D.js
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
+========
+import { c as client } from './db-9uwR-1fD.js';
+>>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection):build/server/chunks/_server-hEnWSObN.js
+>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection)
 import bcrypt from 'bcrypt';
 import 'mongodb';
 import 'dotenv';
@@ -87,12 +111,36 @@ async function POST({ request, getClientAddress }) {
 }
 
 export { POST };
+<<<<<<< HEAD
 <<<<<<<< HEAD:build/server/chunks/_server-hEnWSObN.js
+=======
+<<<<<<<< HEAD:build/server/chunks/_server-3YiRus9D.js
+<<<<<<< HEAD
+<<<<<<< HEAD:build/server/chunks/_server-BDTGGGjq.js
+=======
+<<<<<<<< HEAD:build/server/chunks/_server-hEnWSObN.js
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
+>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection)
 <<<<<<<< HEAD:build/server/chunks/_server-BDTGGGjq.js
 //# sourceMappingURL=_server-BDTGGGjq.js.map
 ========
 //# sourceMappingURL=_server-hEnWSObN.js.map
 >>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection):build/server/chunks/_server-hEnWSObN.js
+<<<<<<< HEAD
 ========
 //# sourceMappingURL=_server-3YiRus9D.js.map
 >>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling):build/server/chunks/_server-3YiRus9D.js
+=======
+<<<<<<< HEAD
+=======
+//# sourceMappingURL=_server-3YiRus9D.js.map
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling):build/server/chunks/_server-3YiRus9D.js
+=======
+========
+//# sourceMappingURL=_server-3YiRus9D.js.map
+>>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling):build/server/chunks/_server-3YiRus9D.js
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
+========
+//# sourceMappingURL=_server-hEnWSObN.js.map
+>>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection):build/server/chunks/_server-hEnWSObN.js
+>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection)

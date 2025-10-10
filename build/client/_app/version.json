@@ -1,6 +1,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 {"version":"1760029620959"}
 =======
 {"version":"1760027895536"}
@@ -11,3 +12,6 @@
 =======
 {"version":"1760029220513"}
 >>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
+=======
+{"version":"1760027895536"}
+>>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection)
