@@ -18,16 +18,37 @@
   
   // Subject tab management
   let activeSubjectIndex = $state(0);
+  let gradingSpreadsheetRef = $state(null); // Reference to GradingSpreadsheet component
   
   // Get current active subject
   let activeSubject = $derived(
     sectionData?.subjects?.[activeSubjectIndex] || null
   );
   
-  // Tab navigation function
-  function setActiveSubject(index) {
+  // Tab navigation function with auto-save
+  async function setActiveSubject(index) {
+    console.log('Setting active subject to index:', index);
+    console.log('Available subjects:', sectionData?.subjects);
+    
+    if (!sectionData?.subjects || index < 0 || index >= sectionData.subjects.length) {
+      console.error('Invalid subject index or no subjects available');
+      return;
+    }
+
+    // Auto-save current grades before switching tabs
+    if (gradingSpreadsheetRef && typeof gradingSpreadsheetRef.saveGrades === 'function') {
+      try {
+        console.log('Auto-saving grades before tab switch...');
+        await gradingSpreadsheetRef.saveGrades();
+      } catch (error) {
+        console.error('Error auto-saving grades:', error);
+        // Continue with tab switch even if save fails
+      }
+    }
     
     activeSubjectIndex = index;
+    
+    console.log('Active subject set to:', sectionData.subjects[index]);
     
     // Reset grading config when switching subjects
     gradingConfig = {
@@ -59,9 +80,18 @@
         gradeItemIds: []
       }
     };
-    // Fetch new grading configuration and student data for the selected subject
-    fetchGradingConfiguration();
-    fetchClassStudents();
+    
+    // Wait for next tick to ensure activeSubject is updated
+    setTimeout(async () => {
+      console.log('Fetching data for active subject:', sectionData.subjects[index]);
+      try {
+        // Fetch new grading configuration and student data for the selected subject
+        await fetchGradingConfiguration();
+        await fetchClassStudents();
+      } catch (err) {
+        console.error('Error fetching data for subject:', err);
+      }
+    }, 0);
   }
   
   // Reactive class information using Svelte 5 runes
@@ -99,10 +129,19 @@
   // Fetch existing grade items and build// Fetch grading configuration for the active subject
   async function fetchGradingConfiguration() {
     if (!selectedClass || !activeSubject) {
+      console.log('Cannot fetch grading config - missing selectedClass or activeSubject');
+      console.log('selectedClass:', selectedClass);
+      console.log('activeSubject:', activeSubject);
       return;
     }
 
     try {
+      console.log('Fetching grading configuration for:', {
+        sectionId: selectedClass.sectionId,
+        subjectId: activeSubject.id,
+        teacherId: $authStore.userData.id
+      });
+
       const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${activeSubject.id}&grading_period_id=1&teacher_id=${$authStore.userData.id}`, {
         method: 'GET',
         headers: {
@@ -113,11 +152,14 @@
         }
       });
       
+      console.log('Grading config response status:', response.status);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const result = await response.json();
+      console.log('Grading config result:', result);
 
       // The API returns { success: true, data: { writtenWork: [], performanceTasks: [], quarterlyAssessment: [] } }
       const data = result.data || {};
@@ -154,6 +196,7 @@
       };
 
       gradingConfig = newGradingConfig;
+      console.log('Grading config updated:', gradingConfig);
       
     } catch (error) {
       console.error('Error fetching grading configuration:', error);
@@ -187,9 +230,13 @@
         params.append('teacherId', teacherId.toString());
       }
 
+      console.log('Fetching section data with params:', params.toString());
+
       // Don't add subjectId to get all subjects for the section
       const response = await fetch(`/api/class-students?${params}`);
       const result = await response.json();
+
+      console.log('Section data response:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch section data');
@@ -197,6 +244,9 @@
 
       // Update sectionData only (without students)
       sectionData = result.data;
+      
+      console.log('Section data loaded:', sectionData);
+      console.log('Available subjects:', sectionData?.subjects);
 
     } catch (err) {
       console.error('Error fetching section data:', err);
@@ -218,6 +268,11 @@
         throw new Error('No section selected');
       }
 
+      if (!activeSubject?.id) {
+        console.log('No active subject available, skipping student fetch');
+        return;
+      }
+
       // Get current user data from auth store
       const authState = $authStore;
       const teacherId = authState.isAuthenticated ? authState.userData?.id : null;
@@ -236,8 +291,13 @@
         params.append('subjectId', activeSubject.id.toString());
       }
 
+      console.log('Fetching students with params:', params.toString());
+      console.log('Active subject:', activeSubject);
+
       const response = await fetch(`/api/class-students?${params}`);
       const result = await response.json();
+
+      console.log('Students response:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch class students');
@@ -260,6 +320,8 @@
         name: student.full_name || `${student.first_name} ${student.last_name}`,
         isVerified: student.grades?.verification?.verified || false
       }));
+
+      console.log('Students loaded:', students.length);
 
     } catch (err) {
       console.error('Error fetching class students:', err);
@@ -594,10 +656,24 @@
       // First fetch basic section data without subject filtering
       await fetchSectionData();
       
-      // Now that sectionData is available, activeSubject will be properly derived
-      // Then fetch students with proper subject filtering
-      await fetchClassStudents();
-      await fetchGradingConfiguration();
+      // Wait for the next tick to ensure reactive variables are updated
+      await new Promise(resolve => setTimeout(resolve, 0));
+      
+      // Ensure we have subjects and activeSubject is properly set
+      if (sectionData?.subjects && sectionData.subjects.length > 0) {
+        // Make sure activeSubjectIndex is valid
+        if (activeSubjectIndex >= sectionData.subjects.length) {
+          activeSubjectIndex = 0;
+        }
+        
+        // Now fetch students with proper subject filtering
+        await fetchClassStudents();
+        await fetchGradingConfiguration();
+      } else {
+        // No subjects found for this teacher in this section
+        error = 'No subjects found for this section';
+        loading = false;
+      }
       
       // Start periodic verification status checking every 30 seconds
       verificationCheckInterval = setInterval(() => {
@@ -765,6 +841,7 @@
     </div>
     {:else}
       <GradingSpreadsheet 
+        bind:this={gradingSpreadsheetRef}
         bind:students 
         bind:gradingConfig 
         sectionId={selectedClass?.sectionId}

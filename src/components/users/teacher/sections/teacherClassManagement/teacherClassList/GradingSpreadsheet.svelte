@@ -1509,6 +1509,9 @@
       toastStore.error('Failed to refresh grades. Please try again.');
     }
   }
+
+  // Expose saveGrades function to parent component
+  export { saveGrades };
 </script>
 
 <svelte:window on:keydown={handleGlobalKeydown} />

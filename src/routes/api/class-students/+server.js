@@ -113,29 +113,16 @@ export async function GET({ url }) {
             });
         }
 
-        // Get actual subjects that are scheduled for this section
+        // Get subjects taught by this teacher in this section
         let actualSubjects = [];
-        if (subjectId) {
-            // Get the specific subject
-            const subject = await db.collection('subjects').findOne({
-                _id: new ObjectId(subjectId)
-            });
-            if (subject) {
-                actualSubjects = [{
-                    id: subject._id.toString(),
-                    name: subject.name,
-                    code: subject.code
-                }];
-            }
-        } else {
-            // Get all subjects scheduled for this section
-            let scheduleQuery = {
+        
+        if (teacherId) {
+            const scheduleQuery = {
                 section_id: new ObjectId(sectionId),
                 schedule_type: 'subject',
                 school_year: schoolYear
             };
-
-            // If teacherId is provided, filter by teacher
+            
             if (teacherId) {
                 scheduleQuery.teacher_id = new ObjectId(teacherId);
             }
@@ -162,9 +149,6 @@ export async function GET({ url }) {
         
         if (subjectId) {
             for (const student of actualStudents) {
-                console.log(`Looking for grades for student: ${student.id}`);
-                console.log(`Query parameters: section_id=${sectionId}, subject_id=${subjectId}, school_year=${schoolYear}`);
-                
                 // Get grades from MongoDB grades collection
                 const gradeRecord = await db.collection('grades').findOne({
                     student_id: new ObjectId(student.id),
@@ -173,15 +157,6 @@ export async function GET({ url }) {
                     school_year: schoolYear,
                     quarter: 1
                 });
-
-                console.log(`Grade record found for ${student.id}:`, gradeRecord ? 'YES' : 'NO');
-                if (gradeRecord) {
-                    console.log(`Grade data:`, {
-                        written_work: gradeRecord.written_work,
-                        performance_tasks: gradeRecord.performance_tasks,
-                        quarterly_assessment: gradeRecord.quarterly_assessment
-                    });
-                }
 
                 const studentData = {
                     ...student,

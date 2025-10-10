@@ -19,13 +19,25 @@ export async function GET({ url, request }) {
 
     const db = await connectToDatabase();
 
-    // Check if there are any existing grade configurations in MongoDB
-    const existingConfig = await db.collection('grade_configurations').findOne({
+    console.log('Grade items API - Query parameters:', {
       section_id: sectionId,
       subject_id: subjectId,
-      grading_period_id: parseInt(gradingPeriodId),
+      grading_period_id: gradingPeriodId,
       teacher_id: teacherId
     });
+
+    // Check if there are any existing grade configurations in MongoDB
+    const existingConfig = await db.collection('grade_configurations').findOne({
+      section_id: new ObjectId(sectionId),
+      subject_id: new ObjectId(subjectId),
+      grading_period_id: parseInt(gradingPeriodId),
+      teacher_id: new ObjectId(teacherId)
+    });
+
+    console.log('Existing config found:', existingConfig ? 'YES' : 'NO');
+    if (existingConfig) {
+      console.log('Config data:', existingConfig.grade_items);
+    }
 
     let gradeItemsByCategory;
 
@@ -41,10 +53,10 @@ export async function GET({ url, request }) {
       
       // Save the empty configuration to MongoDB for future use
       await db.collection('grade_configurations').insertOne({
-        section_id: sectionId,
-        subject_id: subjectId,
+        section_id: new ObjectId(sectionId),
+        subject_id: new ObjectId(subjectId),
         grading_period_id: parseInt(gradingPeriodId),
-        teacher_id: teacherId,
+        teacher_id: new ObjectId(teacherId),
         grade_items: gradeItemsByCategory,
         created_at: new Date(),
         updated_at: new Date(),
@@ -78,10 +90,10 @@ export async function POST({ request }) {
         
         // Find existing configuration
         const config = await db.collection('grade_configurations').findOne({
-          section_id,
-          subject_id,
+          section_id: new ObjectId(section_id),
+          subject_id: new ObjectId(subject_id),
           grading_period_id: parseInt(grading_period_id),
-          teacher_id
+          teacher_id: new ObjectId(teacher_id)
         });
 
         if (config) {
