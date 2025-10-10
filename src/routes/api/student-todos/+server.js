@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { verifyAuth } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 // GET /api/student-todos - Fetch student todos
 export async function GET({ url }) {
@@ -11,43 +12,31 @@ export async function GET({ url }) {
       return json({ error: 'student_id parameter is required' }, { status: 400 });
     }
 
-    // Verify the student exists and is a student account
-    const studentCheck = await query(`
-      SELECT id FROM users 
-      WHERE id = $1 AND account_type = 'student' AND (status IS NULL OR status = 'active')
-    `, [studentId]);
+    const db = await connectToDatabase();
 
-    if (studentCheck.rows.length === 0) {
+    // Verify the student exists and is a student account
+    const student = await db.collection('users').findOne({
+      _id: new ObjectId(studentId),
+      account_type: 'student',
+      $or: [{ status: { $exists: false } }, { status: 'active' }]
+    });
+
+    if (!student) {
       return json({ error: 'Student not found or invalid account type' }, { status: 404 });
     }
 
-    // Fetch todos for the student
-    const todosResult = await query(`
-      SELECT 
-        id,
-        title,
-        description,
-        category,
-        due_date,
-        completed,
-        created_at,
-        updated_at,
-        completed_at
-      FROM student_todos 
-      WHERE student_id = $1
-      ORDER BY 
-        completed ASC,
-        CASE 
-          WHEN due_date IS NULL THEN 1 
-          ELSE 0 
-        END,
-        due_date ASC,
-        created_at DESC
-    `, [studentId]);
+    // Fetch todos for the student with proper sorting
+    const todos = await db.collection('student_todos').find({
+      student_id: studentId
+    }).sort({
+      completed: 1,  // Incomplete todos first
+      due_date: 1,   // Then by due date (nulls last in MongoDB)
+      created_at: -1 // Then by creation date (newest first)
+    }).toArray();
 
     // Format the data to match frontend expectations
-    const todos = todosResult.rows.map(todo => ({
-      id: todo.id,
+    const formattedTodos = todos.map(todo => ({
+      id: todo._id.toString(),
       title: todo.title,
       description: todo.description,
       category: todo.category,
@@ -67,7 +56,7 @@ export async function GET({ url }) {
       completedAt: todo.completed_at
     }));
 
-    return json({ success: true, data: todos });
+    return json({ success: true, data: formattedTodos });
 
   } catch (error) {
     console.error('Error in GET /api/student-todos:', error);
@@ -97,13 +86,16 @@ export async function POST({ request }) {
       return json({ error: 'Invalid category' }, { status: 400 });
     }
 
-    // Verify the student exists and is a student account
-    const studentCheck = await query(`
-      SELECT id FROM users 
-      WHERE id = $1 AND account_type = 'student' AND (status IS NULL OR status = 'active')
-    `, [studentId]);
+    const db = await connectToDatabase();
 
-    if (studentCheck.rows.length === 0) {
+    // Verify the student exists and is a student account
+    const student = await db.collection('users').findOne({
+      _id: new ObjectId(studentId),
+      account_type: 'student',
+      $or: [{ status: { $exists: false } }, { status: 'active' }]
+    });
+
+    if (!student) {
       return json({ error: 'Student not found or invalid account type' }, { status: 404 });
     }
 
@@ -112,33 +104,25 @@ export async function POST({ request }) {
     console.log('Processed dueDate object:', processedDate);
     console.log('Processed dueDate ISO:', processedDate ? processedDate.toISOString() : null);
 
-    // Insert the new todo
-    const result = await query(`
-      INSERT INTO student_todos (student_id, title, description, category, due_date)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING 
-        id,
-        title,
-        description,
-        category,
-        due_date,
-        completed,
-        created_at,
-        updated_at,
-        completed_at
-    `, [
-      studentId,
-      title.trim(),
-      description ? description.trim() : null,
-      category || 'personal',
-      processedDate  // Use the processed Date object
-    ]);
+    // Create the new todo document
+    const newTodo = {
+      student_id: studentId,
+      title: title.trim(),
+      description: description ? description.trim() : null,
+      category: category || 'personal',
+      due_date: processedDate,
+      completed: false,
+      created_at: new Date(),
+      updated_at: new Date(),
+      completed_at: null
+    };
 
-    const newTodo = result.rows[0];
+    // Insert the new todo
+    const result = await db.collection('student_todos').insertOne(newTodo);
     
     // Format the response
     const formattedTodo = {
-      id: newTodo.id,
+      id: result.insertedId.toString(),
       title: newTodo.title,
       description: newTodo.description,
       category: newTodo.category,
@@ -181,78 +165,75 @@ export async function PUT({ request }) {
       }
     }
 
-    // Verify the todo exists and belongs to the student
-    const todoCheck = await query(`
-      SELECT st.id 
-      FROM student_todos st
-      JOIN users u ON st.student_id = u.id
-      WHERE st.id = $1 AND st.student_id = $2 AND u.account_type = 'student' AND (u.status IS NULL OR u.status = 'active')
-    `, [id, studentId]);
+    const db = await connectToDatabase();
 
-    if (todoCheck.rows.length === 0) {
+    // Verify the todo exists and belongs to the student
+    const existingTodo = await db.collection('student_todos').findOne({
+      _id: new ObjectId(id),
+      student_id: studentId
+    });
+
+    if (!existingTodo) {
       return json({ error: 'Todo not found or access denied' }, { status: 404 });
     }
 
-    // Build dynamic update query
-    const updateFields = [];
-    const values = [];
-    let paramCount = 1;
+    // Verify the student exists and is active
+    const student = await db.collection('users').findOne({
+      _id: new ObjectId(studentId),
+      account_type: 'student',
+      $or: [{ status: { $exists: false } }, { status: 'active' }]
+    });
+
+    if (!student) {
+      return json({ error: 'Student not found or invalid account type' }, { status: 404 });
+    }
+
+    // Build update object
+    const updateFields = {
+      updated_at: new Date()
+    };
 
     if (title !== undefined) {
-      updateFields.push(`title = $${paramCount++}`);
-      values.push(title.trim());
+      updateFields.title = title.trim();
     }
     if (description !== undefined) {
-      updateFields.push(`description = $${paramCount++}`);
-      values.push(description ? description.trim() : null);
+      updateFields.description = description ? description.trim() : null;
     }
     if (category !== undefined) {
-      updateFields.push(`category = $${paramCount++}`);
-      values.push(category);
+      updateFields.category = category;
     }
     if (dueDate !== undefined) {
-      updateFields.push(`due_date = $${paramCount++}`);
-      values.push(dueDate || null);
+      updateFields.due_date = dueDate ? new Date(dueDate + 'T00:00:00.000Z') : null;
     }
     if (completed !== undefined) {
-      updateFields.push(`completed = $${paramCount++}`);
-      values.push(completed);
+      updateFields.completed = completed;
+      if (completed) {
+        updateFields.completed_at = new Date();
+      } else {
+        updateFields.completed_at = null;
+      }
     }
 
-    if (updateFields.length === 0) {
+    if (Object.keys(updateFields).length === 1) { // Only updated_at
       return json({ error: 'No fields to update' }, { status: 400 });
     }
 
-    // Add WHERE clause parameters
-    values.push(id, studentId);
+    // Update the todo
+    const result = await db.collection('student_todos').findOneAndUpdate(
+      { _id: new ObjectId(id), student_id: studentId },
+      { $set: updateFields },
+      { returnDocument: 'after' }
+    );
 
-    const updateQuery = `
-      UPDATE student_todos 
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramCount++} AND student_id = $${paramCount++}
-      RETURNING 
-        id,
-        title,
-        description,
-        category,
-        due_date,
-        completed,
-        created_at,
-        updated_at,
-        completed_at
-    `;
-
-    const result = await query(updateQuery, values);
-
-    if (result.rows.length === 0) {
+    if (!result.value) {
       return json({ error: 'Todo not found' }, { status: 404 });
     }
 
-    const updatedTodo = result.rows[0];
+    const updatedTodo = result.value;
     
     // Format the response
     const formattedTodo = {
-      id: updatedTodo.id,
+      id: updatedTodo._id.toString(),
       title: updatedTodo.title,
       description: updatedTodo.description,
       category: updatedTodo.category,
@@ -287,26 +268,36 @@ export async function DELETE({ request }) {
       return json({ error: 'id and studentId are required' }, { status: 400 });
     }
 
-    // Verify the todo exists and belongs to the student
-    const todoCheck = await query(`
-      SELECT st.id 
-      FROM student_todos st
-      JOIN users u ON st.student_id = u.id
-      WHERE st.id = $1 AND st.student_id = $2 AND u.account_type = 'student' AND (u.status IS NULL OR u.status = 'active')
-    `, [id, studentId]);
+    const db = await connectToDatabase();
 
-    if (todoCheck.rows.length === 0) {
+    // Verify the todo exists and belongs to the student
+    const existingTodo = await db.collection('student_todos').findOne({
+      _id: new ObjectId(id),
+      student_id: studentId
+    });
+
+    if (!existingTodo) {
       return json({ error: 'Todo not found or access denied' }, { status: 404 });
     }
 
-    // Delete the todo
-    const result = await query(`
-      DELETE FROM student_todos 
-      WHERE id = $1 AND student_id = $2
-      RETURNING id
-    `, [id, studentId]);
+    // Verify the student exists and is active
+    const student = await db.collection('users').findOne({
+      _id: new ObjectId(studentId),
+      account_type: 'student',
+      $or: [{ status: { $exists: false } }, { status: 'active' }]
+    });
 
-    if (result.rows.length === 0) {
+    if (!student) {
+      return json({ error: 'Student not found or invalid account type' }, { status: 404 });
+    }
+
+    // Delete the todo
+    const result = await db.collection('student_todos').deleteOne({
+      _id: new ObjectId(id),
+      student_id: studentId
+    });
+
+    if (result.deletedCount === 0) {
       return json({ error: 'Todo not found' }, { status: 404 });
     }
 
