@@ -1878,10 +1878,14 @@ const options = {
   },
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   version_hash: "l0nu1r"
 =======
   version_hash: "1moai9g"
 >>>>>>> parent of c9b2671 (Fix auth endpoint MongoDB connection)
+=======
+  version_hash: "udrxp5"
+>>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
 =======
   version_hash: "udrxp5"
 >>>>>>> parent of bf4b5c3 (Fix MongoDB SSL/TLS configuration and error handling)
