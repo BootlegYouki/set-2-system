@@ -87,6 +87,13 @@
 	gap: var(--spacing-lg);
 }
 
+.section-header-content {
+	display: flex;
+	gap: var(--spacing-md);
+	width: 100%;
+	margin-bottom: var(--spacing-md);
+}
+
 .section-title-group {
 	flex: 1;
 }
@@ -102,7 +109,7 @@
 
 .search-container {
 	position: relative;
-	flex: 1;
+	flex: 3;
 	min-width: 400px;
 }
 
@@ -176,8 +183,8 @@
 }
 
 .filter-container {
-	flex-shrink: 0;
-	min-width: 200px;
+	flex: 0 0 250px;
+	min-width: 180px;
 }
 
 .filter-trigger {

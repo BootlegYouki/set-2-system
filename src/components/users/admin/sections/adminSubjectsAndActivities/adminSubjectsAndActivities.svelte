@@ -13,11 +13,12 @@
 
 	// Dropdown states
 	let isGradeDropdownOpen = false;
-	let isGradeFilterDropdownOpen = false;
+	let isLevelCategoryFilterOpen = false;
 
 	// Search and filter state
 	let searchTerm = '';
-	let selectedGradeFilter = ''; // All grade levels
+	let selectedLevelCategory = ''; // All grade levels
+	let activitySearchTerm = '';
 
 	// Edit subject states
 	let editingSubjectId = null;
@@ -92,15 +93,22 @@
 
 	// Computed properties
 	$: selectedGradeLevelObj = gradeLevels.find(grade => grade.value === selectedGradeLevel);
-	$: selectedGradeFilterObj = gradeLevels.find(grade => grade.value === selectedGradeFilter);
+	$: selectedLevelCategoryObj = gradeLevels.find(grade => grade.value === selectedLevelCategory);
 	$: filteredSubjects = recentSubjects.filter(subject => {
 		const matchesSearchTerm =
 			(subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				subject.code.toLowerCase().includes(searchTerm.toLowerCase()));
 
-		const matchesGrade = selectedGradeFilter ? subject.gradeLevel === `Grade ${selectedGradeFilter}` : true;
+		const matchesGrade = selectedLevelCategory ? subject.gradeLevel === `Grade ${selectedLevelCategory}` : true;
 
 		return matchesSearchTerm && matchesGrade;
+	});
+	$: filteredActivityTypes = activityTypes.filter(activity => {
+		const matchesSearchTerm =
+			(activity.name.toLowerCase().includes(activitySearchTerm.toLowerCase()) ||
+				activity.code.toLowerCase().includes(activitySearchTerm.toLowerCase()));
+
+		return matchesSearchTerm;
 	});
 
 	// Load subjects from database
@@ -233,17 +241,17 @@
 		isGradeDropdownOpen = false;
 	}
 
-	function toggleGradeFilterDropdown() {
-		isGradeFilterDropdownOpen = !isGradeFilterDropdownOpen;
+	function toggleLevelCategoryFilter() {
+		isLevelCategoryFilterOpen = !isLevelCategoryFilterOpen;
 	}
 
-	function selectGradeFilter(grade) {
-		if (grade) {
-			selectedGradeFilter = grade.value;
+	function selectLevelCategory(gradeLevel) {
+		if (gradeLevel) {
+			selectedLevelCategory = gradeLevel.value;
 		} else {
-			selectedGradeFilter = '';
+			selectedLevelCategory = '';
 		}
-		isGradeFilterDropdownOpen = false;
+		isLevelCategoryFilterOpen = false;
 	}
 
 	// Handle click outside to close dropdowns
@@ -254,8 +262,8 @@
 			isIconDropdownOpen = false;
 			isEditIconDropdownOpen = false;
 		}
-		if (!event.target.closest('.adminsubject-grade-filter')) {
-			isGradeFilterDropdownOpen = false;
+		if (!event.target.closest('.adminsubject-level-category-filter')) {
+			isLevelCategoryFilterOpen = false;
 		}
 	}
 
@@ -666,71 +674,87 @@
 			</div>
 		</div>
 
-		<!-- Right Column: Recent Subjects -->
+		<!-- Right Column: All Subjects -->
 		<div class="admin-recent-subjects-section">
 			<div class="admin-section-header">
-				<h2 class="admin-section-title">Recent Subjects</h2>
-				<p class="admin-section-subtitle">Subjects created recently</p>
-			</div>
+				<div class="section-header-content">
+					<div class="section-title-group">
+						<h2 class="admin-section-title">All Subjects</h2>
+						<p class="admin-section-subtitle">All subjects in the system</p>
+					</div>
+					
+					<!-- Search and Filter Container -->
+					<div class="adminsubject-filters-container">
+						<!-- Search Input -->
+						<div class="adminsubject-search-container">
+							<div class="adminsubject-search-input-wrapper">
+								<span class="material-symbols-outlined adminsubject-search-icon">search</span>
+								<input
+									type="text"
+									placeholder="Search by subject name or code"
+									class="adminsubject-search-input"
+									bind:value={searchTerm}
+								/>
+								{#if searchTerm}
+									<button 
+										type="button" 
+										class="adminsubject-clear-search-button"
+										on:click={() => searchTerm = ''}
+									>
+										<span class="material-symbols-outlined">close</span>
+									</button>
+								{/if}
+							</div>
+						</div>
 
-			<div class="adminsubject-filters-container">
-				<!-- Search Input -->
-				<div class="adminsubject-search-container">
-					<input
-						type="text"
-						placeholder="Search by subject name or code..."
-						class="adminsubject-search-input"
-						bind:value={searchTerm}
-					/>
-					<span class="material-symbols-outlined adminsubject-search-icon">search</span>
-				</div>
-
-				<!-- Grade Level Filter -->
-				<div class="adminsubject-grade-filter adminsubject-custom-dropdown" class:open={isGradeFilterDropdownOpen}>
+						<!-- Level Category Filter -->
+				<div class="adminsubject-level-category-filter adminsubject-level-category-dropdown" class:open={isLevelCategoryFilterOpen}>
 					<button
 						type="button"
-						class="adminsubject-dropdown-trigger"
-						class:selected={selectedGradeFilter}
-						on:click={toggleGradeFilterDropdown}
+						class="adminsubject-level-category-trigger"
+						class:selected={selectedLevelCategory}
+						on:click={toggleLevelCategoryFilter}
 					>
-						{#if selectedGradeFilterObj}
-						<div class="adminsubject-selected-option">
-							<span class="material-symbols-outlined adminsubject-option-icon">school</span>
-							<div class="adminsubject-option-content">
-								<span class="adminsubject-option-name">{selectedGradeFilterObj.label}</span>
+						{#if selectedLevelCategoryObj}
+						<div class="adminsubject-level-category-selected">
+							<span class="material-symbols-outlined adminsubject-level-category-icon">school</span>
+							<div class="adminsubject-level-category-content">
+								<span class="adminsubject-level-category-name">{selectedLevelCategoryObj.label}</span>
 							</div>
 						</div>
 						{:else}
-							<span class="adminsubject-placeholder">All Grades</span>
+							<span class="adminsubject-level-category-placeholder">All Grade Levels</span>
 						{/if}
-						<span class="material-symbols-outlined adminsubject-dropdown-arrow">expand_more</span>
+						<span class="material-symbols-outlined adminsubject-level-category-arrow">expand_more</span>
 					</button>
-					<div class="adminsubject-dropdown-menu">
+					<div class="adminsubject-level-category-menu">
 						<button
 							type="button"
-							class="adminsubject-dropdown-option"
-						class:selected={selectedGradeFilter === ''}
-						on:click={() => selectGradeFilter(null)}
+							class="adminsubject-level-category-option"
+						class:selected={selectedLevelCategory === ''}
+						on:click={() => selectLevelCategory(null)}
 					>
-						<span class="material-symbols-outlined adminsubject-option-icon">clear_all</span>
-						<div class="adminsubject-option-content">
-							<span class="adminsubject-option-name">All Grades</span>
+						<span class="material-symbols-outlined adminsubject-level-category-icon">clear_all</span>
+						<div class="adminsubject-level-category-content">
+							<span class="adminsubject-level-category-name">All Grade Levels</span>
 							</div>
 						</button>
-						{#each gradeLevels as grade (grade.value)}
+						{#each gradeLevels as gradeLevel (gradeLevel.value)}
 							<button
 								type="button"
-								class="adminsubject-dropdown-option"
-							class:selected={selectedGradeFilter === grade.value}
-							on:click={() => selectGradeFilter(grade)}
+								class="adminsubject-level-category-option"
+							class:selected={selectedLevelCategory === gradeLevel.value}
+							on:click={() => selectLevelCategory(gradeLevel)}
 						>
-							<span class="material-symbols-outlined adminsubject-option-icon">school</span>
-							<div class="adminsubject-option-content">
-								<span class="adminsubject-option-name">{grade.label}</span>
-								<span class="adminsubject-option-description">{grade.description}</span>
+							<span class="material-symbols-outlined adminsubject-level-category-icon">school</span>
+							<div class="adminsubject-level-category-content">
+								<span class="adminsubject-level-category-name">{gradeLevel.label}</span>
+								<span class="adminsubject-level-category-description">{gradeLevel.description}</span>
 								</div>
 							</button>
 						{/each}
+					</div>
+				</div>
 					</div>
 				</div>
 			</div>
@@ -1004,16 +1028,45 @@
 			</div>
 		</div>
 
-		<!-- Right Column: Activity Types List -->
+		<!-- Right Column: All Activities -->
 		<div class="admin-recent-subjects-section">
 			<div class="admin-section-header">
-				<h2 class="admin-section-title">Recent Activity Types</h2>
-				<p class="admin-section-subtitle">Activity types created recently</p>
+				<div class="section-header-content">
+					<div class="section-title-group">
+						<h2 class="admin-section-title">All Activities</h2>
+						<p class="admin-section-subtitle">All activity types in the system</p>
+					</div>
+					
+					<!-- Search and Filter Container -->
+					<div class="adminactivity-filters-container">
+						<!-- Search Input -->
+						<div class="adminactivity-search-container">
+							<div class="adminactivity-search-input-wrapper">
+								<span class="material-symbols-outlined adminactivity-search-icon">search</span>
+								<input
+									type="text"
+									placeholder="Search by activity name or code"
+									class="adminactivity-search-input"
+									bind:value={activitySearchTerm}
+								/>
+								{#if activitySearchTerm}
+									<button 
+										type="button" 
+										class="adminactivity-clear-search-button"
+										on:click={() => activitySearchTerm = ''}
+									>
+										<span class="material-symbols-outlined">close</span>
+									</button>
+								{/if}
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div class="adminactivity-activities-grid">
-				{#if activityTypes.length > 0}
-					{#each activityTypes as activity (activity.id)}
+				{#if filteredActivityTypes.length > 0}
+					{#each filteredActivityTypes as activity (activity.id)}
 					<div class="adminactivity-activity-card" id="adminactivity-activity-card-{activity.id}">
 						<div class="adminactivity-activity-header">
 							<div class="adminactivity-activity-title">
@@ -1175,7 +1228,11 @@
 				{:else}
 					<div class="adminsubject-no-results">
 						<span class="material-symbols-outlined adminsubject-no-results-icon">event_note</span>
-						<p>No activity types created yet.</p>
+						{#if activityTypes.length === 0}
+							<p>No activity types created yet.</p>
+						{:else}
+							<p>No activity types found matching your search.</p>
+						{/if}
 					</div>
 				{/if}
 			</div>

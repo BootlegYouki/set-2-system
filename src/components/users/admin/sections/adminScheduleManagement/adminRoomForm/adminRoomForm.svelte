@@ -11,6 +11,7 @@
 
 	// Room management state
 	let isCreating = false;
+	let roomsSearchTerm = '';
 
 	// Room creation state
 	let roomName = '';
@@ -317,6 +318,16 @@
 		}
 	}
 
+	// Computed properties
+	$: filteredRooms = existingRooms.filter(room => {
+		const matchesSearchTerm =
+			(room.name.toLowerCase().includes(roomsSearchTerm.toLowerCase()) ||
+				room.building.toLowerCase().includes(roomsSearchTerm.toLowerCase()) ||
+				room.floor.toLowerCase().includes(roomsSearchTerm.toLowerCase()));
+
+		return matchesSearchTerm;
+	});
+
 	// Load rooms and sections when component mounts
 	onMount(() => {
 		// Initialize room management store with cached data (instant load)
@@ -410,11 +421,40 @@
             </form>
         </div>
     </div>
-    <!-- Existing Rooms List -->
+    <!-- All Rooms List -->
     <div class="admin-room-rooms-list-section">
         <div class="admin-room-section-header">
-            <h2 class="admin-room-section-title">Existing Rooms</h2>
-            <p class="admin-room-section-subtitle">Manage and view all rooms in the system</p>
+            <div class="section-header-content">
+                <div class="section-title-group">
+                    <h2 class="admin-room-section-title">All Rooms</h2>
+                    <p class="admin-room-section-subtitle">All rooms in the system</p>
+                </div>
+                
+                <!-- Search and Filter Container -->
+                <div class="adminroom-filters-container">
+                    <!-- Search Input -->
+                    <div class="adminroom-search-container">
+                        <div class="adminroom-search-input-wrapper">
+                            <span class="material-symbols-outlined adminroom-search-icon">search</span>
+                            <input
+                                type="text"
+                                placeholder="Search by room name, building, or floor..."
+                                class="adminroom-search-input"
+                                bind:value={roomsSearchTerm}
+                            />
+                            {#if roomsSearchTerm}
+                                <button 
+                                    type="button" 
+                                    class="adminroom-clear-search-button"
+                                    on:click={() => roomsSearchTerm = ''}
+                                >
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         {#if isLoading}
@@ -422,14 +462,18 @@
                 <span class="room-loader"></span>
                 <p>Loading rooms...</p>
             </div>
-        {:else if existingRooms.length === 0}
+        {:else if filteredRooms.length === 0}
             <div class="admin-room-empty-state">
                 <span class="material-symbols-outlined">meeting_room</span>
-                <p>No rooms found. Create your first room using the form above.</p>
+                {#if existingRooms.length === 0}
+                    <p>No rooms found. Create your first room using the form above.</p>
+                {:else}
+                    <p>No rooms found matching your search.</p>
+                {/if}
             </div>
         {:else}
             <div class="admin-room-rooms-grid">
-                {#each existingRooms as room (room.id)}
+                {#each filteredRooms as room (room.id)}
                     <div class="admin-room-room-card" class:editing={editingRoomId === room.id} class:assigning={assigningRoomId === room.id} id="admin-room-room-card-{room.id}">
                         <div class="admin-room-room-header">
                             <div class="admin-room-room-title">

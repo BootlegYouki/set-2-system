@@ -465,12 +465,6 @@
   box-sizing: border-box;
 }
 
-.sectionmgmt-search-input:focus {
-  outline: none;
-  border-color: var(--md-sys-color-primary);
-  box-shadow: 0 0 0 1px var(--md-sys-color-primary);
-}
-
 .sectionmgmt-search-icon {
   position: absolute;
   left: calc(var(--spacing-sm) + var(--spacing-sm));
@@ -762,6 +756,108 @@
   border-radius: var(--radius-xl);
   padding: var(--spacing-xl);
   border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.section-header-content {
+  display: flex;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+
+.section-title-group {
+  flex: 1;
+}
+
+/* Search and Filter Container */
+.search-filter-container {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sectionmgmt-search-container {
+  position: relative;
+  flex: 1;
+}
+
+.sectionmgmt-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
+  min-height: 58px;
+}
+
+.sectionmgmt-search-input-wrapper:focus-within {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
+}
+
+.sectionmgmt-search-icon {
+  position: absolute;
+  left: calc(var(--spacing-sm) + 5px);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sectionmgmt-search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-left: 40px;
+  padding-right: 40px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  transition: all var(--transition-normal);
+  box-sizing: border-box;
+}
+
+.sectionmgmt-search-input:focus {
+  outline: none;
+}
+
+.sectionmgmt-search-input::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.sectionmgmt-clear-search-button {
+  position: absolute;
+  right: var(--spacing-xs);
+  background: none;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+  font-size: 18px;
+  z-index: 2;
+}
+
+.sectionmgmt-clear-search-button:hover {
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+.sectionmgmt-filter-container {
+  flex-shrink: 0;
+  min-width: 200px;
+}
+
+.sectionmgmt-filter-trigger {
+  min-width: 200px;
+  font-size: var(--md-sys-typescale-body-medium-size);
 }
 
 .sectionmgmt-sections-grid {
@@ -1219,6 +1315,241 @@
 	color: var(--md-sys-color-on-surface-variant);
 	margin: 0;
 	text-align: center;
+}
+
+/* New Search and Filter Styles - Styled like Account Creation */
+.adminform-search-filter-container {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adminform-search-container {
+  position: relative;
+  flex: 1;
+  min-width: 400px;
+}
+
+.adminform-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
+  min-height: 58px;
+}
+
+.adminform-search-input-wrapper:focus-within {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
+}
+
+.adminform-search-icon {
+  position: absolute;
+  left: calc(var(--spacing-sm) + 5px);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.adminform-search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  padding-left: 40px;
+  padding-right: 40px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  transition: all var(--transition-normal);
+  box-sizing: border-box;
+}
+
+.adminform-search-input:focus {
+  outline: none;
+}
+
+.adminform-search-input::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.adminform-clear-search-button {
+  position: absolute;
+  right: var(--spacing-xs);
+  background: none;
+  border: none;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-normal);
+  font-size: 18px;
+  z-index: 2;
+}
+
+.adminform-clear-search-button:hover {
+  background-color: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+.adminform-filter-container {
+  flex-shrink: 0;
+  min-width: 200px;
+}
+
+.adminform-custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.adminform-dropdown-trigger {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  box-sizing: border-box;
+}
+
+.adminform-dropdown-trigger:hover {
+  border-color: var(--md-sys-color-outline);
+}
+
+.adminform-dropdown-trigger:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.adminform-dropdown-trigger.selected {
+  border-color: var(--md-sys-color-primary);
+}
+
+.adminform-filter-trigger {
+  min-width: 200px;
+  font-size: var(--md-sys-typescale-body-medium-size);
+}
+
+.adminform-placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.adminform-dropdown-arrow {
+  font-size: 24px;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: transform var(--transition-normal);
+}
+
+.adminform-custom-dropdown.open .adminform-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.adminform-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--transition-normal);
+}
+
+.adminform-custom-dropdown.open .adminform-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.adminform-dropdown-option {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.adminform-dropdown-option:hover {
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.adminform-dropdown-option.selected {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.adminform-selected-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 1;
+}
+
+.adminform-option-icon {
+  font-size: 24px;
+  color: var(--md-sys-color-primary);
+}
+
+.adminform-option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.adminform-option-name {
+  font-weight: var(--md-sys-typescale-body-medium-weight);
+  color: var(--md-sys-color-on-surface);
+}
+
+@media (max-width: 768px) {
+  .adminform-search-filter-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+
+  .adminform-search-container {
+    min-width: auto;
+  }
+
+  .adminform-filter-container {
+    min-width: auto;
+  }
+
+  .adminform-filter-trigger {
+    min-width: auto;
+    width: 100%;
+  }
 }
 
 /* Section Management Page Styles */

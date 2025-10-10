@@ -642,14 +642,14 @@
 	<!-- Departments List Section -->
 	<div class="dept-mgmt-departments-section">
 		<div class="dept-mgmt-section-header">
-			<div class="section-title-group">
-				<h2 class="dept-mgmt-section-title">All Departments</h2>
-				<p class="dept-mgmt-section-subtitle">Manage existing departments, assign subjects and teachers</p>
-			</div>
-		</div>
-
-		<!-- Search and Filter Container -->
-		<div class="dept-mgmt-search-filter-container">
+			<div class="section-header-content">
+				<div class="section-title-group">
+					<h2 class="dept-mgmt-section-title">All Departments</h2>
+					<p class="dept-mgmt-section-subtitle">Manage existing departments, assign subjects and teachers</p>
+				</div>
+				
+				<!-- Search and Filter Container -->
+				<div class="dept-mgmt-search-filter-container">
 			<!-- Search Input -->
 			<div class="search-container">
 				<div class="search-input-wrapper">
@@ -709,8 +709,10 @@
 						{/each}
 					</div>
 				</div>
+				</div>
 			</div>
 		</div>
+	</div>
 
 		<!-- Departments Grid -->
 		<div class="dept-mgmt-departments-grid">

@@ -1011,13 +1011,13 @@
 		</div>
 	</div>
 
-	<!-- Recent Account Creations -->
+	<!-- All Account Creations -->
 	<div class="recent-accounts-section">
 		<div class="account-section-header">
 			<div class="section-header-content">
 				<div class="section-title-group">
-					<h2 class="section-title">Recent Account Creations</h2>
-					<p class="section-subtitle">Recently created accounts in the system</p>
+					<h2 class="section-title">All Account Creations</h2>
+					<p class="section-subtitle">All accounts in the system</p>
 				</div>
 				
 				<!-- Search and Filter Container -->

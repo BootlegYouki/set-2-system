@@ -22,10 +22,15 @@
 	// Dropdown states
 	let isGradeLevelDropdownOpen = false;
 	let isAdviserDropdownOpen = false;
+	let isFilterDropdownOpen = false;
 
 	// Search states
 	let adviserSearchTerm = '';
 	let studentSearchTerm = '';
+	let sectionsSearchTerm = '';
+
+	// Filter state
+	let selectedFilter = 'all';
 
 	// Edit section states
 	let editingSectionId = null;
@@ -186,11 +191,21 @@
 		{ id: '10', name: 'Grade 10', description: 'Fourth Year Junior High School' }
 	];
 
+	// Filter options
+	const filterOptions = [
+		{ id: 'all', name: 'All Sections', icon: 'group' },
+		{ id: '7', name: 'Grade 7', icon: 'school' },
+		{ id: '8', name: 'Grade 8', icon: 'school' },
+		{ id: '9', name: 'Grade 9', icon: 'school' },
+		{ id: '10', name: 'Grade 10', icon: 'school' }
+	];
+
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.sectionmgmt-custom-dropdown')) {
+		if (!event.target.closest('.sectionmgmt-custom-dropdown') && !event.target.closest('.adminform-custom-dropdown')) {
 			isGradeLevelDropdownOpen = false;
 			isAdviserDropdownOpen = false;
+			isFilterDropdownOpen = false;
 		}
 	}
 
@@ -203,6 +218,10 @@
 	function toggleAdviserDropdown() {
 		isAdviserDropdownOpen = !isAdviserDropdownOpen;
 		isGradeLevelDropdownOpen = false;
+	}
+
+	function toggleFilterDropdown() {
+		isFilterDropdownOpen = !isFilterDropdownOpen;
 	}
 
 	// Select functions
@@ -221,6 +240,11 @@
 		selectedAdviser = adviser;
 		isAdviserDropdownOpen = false;
 		adviserSearchTerm = '';
+	}
+
+	function selectFilter(filter) {
+		selectedFilter = filter.id;
+		isFilterDropdownOpen = false;
 	}
 
 	function toggleStudentSelection(student) {
@@ -249,6 +273,7 @@
 
 	// Computed values
 	$: selectedGradeObj = gradeLevels.find(g => g.id === gradeLevel);
+	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
 	$: filteredAdvisers = availableAdvisers.filter(adviser => 
 		!adviser.hasSection && 
 		adviser.name.toLowerCase().includes(adviserSearchTerm.toLowerCase())
@@ -258,6 +283,15 @@
 		student.grade === gradeLevel &&
 		student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
 	);
+	$: filteredSections = sectionsData.filter(section => {
+		const matchesSearchTerm =
+			(section.name.toLowerCase().includes(sectionsSearchTerm.toLowerCase()) ||
+				section.grade_level.toString().includes(sectionsSearchTerm.toLowerCase()));
+
+		const matchesFilter = selectedFilter === 'all' || section.grade_level.toString() === selectedFilter;
+
+		return matchesSearchTerm && matchesFilter;
+	});
 
 	// Clear selections when grade level changes
 	$: if (gradeLevel) {
@@ -734,13 +768,80 @@
 			</form>
 		</div>
 	</div>
-	<!-- Recent Sections -->
+	<!-- All Sections -->
 	<div class="sectionmgmt-recent-sections-section">
 		<div class="sectionmgmt-section-header">
-			<div class="sectionmgmt-title-with-refresh">
-				<h2 class="sectionmgmt-section-title">All Sections</h2>
+			<div class="section-header-content">
+				<div class="section-title-group">
+					<h2 class="sectionmgmt-section-title">All Sections</h2>
+					<p class="sectionmgmt-section-subtitle">All sections in the system</p>
+				</div>
+				
+				<!-- Search and Filter Container -->
+				<div class="adminform-search-filter-container">
+					<!-- Search Input -->
+					<div class="adminform-search-container">
+						<div class="adminform-search-input-wrapper">
+							<span class="material-symbols-outlined adminform-search-icon">search</span>
+							<input
+								type="text"
+								placeholder="Search by section name or grade level..."
+								class="adminform-search-input"
+								bind:value={sectionsSearchTerm}
+							/>
+							{#if sectionsSearchTerm}
+								<button 
+									type="button" 
+									class="adminform-clear-search-button"
+									on:click={() => sectionsSearchTerm = ''}
+								>
+									<span class="material-symbols-outlined">close</span>
+								</button>
+							{/if}
+						</div>
+					</div>
+
+					<!-- Filter Dropdown -->
+					<div class="adminform-filter-container">
+						<div class="adminform-custom-dropdown" class:open={isFilterDropdownOpen}>
+							<button 
+								type="button"
+								class="adminform-dropdown-trigger adminform-filter-trigger" 
+								class:selected={selectedFilter !== 'all'}
+								on:click={toggleFilterDropdown}
+							>
+								{#if selectedFilterObj}
+									<div class="adminform-selected-option">
+										<span class="material-symbols-outlined adminform-option-icon">{selectedFilterObj.icon}</span>
+										<div class="adminform-option-content">
+											<span class="adminform-option-name">{selectedFilterObj.name}</span>
+										</div>
+									</div>
+								{:else}
+									<span class="adminform-placeholder">Filter by grade</span>
+								{/if}
+								<span class="material-symbols-outlined adminform-dropdown-arrow">expand_more</span>
+							</button>
+							<div class="adminform-dropdown-menu">
+								{#each filterOptions as filter (filter.id)}
+									<button 
+										type="button"
+										class="adminform-dropdown-option" 
+										class:selected={selectedFilter === filter.id}
+										on:click={() => selectFilter(filter)}
+									>
+										<span class="material-symbols-outlined adminform-option-icon">{filter.icon}</span>
+										<div class="adminform-option-content">
+											<span class="adminform-option-name">{filter.name}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
+						</div>
+					</div>
+				</div>
+
 			</div>
-			<p class="sectionmgmt-section-subtitle">Recently created sections in the system</p>
 		</div>
 
 		<div class="sectionmgmt-sections-grid">
@@ -750,7 +851,7 @@
 					<p>Loading sections...</p>
 				</div>
 			{:else}
-				{#each sectionsData as section (section.id)}
+				{#each filteredSections as section (section.id)}
 			<div class="sectionmgmt-section-card" class:editing={editingSectionId === section.id} 
 			id="sectionmgmt-section-card-{section.id}">
 				<div class="sectionmgmt-section-header-card">
@@ -970,10 +1071,14 @@
 				{/if}
 		</div>
 	{/each}
-	{#if sectionsData.length === 0}
+	{#if filteredSections.length === 0}
 		<div class="sectionmgmt-sections-empty">
 			<span class="material-symbols-outlined">school</span>
-			<p>No sections found</p>
+			{#if sectionsData.length === 0}
+				<p>No sections found</p>
+			{:else}
+				<p>No sections found matching your search.</p>
+			{/if}
 		</div>
 	{/if}
 			{/if}
