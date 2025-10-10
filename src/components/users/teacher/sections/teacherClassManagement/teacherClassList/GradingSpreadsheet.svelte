@@ -173,13 +173,6 @@
     const validScores = scores.filter(score => score !== null && score !== undefined && score !== '');
     if (validScores.length === 0) return '';
 
-    // Debug logging
-    console.log(`calculateAverage for ${assessmentType}:`, {
-      originalScores: scores,
-      validScores: validScores,
-      totals: totals
-    });
-
     let sum = 0;
 
     // If totals are provided, calculate percentage-based average
@@ -200,16 +193,15 @@
             const percentage = (scoreValue / total) * 100;
             percentageSum += percentage;
             validPercentageCount++;
-            console.log(`Score ${i}: ${scoreValue}/${total} = ${percentage}%`);
+            
           }
         }
       }
 
-      console.log(`Total percentage sum: ${percentageSum}, count: ${validPercentageCount}`);
+      
 
       if (validPercentageCount === 0) return '';
       const average = Math.round((percentageSum / validPercentageCount) * 100) / 100;
-      console.log(`Final average: ${average}`);
       return formatScore(average);
     } else {
       // Original calculation for backward compatibility
@@ -249,7 +241,6 @@
     const studentIndex = rowIndex - 1;
     const student = students[studentIndex];
     
-    console.log('Cell clicked:', { rowIndex, colIndex, studentIndex, student: student?.name, isVerified: student?.isVerified });
     
     if (student && student.isVerified) {
       // Show a toast message to inform the teacher
@@ -299,7 +290,6 @@
       const studentIndex = row - 1;
       const student = students[studentIndex];
       
-      console.log('Typing detected:', { key: event.key, row, col, studentIndex, student: student?.name, isVerified: student?.isVerified });
       
       if (student && student.isVerified) {
         toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
@@ -315,7 +305,6 @@
       const studentIndex = row - 1;
       const student = students[studentIndex];
       
-      console.log('Other key detected:', { key: event.key, row, col, studentIndex, student: student?.name, isVerified: student?.isVerified });
       
       if (student && student.isVerified) {
         toastStore.warning('This student\'s grades have been verified by the adviser and cannot be edited.');
@@ -1155,15 +1144,12 @@
 
   // New function to save final grades to the final_grades table
   async function saveFinalGrades() {
-    console.log('saveFinalGrades function called');
     
     if (!sectionId || !subjectId) {
-      console.log('Missing section or subject information:', { sectionId, subjectId });
       toastStore.error('Missing section or subject information');
       return;
     }
 
-    console.log('Starting final grades submission process');
     isSavingFinalGrades = true;
     saveMessage = '';
     saveSuccess = false;
@@ -1173,7 +1159,6 @@
       const unverifiedStudents = students.filter(student => !student.isVerified);
       const verifiedCount = students.length - unverifiedStudents.length;
 
-      console.log(`Total students: ${students.length}, Unverified: ${unverifiedStudents.length}, Verified: ${verifiedCount}`);
 
       if (unverifiedStudents.length === 0) {
         toastStore.warning('All student grades have already been verified by the adviser. No grades to send.');
@@ -1200,23 +1185,9 @@
           quarterly_assessment_items: student.quarterlyAssessment || []
         };
 
-        console.log('Preparing student data for submission:', {
-          student_name: student.name,
-          student_id: studentData.student_id,
-          final_grade: studentData.final_grade
-        });
-
         return studentData;
       });
 
-      console.log('Final grades data to submit:', {
-        count: finalGradesData.length,
-        section_id: sectionId,
-        subject_id: subjectId,
-        teacher_id: $authStore.userData.id
-      });
-
-      console.log('Making API call to submit final grades');
       const response = await authenticatedFetch('/api/grades', {
         method: 'POST',
         body: JSON.stringify({
@@ -1229,7 +1200,6 @@
         })
       });
 
-      console.log('API response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -1238,7 +1208,6 @@
       }
 
       const result = await response.json();
-      console.log('API success response:', result);
 
       saveSuccess = true;
       

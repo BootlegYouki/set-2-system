@@ -96,7 +96,7 @@ export async function GET({ url }) {
                     quarter: 1
                 });
                 
-                const isVerified = gradeRecord ? gradeRecord.verification.verified : false;
+                const isVerified = gradeRecord ? (gradeRecord.verified || gradeRecord.verification?.verified) : false;
                 
                 studentsWithVerification.push({
                     id: student.account_number || student.id.toString(),
@@ -170,6 +170,8 @@ export async function GET({ url }) {
                             quarterly_assessment: 0,
                             final_grade: 0
                         },
+                        // Include both verification fields to ensure compatibility
+                        verified: gradeRecord.verified || false,
                         verification: gradeRecord.verification || {
                             verified: false,
                             verified_by: null,
@@ -185,6 +187,7 @@ export async function GET({ url }) {
                             quarterly_assessment: 0,
                             final_grade: 0
                         },
+                        verified: false,
                         verification: {
                             verified: false,
                             verified_by: null,

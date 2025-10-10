@@ -276,6 +276,37 @@
   font-weight: 600;
 }
 
+/* Disabled cell styling */
+.spreadsheet-cell.disabled {
+  background-color: var(--md-sys-color-surface-container-low) !important;
+  color: var(--md-sys-color-on-surface-variant) !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+  position: relative;
+  pointer-events: none; /* Prevent all mouse interactions */
+}
+
+.spreadsheet-cell.disabled:hover {
+  background-color: var(--md-sys-color-surface-container-low) !important;
+}
+
+.spreadsheet-cell.disabled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(var(--md-sys-color-outline-variant-rgb), 0.1) 2px,
+    rgba(var(--md-sys-color-outline-variant-rgb), 0.1) 4px
+  );
+  pointer-events: none;
+}
+
 /* Verified/Locked cell styling */
 .spreadsheet-row.verified .spreadsheet-cell.editable {
   background-color: var(--md-sys-color-surface-container-low) !important;
