@@ -20,19 +20,12 @@ let isConnected = false;
 
 // Connect to MongoDB
 export async function connectToDatabase() {
-  try {
-    console.log('Attempting to connect to MongoDB...');
-    console.log('MongoDB URI:', uri ? 'URI is set' : 'URI is missing');
-    console.log('Database name:', dbName);
-    
+  try {    
     if (!isConnected) {
       await client.connect();
       isConnected = true;
-      console.log('Connected to MongoDB successfully');
     }
-    
     const db = client.db(dbName);
-    console.log('Database object created:', db ? 'Success' : 'Failed');
     
     return db;
   } catch (error) {
