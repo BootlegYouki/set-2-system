@@ -49,7 +49,14 @@
       params.append('offset', '0');
       
       const url = `/api/notifications?${params.toString()}`;
-      const result = await authenticatedFetch(url);
+      
+      const response = await authenticatedFetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
       
       if (result.success) {
         notifications = result.data.notifications;
@@ -60,10 +67,13 @@
       }
     } catch (err) {
       console.error('Error fetching notifications:', err);
-      error = err.message;
-      notifications = [];
-      unreadCount = 0;
-      totalCount = 0;
+      error = `Failed to load notifications: ${err.message}`;
+      // Don't clear notifications on error to maintain UI state
+      if (notifications.length === 0) {
+        notifications = [];
+        unreadCount = 0;
+        totalCount = 0;
+      }
     } finally {
       loading = false;
     }
@@ -71,56 +81,59 @@
 
   async function updateNotificationStatus(id, isRead) {
     try {
-      const result = await authenticatedFetch('/api/notifications', {
+      // Clear any existing errors
+      error = null;
+      
+      const response = await authenticatedFetch('/api/notifications', {
         method: 'PATCH',
         body: JSON.stringify({
           id: id,
           action: isRead ? 'mark_read' : 'mark_unread'
         })
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Individual mark read API error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update notification');
       }
 
-      // Update local state
-      notifications = notifications.map(notification => 
-        notification.id === id 
-          ? { ...notification, isRead: isRead }
-          : notification
-      );
-
-      // Update unread count
-      if (isRead) {
-        unreadCount = Math.max(0, unreadCount - 1);
-      } else {
-        unreadCount += 1;
-      }
+      // Fetch fresh data from database instead of updating local state
+      await fetchNotifications();
     } catch (err) {
-      console.error('Error updating notification:', err);
+      console.error('Error in updateNotificationStatus:', err);
       error = err.message;
     }
   }
 
   async function deleteNotificationAPI(id) {
     try {
-      const result = await authenticatedFetch('/api/notifications', {
+      // Clear any existing errors
+      error = null;
+      
+      const response = await authenticatedFetch('/api/notifications', {
         method: 'DELETE',
         body: JSON.stringify({ id: id })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete notification');
       }
 
-      // Update local state
-      const deletedNotification = notifications.find(n => n.id === id);
-      notifications = notifications.filter(notification => notification.id !== id);
-      totalCount = Math.max(0, totalCount - 1);
-      
-      if (deletedNotification && !deletedNotification.isRead) {
-        unreadCount = Math.max(0, unreadCount - 1);
-      }
+      // Fetch fresh data from database instead of updating local state
+      await fetchNotifications();
     } catch (err) {
       console.error('Error deleting notification:', err);
       error = err.message;
@@ -129,23 +142,28 @@
 
   async function markAllAsReadAPI() {
     try {
-      const result = await authenticatedFetch('/api/notifications', {
+      // Clear any existing errors
+      error = null;
+      
+      const response = await authenticatedFetch('/api/notifications', {
         method: 'PATCH',
         body: JSON.stringify({
           action: 'mark_all_read'
         })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to mark all as read');
       }
 
-      // Update local state
-      notifications = notifications.map(notification => ({
-        ...notification,
-        isRead: true
-      }));
-      unreadCount = 0;
+      // Fetch fresh data from database instead of updating local state
+      await fetchNotifications();
     } catch (err) {
       console.error('Error marking all as read:', err);
       error = err.message;
@@ -154,21 +172,28 @@
 
   async function clearAllReadAPI() {
     try {
-      const result = await authenticatedFetch('/api/notifications', {
+      // Clear any existing errors
+      error = null;
+      
+      const response = await authenticatedFetch('/api/notifications', {
         method: 'DELETE',
         body: JSON.stringify({
           action: 'delete_read'
         })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to clear read notifications');
       }
 
-      // Update local state - remove all read notifications
-      const readCount = notifications.filter(n => n.isRead).length;
-      notifications = notifications.filter(notification => !notification.isRead);
-      totalCount = Math.max(0, totalCount - readCount);
+      // Fetch fresh data from database instead of updating local state
+      await fetchNotifications();
     } catch (err) {
       console.error('Error clearing read notifications:', err);
       error = err.message;
@@ -210,6 +235,8 @@
     const notification = notifications.find(n => n.id === id);
     if (notification) {
       updateNotificationStatus(id, !notification.isRead);
+    } else {
+      console.warn('Notification not found for toggle:', id);
     }
   }
 
@@ -263,6 +290,11 @@
 
   // Reactive statements
   $: filteredNotifications = (() => {
+    // Ensure notifications is always an array
+    if (!Array.isArray(notifications)) {
+      return [];
+    }
+    
     if (selectedFilter === 'all') {
       return notifications;
     } else if (selectedFilter === 'unread') {
@@ -358,10 +390,6 @@
           <div 
             class="notification-card {notification.isRead ? 'read' : 'unread'}"
             style="--card-index: {index}"
-            on:click={() => toggleNotificationRead(notification.id)}
-            on:keydown={(e) => e.key === 'Enter' && toggleNotificationRead(notification.id)}
-            role="button"
-            tabindex="0"
           >
             <!-- Notification Header -->
              <div class="notification-header-card">
@@ -371,13 +399,37 @@
             
             <!-- Notification Details -->
             <div class="notification-details">
-              <p class="notification-message">{notification.message}</p>
+              <div class="notification-content">
+                <p class="notification-message">{notification.message}</p>
+                
+                <!-- Document Request Specific Info -->
+                {#if notification.type === 'document_request'}
+                  {#if notification.adminNote}
+                    <div class="admin-note">
+                      <span class="material-symbols-outlined">note</span>
+                      <div class="note-content">
+                        <span class="note-label">Admin Note:</span>
+                        <span class="note-text">{notification.adminNote}</span>
+                      </div>
+                    </div>
+                  {/if}
+                  {#if notification.rejectionReason}
+                    <div class="rejection-reason">
+                      <span class="material-symbols-outlined">error</span>
+                      <div class="reason-content">
+                        <span class="reason-label">Rejection Reason:</span>
+                        <span class="reason-text">{notification.rejectionReason}</span>
+                      </div>
+                    </div>
+                  {/if}
+                {/if}
+              </div>
               
               <!-- Notification Actions -->
               <div class="notification-actions">
                 <button 
                   class="action-btn-small read-toggle"
-                  on:click|stopPropagation={() => toggleNotificationRead(notification.id)}
+                  on:click={() => toggleNotificationRead(notification.id)}
                   title={notification.isRead ? 'Mark as unread' : 'Mark as read'}
                 >
                   <span class="material-symbols-outlined">
@@ -387,7 +439,7 @@
                 
                 <button 
                   class="action-btn-small delete-btn"
-                  on:click|stopPropagation={() => deleteNotification(notification.id)}
+                  on:click={() => deleteNotification(notification.id)}
                   title="Delete notification"
                 >
                   <span class="material-symbols-outlined">delete</span>

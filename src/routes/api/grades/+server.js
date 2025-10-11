@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
+import { createGradeVerificationNotification, formatTeacherName } from '../helper/notification-helper.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
@@ -330,6 +331,18 @@ export async function POST({ request }) {
         quarter
       };
 
+      // Get teacher and subject information for notification
+      const teacher = await db.collection('users').findOne({
+        _id: new ObjectId(teacher_id)
+      }, { projection: { full_name: 1, gender: 1 } });
+
+      const subject = await db.collection('subjects').findOne({
+        _id: new ObjectId(subject_id)
+      }, { projection: { name: 1 } });
+
+      const teacherName = teacher ? formatTeacherName(teacher.full_name, teacher.gender) : 'Your teacher';
+      const subjectName = subject ? subject.name : 'Subject';
+
       const update = {
         $set: {
           verified,
@@ -339,7 +352,17 @@ export async function POST({ request }) {
         }
       };
 
-      await db.collection('grades').updateOne(filter, update);
+      const result = await db.collection('grades').updateOne(filter, update);
+
+      // Create notification only when verifying (not unverifying) and if a record was updated
+      if (verified && result.modifiedCount > 0) {
+        await createGradeVerificationNotification(
+          db,
+          student_id,
+          teacherName,
+          subjectName
+        );
+      }
 
       return json({
         success: true,

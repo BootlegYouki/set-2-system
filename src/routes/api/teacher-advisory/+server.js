@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
+import { createGradeVerificationNotification, createBulkGradeVerificationNotifications, formatTeacherName } from '../helper/notification-helper.js';
 
 export async function GET({ request, url }) {
     try {
@@ -271,6 +272,13 @@ export async function POST({ request }) {
                 return json({ error: 'Missing required fields' }, { status: 400 });
             }
 
+            // Get teacher information for notification
+            const teacher = await db.collection('users').findOne({
+                _id: new ObjectId(teacher_id)
+            }, { projection: { full_name: 1, gender: 1 } });
+
+            const teacherName = teacher ? formatTeacherName(teacher.full_name, teacher.gender) : 'Your teacher';
+
             // Update all grades for this student in this section
             const result = await db.collection('grades').updateMany(
                 {
@@ -288,6 +296,34 @@ export async function POST({ request }) {
                     }
                 }
             );
+
+            // Create individual notifications for each subject when verifying
+            if (verified && result.modifiedCount > 0) {
+                // Get all subjects for this student that were verified
+                const verifiedGrades = await db.collection('grades').find({
+                    student_id: new ObjectId(student_id),
+                    section_id: new ObjectId(section_id),
+                    school_year,
+                    quarter,
+                    verified: true
+                }).toArray();
+
+                // Get subject names for notifications
+                const subjectIds = verifiedGrades.map(grade => grade.subject_id);
+                const subjects = await db.collection('subjects').find({
+                    _id: { $in: subjectIds }
+                }).toArray();
+
+                // Create a notification for each subject
+                for (const subject of subjects) {
+                    await createGradeVerificationNotification(
+                        db,
+                        student_id,
+                        teacherName,
+                        subject.name
+                    );
+                }
+            }
 
             return json({
                 success: true,
@@ -310,6 +346,20 @@ export async function POST({ request }) {
                 return json({ error: 'Missing required fields' }, { status: 400 });
             }
 
+            // Get teacher information for notification
+            const teacher = await db.collection('users').findOne({
+                _id: new ObjectId(teacher_id)
+            }, { projection: { full_name: 1, gender: 1 } });
+
+            const teacherName = teacher ? formatTeacherName(teacher.full_name, teacher.gender) : 'Your teacher';
+
+            // Get all students in this section for notifications
+            const studentsInSection = await db.collection('grades').distinct('student_id', {
+                section_id: new ObjectId(section_id),
+                school_year,
+                quarter
+            });
+
             // Update all grades for this section
             const result = await db.collection('grades').updateMany(
                 {
@@ -326,6 +376,32 @@ export async function POST({ request }) {
                     }
                 }
             );
+
+            // Create individual notifications for each subject when verifying all grades
+            if (verified && result.modifiedCount > 0 && studentsInSection.length > 0) {
+                // Get all unique subjects that were verified in this section
+                const verifiedGrades = await db.collection('grades').find({
+                    section_id: new ObjectId(section_id),
+                    school_year,
+                    quarter,
+                    verified: true
+                }).toArray();
+
+                const uniqueSubjectIds = [...new Set(verifiedGrades.map(grade => grade.subject_id.toString()))];
+                const subjects = await db.collection('subjects').find({
+                    _id: { $in: uniqueSubjectIds.map(id => new ObjectId(id)) }
+                }).toArray();
+
+                // Create notifications for each subject for each student
+                for (const subject of subjects) {
+                    await createBulkGradeVerificationNotifications(
+                        db,
+                        studentsInSection.map(id => id.toString()),
+                        teacherName,
+                        subject.name
+                    );
+                }
+            }
 
             return json({
                 success: true,

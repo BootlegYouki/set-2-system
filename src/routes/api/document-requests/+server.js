@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { createDocumentRequestNotification } from '../helper/notification-helper.js';
 import { ObjectId } from 'mongodb';
 
 /** @type {import('./$types').RequestHandler} */
@@ -79,6 +80,8 @@ export async function GET({ url, request }) {
           : null,
         rejectionReason: request.rejection_reason,
         adminNote: request.admin_note,
+        adminName: request.admin_name,
+        completedByAdmin: request.completed_by_admin,
         status: request.status
       };
 
@@ -203,7 +206,29 @@ export async function PATCH({ request }) {
       const { admin_note } = requestBody;
       console.log('Admin note:', admin_note);
       
-      // Update the document request status to processing with admin note
+      // Get admin name from database
+      let adminName = 'Admin';
+      try {
+        const usersCollection = db.collection('users');
+        const adminRecord = await usersCollection.findOne(
+          { _id: new ObjectId(user.id) },
+          { projection: { first_name: 1, last_name: 1, name: 1, username: 1 } }
+        );
+        
+        if (adminRecord) {
+          if (adminRecord.first_name && adminRecord.last_name) {
+            adminName = `${adminRecord.first_name} ${adminRecord.last_name}`;
+          } else if (adminRecord.name) {
+            adminName = adminRecord.name;
+          } else if (adminRecord.username) {
+            adminName = adminRecord.username;
+          }
+        }
+      } catch (dbError) {
+        console.error('Error fetching admin name:', dbError);
+      }
+
+      // Update the document request status to processing with admin note and admin name
       const result = await documentRequestsCollection.updateOne(
         { 
           $or: [{ _id: requestId }, { id: id }],
@@ -213,6 +238,8 @@ export async function PATCH({ request }) {
           $set: {
             status: 'processing',
             admin_note: admin_note || 'Approved',
+            admin_name: adminName,
+            admin_id: user.id,
             processed_at: new Date(),
             updated_at: new Date()
           }
@@ -235,6 +262,17 @@ export async function PATCH({ request }) {
       // Log activity
       await logActivityWithUser(user, 'Document Request Approved', `Approved document request: ${updatedRequest.document_type}`);
 
+      // Create notification for student
+      await createDocumentRequestNotification(
+        db, 
+        updatedRequest.student_id, 
+        updatedRequest.document_type, 
+        'processing',
+        updatedRequest.admin_note,
+        null, // rejection reason
+        user // admin user who performed the action
+      );
+
       // Format the response to match component structure
       const formattedRequest = {
         id: updatedRequest.id || updatedRequest._id.toString(),
@@ -243,6 +281,7 @@ export async function PATCH({ request }) {
         requestedDate: formatDate(updatedRequest.requested_at || updatedRequest.created_at),
         processedDate: formatDate(updatedRequest.processed_at),
         adminNote: updatedRequest.admin_note,
+        adminName: updatedRequest.admin_name,
         status: updatedRequest.status
       };
 
@@ -270,7 +309,29 @@ export async function PATCH({ request }) {
         }, { status: 400 });
       }
 
-      // Update the document request status to rejected with rejection reason
+      // Get admin name from database
+      let adminName = 'Admin';
+      try {
+        const usersCollection = db.collection('users');
+        const adminRecord = await usersCollection.findOne(
+          { _id: new ObjectId(user.id) },
+          { projection: { first_name: 1, last_name: 1, name: 1, username: 1 } }
+        );
+        
+        if (adminRecord) {
+          if (adminRecord.first_name && adminRecord.last_name) {
+            adminName = `${adminRecord.first_name} ${adminRecord.last_name}`;
+          } else if (adminRecord.name) {
+            adminName = adminRecord.name;
+          } else if (adminRecord.username) {
+            adminName = adminRecord.username;
+          }
+        }
+      } catch (dbError) {
+        console.error('Error fetching admin name:', dbError);
+      }
+
+      // Update the document request status to rejected with rejection reason and admin info
       const result = await documentRequestsCollection.updateOne(
         { 
           $or: [{ _id: requestId }, { id: id }],
@@ -280,6 +341,8 @@ export async function PATCH({ request }) {
           $set: {
             status: 'rejected',
             rejection_reason: rejectionReason.trim(),
+            admin_name: adminName,
+            admin_id: user.id,
             updated_at: new Date()
           }
         }
@@ -301,6 +364,17 @@ export async function PATCH({ request }) {
       // Log activity
       await logActivityWithUser(user, 'Document Request Rejected', `Rejected document request: ${updatedRequest.document_type} - Reason: ${rejectionReason.trim()}`);
 
+      // Create notification for student
+      await createDocumentRequestNotification(
+        db, 
+        updatedRequest.student_id, 
+        updatedRequest.document_type, 
+        'rejected',
+        null, // admin note
+        updatedRequest.rejection_reason,
+        user // admin user who performed the action
+      );
+
       // Format the response to match component structure
       const formattedRequest = {
         id: updatedRequest.id || updatedRequest._id.toString(),
@@ -308,6 +382,7 @@ export async function PATCH({ request }) {
         purpose: updatedRequest.purpose,
         requestedDate: formatDate(updatedRequest.requested_at || updatedRequest.created_at),
         rejectionReason: updatedRequest.rejection_reason,
+        adminName: updatedRequest.admin_name,
         status: updatedRequest.status
       };
 
@@ -323,7 +398,29 @@ export async function PATCH({ request }) {
         return json({ error: 'Admin access required' }, { status: 403 });
       }
 
-      // Update the document request status to completed with completion date
+      // Get admin name from database
+      let adminName = 'Admin';
+      try {
+        const usersCollection = db.collection('users');
+        const adminRecord = await usersCollection.findOne(
+          { _id: new ObjectId(user.id) },
+          { projection: { first_name: 1, last_name: 1, name: 1, username: 1 } }
+        );
+        
+        if (adminRecord) {
+          if (adminRecord.first_name && adminRecord.last_name) {
+            adminName = `${adminRecord.first_name} ${adminRecord.last_name}`;
+          } else if (adminRecord.name) {
+            adminName = adminRecord.name;
+          } else if (adminRecord.username) {
+            adminName = adminRecord.username;
+          }
+        }
+      } catch (dbError) {
+        console.error('Error fetching admin name:', dbError);
+      }
+
+      // Update the document request status to completed with completion date and admin info
       const result = await documentRequestsCollection.updateOne(
         { 
           $or: [{ _id: requestId }, { id: id }],
@@ -333,6 +430,8 @@ export async function PATCH({ request }) {
           $set: {
             status: 'completed',
             completed_at: new Date(),
+            completed_by_admin: adminName,
+            completed_by_admin_id: user.id,
             updated_at: new Date()
           }
         }
@@ -352,6 +451,17 @@ export async function PATCH({ request }) {
       // Log activity
       await logActivityWithUser(user, 'Document Request Completed', `Completed document request: ${updatedRequest.document_type}`);
 
+      // Create notification for student
+      await createDocumentRequestNotification(
+        db, 
+        updatedRequest.student_id, 
+        updatedRequest.document_type, 
+        'completed',
+        null, // admin note
+        null, // rejection reason
+        user // admin user who performed the action
+      );
+
       // Format the response to match component structure
       const formattedRequest = {
         id: updatedRequest.id || updatedRequest._id.toString(),
@@ -361,6 +471,7 @@ export async function PATCH({ request }) {
         processedDate: formatDate(updatedRequest.processed_at),
         completedDate: formatDate(updatedRequest.completed_at),
         adminNote: updatedRequest.admin_note,
+        completedByAdmin: updatedRequest.completed_by_admin,
         status: updatedRequest.status
       };
 

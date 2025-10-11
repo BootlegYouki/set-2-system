@@ -329,11 +329,19 @@
 						<!-- Status Footer with colored background -->
 						{#if request.status === 'completed'}
 							<div class="request-footer completed-footer">
-								<span class="footer-info">Completed on {request.completedDate}</span>
+								<span class="footer-info">
+									Completed on {request.completedDate}{request.completedByAdmin ? ` by ${request.completedByAdmin}` : ''}
+								</span>
 							</div>
 						{:else if request.status === 'processing'}
 							<div class="request-footer processing-footer">
-								<span class="footer-info">Note: {request.adminNote || 'Processing your request'}</span>
+								<span class="footer-info">
+									{#if request.adminNote}
+										Note{request.adminName ? ` by ${request.adminName}` : ''}: {request.adminNote}
+									{:else}
+										{request.adminName ? `Being processed by ${request.adminName}` : 'Processing your request'}
+									{/if}
+								</span>
 							</div>
 						{:else if request.status === 'pending'}
 							<div class="request-footer pending-footer">
@@ -349,7 +357,9 @@
 							</div>
 						{:else if request.status === 'rejected'}
 							<div class="request-footer rejected-footer">
-								<span class="footer-info">Reason: {request.rejectionReason}</span>
+								<span class="footer-info">
+									Reason{request.adminName ? ` by ${request.adminName}` : ''}: {request.rejectionReason}
+								</span>
 							</div>
 						{/if}
 					</div>

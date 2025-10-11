@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
@@ -54,7 +55,14 @@ export async function GET({ url, request }) {
       isRead: notification.is_read,
       relatedId: notification.related_id,
       timestamp: notification.created_at.toISOString(),
-      updatedAt: notification.updated_at.toISOString()
+      updatedAt: notification.updated_at.toISOString(),
+      // Add document request specific fields
+      adminNote: notification.admin_note || null,
+      rejectionReason: notification.rejection_reason || null,
+      documentType: notification.document_type || null,
+      status: notification.status || null,
+      adminName: notification.admin_name || null,
+      adminId: notification.admin_id || null
     }));
 
     // Get unread count
@@ -104,9 +112,21 @@ export async function PATCH({ request }) {
     const notificationsCollection = db.collection('notifications');
 
     if (action === 'mark_read' && id) {
+      // First check if notification exists and belongs to user
+      const existingNotification = await notificationsCollection.findOne({
+        _id: new ObjectId(id), 
+        student_id: user.id 
+      });
+      
+      if (!existingNotification) {
+        return json({ 
+          error: 'Notification not found or access denied' 
+        }, { status: 404 });
+      }
+
       // Mark single notification as read
       const result = await notificationsCollection.findOneAndUpdate(
-        { _id: new db.ObjectId(id), student_id: user.id },
+        { _id: new ObjectId(id), student_id: user.id },
         { 
           $set: { 
             is_read: true, 
@@ -116,21 +136,15 @@ export async function PATCH({ request }) {
         { returnDocument: 'after' }
       );
 
-      if (!result.value) {
-        return json({ 
-          error: 'Notification not found or access denied' 
-        }, { status: 404 });
-      }
-
-      const updatedNotification = result.value;
+      // Use existing notification if update didn't return a result (already read)
+      const updatedNotification = result.value || { ...existingNotification, is_read: true, updated_at: new Date() };
 
       // Log activity
       await logActivityWithUser(
         'notification_read',
+        `Marked notification as read: ${updatedNotification.title}`,
         user,
-        { notification_id: id, title: updatedNotification.title },
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown'
+        request.headers.get('x-forwarded-for') || 'unknown'
       );
 
       return json({
@@ -143,9 +157,21 @@ export async function PATCH({ request }) {
     }
 
     if (action === 'mark_unread' && id) {
+      // First check if notification exists and belongs to user
+      const existingNotification = await notificationsCollection.findOne({
+        _id: new ObjectId(id), 
+        student_id: user.id 
+      });
+
+      if (!existingNotification) {
+        return json({ 
+          error: 'Notification not found or access denied' 
+        }, { status: 404 });
+      }
+
       // Mark single notification as unread
       const result = await notificationsCollection.findOneAndUpdate(
-        { _id: new db.ObjectId(id), student_id: user.id },
+        { _id: new ObjectId(id), student_id: user.id },
         { 
           $set: { 
             is_read: false, 
@@ -155,17 +181,14 @@ export async function PATCH({ request }) {
         { returnDocument: 'after' }
       );
 
-      if (!result.value) {
-        return json({ 
-          error: 'Notification not found or access denied' 
-        }, { status: 404 });
-      }
+      // Use existing notification if update didn't return a result (already unread)
+      const updatedNotification = result.value || { ...existingNotification, is_read: false, updated_at: new Date() };
 
       return json({
         success: true,
         data: {
-          id: result.value._id.toString(),
-          isRead: result.value.is_read
+          id: updatedNotification._id.toString(),
+          isRead: updatedNotification.is_read
         }
       });
     }
@@ -185,10 +208,9 @@ export async function PATCH({ request }) {
       // Log activity
       await logActivityWithUser(
         'notifications_mark_all_read',
+        `Marked ${result.modifiedCount} notifications as read`,
         user,
-        { updated_count: result.modifiedCount },
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown'
+        request.headers.get('x-forwarded-for') || 'unknown'
       );
 
       return json({
@@ -201,7 +223,7 @@ export async function PATCH({ request }) {
 
     if (action === 'bulk_mark_read' && ids && Array.isArray(ids)) {
       // Mark multiple notifications as read
-      const objectIds = ids.map(id => new db.ObjectId(id));
+      const objectIds = ids.map(id => new ObjectId(id));
       const result = await notificationsCollection.updateMany(
         { 
           student_id: user.id, 
@@ -263,10 +285,9 @@ export async function DELETE({ request }) {
       // Log activity
       await logActivityWithUser(
         'notifications_delete_read',
+        `Deleted ${result.deletedCount} read notifications`,
         user,
-        { deleted_count: result.deletedCount },
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown'
+        request.headers.get('x-forwarded-for') || 'unknown'
       );
 
       return json({
@@ -281,7 +302,7 @@ export async function DELETE({ request }) {
     if (id) {
       // Delete single notification
       const result = await notificationsCollection.findOneAndDelete({
-        _id: new db.ObjectId(id),
+        _id: new ObjectId(id),
         student_id: user.id
       });
 
@@ -294,10 +315,9 @@ export async function DELETE({ request }) {
       // Log activity
       await logActivityWithUser(
         'notification_delete',
+        `Deleted notification: ${result.value.title}`,
         user,
-        { notification_id: id, title: result.value.title },
-        request.headers.get('x-forwarded-for') || 'unknown',
-        request.headers.get('user-agent') || 'unknown'
+        request.headers.get('x-forwarded-for') || 'unknown'
       );
 
       return json({
@@ -310,7 +330,7 @@ export async function DELETE({ request }) {
 
     if (ids && Array.isArray(ids)) {
       // Delete multiple notifications
-      const objectIds = ids.map(id => new db.ObjectId(id));
+      const objectIds = ids.map(id => new ObjectId(id));
       const result = await notificationsCollection.deleteMany({
         student_id: user.id,
         _id: { $in: objectIds }
@@ -408,17 +428,9 @@ export async function POST({ request }) {
     // Log activity
     await logActivityWithUser(
       'notification_create',
+      `Created notification "${title}" for ${targetStudents.length} students`,
       user,
-      { 
-        title: title,
-        type: type,
-        target_count: targetStudents.length,
-        send_to_all: send_to_all,
-        section_id: section_id,
-        student_id: student_id
-      },
-      request.headers.get('x-forwarded-for') || 'unknown',
-      request.headers.get('user-agent') || 'unknown'
+      request.headers.get('x-forwarded-for') || 'unknown'
     );
 
     return json({
