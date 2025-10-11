@@ -352,7 +352,7 @@
 								<td class="sgl-student-name">{student.name}</td>
 								<td class="sgl-year-level">{getGradeLevelName(student.gradeLevel)}</td>
 								<td class="sgl-section">{student.section}</td>
-								<td class="sgl-gwa">{student.gwa.toFixed(1)}</td>
+								<td class="sgl-gwa">{student.gwa}</td>
 							</tr>
 						{/each}
 					</tbody>

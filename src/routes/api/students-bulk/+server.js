@@ -95,6 +95,10 @@ export async function GET({ url }) {
           }
         }
 
+        // Format GWA - remove .0 for whole numbers
+        const formattedGwa = Math.round(gwa * 10) / 10;
+        const gwaDisplay = formattedGwa === Math.floor(formattedGwa) ? Math.floor(formattedGwa) : Number(formattedGwa.toFixed(1));
+
         return {
           id: student.account_number,
           _id: student._id.toString(),
@@ -102,7 +106,7 @@ export async function GET({ url }) {
           email: student.email,
           gradeLevel: section ? section.grade_level.toString() : student.grade_level?.toString() || 'N/A',
           section: section ? section.name : 'No Section',
-          gwa: Math.round(gwa * 10) / 10, // Round to 1 decimal place
+          gwa: gwaDisplay,
           totalSubjects: studentGrades.length,
           verifiedGrades: studentGrades.filter(grade => 
             (grade.verified === true || grade.verification?.verified === true)
