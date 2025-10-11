@@ -305,7 +305,7 @@
 			</div>
 
 			<!-- AI Analysis Container -->
-			<!-- <div class="ai-analysis-container">
+			<div class="ai-analysis-container">
 				<div class="analysis-header">
 					<div class="analysis-icon">
 						<span class="material-symbols-outlined">psychology</span>
@@ -318,7 +318,7 @@
 						<p>AI analysis will appear here</p>
 					</div>
 				</div>
-			</div> -->
+			</div>
 		</div>
 
 		<!-- Subjects Grid -->

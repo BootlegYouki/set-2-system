@@ -222,24 +222,63 @@ export async function GET({ url }) {
 
 // Helper function to assign colors to subjects for UI
 function getSubjectColor(subjectName) {
-  const colors = {
-    'Math': '#4F46E5',
-    'Science': '#059669', 
-    'English': '#DC2626',
-    'Physical Education': '#EA580C',
-    'Filipino': '#7C2D12',
-    'History': '#B45309',
-    'Computer': '#6366F1',
-    'Arts': '#C026D3'
+  // Enhanced color palette with more variety and better visual appeal
+  const subjectColors = {
+    'Mathematics': ['#4F46E5', '#6366F1', '#8B5CF6', '#3B82F6'], // Blues and purples
+    'Math': ['#4F46E5', '#6366F1', '#8B5CF6', '#3B82F6'],
+    'Science': ['#059669', '#10B981', '#34D399', '#047857'], // Greens
+    'English': ['#DC2626', '#EF4444', '#F87171', '#B91C1C'], // Reds
+    'Physical Education': ['#EA580C', '#F97316', '#FB923C', '#C2410C'], // Oranges
+    'MAPEH': ['#EA580C', '#F97316', '#FB923C', '#C2410C'], // Oranges
+    'PE': ['#EA580C', '#F97316', '#FB923C', '#C2410C'],
+    'Filipino': ['#7C2D12', '#A16207', '#D97706', '#92400E'], // Browns and ambers
+    'Araling Panlipunan': ['#B45309', '#D97706', '#F59E0B', '#A16207'], // Ambers
+    'History': ['#B45309', '#D97706', '#F59E0B', '#A16207'],
+    'Computer': ['#6366F1', '#8B5CF6', '#A855F7', '#7C3AED'], // Purples
+    'Technology': ['#6366F1', '#8B5CF6', '#A855F7', '#7C3AED'],
+    'Arts': ['#C026D3', '#D946EF', '#E879F9', '#A21CAF'], // Magentas
+    'Music': ['#EC4899', '#F472B6', '#F9A8D4', '#DB2777'], // Pinks
+    'Health': ['#16A34A', '#22C55E', '#4ADE80', '#15803D'], // Light greens
+    'Values': ['#0891B2', '#06B6D4', '#22D3EE', '#0E7490'], // Cyans
+    'Research': ['#7C2D12', '#A16207', '#D97706', '#92400E'], // Browns
+    'TLE': ['#9333EA', '#A855F7', '#C084FC', '#7E22CE'], // Violets
+    'ESP': ['#0891B2', '#06B6D4', '#22D3EE', '#0E7490'] // Cyans
   };
+
+  // Additional vibrant colors for subjects not in the main list
+  const fallbackColors = [
+    '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E', 
+    '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9', '#3B82F6',
+    '#6366F1', '#8B5CF6', '#A855F7', '#D946EF', '#EC4899',
+    '#F43F5E', '#E11D48', '#BE123C', '#9F1239', '#881337'
+  ];
   
-  // Find matching color based on subject name
-  for (const [key, color] of Object.entries(colors)) {
-    if (subjectName.toLowerCase().includes(key.toLowerCase())) {
-      return color;
+  // Simple hash function to generate consistent randomization based on subject name
+  function simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  // Normalize subject name for matching
+  const normalizedName = subjectName.toLowerCase().trim();
+  
+  // Find matching color array based on subject name
+  for (const [key, colorArray] of Object.entries(subjectColors)) {
+    if (normalizedName.includes(key.toLowerCase())) {
+      // Use hash to pick a consistent but "random" color from the array
+      const hash = simpleHash(subjectName);
+      const colorIndex = hash % colorArray.length;
+      return colorArray[colorIndex];
     }
   }
   
-  // Default color if no match found
-  return '#6B7280';
+  // If no specific match found, use fallback colors with randomization
+  const hash = simpleHash(subjectName);
+  const colorIndex = hash % fallbackColors.length;
+  return fallbackColors[colorIndex];
 }
