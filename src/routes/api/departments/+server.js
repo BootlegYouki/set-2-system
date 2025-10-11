@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
-import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { getUserFromRequest } from '../helper/auth-helper.js';
 
 // GET - Fetch departments (subject groupings), subjects, and teachers
 export async function GET({ url }) {
@@ -276,16 +276,22 @@ export async function POST({ request, getClientAddress }) {
             // Log teacher assignments if any were made
             if (assignedTeachers.length > 0) {
                 try {
-                    await logActivityWithUser(
-                        user,
-                        'department_teacher_assigned',
-                        { 
+                    // Create activity log with proper structure (matching accounts API)
+                    const activityCollection = db.collection('activity_logs');
+                    await activityCollection.insertOne({
+                        activity_type: 'department_teacher_assigned',
+                        user_id: user?.id ? new ObjectId(user.id) : null,
+                        user_account_number: user?.accountNumber || null,
+                        activity_data: { 
                             department_id: insertResult.insertedId.toString(), 
                             department_name: name, 
                             department_code: code.toUpperCase(),
                             teachers: assignedTeachers
-                        }
-                    );
+                        },
+                        ip_address: getClientAddress(),
+                        user_agent: request.headers.get('user-agent'),
+                        created_at: new Date()
+                    });
                 } catch (logError) {
                     console.error('Error logging teacher assignment activity:', logError);
                 }
@@ -294,15 +300,21 @@ export async function POST({ request, getClientAddress }) {
 
         // Log the department creation
         try {
-            await logActivityWithUser(
-                user,
-                'department_created',
-                { 
+            // Create activity log with proper structure (matching accounts API)
+            const activityCollection = db.collection('activity_logs');
+            await activityCollection.insertOne({
+                activity_type: 'department_created',
+                user_id: user?.id ? new ObjectId(user.id) : null,
+                user_account_number: user?.accountNumber || null,
+                activity_data: { 
                     department_id: insertResult.insertedId.toString(), 
                     department_name: name, 
                     department_code: code.toUpperCase()
-                }
-            );
+                },
+                ip_address: getClientAddress(),
+                user_agent: request.headers.get('user-agent'),
+                created_at: new Date()
+            });
         } catch (logError) {
             console.error('Error logging department creation activity:', logError);
         }
@@ -438,16 +450,22 @@ export async function PUT({ request, getClientAddress }) {
         // Log teacher removals if any existed
         if (currentTeachersResult.length > 0) {
             try {
-                await logActivityWithUser(
-                    user,
-                    'department_teacher_removed',
-                    { 
+                // Create activity log with proper structure (matching accounts API)
+                const activityCollection = db.collection('activity_logs');
+                await activityCollection.insertOne({
+                    activity_type: 'department_teacher_removed',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.accountNumber || null,
+                    activity_data: { 
                         department_id: id, 
                         department_name: name, 
                         department_code: code.toUpperCase(),
                         teachers: currentTeachersResult
-                    }
-                );
+                    },
+                    ip_address: getClientAddress(),
+                    user_agent: request.headers.get('user-agent'),
+                    created_at: new Date()
+                });
             } catch (logError) {
                 console.error('Error logging teacher removal activity:', logError);
             }
@@ -486,16 +504,22 @@ export async function PUT({ request, getClientAddress }) {
             // Log teacher assignments
             if (newTeachers.length > 0) {
                 try {
-                    await logActivityWithUser(
-                        user,
-                        'department_teacher_assigned',
-                        { 
+                    // Create activity log with proper structure (matching accounts API)
+                    const activityCollection = db.collection('activity_logs');
+                    await activityCollection.insertOne({
+                        activity_type: 'department_teacher_assigned',
+                        user_id: user?.id ? new ObjectId(user.id) : null,
+                        user_account_number: user?.accountNumber || null,
+                        activity_data: { 
                             department_id: id, 
                             department_name: name, 
                             department_code: code.toUpperCase(),
                             teachers: newTeachers
-                        }
-                    );
+                        },
+                        ip_address: getClientAddress(),
+                        user_agent: request.headers.get('user-agent'),
+                        created_at: new Date()
+                    });
                 } catch (logError) {
                     console.error('Error logging teacher assignment activity:', logError);
                 }
@@ -524,16 +548,22 @@ export async function PUT({ request, getClientAddress }) {
             }));
 
             try {
-                await logActivityWithUser(
-                    user,
-                    'department_subject_removed',
-                    { 
+                // Create activity log with proper structure (matching accounts API)
+                const activityCollection = db.collection('activity_logs');
+                await activityCollection.insertOne({
+                    activity_type: 'department_subject_removed',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.accountNumber || null,
+                    activity_data: { 
                         department_id: id, 
                         department_name: name, 
                         department_code: code.toUpperCase(),
                         subjects: currentSubjectsForLog
-                    }
-                );
+                    },
+                    ip_address: getClientAddress(),
+                    user_agent: request.headers.get('user-agent'),
+                    created_at: new Date()
+                });
             } catch (logError) {
                 console.error('Error logging subject removal activity:', logError);
             }
@@ -565,16 +595,22 @@ export async function PUT({ request, getClientAddress }) {
             // Log subject assignments
             if (newSubjectsForLog.length > 0) {
                 try {
-                    await logActivityWithUser(
-                        user,
-                        'department_subject_assigned',
-                        { 
+                    // Create activity log with proper structure (matching accounts API)
+                    const activityCollection = db.collection('activity_logs');
+                    await activityCollection.insertOne({
+                        activity_type: 'department_subject_assigned',
+                        user_id: user?.id ? new ObjectId(user.id) : null,
+                        user_account_number: user?.accountNumber || null,
+                        activity_data: { 
                             department_id: id, 
                             department_name: name, 
                             department_code: code.toUpperCase(),
                             subjects: newSubjectsForLog
-                        }
-                    );
+                        },
+                        ip_address: getClientAddress(),
+                        user_agent: request.headers.get('user-agent'),
+                        created_at: new Date()
+                    });
                 } catch (logError) {
                     console.error('Error logging subject assignment activity:', logError);
                 }
@@ -584,15 +620,21 @@ export async function PUT({ request, getClientAddress }) {
         // Log the department update only if basic info (name or code) changed
         if (basicInfoChanged) {
             try {
-                await logActivityWithUser(
-                    user,
-                    'department_updated',
-                    { 
+                // Create activity log with proper structure (matching accounts API)
+                const activityCollection = db.collection('activity_logs');
+                await activityCollection.insertOne({
+                    activity_type: 'department_updated',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.accountNumber || null,
+                    activity_data: { 
                         department_id: id, 
                         department_name: name, 
                         department_code: code.toUpperCase() 
-                    }
-                );
+                    },
+                    ip_address: getClientAddress(),
+                    user_agent: request.headers.get('user-agent'),
+                    created_at: new Date()
+                });
             } catch (logError) {
                 console.error('Error logging department update activity:', logError);
             }
@@ -682,15 +724,21 @@ export async function DELETE({ request, getClientAddress }) {
 
         // Log the department deletion
         try {
-            await logActivityWithUser(
-                user,
-                'department_deleted',
-                { 
+            // Create activity log with proper structure (matching accounts API)
+            const activityCollection = db.collection('activity_logs');
+            await activityCollection.insertOne({
+                activity_type: 'department_deleted',
+                user_id: user?.id ? new ObjectId(user.id) : null,
+                user_account_number: user?.accountNumber || null,
+                activity_data: { 
                     department_id: id, 
                     department_name: department.name, 
                     department_code: department.code 
-                }
-            );
+                },
+                ip_address: getClientAddress(),
+                user_agent: request.headers.get('user-agent'),
+                created_at: new Date()
+            });
         } catch (logError) {
             console.error('Error logging department deletion activity:', logError);
         }

@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
-import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { getUserFromRequest } from '../helper/auth-helper.js';
 
 // Function to generate random colors
 function getRandomColor() {
@@ -134,18 +134,22 @@ export async function POST({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'activity_type_created',
-        user,
-        {
+      // Create activity log with proper structure (matching accounts API)
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'activity_type_created',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           name: newActivity.name,
           code: newActivity.code,
           color: newActivity.color,
           icon: newActivity.icon
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging activity type creation activity:', logError);
       // Don't fail the activity type creation if logging fails
@@ -267,10 +271,13 @@ export async function PUT({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'activity_type_updated',
-        user,
-        {
+      // Create activity log with proper structure (matching accounts API)
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'activity_type_updated',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           id: id,
           name: updateData.name,
           code: updateData.code,
@@ -279,9 +286,10 @@ export async function PUT({ request, getClientAddress }) {
           previous_code: existingActivity.code,
           previous_icon: existingActivity.icon
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging activity type update activity:', logError);
       // Don't fail the activity type update if logging fails
@@ -381,19 +389,23 @@ export async function DELETE({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'activity_type_deleted',
-        user,
-        {
+      // Create activity log with proper structure (matching accounts API)
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'activity_type_deleted',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           id: id,
           name: existingActivity.name,
           code: existingActivity.code,
           color: existingActivity.color,
           icon: existingActivity.icon
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging activity type deletion activity:', logError);
       // Don't fail the activity type deletion if logging fails

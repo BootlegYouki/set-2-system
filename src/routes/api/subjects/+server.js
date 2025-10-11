@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
-import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { getUserFromRequest } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
 // GET /api/subjects - Fetch all subjects with optional filtering
@@ -174,17 +174,21 @@ export async function POST({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'subject_created',
-        user,
-        {
+      // Create activity log with proper structure (matching accounts API)
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'subject_created',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           name: newSubject.name,
           code: newSubject.code,
           grade_level: newSubject.grade_level
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging subject creation activity:', logError);
       // Don't fail the subject creation if logging fails
@@ -305,10 +309,13 @@ export async function PUT({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'subject_updated',
-        user,
-        {
+      // Create activity log with proper structure (matching accounts API)
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'subject_updated',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           id: id,
           name: updateData.name,
           code: updateData.code,
@@ -317,9 +324,10 @@ export async function PUT({ request, getClientAddress }) {
           previous_code: existingSubject.code,
           previous_grade_level: existingSubject.grade_level
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging subject update activity:', logError);
       // Don't fail the subject update if logging fails
@@ -426,17 +434,21 @@ export async function DELETE({ request, getClientAddress }) {
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
       
-      await logActivityWithUser(
-        'subject_deleted',
-        user,
-        {
+      // Create activity log with proper structure (matching accounts API)
+      const activityCollection = db.collection('activity_logs');
+      await activityCollection.insertOne({
+        activity_type: 'subject_deleted',
+        user_id: user?.id ? new ObjectId(user.id) : null,
+        user_account_number: user?.accountNumber || null,
+        activity_data: {
           subject_code: existingSubject.code,
           subject_name: existingSubject.name,
           subject_id: id
         },
-        ip_address,
-        user_agent
-      );
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      });
     } catch (logError) {
       console.error('Error logging subject deletion activity:', logError);
       // Don't fail the deletion if logging fails
