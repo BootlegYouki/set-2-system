@@ -15,7 +15,7 @@
 	let lastName = '';
 	let middleInitial = '';
 	let email = '';
-	
+
 	// Additional Information for students
 	let birthdate = '';
 	let address = '';
@@ -40,38 +40,41 @@
 	let editGradeLevel = '';
 	let isEditGradeLevelDropdownOpen = false;
 	let isUpdating = false;
-	
+
 	// Edit additional information for students
 	let editBirthdate = '';
 	let editAddress = '';
 	let editGuardian = '';
 	let editContactNumber = '';
 	let editCalculatedAge = 0;
-	
+
 	// Get yesterday's date in YYYY-MM-DD format for max attribute
 	function getYesterday() {
 		const yesterday = new Date();
 		yesterday.setDate(yesterday.getDate() - 1);
 		return yesterday.toISOString().split('T')[0];
 	}
-	
+
 	// Current account being edited (reactive)
-	$: currentAccount = editingAccountId ? recentAccounts.find(account => account.id === editingAccountId) : null;
+	$: currentAccount = editingAccountId
+		? recentAccounts.find((account) => account.id === editingAccountId)
+		: null;
 
 	// Name capitalization function - converts to title case (capitalizes each word)
 	function capitalizeFirstLetter(str) {
 		if (!str) return str;
 		return str
 			.split(' ')
-			.map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
 			.join(' ');
 	}
 
 	// Handle name input with automatic capitalization
 	function handleNameInput(event, field, isEdit = false) {
 		const value = event.target.value;
-		const capitalizedValue = field === 'middleInitial' ? value.toUpperCase() : capitalizeFirstLetter(value);
-		
+		const capitalizedValue =
+			field === 'middleInitial' ? value.toUpperCase() : capitalizeFirstLetter(value);
+
 		if (isEdit) {
 			if (field === 'firstName') {
 				editFirstName = capitalizedValue;
@@ -89,7 +92,7 @@
 				middleInitial = capitalizedValue;
 			}
 		}
-		
+
 		// Update the input field value
 		event.target.value = capitalizedValue;
 	}
@@ -97,10 +100,10 @@
 	// Contact number validation
 	function validateContactNumber(value) {
 		if (!value) return false;
-		
+
 		// Remove any non-digit characters
 		const digitsOnly = value.replace(/\D/g, '');
-		
+
 		// Check if it starts with 09 and has exactly 11 digits
 		return digitsOnly.startsWith('09') && digitsOnly.length === 11;
 	}
@@ -108,7 +111,7 @@
 	function formatContactNumber(value) {
 		// Remove any non-digit characters
 		const digitsOnly = value.replace(/\D/g, '');
-		
+
 		// Limit to 11 digits
 		return digitsOnly.slice(0, 11);
 	}
@@ -126,42 +129,42 @@
 	// Date validation function
 	function validateDate(dateString) {
 		if (!dateString) return true; // Allow empty dates
-		
+
 		// Check if the date string is complete (YYYY-MM-DD format for HTML date input)
 		if (dateString.length < 10) return true; // Allow partial input
-		
+
 		const date = new Date(dateString);
 		const year = date.getFullYear();
 		const today = new Date();
 		const currentYear = today.getFullYear();
-		
+
 		// Check if date is valid and year is reasonable (between 1900 and current year)
 		if (isNaN(date.getTime()) || year < 1900 || year > currentYear) {
 			return false;
 		}
-		
+
 		// Prevent today's date and future dates
 		// Set today to start of day for accurate comparison
 		const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 		const inputDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-		
+
 		if (inputDate >= todayStart) {
 			return false;
 		}
-		
+
 		return true;
 	}
 
 	function handleDateInput(event, isEdit = false) {
 		const dateValue = event.target.value;
-		
+
 		// Update the bound value immediately without validation during typing
 		if (isEdit) {
 			editBirthdate = dateValue;
 		} else {
 			birthdate = dateValue;
 		}
-		
+
 		// Only validate on blur (when user finishes typing) or if they try to submit
 		// This prevents interruption during typing
 	}
@@ -171,9 +174,24 @@
 
 	// Account types
 	const accountTypes = [
-		{ id: 'student', name: 'Student Account', description: 'Create a new student account', icon: 'school' },
-		{ id: 'teacher', name: 'Teacher Account', description: 'Create a new teacher account', icon: 'person' },
-		{ id: 'admin', name: 'Admin Account', description: 'Create a new admin account', icon: 'admin_panel_settings' }
+		{
+			id: 'student',
+			name: 'Student Account',
+			description: 'Create a new student account',
+			icon: 'school'
+		},
+		{
+			id: 'teacher',
+			name: 'Teacher Account',
+			description: 'Create a new teacher account',
+			icon: 'person'
+		},
+		{
+			id: 'admin',
+			name: 'Admin Account',
+			description: 'Create a new admin account',
+			icon: 'admin_panel_settings'
+		}
 	];
 
 	// Filter options
@@ -235,8 +253,8 @@
 					}
 
 					// Remove the account from the array
-					recentAccounts = recentAccounts.filter(a => a.id !== account.id);
-					
+					recentAccounts = recentAccounts.filter((a) => a.id !== account.id);
+
 					// Show success toast
 					toastStore.success(`Account for "${account.name}" has been removed successfully`);
 				} catch (error) {
@@ -333,7 +351,7 @@
 				toastStore.error('Please fill in all required student information fields.');
 				return;
 			}
-			
+
 			// Validate contact number format
 			if (!validateContactNumber(editContactNumber)) {
 				toastStore.error('Invalid contact number.');
@@ -365,7 +383,7 @@
 
 			if (result.success) {
 				// Update account in the array with the response data
-				recentAccounts = recentAccounts.map(account => {
+				recentAccounts = recentAccounts.map((account) => {
 					if (account.id === editingAccountId) {
 						return result.account;
 					}
@@ -389,7 +407,6 @@
 			} else {
 				toastStore.error(result.error || 'Failed to update account');
 			}
-
 		} catch (error) {
 			console.error('Error updating account:', error);
 			toastStore.error('Failed to update account. Please try again.');
@@ -475,25 +492,32 @@
 			toastStore.error('Please select a grade level for the student account.');
 			return;
 		}
-		
+
 		// Check if student account requires additional information
 		if (selectedAccountType === 'student') {
 			if (!birthdate || !address || !guardian || !contactNumber) {
-				toastStore.error('Please fill in all additional information fields for the student account.');
+				toastStore.error(
+					'Please fill in all additional information fields for the student account.'
+				);
 				return;
 			}
-			
+
 			// Validate contact number format
-				if (!validateContactNumber(contactNumber)) {
-					toastStore.error('Invalid contact number.');
-					return;
-				}
+			if (!validateContactNumber(contactNumber)) {
+				toastStore.error('Invalid contact number.');
+				return;
+			}
 		}
 
 		// Show confirmation modal before creating account
-		const accountTypeLabel = selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin';
+		const accountTypeLabel =
+			selectedAccountType === 'student'
+				? 'Student'
+				: selectedAccountType === 'teacher'
+					? 'Teacher'
+					: 'Admin';
 		const fullName = `${firstName} ${middleInitial ? middleInitial + '. ' : ''}${lastName}`;
-		
+
 		modalStore.confirm(
 			'Confirm Account Creation',
 			`<p>Are you sure you want to create a <strong>${accountTypeLabel}</strong> account for <strong>"${fullName}"</strong>?</p>`,
@@ -514,7 +538,7 @@
 		try {
 			// Get current user ID from auth store
 			const currentUser = $authStore.userData;
-			
+
 			// Call API to create account
 			const data = await api.post('/api/accounts', {
 				accountType: selectedAccountType,
@@ -539,8 +563,15 @@
 			recentAccounts = [data.account, ...recentAccounts];
 
 			// Show success toast
-			const accountTypeLabel = selectedAccountType === 'student' ? 'Student' : selectedAccountType === 'teacher' ? 'Teacher' : 'Admin';
-			toastStore.success(`${accountTypeLabel} account created successfully for ${data.account.name}! Password is the same as account number: ${data.account.number}`);
+			const accountTypeLabel =
+				selectedAccountType === 'student'
+					? 'Student'
+					: selectedAccountType === 'teacher'
+						? 'Teacher'
+						: 'Admin';
+			toastStore.success(
+				`${accountTypeLabel} account created successfully for ${data.account.name}! Password is the same as account number: ${data.account.number}`
+			);
 
 			// Reset form
 			selectedAccountType = '';
@@ -555,7 +586,6 @@
 			guardian = '';
 			contactNumber = '';
 			calculatedAge = 0;
-
 		} catch (error) {
 			console.error('Error creating account:', error);
 			toastStore.error(error.message || 'Failed to create account. Please try again.');
@@ -565,19 +595,23 @@
 	}
 
 	// Get selected account type object
-	$: selectedTypeObj = accountTypes.find(type => type.id === selectedAccountType);
+	$: selectedTypeObj = accountTypes.find((type) => type.id === selectedAccountType);
 
 	// Get selected gender object
-	$: selectedGenderObj = genderOptions.find(gender => gender.id === selectedGender);
+	$: selectedGenderObj = genderOptions.find((gender) => gender.id === selectedGender);
 
 	// Get selected grade level object
-	$: selectedGradeLevelObj = gradeLevelOptions.find(gradeLevel => gradeLevel.id === selectedGradeLevel);
+	$: selectedGradeLevelObj = gradeLevelOptions.find(
+		(gradeLevel) => gradeLevel.id === selectedGradeLevel
+	);
 
 	// Get selected filter object
-	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
+	$: selectedFilterObj = filterOptions.find((filter) => filter.id === selectedFilter);
 
 	// Get selected edit grade level object
-	$: selectedEditGradeLevelObj = gradeLevelOptions.find(gradeLevel => gradeLevel.id === editGradeLevel);
+	$: selectedEditGradeLevelObj = gradeLevelOptions.find(
+		(gradeLevel) => gradeLevel.id === editGradeLevel
+	);
 
 	// Calculate age from birthdate
 	$: {
@@ -612,20 +646,20 @@
 	}
 
 	// Filter accounts based on selected filter and search query
-	$: filteredAccounts = recentAccounts.filter(account => {
+	$: filteredAccounts = recentAccounts.filter((account) => {
 		// First apply type filter
 		const accountType = account.type.toLowerCase();
 		const typeMatches = selectedFilter === 'all' || accountType === selectedFilter;
-		
+
 		// Then apply search filter
 		if (!searchQuery.trim()) {
 			return typeMatches;
 		}
-		
+
 		const query = searchQuery.toLowerCase().trim();
 		const nameMatches = account.name.toLowerCase().includes(query);
 		const numberMatches = account.number.toString().includes(query);
-		
+
 		return typeMatches && (nameMatches || numberMatches);
 	});
 
@@ -638,7 +672,7 @@
 			previewAccountNumber = '';
 			return;
 		}
-		
+
 		isLoadingPreview = true;
 		try {
 			const data = await api.get(`/api/accounts/next-number?type=${accountType}`);
@@ -664,7 +698,7 @@
 			if (!data.success) {
 				throw new Error('Failed to load accounts');
 			}
-			
+
 			// API already returns data in the correct format
 			recentAccounts = data.accounts;
 		} catch (error) {
@@ -707,16 +741,17 @@
 					<div class="form-group">
 						<label class="form-label" for="account-type">Account Type *</label>
 						<div class="custom-dropdown" class:open={isDropdownOpen}>
-							<button 
+							<button
 								type="button"
-								class="dropdown-trigger" 
+								class="dropdown-trigger"
 								class:selected={selectedAccountType}
 								on:click={toggleDropdown}
 								id="account-type"
 							>
 								{#if selectedTypeObj}
 									<div class="selected-option">
-										<span class="material-symbols-outlined option-icon">{selectedTypeObj.icon}</span>
+										<span class="material-symbols-outlined option-icon">{selectedTypeObj.icon}</span
+										>
 										<div class="option-content">
 											<span class="option-name">{selectedTypeObj.name}</span>
 											<span class="option-description">{selectedTypeObj.description}</span>
@@ -729,9 +764,9 @@
 							</button>
 							<div class="dropdown-menu">
 								{#each accountTypes as type (type.id)}
-									<button 
+									<button
 										type="button"
-										class="dropdown-option" 
+										class="dropdown-option"
 										class:selected={selectedAccountType === type.id}
 										on:click={() => selectAccountType(type)}
 									>
@@ -750,16 +785,18 @@
 					<div class="form-group">
 						<label class="form-label" for="gender">Gender *</label>
 						<div class="custom-dropdown" class:open={isGenderDropdownOpen}>
-							<button 
+							<button
 								type="button"
-								class="dropdown-trigger" 
+								class="dropdown-trigger"
 								class:selected={selectedGender}
 								on:click={toggleGenderDropdown}
 								id="gender"
 							>
 								{#if selectedGenderObj}
 									<div class="selected-option">
-										<span class="material-symbols-outlined option-icon">{selectedGenderObj.icon}</span>
+										<span class="material-symbols-outlined option-icon"
+											>{selectedGenderObj.icon}</span
+										>
 										<div class="option-content">
 											<span class="option-name">{selectedGenderObj.name}</span>
 										</div>
@@ -771,9 +808,9 @@
 							</button>
 							<div class="dropdown-menu">
 								{#each genderOptions as gender (gender.id)}
-									<button 
+									<button
 										type="button"
-										class="dropdown-option" 
+										class="dropdown-option"
 										class:selected={selectedGender === gender.id}
 										on:click={() => selectGender(gender)}
 									>
@@ -792,16 +829,18 @@
 						<div class="form-group">
 							<label class="form-label" for="grade-level">Grade Level *</label>
 							<div class="custom-dropdown" class:open={isGradeLevelDropdownOpen}>
-								<button 
+								<button
 									type="button"
-									class="dropdown-trigger" 
+									class="dropdown-trigger"
 									class:selected={selectedGradeLevel}
 									on:click={toggleGradeLevelDropdown}
 									id="grade-level"
 								>
 									{#if selectedGradeLevelObj}
 										<div class="selected-option">
-											<span class="material-symbols-outlined option-icon">{selectedGradeLevelObj.icon}</span>
+											<span class="material-symbols-outlined option-icon"
+												>{selectedGradeLevelObj.icon}</span
+											>
 											<div class="option-content">
 												<span class="option-name">{selectedGradeLevelObj.name}</span>
 											</div>
@@ -813,9 +852,9 @@
 								</button>
 								<div class="dropdown-menu">
 									{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
-										<button 
+										<button
 											type="button"
-											class="dropdown-option" 
+											class="dropdown-option"
 											class:selected={selectedGradeLevel === gradeLevel.id}
 											on:click={() => selectGradeLevel(gradeLevel)}
 										>
@@ -835,10 +874,10 @@
 				<div class="name-fields-row">
 					<div class="form-group">
 						<label class="form-label" for="last-name">Last Name *</label>
-						<input 
-							type="text" 
+						<input
+							type="text"
 							id="last-name"
-							class="form-input" 
+							class="form-input"
 							bind:value={lastName}
 							on:input={(e) => handleNameInput(e, 'lastName')}
 							placeholder="Enter last name"
@@ -848,10 +887,10 @@
 
 					<div class="form-group">
 						<label class="form-label" for="first-name">First Name *</label>
-						<input 
-							type="text" 
+						<input
+							type="text"
 							id="first-name"
-							class="form-input" 
+							class="form-input"
 							bind:value={firstName}
 							on:input={(e) => handleNameInput(e, 'firstName')}
 							placeholder="Enter first name"
@@ -861,10 +900,10 @@
 
 					<div class="form-group">
 						<label class="form-label" for="middle-initial">M.I.</label>
-						<input 
-							type="text" 
+						<input
+							type="text"
 							id="middle-initial"
-							class="form-input" 
+							class="form-input"
 							bind:value={middleInitial}
 							on:input={(e) => handleNameInput(e, 'middleInitial')}
 							placeholder="M"
@@ -877,10 +916,10 @@
 				{#if selectedAccountType === 'student' || selectedAccountType === 'teacher'}
 					<div class="form-group">
 						<label class="form-label" for="email">Email Address *</label>
-						<input 
-							type="email" 
+						<input
+							type="email"
 							id="email"
-							class="form-input" 
+							class="form-input"
 							bind:value={email}
 							placeholder="Enter email address"
 							required
@@ -893,14 +932,14 @@
 					<div class="additional-info-section">
 						<h3 class="section-subtitle">Additional Information</h3>
 						<p class="section-description">Required information for student accounts</p>
-						
+
 						<div class="form-row">
 							<div class="form-group">
 								<label class="form-label" for="birthdate">Birthdate *</label>
-								<input 
-									type="date" 
+								<input
+									type="date"
 									id="birthdate"
-									class="form-input" 
+									class="form-input"
 									bind:value={birthdate}
 									max={getYesterday()}
 									on:blur={(e) => {
@@ -916,10 +955,10 @@
 
 							<div class="form-group">
 								<label class="form-label" for="age">Age</label>
-								<input 
-									type="number" 
+								<input
+									type="number"
 									id="age"
-									class="form-input age-display" 
+									class="form-input age-display"
 									value={calculatedAge}
 									readonly
 									placeholder="Auto-calculated"
@@ -929,9 +968,9 @@
 
 						<div class="form-group">
 							<label class="form-label" for="address">Address *</label>
-							<textarea 
+							<textarea
 								id="address"
-								class="form-input form-textarea" 
+								class="form-input form-textarea"
 								bind:value={address}
 								placeholder="Enter complete address"
 								rows="3"
@@ -942,10 +981,10 @@
 						<div class="form-row">
 							<div class="form-group">
 								<label class="form-label" for="guardian">Guardian/Parent Name *</label>
-								<input 
-									type="text" 
+								<input
+									type="text"
 									id="guardian"
-									class="form-input" 
+									class="form-input"
 									bind:value={guardian}
 									placeholder="Enter guardian/parent name"
 									required
@@ -954,10 +993,10 @@
 
 							<div class="form-group">
 								<label class="form-label" for="contact-number">Guardian's Contact Number *</label>
-								<input 
-									type="tel" 
+								<input
+									type="tel"
 									id="contact-number"
-									class="form-input" 
+									class="form-input"
 									bind:value={contactNumber}
 									on:input={(e) => handleContactNumberInput(e, false)}
 									placeholder="09xxxxxxxxxx"
@@ -972,7 +1011,13 @@
 				<!-- Account Number Info -->
 				<div class="form-group">
 					<div class="form-label">
-						{selectedAccountType === 'student' ? 'Student Number' : selectedAccountType === 'teacher' ? 'Teacher Number' : selectedAccountType === 'admin' ? 'Admin Number' : 'Account Number'}
+						{selectedAccountType === 'student'
+							? 'Student Number'
+							: selectedAccountType === 'teacher'
+								? 'Teacher Number'
+								: selectedAccountType === 'admin'
+									? 'Admin Number'
+									: 'Account Number'}
 					</div>
 					<div class="number-display">
 						{#if selectedAccountType}
@@ -988,16 +1033,27 @@
 							<span class="placeholder-number">Select account type first</span>
 						{/if}
 					</div>
-					<p class="form-help">Account number will be automatically assigned using the lowest available number. Password will be set to the same as the account number.</p>
+					<p class="form-help">
+						Account number will be automatically assigned using the lowest available number.
+						Password will be set to the same as the account number.
+					</p>
 				</div>
 
 				<!-- Submit Button -->
 				<div class="form-actions">
-					<button 
-						type="submit" 
+					<button
+						type="submit"
 						class="account-create-button"
 						class:loading={isCreating}
-						disabled={isCreating || !selectedAccountType || !selectedGender || !firstName || !lastName || ((selectedAccountType === 'student' || selectedAccountType === 'teacher') && !email) || (selectedAccountType === 'student' && (!birthdate || !address || !guardian || !contactNumber))}
+						disabled={isCreating ||
+							!selectedAccountType ||
+							!selectedGender ||
+							!firstName ||
+							!lastName ||
+							((selectedAccountType === 'student' || selectedAccountType === 'teacher') &&
+								!email) ||
+							(selectedAccountType === 'student' &&
+								(!birthdate || !address || !guardian || !contactNumber))}
 					>
 						{#if isCreating}
 							Creating Account...
@@ -1019,24 +1075,24 @@
 					<h2 class="section-title">All Account Creations</h2>
 					<p class="section-subtitle">All accounts in the system</p>
 				</div>
-				
+
 				<!-- Search and Filter Container -->
 				<div class="search-filter-container">
 					<!-- Search Input -->
 					<div class="search-container">
 						<div class="search-input-wrapper">
 							<span class="material-symbols-outlined search-icon">search</span>
-							<input 
-								type="text" 
-								class="search-input" 
+							<input
+								type="text"
+								class="search-input"
 								placeholder="Search accounts by name or number..."
 								bind:value={searchQuery}
 							/>
 							{#if searchQuery}
-								<button 
-									type="button" 
+								<button
+									type="button"
 									class="clear-search-button"
-									on:click={() => searchQuery = ''}
+									on:click={() => (searchQuery = '')}
 								>
 									<span class="material-symbols-outlined">close</span>
 								</button>
@@ -1047,15 +1103,17 @@
 					<!-- Filter Dropdown -->
 					<div class="filter-container">
 						<div class="custom-dropdown" class:open={isFilterDropdownOpen}>
-							<button 
+							<button
 								type="button"
-								class="dropdown-trigger filter-trigger" 
+								class="dropdown-trigger filter-trigger"
 								class:selected={selectedFilter !== 'all'}
 								on:click={toggleFilterDropdown}
 							>
 								{#if selectedFilterObj}
 									<div class="selected-option">
-										<span class="material-symbols-outlined option-icon">{selectedFilterObj.icon}</span>
+										<span class="material-symbols-outlined option-icon"
+											>{selectedFilterObj.icon}</span
+										>
 										<div class="option-content">
 											<span class="option-name">{selectedFilterObj.name}</span>
 										</div>
@@ -1067,9 +1125,9 @@
 							</button>
 							<div class="dropdown-menu">
 								{#each filterOptions as filter (filter.id)}
-									<button 
+									<button
 										type="button"
-										class="dropdown-option" 
+										class="dropdown-option"
 										class:selected={selectedFilter === filter.id}
 										on:click={() => selectFilter(filter)}
 									>
@@ -1089,293 +1147,328 @@
 		<div class="accounts-grid">
 			{#if isLoadingAccounts}
 				<div class="loading-container">
-						<span class="account-loader"></span>
+					<span class="account-loader"></span>
 					<p class="loading-text">Loading accounts...</p>
 				</div>
 			{:else}
 				{#each filteredAccounts as account (account.id)}
-			<div class="account-card" id="account-card-{account.id}">
-				<div class="account-card-header">
-					<div class="account-title">
-						<h3 class="account-name">{account.name} · {account.type}</h3>
-					</div>
-					<div class="account-action-buttons">
-						<a href="#account-card-{account.id}">
-							<button 
-								type="button"
-								class="account-edit-button"
-								title="{editingAccountId === account.id ? 'Cancel Edit' : 'Edit Account'}"
-								on:click={() => toggleEditForm(account)}
-							>
-								<span class="material-symbols-outlined">{editingAccountId === account.id ? 'close' : 'edit'}</span>
-							</button>
-						</a>
-						<button 
-							type="button"
-							class="account-remove-button"
-							title="Remove Account"
-							on:click={() => handleRemoveAccount(account)}
-						>
-							<span class="material-symbols-outlined">delete</span>
-						</button>
-					</div>
-				</div>
-				
-				<div class="account-details">
-					<div class="account-detail-item">
-						<span class="material-symbols-outlined">{account.type === 'Student' ? 'school' : account.type === 'Teacher' ? 'person' : 'admin_panel_settings'}</span>
-						<span>{account.number}</span>
-					</div>
-					<div class="account-detail-item">
-						<span class="material-symbols-outlined">badge</span>
-						<span>{account.type} Account</span>
-					</div>
-					{#if account.type === 'Student' && account.gradeLevel}
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">school</span>
-							<span>Grade {account.gradeLevel}</span>
-						</div>
-					{/if}
-					{#if account.type === 'Student' && account.age}
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">cake</span>
-							<span>Age: {account.age}</span>
-						</div>
-					{/if}
-					{#if account.type === 'Student' && account.guardian}
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">family_restroom</span>
-							<span>Guardian: {account.guardian}</span>
-						</div>
-					{/if}
-					{#if account.type === 'Student' && account.contactNumber}
-						<div class="account-detail-item">
-							<span class="material-symbols-outlined">phone</span>
-							<span>Contact: {account.contactNumber}</span>
-						</div>
-					{/if}
-					<div class="account-detail-item">
-						<span class="material-symbols-outlined">calendar_today</span>
-						<span>Created: {account.createdDate}</span>
-					</div>
-					<div class="account-detail-item">
-						<span class="material-symbols-outlined">update</span>
-						<span>Updated: {account.updatedDate}</span>
-					</div>
-				</div>
-
-				<!-- Edit Form (shown when editing this account) -->
-				{#if editingAccountId === account.id}
-					<div class="edit-form-section">
-						<div class="edit-form-container">
-							<div class="edit-form-header">
-								<h4 class="edit-form-title">Edit Account Information</h4>
-								<p class="edit-form-subtitle">Update the name information for this account</p>
+					<div class="account-card" id="account-card-{account.id}">
+						<div class="account-card-header">
+							<div class="account-title">
+								<h3 class="account-name">{account.name} · {account.type}</h3>
 							</div>
-							
-							<form on:submit|preventDefault={handleEditAccount} class="edit-form-content">
-								<div class="edit-name-fields-row">
-									<div class="form-group">
-										<label class="form-label" for="edit-last-name-{account.id}">Last Name *</label>
-										<input 
-											type="text" 
-											id="edit-last-name-{account.id}"
-											class="form-input" 
-											bind:value={editLastName}
-											on:input={(e) => handleNameInput(e, 'lastName', true)}
-											placeholder="Enter last name"
-											required
-										/>
-									</div>
-
-									<div class="form-group">
-										<label class="form-label" for="edit-first-name-{account.id}">First Name *</label>
-										<input 
-											type="text" 
-											id="edit-first-name-{account.id}"
-											class="form-input" 
-											bind:value={editFirstName}
-											on:input={(e) => handleNameInput(e, 'firstName', true)}
-											placeholder="Enter first name"
-											required
-										/>
-									</div>
-
-									<div class="form-group">
-										<label class="form-label" for="edit-middle-initial-{account.id}">M.I.</label>
-										<input 
-											type="text" 
-											id="edit-middle-initial-{account.id}"
-											class="form-input" 
-											bind:value={editMiddleInitial}
-											on:input={(e) => handleNameInput(e, 'middleInitial', true)}
-											placeholder="M"
-											maxlength="1"
-										/>
-									</div>
-								</div>
-
-								<!-- Grade Level field for student accounts only -->
-								{#if account.type.toLowerCase() === 'student'}
-									<div class="form-group">
-										<label class="form-label" for="edit-grade-level-{account.id}">Grade Level</label>
-										<div class="custom-dropdown" class:open={isEditGradeLevelDropdownOpen}>
-											<button 
-												type="button"
-												class="dropdown-trigger" 
-												class:selected={editGradeLevel}
-												on:click={toggleEditGradeLevelDropdown}
-												id="edit-grade-level-{account.id}"
-											>
-												{#if selectedEditGradeLevelObj}
-													<div class="selected-option">
-														<span class="material-symbols-outlined option-icon">{selectedEditGradeLevelObj.icon}</span>
-														<div class="option-content">
-															<span class="option-name">{selectedEditGradeLevelObj.name}</span>
-														</div>
-													</div>
-												{:else}
-													<span class="placeholder">Select grade level</span>
-												{/if}
-												<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-											</button>
-											<div class="dropdown-menu">
-												{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
-													<button 
-														type="button"
-														class="dropdown-option" 
-														class:selected={editGradeLevel === gradeLevel.id}
-														on:click={() => selectEditGradeLevel(gradeLevel)}
-													>
-														<span class="material-symbols-outlined option-icon">{gradeLevel.icon}</span>
-														<div class="option-content">
-															<span class="option-name">{gradeLevel.name}</span>
-														</div>
-													</button>
-												{/each}
-											</div>
-										</div>
-									</div>
-
-									<!-- Additional Information for Student Edit -->
-									<div class="additional-info-section">
-										<h4 class="section-subtitle">Additional Information</h4>
-										<p class="section-description">Update student additional information</p>
-										
-										<div class="form-row">
-											<div class="form-group">
-												<label class="form-label" for="edit-birthdate-{account.id}">Birthdate *</label>
-												<input 
-													type="date" 
-													id="edit-birthdate-{account.id}"
-													class="form-input" 
-													bind:value={editBirthdate}
-													max={getYesterday()}
-													on:blur={(e) => {
-														if (editBirthdate && !validateDate(editBirthdate)) {
-															toastStore.error('Invalid date. Please enter a valid date.');
-															editBirthdate = '';
-															e.target.value = '';
-														}
-													}}
-													required
-												/>
-											</div>
-
-											<div class="form-group">
-												<label class="form-label" for="edit-age-{account.id}">Age</label>
-												<input 
-													type="number" 
-													id="edit-age-{account.id}"
-													class="form-input age-display" 
-													value={editCalculatedAge}
-													readonly
-													placeholder="Auto-calculated"
-												/>
-											</div>
-										</div>
-
-										<div class="form-group">
-											<label class="form-label" for="edit-address-{account.id}">Address *</label>
-											<textarea 
-												id="edit-address-{account.id}"
-												class="form-input form-textarea" 
-												bind:value={editAddress}
-												placeholder="Enter complete address"
-												rows="3"
-												required
-											></textarea>
-										</div>
-
-										<div class="form-row">
-											<div class="form-group">
-												<label class="form-label" for="edit-guardian-{account.id}">Guardian/Parent Name *</label>
-												<input 
-													type="text" 
-													id="edit-guardian-{account.id}"
-													class="form-input" 
-													bind:value={editGuardian}
-													placeholder="Enter guardian/parent name"
-													required
-												/>
-											</div>
-
-											<div class="form-group">
-												<label class="form-label" for="edit-contact-number-{account.id}">Guardian's Contact Number *</label>
-												<input 
-													type="tel" 
-													id="edit-contact-number-{account.id}"
-													class="form-input" 
-													bind:value={editContactNumber}
-													on:input={(e) => handleContactNumberInput(e, true)}
-													placeholder="09xxxxxxxxxx"
-													maxlength="11"
-													required
-												/>
-											</div>
-										</div>
-									</div>
-								{/if}
-
-								<div class="edit-form-actions">
-									<a href="#account-card-{account.id}">
-										<button 
-											type="button" 
-											class="account-cancel-button"
-											on:click={() => toggleEditForm(account)}
-										>
-											Cancel
-										</button>
-									</a>
-									<button 
-										type="submit" 
-										class="account-submit-button"
-										class:loading={isUpdating}
-										disabled={isUpdating || !editFirstName || !editLastName || (currentAccount && currentAccount.type.toLowerCase() === 'student' && (!editBirthdate || !editAddress || !editGuardian || !editContactNumber))}
+							<div class="account-action-buttons">
+								<a href="#account-card-{account.id}">
+									<button
+										type="button"
+										class="account-edit-button"
+										title={editingAccountId === account.id ? 'Cancel Edit' : 'Edit Account'}
+										on:click={() => toggleEditForm(account)}
 									>
-										{#if isUpdating}
-											Updating...
-										{:else}
-											Update Account
-										{/if}
+										<span class="material-symbols-outlined"
+											>{editingAccountId === account.id ? 'close' : 'edit'}</span
+										>
 									</button>
-								</div>
-							</form>
+								</a>
+								<button
+									type="button"
+									class="account-remove-button"
+									title="Remove Account"
+									on:click={() => handleRemoveAccount(account)}
+								>
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
 						</div>
+
+						<div class="account-details">
+							<div class="account-detail-item">
+								<span class="material-symbols-outlined"
+									>{account.type === 'Student'
+										? 'school'
+										: account.type === 'Teacher'
+											? 'person'
+											: 'admin_panel_settings'}</span
+								>
+								<span>{account.number}</span>
+							</div>
+							<div class="account-detail-item">
+								<span class="material-symbols-outlined">badge</span>
+								<span>{account.type} Account</span>
+							</div>
+							{#if account.type === 'Student' && account.gradeLevel}
+								<div class="account-detail-item">
+									<span class="material-symbols-outlined">school</span>
+									<span>Grade {account.gradeLevel}</span>
+								</div>
+							{/if}
+							{#if account.type === 'Student' && account.age}
+								<div class="account-detail-item">
+									<span class="material-symbols-outlined">cake</span>
+									<span>Age: {account.age}</span>
+								</div>
+							{/if}
+							{#if account.type === 'Student' && account.guardian}
+								<div class="account-detail-item">
+									<span class="material-symbols-outlined">family_restroom</span>
+									<span>Guardian: {account.guardian}</span>
+								</div>
+							{/if}
+							{#if account.type === 'Student' && account.contactNumber}
+								<div class="account-detail-item">
+									<span class="material-symbols-outlined">phone</span>
+									<span>Contact: {account.contactNumber}</span>
+								</div>
+							{/if}
+							<div class="account-detail-item">
+								<span class="material-symbols-outlined">calendar_today</span>
+								<span>Created: {account.createdDate}</span>
+							</div>
+							<div class="account-detail-item">
+								<span class="material-symbols-outlined">update</span>
+								<span>Updated: {account.updatedDate}</span>
+							</div>
+						</div>
+
+						<!-- Edit Form (shown when editing this account) -->
+						{#if editingAccountId === account.id}
+							<div class="edit-form-section">
+								<div class="edit-form-container">
+									<div class="edit-form-header">
+										<h4 class="edit-form-title">Edit Account Information</h4>
+										<p class="edit-form-subtitle">Update the name information for this account</p>
+									</div>
+
+									<form on:submit|preventDefault={handleEditAccount} class="edit-form-content">
+										<div class="edit-name-fields-row">
+											<div class="form-group">
+												<label class="form-label" for="edit-last-name-{account.id}"
+													>Last Name *</label
+												>
+												<input
+													type="text"
+													id="edit-last-name-{account.id}"
+													class="form-input"
+													bind:value={editLastName}
+													on:input={(e) => handleNameInput(e, 'lastName', true)}
+													placeholder="Enter last name"
+													required
+												/>
+											</div>
+
+											<div class="form-group">
+												<label class="form-label" for="edit-first-name-{account.id}"
+													>First Name *</label
+												>
+												<input
+													type="text"
+													id="edit-first-name-{account.id}"
+													class="form-input"
+													bind:value={editFirstName}
+													on:input={(e) => handleNameInput(e, 'firstName', true)}
+													placeholder="Enter first name"
+													required
+												/>
+											</div>
+
+											<div class="form-group">
+												<label class="form-label" for="edit-middle-initial-{account.id}">M.I.</label
+												>
+												<input
+													type="text"
+													id="edit-middle-initial-{account.id}"
+													class="form-input"
+													bind:value={editMiddleInitial}
+													on:input={(e) => handleNameInput(e, 'middleInitial', true)}
+													placeholder="M"
+													maxlength="1"
+												/>
+											</div>
+										</div>
+
+										<!-- Grade Level field for student accounts only -->
+										{#if account.type.toLowerCase() === 'student'}
+											<div class="form-group">
+												<label class="form-label" for="edit-grade-level-{account.id}"
+													>Grade Level</label
+												>
+												<div class="custom-dropdown" class:open={isEditGradeLevelDropdownOpen}>
+													<button
+														type="button"
+														class="dropdown-trigger"
+														class:selected={editGradeLevel}
+														on:click={toggleEditGradeLevelDropdown}
+														id="edit-grade-level-{account.id}"
+													>
+														{#if selectedEditGradeLevelObj}
+															<div class="selected-option">
+																<span class="material-symbols-outlined option-icon"
+																	>{selectedEditGradeLevelObj.icon}</span
+																>
+																<div class="option-content">
+																	<span class="option-name">{selectedEditGradeLevelObj.name}</span>
+																</div>
+															</div>
+														{:else}
+															<span class="placeholder">Select grade level</span>
+														{/if}
+														<span class="material-symbols-outlined dropdown-arrow">expand_more</span
+														>
+													</button>
+													<div class="dropdown-menu">
+														{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
+															<button
+																type="button"
+																class="dropdown-option"
+																class:selected={editGradeLevel === gradeLevel.id}
+																on:click={() => selectEditGradeLevel(gradeLevel)}
+															>
+																<span class="material-symbols-outlined option-icon"
+																	>{gradeLevel.icon}</span
+																>
+																<div class="option-content">
+																	<span class="option-name">{gradeLevel.name}</span>
+																</div>
+															</button>
+														{/each}
+													</div>
+												</div>
+											</div>
+
+											<!-- Additional Information for Student Edit -->
+											<div class="additional-info-section">
+												<h4 class="section-subtitle">Additional Information</h4>
+												<p class="section-description">Update student additional information</p>
+
+												<div class="form-row">
+													<div class="form-group">
+														<label class="form-label" for="edit-birthdate-{account.id}"
+															>Birthdate *</label
+														>
+														<input
+															type="date"
+															id="edit-birthdate-{account.id}"
+															class="form-input"
+															bind:value={editBirthdate}
+															max={getYesterday()}
+															on:blur={(e) => {
+																if (editBirthdate && !validateDate(editBirthdate)) {
+																	toastStore.error('Invalid date. Please enter a valid date.');
+																	editBirthdate = '';
+																	e.target.value = '';
+																}
+															}}
+															required
+														/>
+													</div>
+
+													<div class="form-group">
+														<label class="form-label" for="edit-age-{account.id}">Age</label>
+														<input
+															type="number"
+															id="edit-age-{account.id}"
+															class="form-input age-display"
+															value={editCalculatedAge}
+															readonly
+															placeholder="Auto-calculated"
+														/>
+													</div>
+												</div>
+
+												<div class="form-group">
+													<label class="form-label" for="edit-address-{account.id}">Address *</label
+													>
+													<textarea
+														id="edit-address-{account.id}"
+														class="form-input form-textarea"
+														bind:value={editAddress}
+														placeholder="Enter complete address"
+														rows="3"
+														required
+													></textarea>
+												</div>
+
+												<div class="form-row">
+													<div class="form-group">
+														<label class="form-label" for="edit-guardian-{account.id}"
+															>Guardian/Parent Name *</label
+														>
+														<input
+															type="text"
+															id="edit-guardian-{account.id}"
+															class="form-input"
+															bind:value={editGuardian}
+															placeholder="Enter guardian/parent name"
+															required
+														/>
+													</div>
+
+													<div class="form-group">
+														<label class="form-label" for="edit-contact-number-{account.id}"
+															>Guardian's Contact Number *</label
+														>
+														<input
+															type="tel"
+															id="edit-contact-number-{account.id}"
+															class="form-input"
+															bind:value={editContactNumber}
+															on:input={(e) => handleContactNumberInput(e, true)}
+															placeholder="09xxxxxxxxxx"
+															maxlength="11"
+															required
+														/>
+													</div>
+												</div>
+											</div>
+										{/if}
+
+										<div class="edit-form-actions">
+											<a href="#account-card-{account.id}">
+												<button
+													type="button"
+													class="account-cancel-button"
+													on:click={() => toggleEditForm(account)}
+												>
+													Cancel
+												</button>
+											</a>
+											<button
+												type="submit"
+												class="account-submit-button"
+												class:loading={isUpdating}
+												disabled={isUpdating ||
+													!editFirstName ||
+													!editLastName ||
+													(currentAccount &&
+														currentAccount.type.toLowerCase() === 'student' &&
+														(!editBirthdate ||
+															!editAddress ||
+															!editGuardian ||
+															!editContactNumber))}
+											>
+												{#if isUpdating}
+													Updating...
+												{:else}
+													Update Account
+												{/if}
+											</button>
+										</div>
+									</form>
+								</div>
+							</div>
+						{/if}
 					</div>
-				{/if}
-			</div>
-		{:else}
-			<div class="no-results">
-				<span class="material-symbols-outlined no-results-icon">group_off</span>
-				{#if recentAccounts.length === 0}
-					<p>No accounts created yet.</p>
 				{:else}
-					<p>No accounts found matching your search or filter.</p>
-				{/if}
-			</div>
-		{/each}
-		{/if}
+					<div class="no-results">
+						<span class="material-symbols-outlined no-results-icon">group_off</span>
+						{#if recentAccounts.length === 0}
+							<p>No accounts created yet.</p>
+						{:else}
+							<p>No accounts found matching your search or filter.</p>
+						{/if}
+					</div>
+				{/each}
+			{/if}
 		</div>
 	</div>
 </div>
