@@ -1367,24 +1367,11 @@
 			</div>
 		{:else}
 			<div class="no-results">
-				<span class="material-symbols-outlined no-results-icon">
-					{searchQuery ? 'search_off' : 'person_off'}
-				</span>
-				<p>
-					{#if searchQuery}
-						No accounts found matching "{searchQuery}".
-					{:else}
-						No {selectedFilter === 'all' ? '' : selectedFilterObj?.name.toLowerCase() || ''} accounts found.
-					{/if}
-				</p>
-				{#if searchQuery}
-					<button 
-						type="button" 
-						class="clear-search-button-inline"
-						on:click={() => searchQuery = ''}
-					>
-						Clear search
-					</button>
+				<span class="material-symbols-outlined no-results-icon">group_off</span>
+				{#if recentAccounts.length === 0}
+					<p>No accounts created yet.</p>
+				{:else}
+					<p>No accounts found matching your search or filter.</p>
 				{/if}
 			</div>
 		{/each}

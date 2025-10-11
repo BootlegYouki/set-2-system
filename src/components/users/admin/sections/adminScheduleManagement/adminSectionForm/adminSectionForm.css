@@ -1216,28 +1216,24 @@
 
 /* Empty State Styles */
 .sectionmgmt-sections-empty {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	margin: auto;
-	padding: var(--spacing-xl);
 	text-align: center;
+	padding: var(--spacing-xl);
+	color: var(--md-sys-color-on-surface-variant);
+	border: 2px dashed var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
-	gap: var(--spacing-md);
-	width: 60%;
-	min-height: 200px;
+	margin-top: var(--spacing-lg);
 }
 
 .sectionmgmt-sections-empty .material-symbols-outlined {
 	font-size: 48px;
-	color: var(--md-sys-color-outline);
+	margin-bottom: var(--spacing-md);
+	display: block;
 }
 
 .sectionmgmt-sections-empty p {
 	font-family: var(--md-sys-typescale-body-medium-font);
 	font-size: var(--md-sys-typescale-body-medium-size);
-	color: var(--md-sys-color-on-surface-variant);
+	margin: 0;
 	margin: 0;
 }
 

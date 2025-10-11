@@ -1146,14 +1146,17 @@
 /* Empty State */
 .dept-mgmt-empty-state {
 	text-align: center;
-	padding: var(--spacing-xxl);
+	padding: var(--spacing-xl);
 	color: var(--md-sys-color-on-surface-variant);
+	border: 2px dashed var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-lg);
+	margin-top: var(--spacing-lg);
 }
 
 .dept-mgmt-empty-icon {
-	font-size: 64px;
-	margin-bottom: var(--spacing-lg);
-	opacity: 0.6;
+	font-size: 48px;
+	margin-bottom: var(--spacing-md);
+	display: block;
 }
 
 .dept-mgmt-empty-title {

@@ -428,14 +428,6 @@
 						No students found in the system.
 					{/if}
 				</p>
-				{#if searchQuery || selectedGradeLevel || selectedSection}
-					<button 
-						type="button" 
-						class="clear-search-button-inline"
-						on:click={clearFilters}
-					>Clear
-					</button>
-				{/if}
 			</div>
 		{/if}
 	</div>
