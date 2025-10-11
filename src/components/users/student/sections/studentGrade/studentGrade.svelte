@@ -362,10 +362,10 @@
 								<!-- Column 2: Subject Details -->
 								<div class="subject-details-column">
 									<h3 class="subject-name" style="color: {cardColors.text};">{subject.name}</h3>
-									<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher assigned yet"}>{subject.teacher}</p>
+									<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher"}>{subject.teacher}</p>
 									<div class="progress-bar">
-										{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified) > 0}
-											<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}%; background-color: {cardColors.border}"></div>
+										{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified) > 0}
+											<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}%; background-color: {cardColors.border}"></div>
 										{/if}
 									</div>
 								</div>
@@ -373,10 +373,10 @@
 								<!-- Column 3: Grade Display -->
 								<div class="grade-column">
 									<div class="grade-large" style="color: {getGradeColor(subject.numericGrade)}">
-										{#if subject.numericGrade > 0 && subject.teacher !== "No teacher assigned yet" && subject.verified}
+										{#if subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified}
 											<CountUp value={subject.numericGrade} decimals={1} duration={2.5} />
 										{:else}
-											{formatGrade(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}
+											{formatGrade(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}
 										{/if}
 										{#if subject.numericGrade > 0 && !subject.verified}
 											<span class="unverified-indicator" title="Grade not yet verified">*</span>

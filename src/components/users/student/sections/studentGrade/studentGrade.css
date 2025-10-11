@@ -594,11 +594,6 @@
   align-items: center;
 }
 
-.subject-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
 /* Column 1: Icon */
 .subject-icon-column {
   display: flex;
@@ -666,7 +661,7 @@
 
 /* Large Grade Display */
 .grade-large {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 600;
   text-align: center;
   min-width: 60px;

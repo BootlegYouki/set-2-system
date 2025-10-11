@@ -112,7 +112,7 @@ export async function GET({ url, request }) {
         subject_id: subject._id,
         subject_name: subject.name,
         subject_code: subject.code,
-        teacher_name: teacher ? teacher.full_name : 'No teacher assigned yet',
+        teacher_name: teacher ? teacher.full_name : 'No teacher',
         final_grade: isVerified ? (gradeData.averages?.final_grade || 0) : 0,
         written_work_avg: isVerified ? (gradeData.averages?.written_work || 0) : 0,
         performance_tasks_avg: isVerified ? (gradeData.averages?.performance_tasks || 0) : 0,
