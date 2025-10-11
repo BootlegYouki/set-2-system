@@ -662,15 +662,11 @@
 		isSubmitting = true;
 
 		try {
-			const promises = selectedDays.map((dayId) => {
+			const promises = selectedDays.map(async (dayId) => {
 				const dayName = days.find((d) => d.id === dayId)?.name.toLowerCase();
 
-				return fetch('/api/schedules', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
+				try {
+					const result = await api.post('/api/schedules', {
 						sectionId: selectedFormSection,
 						dayOfWeek: dayName,
 						startTime: formData.startTime,
@@ -680,12 +676,16 @@
 						activityTypeId: formData.scheduleType === 'activity' ? formData.activityTypeId : null,
 						teacherId: formData.teacherId || null,
 						schoolYear: '2024-2025'
-					})
-				});
+					});
+					return result;
+				} catch (error) {
+					// Convert error response to result format
+					console.error('API Error:', error);
+					return { success: false, error: error.message || 'Failed to create schedule' };
+				}
 			});
 
-			const responses = await Promise.all(promises);
-			const results = await Promise.all(responses.map((r) => r.json()));
+			const results = await Promise.all(promises);
 
 			const failedResults = results.filter((r) => !r.success);
 			const successfulResults = results.filter((r) => r.success);
@@ -1264,13 +1264,6 @@
 												<div class="scheduleassign-time-error">
 													<span class="material-symbols-outlined">error</span>
 													<span>{timeValidationMessage}</span>
-												</div>
-											{:else if isCheckingConflicts}
-												<div class="scheduleassign-time-checking">
-													<span class="material-symbols-outlined checking-icon"
-														>hourglass_empty</span
-													>
-													<span>Checking for conflicts...</span>
 												</div>
 											{:else if calculatedDuration}
 												<div class="scheduleassign-time-duration">

@@ -89,15 +89,15 @@
   
   // Reactive class information using Svelte 5 runes
   let classInfo = $derived(sectionData ? {
-    yearLevel: sectionData.section.gradeLevel,
-    sectionName: sectionData.section.name,
-    gradeName: `Grade ${sectionData.section.gradeLevel}`,
+    yearLevel: sectionData.section.grade_level,
+    sectionName: sectionData.section.section_name,
+    gradeName: `Grade ${sectionData.section.grade_level}`,
     subject: activeSubject?.name || "No Subject",
-    section: `Grade ${sectionData.section.gradeLevel} - ${sectionData.section.name}`,
+    section: `Grade ${sectionData.section.grade_level} - ${sectionData.section.section_name}`,
     quarter: "1st Quarter",
-    totalStudents: sectionData.totalStudents,
-    adviser: sectionData.section.adviser,
-    room: sectionData.section.room
+    totalStudents: sectionData.students?.length || 0,
+    adviser: `${sectionData.section.adviser_first_name || ''} ${sectionData.section.adviser_last_name || ''}`.trim() || 'No Adviser',
+    room: sectionData.section.room_name || 'No Room'
   } : selectedClass ? {
     yearLevel: selectedClass.yearLevel,
     sectionName: selectedClass.sectionName,

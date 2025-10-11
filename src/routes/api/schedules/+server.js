@@ -898,26 +898,49 @@ export async function POST({ request, getClientAddress }) {
 
             // Log activity
             try {
-                const user = getUserFromRequest(request);
+                // Get user info from request headers (matching rooms API pattern)
+                const user = await getUserFromRequest(request);
+                console.log('Schedule Creation - User from request:', user);
+                console.log('Schedule Creation - All headers:', Object.fromEntries(request.headers.entries()));
+                console.log('Schedule Creation - x-user-info header:', request.headers.get('x-user-info'));
                 
-                // Only log activity if user is authenticated
-                if (user && user.account_number) {
-                    await logActivityWithUser(
-                        'schedule_created',
-                        user,
-                        {
-                            schedule_id: result.insertedId.toString(),
-                            section_id: scheduleDoc.section_id.toString(),
-                            day_of_week: scheduleDoc.day_of_week,
-                            start_time: scheduleDoc.start_time,
-                            end_time: scheduleDoc.end_time,
-                            schedule_type: scheduleDoc.schedule_type,
-                            school_year: scheduleDoc.school_year
-                        },
-                        clientIP,
-                        userAgent
-                    );
-                }
+                // Get client IP and user agent (matching rooms API pattern)
+                const ip_address = getClientAddress();
+                const user_agent = request.headers.get('user-agent');
+                
+                // Get human-readable names for logging
+                const [section, subject, activityType, teacher] = await Promise.all([
+                    db.collection('sections').findOne({ _id: scheduleDoc.section_id }, { projection: { name: 1, grade_level: 1 } }),
+                    scheduleDoc.subject_id ? db.collection('subjects').findOne({ _id: scheduleDoc.subject_id }, { projection: { name: 1, code: 1 } }) : null,
+                    scheduleDoc.activity_type_id ? db.collection('activity_types').findOne({ _id: scheduleDoc.activity_type_id }, { projection: { name: 1 } }) : null,
+                    scheduleDoc.teacher_id ? db.collection('users').findOne({ _id: scheduleDoc.teacher_id }, { projection: { full_name: 1, account_number: 1 } }) : null
+                ]);
+
+                // Create activity log with proper structure and readable names
+                const activityCollection = db.collection('activity_logs');
+                await activityCollection.insertOne({
+                    activity_type: 'schedule_created',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.account_number || null,
+                    activity_data: {
+                        schedule_id: result.insertedId.toString(),
+                        section_name: section?.name || 'Unknown Section',
+                        grade_level: section?.grade_level || null,
+                        day_of_week: scheduleDoc.day_of_week,
+                        start_time: scheduleDoc.start_time,
+                        end_time: scheduleDoc.end_time,
+                        schedule_type: scheduleDoc.schedule_type,
+                        subject_name: subject?.name || null,
+                        subject_code: subject?.code || null,
+                        activity_type_name: activityType?.name || null,
+                        teacher_name: teacher?.full_name || null,
+                        teacher_account_number: teacher?.account_number || null,
+                        school_year: scheduleDoc.school_year
+                    },
+                    ip_address: ip_address,
+                    user_agent: user_agent,
+                    created_at: new Date()
+                });
             } catch (logError) {
                 console.error('Error logging activity:', logError);
                 // Don't fail the request if logging fails
@@ -937,6 +960,249 @@ export async function POST({ request, getClientAddress }) {
         console.error('Error creating schedule:', error);
         console.error('Error stack:', error.stack);
         return json({ success: false, error: 'Failed to create schedule', details: error.message }, { status: 500 });
+    }
+}
+
+// PUT - Update schedule
+export async function PUT({ request, getClientAddress }) {
+    try {
+        const data = await request.json();
+        const { 
+            scheduleId,
+            sectionId, 
+            dayOfWeek, 
+            startTime, 
+            endTime, 
+            scheduleType, 
+            subjectId, 
+            activityTypeId, 
+            teacherId, 
+            schoolYear 
+        } = data;
+
+        const clientIP = getClientAddress();
+        const userAgent = request.headers.get('user-agent');
+
+        // Validate required fields
+        if (!scheduleId || !sectionId || !dayOfWeek || !startTime || !endTime || !scheduleType || !schoolYear) {
+            return json({ success: false, error: 'Missing required fields' }, { status: 400 });
+        }
+
+        // Validate schedule type and corresponding reference
+        if (scheduleType === 'subject' && !subjectId) {
+            return json({ success: false, error: 'Subject ID is required for subject schedules' }, { status: 400 });
+        }
+        if (scheduleType === 'activity' && !activityTypeId) {
+            return json({ success: false, error: 'Activity Type ID is required for activity schedules' }, { status: 400 });
+        }
+
+        const db = await connectToDatabase();
+
+        // Check if schedule exists
+        const existingSchedule = await db.collection('schedules').findOne({ _id: new ObjectId(scheduleId) });
+        if (!existingSchedule) {
+            return json({ success: false, error: 'Schedule not found' }, { status: 404 });
+        }
+
+        // Check for time conflicts within the same section (excluding current schedule)
+        const conflictQuery = {
+            _id: { $ne: new ObjectId(scheduleId) },
+            section_id: new ObjectId(sectionId),
+            day_of_week: dayOfWeek,
+            school_year: schoolYear,
+            $or: [
+                {
+                    $and: [
+                        { start_time: { $lte: startTime } },
+                        { end_time: { $gt: startTime } }
+                    ]
+                },
+                {
+                    $and: [
+                        { start_time: { $lt: endTime } },
+                        { end_time: { $gte: endTime } }
+                    ]
+                },
+                {
+                    $and: [
+                        { start_time: { $gte: startTime } },
+                        { end_time: { $lte: endTime } }
+                    ]
+                }
+            ]
+        };
+
+        const conflictingSchedule = await db.collection('schedules').findOne(conflictQuery);
+
+        if (conflictingSchedule) {
+            return json({ 
+                success: false, 
+                error: 'Time conflict detected with existing schedule in this section',
+                conflictingSchedule: {
+                    id: conflictingSchedule._id,
+                    start_time: conflictingSchedule.start_time,
+                    end_time: conflictingSchedule.end_time
+                }
+            }, { status: 409 });
+        }
+
+        // Check for teacher conflicts across different sections (if teacher is assigned)
+        if (teacherId) {
+            const teacherConflictQuery = {
+                _id: { $ne: new ObjectId(scheduleId) },
+                teacher_id: new ObjectId(teacherId),
+                day_of_week: dayOfWeek,
+                school_year: schoolYear,
+                section_id: { $ne: new ObjectId(sectionId) },
+                $or: [
+                    {
+                        $and: [
+                            { start_time: { $lte: startTime } },
+                            { end_time: { $gt: startTime } }
+                        ]
+                    },
+                    {
+                        $and: [
+                            { start_time: { $lt: endTime } },
+                            { end_time: { $gte: endTime } }
+                        ]
+                    },
+                    {
+                        $and: [
+                            { start_time: { $gte: startTime } },
+                            { end_time: { $lte: endTime } }
+                        ]
+                    }
+                ]
+            };
+
+            const teacherConflict = await db.collection('schedules').aggregate([
+                { $match: teacherConflictQuery },
+                {
+                    $lookup: {
+                        from: 'sections',
+                        localField: 'section_id',
+                        foreignField: '_id',
+                        as: 'section'
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'teacher_id',
+                        foreignField: '_id',
+                        as: 'teacher'
+                    }
+                },
+                {
+                    $project: {
+                        id: '$_id',
+                        start_time: 1,
+                        end_time: 1,
+                        section_id: 1,
+                        section_name: { $arrayElemAt: ['$section.name', 0] },
+                        grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                        teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] }
+                    }
+                }
+            ]).toArray();
+
+            if (teacherConflict.length > 0) {
+                const conflict = teacherConflict[0];
+                return json({ 
+                    success: false, 
+                    error: `Teacher conflict detected: ${conflict.teacher_name} is already scheduled to teach ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${dayOfWeek}`,
+                    conflictType: 'teacher_conflict',
+                    conflictingSchedule: conflict
+                }, { status: 409 });
+            }
+        }
+
+        // Update schedule document
+        const updateData = {
+            section_id: new ObjectId(sectionId),
+            day_of_week: dayOfWeek,
+            start_time: startTime,
+            end_time: endTime,
+            schedule_type: scheduleType,
+            subject_id: subjectId ? new ObjectId(subjectId) : null,
+            activity_type_id: activityTypeId ? new ObjectId(activityTypeId) : null,
+            teacher_id: teacherId ? new ObjectId(teacherId) : null,
+            school_year: schoolYear,
+            updated_at: new Date()
+        };
+
+        await db.collection('schedules').updateOne(
+            { _id: new ObjectId(scheduleId) },
+            { $set: updateData }
+        );
+
+        // Log activity
+        try {
+            // Get user info from request headers (matching rooms API pattern)
+            const user = await getUserFromRequest(request);
+            
+            // Get human-readable names for logging
+            const [section, subject, activityType, teacher] = await Promise.all([
+                db.collection('sections').findOne({ _id: updateData.section_id }, { projection: { name: 1, grade_level: 1 } }),
+                updateData.subject_id ? db.collection('subjects').findOne({ _id: updateData.subject_id }, { projection: { name: 1, code: 1 } }) : null,
+                updateData.activity_type_id ? db.collection('activity_types').findOne({ _id: updateData.activity_type_id }, { projection: { name: 1 } }) : null,
+                updateData.teacher_id ? db.collection('users').findOne({ _id: updateData.teacher_id }, { projection: { full_name: 1, account_number: 1 } }) : null
+            ]);
+
+            // Create activity log with proper structure and readable names
+            const activityCollection = db.collection('activity_logs');
+            await activityCollection.insertOne({
+                activity_type: 'schedule_updated',
+                user_id: user?.id ? new ObjectId(user.id) : null,
+                user_account_number: user?.account_number || null,
+                activity_data: {
+                    schedule_id: scheduleId,
+                    section_name: section?.name || 'Unknown Section',
+                    grade_level: section?.grade_level || null,
+                    day_of_week: updateData.day_of_week,
+                    start_time: updateData.start_time,
+                    end_time: updateData.end_time,
+                    schedule_type: updateData.schedule_type,
+                    subject_name: subject?.name || null,
+                    subject_code: subject?.code || null,
+                    activity_type_name: activityType?.name || null,
+                    teacher_name: teacher?.full_name || null,
+                    teacher_account_number: teacher?.account_number || null,
+                    school_year: updateData.school_year
+                },
+                ip_address: clientIP,
+                user_agent: userAgent,
+                created_at: new Date()
+            });
+        } catch (logError) {
+            console.error('Error logging activity:', logError);
+            // Don't fail the request if logging fails
+        }
+
+        const updatedSchedule = {
+            id: scheduleId,
+            section_id: updateData.section_id,
+            day_of_week: updateData.day_of_week,
+            start_time: updateData.start_time,
+            end_time: updateData.end_time,
+            schedule_type: updateData.schedule_type,
+            subject_id: updateData.subject_id,
+            activity_type_id: updateData.activity_type_id,
+            teacher_id: updateData.teacher_id,
+            school_year: updateData.school_year,
+            updated_at: updateData.updated_at
+        };
+
+        return json({
+            success: true,
+            message: 'Schedule updated successfully',
+            data: updatedSchedule
+        });
+
+    } catch (error) {
+        console.error('Error updating schedule:', error);
+        return json({ success: false, error: 'Failed to update schedule', details: error.message }, { status: 500 });
     }
 }
 
@@ -965,24 +1231,41 @@ export async function DELETE({ url, request, getClientAddress }) {
 
             // Log activity
             try {
-                const user = getUserFromRequest(request);
+                // Get user info from request headers (matching rooms API pattern)
+                const user = await getUserFromRequest(request);
                 
-                if (user && user.account_number) {
-                    await logActivityWithUser(
-                        'schedule_deleted',
-                        user,
-                        {
-                            schedule_id: scheduleId,
-                            section_id: existingSchedule.section_id.toString(),
-                            day_of_week: existingSchedule.day_of_week,
-                            start_time: existingSchedule.start_time,
-                            end_time: existingSchedule.end_time,
-                            schedule_type: existingSchedule.schedule_type
-                        },
-                        clientIP,
-                        userAgent
-                    );
-                }
+                // Get human-readable names for logging
+                const [section, subject, activityType, teacher] = await Promise.all([
+                    db.collection('sections').findOne({ _id: existingSchedule.section_id }, { projection: { name: 1, grade_level: 1 } }),
+                    existingSchedule.subject_id ? db.collection('subjects').findOne({ _id: existingSchedule.subject_id }, { projection: { name: 1, code: 1 } }) : null,
+                    existingSchedule.activity_type_id ? db.collection('activity_types').findOne({ _id: existingSchedule.activity_type_id }, { projection: { name: 1 } }) : null,
+                    existingSchedule.teacher_id ? db.collection('users').findOne({ _id: existingSchedule.teacher_id }, { projection: { full_name: 1, account_number: 1 } }) : null
+                ]);
+
+                // Create activity log with proper structure and readable names
+                const activityCollection = db.collection('activity_logs');
+                await activityCollection.insertOne({
+                    activity_type: 'schedule_deleted',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.account_number || null,
+                    activity_data: {
+                        schedule_id: scheduleId,
+                        section_name: section?.name || 'Unknown Section',
+                        grade_level: section?.grade_level || null,
+                        day_of_week: existingSchedule.day_of_week,
+                        start_time: existingSchedule.start_time,
+                        end_time: existingSchedule.end_time,
+                        schedule_type: existingSchedule.schedule_type,
+                        subject_name: subject?.name || null,
+                        subject_code: subject?.code || null,
+                        activity_type_name: activityType?.name || null,
+                        teacher_name: teacher?.full_name || null,
+                        teacher_account_number: teacher?.account_number || null
+                    },
+                    ip_address: clientIP,
+                    user_agent: userAgent,
+                    created_at: new Date()
+                });
             } catch (logError) {
                 console.error('Error logging activity:', logError);
                 // Don't fail the request if logging fails
