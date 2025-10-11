@@ -419,7 +419,7 @@ export async function PUT({ request, getClientAddress }) {
         }
 
         // Update teacher assignments
-        // First, get current teacher assignments for logging
+        // First, get current teacher assignments for comparison
         const currentTeachersResult = await teacherDepartmentsCollection.aggregate([
             {
                 $match: { department_id: new ObjectId(id) }
@@ -444,175 +444,203 @@ export async function PUT({ request, getClientAddress }) {
             }
         ]).toArray();
 
-        // Remove all existing teacher assignments for this department
-        await teacherDepartmentsCollection.deleteMany({ department_id: new ObjectId(id) });
+        // Compare current and new teacher assignments to detect changes
+        const currentTeacherIds = new Set(currentTeachersResult.map(t => t.id));
+        const newTeacherIds = new Set(teachers);
+        
+        // Find removed teachers (in current but not in new)
+        const removedTeachers = currentTeachersResult.filter(t => !newTeacherIds.has(t.id));
+        
+        // Find added teachers (in new but not in current)
+        const addedTeacherIds = teachers.filter(id => !currentTeacherIds.has(id));
+        
+        // Only update teacher assignments if there are actual changes
+        const teachersChanged = removedTeachers.length > 0 || addedTeacherIds.length > 0;
+        
+        if (teachersChanged) {
+            // Remove all existing teacher assignments for this department
+            await teacherDepartmentsCollection.deleteMany({ department_id: new ObjectId(id) });
 
-        // Log teacher removals if any existed
-        if (currentTeachersResult.length > 0) {
-            try {
-                // Create activity log with proper structure (matching accounts API)
-                const activityCollection = db.collection('activity_logs');
-                await activityCollection.insertOne({
-                    activity_type: 'department_teacher_removed',
-                    user_id: user?.id ? new ObjectId(user.id) : null,
-                    user_account_number: user?.accountNumber || null,
-                    activity_data: { 
-                        department_id: id, 
-                        department_name: name, 
-                        department_code: code.toUpperCase(),
-                        teachers: currentTeachersResult
-                    },
-                    ip_address: getClientAddress(),
-                    user_agent: request.headers.get('user-agent'),
-                    created_at: new Date()
-                });
-            } catch (logError) {
-                console.error('Error logging teacher removal activity:', logError);
-            }
-        }
-
-        // Then add the new teacher assignments
-        if (teachers.length > 0) {
-            const newTeachers = [];
-            const teacherAssignments = [];
-            
-            for (const teacherId of teachers) {
-                teacherAssignments.push({
-                    teacher_id: new ObjectId(teacherId),
-                    department_id: new ObjectId(id)
-                });
-                
-                // Get teacher info for logging
-                const teacherInfo = await usersCollection.findOne(
-                    { _id: new ObjectId(teacherId) },
-                    { projection: { full_name: 1, account_number: 1 } }
-                );
-                if (teacherInfo) {
-                    newTeachers.push({
-                        id: teacherInfo._id.toString(),
-                        full_name: teacherInfo.full_name,
-                        account_number: teacherInfo.account_number
-                    });
-                }
-            }
-
-            // Insert all teacher assignments at once
-            if (teacherAssignments.length > 0) {
-                await teacherDepartmentsCollection.insertMany(teacherAssignments);
-            }
-
-            // Log teacher assignments
-            if (newTeachers.length > 0) {
+            // Log teacher removals if any existed
+            if (removedTeachers.length > 0) {
                 try {
-                    // Create activity log with proper structure (matching accounts API)
                     const activityCollection = db.collection('activity_logs');
                     await activityCollection.insertOne({
-                        activity_type: 'department_teacher_assigned',
+                        activity_type: 'department_teacher_removed',
                         user_id: user?.id ? new ObjectId(user.id) : null,
                         user_account_number: user?.accountNumber || null,
                         activity_data: { 
                             department_id: id, 
                             department_name: name, 
                             department_code: code.toUpperCase(),
-                            teachers: newTeachers
+                            teachers: removedTeachers
                         },
                         ip_address: getClientAddress(),
                         user_agent: request.headers.get('user-agent'),
                         created_at: new Date()
                     });
                 } catch (logError) {
-                    console.error('Error logging teacher assignment activity:', logError);
+                    console.error('Error logging teacher removal activity:', logError);
+                }
+            }
+
+            // Add the new teacher assignments
+            if (teachers.length > 0) {
+                const newTeachers = [];
+                const teacherAssignments = [];
+                
+                for (const teacherId of teachers) {
+                    teacherAssignments.push({
+                        teacher_id: new ObjectId(teacherId),
+                        department_id: new ObjectId(id)
+                    });
+                    
+                    // Get teacher info for logging
+                    const teacherInfo = await usersCollection.findOne(
+                        { _id: new ObjectId(teacherId) },
+                        { projection: { full_name: 1, account_number: 1 } }
+                    );
+                    if (teacherInfo) {
+                        newTeachers.push({
+                            id: teacherInfo._id.toString(),
+                            full_name: teacherInfo.full_name,
+                            account_number: teacherInfo.account_number
+                        });
+                    }
+                }
+
+                // Insert all teacher assignments at once
+                if (teacherAssignments.length > 0) {
+                    await teacherDepartmentsCollection.insertMany(teacherAssignments);
+                }
+
+                // Only log assignments for newly added teachers
+                const addedTeachers = newTeachers.filter(t => addedTeacherIds.includes(t.id));
+                if (addedTeachers.length > 0) {
+                    try {
+                        const activityCollection = db.collection('activity_logs');
+                        await activityCollection.insertOne({
+                            activity_type: 'department_teacher_assigned',
+                            user_id: user?.id ? new ObjectId(user.id) : null,
+                            user_account_number: user?.accountNumber || null,
+                            activity_data: { 
+                                department_id: id, 
+                                department_name: name, 
+                                department_code: code.toUpperCase(),
+                                teachers: addedTeachers
+                            },
+                            ip_address: getClientAddress(),
+                            user_agent: request.headers.get('user-agent'),
+                            created_at: new Date()
+                        });
+                    } catch (logError) {
+                        console.error('Error logging teacher assignment activity:', logError);
+                    }
                 }
             }
         }
 
         // Update subject assignments
-        // First, get current subject assignments for logging
+        // First, get current subject assignments for comparison
         const currentSubjects = await subjectsCollection.find(
             { department_id: new ObjectId(id) },
             { projection: { name: 1, code: 1 } }
         ).toArray();
 
-        // Update all subjects that were previously assigned to this department to have no department
-        await subjectsCollection.updateMany(
-            { department_id: new ObjectId(id) },
-            { $unset: { department_id: "" } }
-        );
-
-        // Log subject removals if any existed
-        if (currentSubjects.length > 0) {
-            const currentSubjectsForLog = currentSubjects.map(subject => ({
-                id: subject._id.toString(),
-                name: subject.name,
-                code: subject.code
-            }));
-
-            try {
-                // Create activity log with proper structure (matching accounts API)
-                const activityCollection = db.collection('activity_logs');
-                await activityCollection.insertOne({
-                    activity_type: 'department_subject_removed',
-                    user_id: user?.id ? new ObjectId(user.id) : null,
-                    user_account_number: user?.accountNumber || null,
-                    activity_data: { 
-                        department_id: id, 
-                        department_name: name, 
-                        department_code: code.toUpperCase(),
-                        subjects: currentSubjectsForLog
-                    },
-                    ip_address: getClientAddress(),
-                    user_agent: request.headers.get('user-agent'),
-                    created_at: new Date()
-                });
-            } catch (logError) {
-                console.error('Error logging subject removal activity:', logError);
-            }
-        }
-
-        // Then assign the selected subjects to this department
-        if (subjects.length > 0) {
-            const newSubjects = [];
-            const subjectIds = subjects.map(subjectId => new ObjectId(subjectId));
-            
-            // Update subjects to assign them to this department
+        // Compare current and new subject assignments to detect changes
+        const currentSubjectIds = new Set(currentSubjects.map(s => s._id.toString()));
+        const newSubjectIds = new Set(subjects);
+        
+        // Find removed subjects (in current but not in new)
+        const removedSubjects = currentSubjects.filter(s => !newSubjectIds.has(s._id.toString()));
+        
+        // Find added subjects (in new but not in current)
+        const addedSubjectIds = subjects.filter(id => !currentSubjectIds.has(id));
+        
+        // Only update subject assignments if there are actual changes
+        const subjectsChanged = removedSubjects.length > 0 || addedSubjectIds.length > 0;
+        
+        if (subjectsChanged) {
+            // Update all subjects that were previously assigned to this department to have no department
             await subjectsCollection.updateMany(
-                { _id: { $in: subjectIds } },
-                { $set: { department_id: new ObjectId(id) } }
+                { department_id: new ObjectId(id) },
+                { $unset: { department_id: "" } }
             );
-            
-            // Get subject info for logging
-            const subjectInfos = await subjectsCollection.find(
-                { _id: { $in: subjectIds } },
-                { projection: { name: 1, code: 1 } }
-            ).toArray();
 
-            const newSubjectsForLog = subjectInfos.map(subject => ({
-                id: subject._id.toString(),
-                name: subject.name,
-                code: subject.code
-            }));
+            // Log subject removals if any were removed
+            if (removedSubjects.length > 0) {
+                const removedSubjectsForLog = removedSubjects.map(subject => ({
+                    id: subject._id.toString(),
+                    name: subject.name,
+                    code: subject.code
+                }));
 
-            // Log subject assignments
-            if (newSubjectsForLog.length > 0) {
                 try {
-                    // Create activity log with proper structure (matching accounts API)
                     const activityCollection = db.collection('activity_logs');
                     await activityCollection.insertOne({
-                        activity_type: 'department_subject_assigned',
+                        activity_type: 'department_subject_removed',
                         user_id: user?.id ? new ObjectId(user.id) : null,
                         user_account_number: user?.accountNumber || null,
                         activity_data: { 
                             department_id: id, 
                             department_name: name, 
                             department_code: code.toUpperCase(),
-                            subjects: newSubjectsForLog
+                            subjects: removedSubjectsForLog
                         },
                         ip_address: getClientAddress(),
                         user_agent: request.headers.get('user-agent'),
                         created_at: new Date()
                     });
                 } catch (logError) {
-                    console.error('Error logging subject assignment activity:', logError);
+                    console.error('Error logging subject removal activity:', logError);
+                }
+            }
+
+            // Then assign the selected subjects to this department
+            if (subjects.length > 0) {
+                const subjectIds = subjects.map(subjectId => new ObjectId(subjectId));
+                
+                // Update subjects to assign them to this department
+                await subjectsCollection.updateMany(
+                    { _id: { $in: subjectIds } },
+                    { $set: { department_id: new ObjectId(id) } }
+                );
+                
+                // Only log assignments for newly added subjects
+                if (addedSubjectIds.length > 0) {
+                    const addedSubjectObjectIds = addedSubjectIds.map(id => new ObjectId(id));
+                    const addedSubjectInfos = await subjectsCollection.find(
+                        { _id: { $in: addedSubjectObjectIds } },
+                        { projection: { name: 1, code: 1 } }
+                    ).toArray();
+
+                    const addedSubjectsForLog = addedSubjectInfos.map(subject => ({
+                        id: subject._id.toString(),
+                        name: subject.name,
+                        code: subject.code
+                    }));
+
+                    if (addedSubjectsForLog.length > 0) {
+                        try {
+                            const activityCollection = db.collection('activity_logs');
+                            await activityCollection.insertOne({
+                                activity_type: 'department_subject_assigned',
+                                user_id: user?.id ? new ObjectId(user.id) : null,
+                                user_account_number: user?.accountNumber || null,
+                                activity_data: { 
+                                    department_id: id, 
+                                    department_name: name, 
+                                    department_code: code.toUpperCase(),
+                                    subjects: addedSubjectsForLog
+                                },
+                                ip_address: getClientAddress(),
+                                user_agent: request.headers.get('user-agent'),
+                                created_at: new Date()
+                            });
+                        } catch (logError) {
+                            console.error('Error logging subject assignment activity:', logError);
+                        }
+                    }
                 }
             }
         }

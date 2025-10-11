@@ -432,6 +432,191 @@ export async function GET({ url }) {
 
                 return json({ success: true, data: studentSchedules });
 
+            case 'check-conflicts':
+                const checkSectionId = url.searchParams.get('sectionId');
+                const checkDayOfWeek = url.searchParams.get('dayOfWeek');
+                const checkStartTime = url.searchParams.get('startTime');
+                const checkEndTime = url.searchParams.get('endTime');
+                const checkTeacherId = url.searchParams.get('teacherId');
+                const checkSchoolYear = url.searchParams.get('schoolYear') || '2024-2025';
+
+                if (!checkSectionId || !checkDayOfWeek || !checkStartTime || !checkEndTime) {
+                    return json({ success: false, error: 'Missing required parameters for conflict check' }, { status: 400 });
+                }
+
+                const conflicts = [];
+
+                // Check for time conflicts within the same section
+                const sectionConflictQuery = {
+                    section_id: new ObjectId(checkSectionId),
+                    day_of_week: checkDayOfWeek,
+                    school_year: checkSchoolYear,
+                    $or: [
+                        {
+                            $and: [
+                                { start_time: { $lte: checkStartTime } },
+                                { end_time: { $gt: checkStartTime } }
+                            ]
+                        },
+                        {
+                            $and: [
+                                { start_time: { $lt: checkEndTime } },
+                                { end_time: { $gte: checkEndTime } }
+                            ]
+                        },
+                        {
+                            $and: [
+                                { start_time: { $gte: checkStartTime } },
+                                { end_time: { $lte: checkEndTime } }
+                            ]
+                        }
+                    ]
+                };
+
+                const sectionConflict = await db.collection('schedules').aggregate([
+                    { $match: sectionConflictQuery },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'subjects',
+                            localField: 'subject_id',
+                            foreignField: '_id',
+                            as: 'subject'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'activity_types',
+                            localField: 'activity_type_id',
+                            foreignField: '_id',
+                            as: 'activity_type'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            start_time: 1,
+                            end_time: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                            activity_name: { $arrayElemAt: ['$activity_type.name', 0] }
+                        }
+                    }
+                ]).toArray();
+
+                if (sectionConflict.length > 0) {
+                    const conflict = sectionConflict[0];
+                    const conflictName = conflict.subject_name || conflict.activity_name || 'Schedule';
+                    conflicts.push({
+                        type: 'section_conflict',
+                        message: `Time conflict detected: ${conflictName} is already scheduled for ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${checkDayOfWeek}`,
+                        details: conflict
+                    });
+                }
+
+                // Check for teacher conflicts across different sections (if teacher is assigned)
+                if (checkTeacherId) {
+                    const teacherConflictQuery = {
+                        teacher_id: new ObjectId(checkTeacherId),
+                        day_of_week: checkDayOfWeek,
+                        school_year: checkSchoolYear,
+                        section_id: { $ne: new ObjectId(checkSectionId) },
+                        $or: [
+                            {
+                                $and: [
+                                    { start_time: { $lte: checkStartTime } },
+                                    { end_time: { $gt: checkStartTime } }
+                                ]
+                            },
+                            {
+                                $and: [
+                                    { start_time: { $lt: checkEndTime } },
+                                    { end_time: { $gte: checkEndTime } }
+                                ]
+                            },
+                            {
+                                $and: [
+                                    { start_time: { $gte: checkStartTime } },
+                                    { end_time: { $lte: checkEndTime } }
+                                ]
+                            }
+                        ]
+                    };
+
+                    const teacherConflict = await db.collection('schedules').aggregate([
+                        { $match: teacherConflictQuery },
+                        {
+                            $lookup: {
+                                from: 'sections',
+                                localField: 'section_id',
+                                foreignField: '_id',
+                                as: 'section'
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'users',
+                                localField: 'teacher_id',
+                                foreignField: '_id',
+                                as: 'teacher'
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'subjects',
+                                localField: 'subject_id',
+                                foreignField: '_id',
+                                as: 'subject'
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: 'activity_types',
+                                localField: 'activity_type_id',
+                                foreignField: '_id',
+                                as: 'activity_type'
+                            }
+                        },
+                        {
+                            $project: {
+                                id: '$_id',
+                                start_time: 1,
+                                end_time: 1,
+                                section_id: 1,
+                                section_name: { $arrayElemAt: ['$section.name', 0] },
+                                grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                                teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] },
+                                subject_name: { $arrayElemAt: ['$subject.name', 0] },
+                                activity_name: { $arrayElemAt: ['$activity_type.name', 0] }
+                            }
+                        }
+                    ]).toArray();
+
+                    if (teacherConflict.length > 0) {
+                        const conflict = teacherConflict[0];
+                        const conflictSubject = conflict.subject_name || conflict.activity_name || 'a class';
+                        conflicts.push({
+                            type: 'teacher_conflict',
+                            message: `Teacher conflict detected: ${conflict.teacher_name} is already scheduled to teach ${conflictSubject} for ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${checkDayOfWeek}`,
+                            details: conflict
+                        });
+                    }
+                }
+
+                return json({ 
+                    success: true, 
+                    hasConflicts: conflicts.length > 0,
+                    conflicts: conflicts
+                });
+
             default:
                 // Default: Get all schedules with optional filtering
                 const allSchedules = await db.collection('schedules').aggregate([

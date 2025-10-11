@@ -284,6 +284,121 @@
 	opacity: 0.6;
 }
 
+.scheduleassign-save-schedule-btn.has-conflicts {
+	background: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+	border: 1px solid var(--md-sys-color-error);
+}
+
+.scheduleassign-save-schedule-btn.has-conflicts:hover {
+	background: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+	transform: none;
+	box-shadow: none;
+}
+
+/* Conflict Detection Styles */
+.scheduleassign-conflict-error {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	background-color: var(--md-sys-color-error-container);
+	color: var(--md-sys-color-on-error-container);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-radius: var(--radius-md);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	border: 1px solid var(--md-sys-color-error);
+	margin-bottom: var(--spacing-sm);
+}
+
+.scheduleassign-conflict-error .material-symbols-outlined {
+	font-size: 18px;
+	animation: pulse 2s infinite;
+}
+
+.scheduleassign-conflict-details {
+	background-color: var(--md-sys-color-error-container);
+	border: 1px solid var(--md-sys-color-error);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-md);
+	margin-top: var(--spacing-sm);
+}
+
+.scheduleassign-conflict-item {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-sm) 0;
+	border-bottom: 1px solid var(--md-sys-color-error);
+}
+
+.scheduleassign-conflict-item:last-child {
+	border-bottom: none;
+}
+
+.scheduleassign-conflict-item .conflict-icon {
+	font-size: 16px;
+	color: var(--md-sys-color-error);
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.scheduleassign-conflict-item .conflict-message {
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-error-container);
+	line-height: 1.4;
+}
+
+.scheduleassign-time-checking {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	padding: var(--spacing-sm) var(--spacing-md);
+	border-radius: var(--radius-md);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.scheduleassign-time-checking .checking-icon {
+	font-size: 18px;
+	animation: spin 1s linear infinite;
+}
+
+.scheduleassign-conflict-help {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-sm) var(--spacing-md);
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	border-radius: var(--radius-md);
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	margin-top: var(--spacing-sm);
+}
+
+.scheduleassign-conflict-help .material-symbols-outlined {
+	font-size: 16px;
+}
+
+/* Animations */
+@keyframes pulse {
+	0% { opacity: 1; }
+	50% { opacity: 0.5; }
+	100% { opacity: 1; }
+}
+
+@keyframes spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
 .scheduleassign-cancel-schedule-btn {
 	background: var(--md-sys-color-surface-container);
 	color: var(--md-sys-color-on-surface-container);

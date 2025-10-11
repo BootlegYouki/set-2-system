@@ -99,6 +99,12 @@
 	let timeValidationMessage = '';
 	let calculatedDuration = '';
 	
+	// Conflict detection variables
+	let conflictCheckMessage = '';
+	let isCheckingConflicts = false;
+	let hasConflicts = false;
+	let currentConflicts = [];
+	
 	// Reactive time validation and duration calculation
 	$: {
 		if (formData.startTime && formData.endTime) {
@@ -106,6 +112,17 @@
 		} else {
 			timeValidationMessage = '';
 			calculatedDuration = '';
+		}
+	}
+
+	// Reactive conflict checking when key parameters change
+	$: {
+		if (selectedFormSection && formData.startTime && formData.endTime && selectedDays.length > 0) {
+			checkScheduleConflicts();
+		} else {
+			conflictCheckMessage = '';
+			hasConflicts = false;
+			currentConflicts = [];
 		}
 	}
 	
@@ -147,6 +164,127 @@
 	function timeStringToMinutes(timeString) {
 		const [hours, minutes] = timeString.split(':').map(Number);
 		return hours * 60 + minutes;
+	}
+
+	// Debounce function to avoid excessive API calls
+	let conflictCheckTimeout;
+	function debounce(func, wait) {
+		clearTimeout(conflictCheckTimeout);
+		conflictCheckTimeout = setTimeout(func, wait);
+	}
+
+	// Check for schedule conflicts
+	async function checkScheduleConflicts() {
+		// Debounce the API call to avoid excessive requests
+		debounce(async () => {
+			if (!selectedFormSection || !formData.startTime || !formData.endTime || selectedDays.length === 0) {
+				return;
+			}
+
+			isCheckingConflicts = true;
+			hasConflicts = false;
+			currentConflicts = [];
+			conflictCheckMessage = '';
+
+			try {
+				// Check conflicts for each selected day
+				const conflictPromises = selectedDays.map(async (dayId) => {
+					const dayName = days.find(d => d.id === dayId)?.name.toLowerCase();
+					
+					const params = new URLSearchParams({
+						action: 'check-conflicts',
+						sectionId: selectedFormSection,
+						dayOfWeek: dayName,
+						startTime: formData.startTime,
+						endTime: formData.endTime,
+						schoolYear: '2024-2025'
+					});
+
+					// Add teacher ID if selected
+					if (formData.teacherId && formData.scheduleType === 'subject') {
+						params.append('teacherId', formData.teacherId);
+					}
+
+					const response = await fetch(`/api/schedules?${params}`);
+					const result = await response.json();
+
+					return {
+						day: dayName,
+						dayDisplay: days.find(d => d.id === dayId)?.name,
+						...result
+					};
+				});
+
+				const conflictResults = await Promise.all(conflictPromises);
+				
+				// Process results
+				const allConflicts = [];
+				const conflictingDays = [];
+
+				conflictResults.forEach(result => {
+					if (result.hasConflicts) {
+						conflictingDays.push(result.dayDisplay);
+						result.conflicts.forEach(conflict => {
+							allConflicts.push({
+								...conflict,
+								day: result.dayDisplay
+							});
+						});
+					}
+				});
+
+				if (allConflicts.length > 0) {
+					hasConflicts = true;
+					currentConflicts = allConflicts;
+					
+					// Group conflicts by type and create toast messages
+					const teacherConflicts = allConflicts.filter(c => c.type === 'teacher_conflict');
+					const sectionConflicts = allConflicts.filter(c => c.type === 'section_conflict');
+					
+					// Show toast notifications
+					if (teacherConflicts.length === 1) {
+						// Single teacher conflict - show detailed message
+						toastStore.error(teacherConflicts[0].message, 6000);
+					} else if (teacherConflicts.length > 1) {
+						// Multiple teacher conflicts - show summary
+						const conflictDays = [...new Set(teacherConflicts.map(c => c.day))];
+						const teacherName = teacherConflicts[0].details?.teacher_name || 'Selected teacher';
+						toastStore.error(`${teacherName} has schedule conflicts on ${conflictDays.join(', ')}. Please choose different times or another teacher.`, 8000);
+					}
+					
+					if (sectionConflicts.length === 1) {
+						// Single section conflict - show detailed message
+						toastStore.error(sectionConflicts[0].message, 6000);
+					} else if (sectionConflicts.length > 1) {
+						// Multiple section conflicts - show summary
+						const conflictDays = [...new Set(sectionConflicts.map(c => c.day))];
+						toastStore.error(`Time conflicts detected for this section on ${conflictDays.join(', ')}. Please choose different time slots.`, 6000);
+					}
+					
+					// Create a summary message for the button
+					let messages = [];
+					
+					if (teacherConflicts.length > 0) {
+						messages.push(`Teacher conflicts detected on ${[...new Set(teacherConflicts.map(c => c.day))].join(', ')}`);
+					}
+					
+					if (sectionConflicts.length > 0) {
+						messages.push(`Section time conflicts detected on ${[...new Set(sectionConflicts.map(c => c.day))].join(', ')}`);
+					}
+					
+					conflictCheckMessage = messages.join('. ');
+				} else {
+					hasConflicts = false;
+					conflictCheckMessage = '';
+				}
+			} catch (error) {
+				console.error('Error checking conflicts:', error);
+				toastStore.error('Error checking for conflicts. Please try again.');
+				hasConflicts = false;
+			} finally {
+				isCheckingConflicts = false;
+			}
+		}, 500); // 500ms debounce delay
 	}
 	
 	// Filter form sections based on selected form year
@@ -775,59 +913,6 @@
 
 
                             <div class="scheduleassign-form-inputs">
-                                <!-- Time Section -->
-                                <div class="scheduleassign-time-section">
-                                    <div class="scheduleassign-time-row">
-                                        <div class="scheduleassign-input-group">
-                                            <TimeInput 
-                                                label="Start Time"
-                                                bind:value={formData.startTime}
-                                                placeholder="Select start time"
-                                                on:change={(e) => formData.startTime = e.detail.value}
-                                            />
-                                        </div>
-                                        <div class="scheduleassign-input-group">
-                                            <TimeInput 
-                                                label="End Time"
-                                                bind:value={formData.endTime}
-                                                placeholder="Select end time"
-                                                on:change={(e) => formData.endTime = e.detail.value}
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Time Validation and Duration Display Container -->
-                                    <div class="scheduleassign-time-info-container">
-                                        {#if formData.startTime && formData.endTime}
-                                            {#if timeValidationMessage}
-                                                <div class="scheduleassign-time-error">
-                                                    <span class="material-symbols-outlined">error</span>
-                                                    <span>{timeValidationMessage}</span>
-                                                </div>
-                                            {:else if calculatedDuration}
-                                                <div class="scheduleassign-time-duration">
-                                                    <span class="material-symbols-outlined">schedule</span>
-                                                    <span>Duration: {calculatedDuration}</span>
-                                                </div>
-                                            {/if}
-                                        {/if}
-                                    </div>
-									<div class="scheduleassign-day-selection-section">
-										<div class="scheduleassign-day-checkboxes">
-											{#each days as day}
-												<label class="scheduleassign-day-checkbox">
-													<input 
-														type="checkbox" 
-														bind:group={selectedDays} 
-														value={day.id}
-													/>
-													<span class="scheduleassign-checkbox-label">{day.name}</span>
-												</label>
-											{/each}
-										</div>
-									</div>
-                                </div>
-
                                 <!-- Schedule Type and Subject/Activity Selection Row -->
                                 <div class="scheduleassign-type-subject-row">
                                     <!-- Schedule Type Selection -->
@@ -1052,6 +1137,63 @@
 										</div>
 									{/if}
                                 </div>
+                                <!-- Time Section -->
+                                <div class="scheduleassign-time-section">
+                                    <div class="scheduleassign-time-row">
+                                        <div class="scheduleassign-input-group">
+                                            <TimeInput 
+                                                label="Start Time"
+                                                bind:value={formData.startTime}
+                                                placeholder="Select start time"
+                                                on:change={(e) => formData.startTime = e.detail.value}
+                                            />
+                                        </div>
+                                        <div class="scheduleassign-input-group">
+                                            <TimeInput 
+                                                label="End Time"
+                                                bind:value={formData.endTime}
+                                                placeholder="Select end time"
+                                                on:change={(e) => formData.endTime = e.detail.value}
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Time Validation and Duration Display Container -->
+                                    <div class="scheduleassign-time-info-container">
+                                        {#if formData.startTime && formData.endTime}
+                                            {#if timeValidationMessage}
+                                                <div class="scheduleassign-time-error">
+                                                    <span class="material-symbols-outlined">error</span>
+                                                    <span>{timeValidationMessage}</span>
+                                                </div>
+                                            {:else if isCheckingConflicts}
+                                                <div class="scheduleassign-time-checking">
+                                                    <span class="material-symbols-outlined checking-icon">hourglass_empty</span>
+                                                    <span>Checking for conflicts...</span>
+                                                </div>
+                                            {:else if calculatedDuration}
+                                                <div class="scheduleassign-time-duration">
+                                                    <span class="material-symbols-outlined">schedule</span>
+                                                    <span>Duration: {calculatedDuration}</span>
+                                                </div>
+                                            {/if}
+                                        {/if}
+                                    </div>
+																	<div class="scheduleassign-day-selection-section">
+																		<div class="scheduleassign-day-checkboxes">
+																			{#each days as day}
+																				<label class="scheduleassign-day-checkbox">
+																					<input 
+																						type="checkbox" 
+																						bind:group={selectedDays} 
+																						value={day.id}
+																					/>
+																					<span class="scheduleassign-checkbox-label">{day.name}</span>
+																				</label>
+																			{/each}
+																		</div>
+																	</div>
+                                </div>
                             </div>
 
                             <!-- Form Actions -->
@@ -1059,11 +1201,20 @@
                                 <button 
                                     type="button" 
                                     class="scheduleassign-save-schedule-btn"
+                                    class:has-conflicts={hasConflicts}
                                     on:click={handleSubmitSchedule}
-                                    disabled={isSubmitting || selectedDays.length === 0}
+                                    disabled={isSubmitting || selectedDays.length === 0 || hasConflicts || timeValidationMessage}
                                 >
-                                    <span class="material-symbols-outlined">save</span>
-                                    {isSubmitting ? 'Saving...' : 'Save Schedule'}
+                                    <span class="material-symbols-outlined">
+                                        {hasConflicts ? 'block' : 'save'}
+                                    </span>
+                                    {#if hasConflicts}
+                                        Cannot Save - Conflicts Detected
+                                    {:else if isSubmitting}
+                                        Saving...
+                                    {:else}
+                                        Save Schedule
+                                    {/if}
                                 </button>
                             </div>
                         </div>
