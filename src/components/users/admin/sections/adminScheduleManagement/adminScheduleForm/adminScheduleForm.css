@@ -482,7 +482,7 @@
 	align-items: center;
 	gap: var(--spacing-sm);
 	background-color: var(--md-sys-color-error-container);
-	padding: var(--spacing-sm) var(--spacing-md);
+	padding: var(--spacing-md) var(--spacing-md);
 	border-radius: var(--radius-md);
 	font-family: var(--md-sys-typescale-body-medium-font);
 	font-size: var(--md-sys-typescale-body-medium-size);

@@ -68,15 +68,17 @@
 		isLoadingDepartments = true;
 		try {
 			const result = await api.get('/api/departments?action=departments');
-			
+
 			if (result.success) {
-				departments = result.data.map(dept => ({
+				departments = result.data.map((dept) => ({
 					id: dept.id,
 					name: dept.name,
 					code: dept.code,
 					subjects: dept.subjects || [],
 					teachers: dept.teachers || [],
-					createdAt: dept.created_at ? dept.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+					createdAt: dept.created_at
+						? dept.created_at.split('T')[0]
+						: new Date().toISOString().split('T')[0]
 				}));
 			} else {
 				toastStore.error('Failed to load departments');
@@ -93,9 +95,9 @@
 		isLoadingSubjects = true;
 		try {
 			const result = await api.get('/api/departments?action=subjects');
-			
+
 			if (result.success) {
-				availableSubjects = result.data.map(subject => ({
+				availableSubjects = result.data.map((subject) => ({
 					id: subject.id,
 					name: subject.name,
 					code: subject.code,
@@ -116,9 +118,9 @@
 		isLoadingTeachers = true;
 		try {
 			const result = await api.get('/api/departments?action=teachers');
-			
+
 			if (result.success) {
-				availableTeachers = result.data.map(teacher => ({
+				availableTeachers = result.data.map((teacher) => ({
 					id: teacher.id,
 					name: teacher.full_name || `${teacher.first_name} ${teacher.last_name}`,
 					accountNumber: teacher.account_number
@@ -136,43 +138,41 @@
 
 	// Initialize data
 	onMount(async () => {
-		await Promise.all([
-			fetchDepartments(),
-			fetchSubjects(),
-			fetchTeachers()
-		]);
+		await Promise.all([fetchDepartments(), fetchSubjects(), fetchTeachers()]);
 		filterDepartments();
 	});
 
 	// Computed properties
-	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
+	$: selectedFilterObj = filterOptions.find((filter) => filter.id === selectedFilter);
 	$: if (departments) filterDepartments(departments, selectedFilter, searchTerm);
 
 	// Filtered arrays for dropdowns
-	$: filteredSubjects = availableSubjects.filter(subject =>
-		subject.name.toLowerCase().includes(subjectSearchTerm.toLowerCase()) ||
-		subject.code.toLowerCase().includes(subjectSearchTerm.toLowerCase())
+	$: filteredSubjects = availableSubjects.filter(
+		(subject) =>
+			subject.name.toLowerCase().includes(subjectSearchTerm.toLowerCase()) ||
+			subject.code.toLowerCase().includes(subjectSearchTerm.toLowerCase())
 	);
 
-	$: filteredTeachers = availableTeachers.filter(teacher =>
-		teacher.name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
-		teacher.accountNumber.toLowerCase().includes(teacherSearchTerm.toLowerCase())
+	$: filteredTeachers = availableTeachers.filter(
+		(teacher) =>
+			teacher.name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) ||
+			teacher.accountNumber.toLowerCase().includes(teacherSearchTerm.toLowerCase())
 	);
 
 	// Sorted filtered arrays (selected items first)
 	$: sortedFilteredSubjects = filteredSubjects.sort((a, b) => {
-		const aSelected = selectedSubjects.some(id => id === a.id);
-		const bSelected = selectedSubjects.some(id => id === b.id);
-		
+		const aSelected = selectedSubjects.some((id) => id === a.id);
+		const bSelected = selectedSubjects.some((id) => id === b.id);
+
 		if (aSelected && !bSelected) return -1;
 		if (!aSelected && bSelected) return 1;
 		return a.name.localeCompare(b.name);
 	});
 
 	$: sortedFilteredTeachers = filteredTeachers.sort((a, b) => {
-		const aSelected = selectedTeachers.some(id => id === a.id);
-		const bSelected = selectedTeachers.some(id => id === b.id);
-		
+		const aSelected = selectedTeachers.some((id) => id === a.id);
+		const bSelected = selectedTeachers.some((id) => id === b.id);
+
 		if (aSelected && !bSelected) return -1;
 		if (!aSelected && bSelected) return 1;
 		return a.name.localeCompare(b.name);
@@ -181,27 +181,30 @@
 	// Functions
 	function filterDepartments(depts = departments, filter = selectedFilter, search = searchTerm) {
 		let filtered = [...depts];
-		
+
 		// Apply type filter
 		if (filter === 'with_subjects') {
 			// Show departments with assigned subjects
-			filtered = filtered.filter(dept => dept.subjects.length > 0);
+			filtered = filtered.filter((dept) => dept.subjects.length > 0);
 		} else if (filter === 'with_teachers') {
 			// Show departments with assigned teachers
-			filtered = filtered.filter(dept => dept.teachers.length > 0);
+			filtered = filtered.filter((dept) => dept.teachers.length > 0);
 		} else if (filter === 'empty') {
 			// Show departments without subjects or teachers
-			filtered = filtered.filter(dept => dept.subjects.length === 0 && dept.teachers.length === 0);
-		}
-		
-		// Apply search filter
-		if (search.trim() !== '') {
-			filtered = filtered.filter(dept =>
-				dept.name.toLowerCase().includes(search.toLowerCase()) ||
-				dept.code.toLowerCase().includes(search.toLowerCase())
+			filtered = filtered.filter(
+				(dept) => dept.subjects.length === 0 && dept.teachers.length === 0
 			);
 		}
-		
+
+		// Apply search filter
+		if (search.trim() !== '') {
+			filtered = filtered.filter(
+				(dept) =>
+					dept.name.toLowerCase().includes(search.toLowerCase()) ||
+					dept.code.toLowerCase().includes(search.toLowerCase())
+			);
+		}
+
 		filteredDepartments = filtered;
 	}
 
@@ -223,7 +226,7 @@
 		}
 
 		// Check if department code already exists
-		if (departments.some(dept => dept.code.toLowerCase() === departmentCode.toLowerCase())) {
+		if (departments.some((dept) => dept.code.toLowerCase() === departmentCode.toLowerCase())) {
 			toastStore.error('Department code already exists');
 			return;
 		}
@@ -239,7 +242,7 @@
 			if (result.success) {
 				// Refresh departments list
 				await fetchDepartments();
-				
+
 				// Reset form
 				departmentName = '';
 				departmentCode = '';
@@ -258,11 +261,9 @@
 		}
 	}
 
-
-
 	async function handleUpdateDepartment(event) {
 		event.preventDefault();
-		
+
 		if (isUpdating) return;
 		isUpdating = true;
 
@@ -280,25 +281,30 @@
 			}
 
 			// Check if department code already exists (excluding current department)
-			const existingDepartment = departments.find(dept => 
-				dept.code.toLowerCase() === editDepartmentCode.trim().toLowerCase() && 
-				dept.id !== editingDepartmentId
+			const existingDepartment = departments.find(
+				(dept) =>
+					dept.code.toLowerCase() === editDepartmentCode.trim().toLowerCase() &&
+					dept.id !== editingDepartmentId
 			);
-			
+
 			if (existingDepartment) {
 				toastStore.error('Department code already exists');
 				return;
 			}
 
 			// Find the current department to preserve existing assignments
-			const currentDepartment = departments.find(dept => dept.id === editingDepartmentId);
+			const currentDepartment = departments.find((dept) => dept.id === editingDepartmentId);
 			if (!currentDepartment) {
 				throw new Error('Department not found');
 			}
 
 			// Extract current teacher and subject IDs to preserve assignments
-			const currentTeacherIds = currentDepartment.teachers ? currentDepartment.teachers.map(teacher => teacher.id) : [];
-			const currentSubjectIds = currentDepartment.subjects ? currentDepartment.subjects.map(subject => subject.id) : [];
+			const currentTeacherIds = currentDepartment.teachers
+				? currentDepartment.teachers.map((teacher) => teacher.id)
+				: [];
+			const currentSubjectIds = currentDepartment.subjects
+				? currentDepartment.subjects.map((subject) => subject.id)
+				: [];
 
 			const result = await api.put('/api/departments', {
 				id: editingDepartmentId,
@@ -311,7 +317,7 @@
 			if (result.success) {
 				// Refresh departments list
 				await fetchDepartments();
-				
+
 				// Close edit form
 				editingDepartmentId = null;
 				editDepartmentName = '';
@@ -387,10 +393,6 @@
 		);
 	}
 
-
-
-
-
 	// Assign functions
 	function toggleAssignForm(department) {
 		if (assigningDepartmentId === department.id) {
@@ -412,8 +414,12 @@
 			}
 			// Open assign form and populate with current assignments
 			assigningDepartmentId = department.id;
-			selectedSubjects = department.subjects ? department.subjects.map(subject => subject.id) : [];
-			selectedTeachers = department.teachers ? department.teachers.map(teacher => teacher.id) : [];
+			selectedSubjects = department.subjects
+				? department.subjects.map((subject) => subject.id)
+				: [];
+			selectedTeachers = department.teachers
+				? department.teachers.map((teacher) => teacher.id)
+				: [];
 			// Reset dropdown states
 			isSubjectDropdownOpen = false;
 			isTeacherDropdownOpen = false;
@@ -438,67 +444,67 @@
 	}
 
 	function toggleSubjectSelection(subject) {
-		const index = selectedSubjects.findIndex(id => id === subject.id);
+		const index = selectedSubjects.findIndex((id) => id === subject.id);
 		if (index > -1) {
-			selectedSubjects = selectedSubjects.filter(id => id !== subject.id);
+			selectedSubjects = selectedSubjects.filter((id) => id !== subject.id);
 		} else {
 			selectedSubjects = [...selectedSubjects, subject.id];
 		}
 	}
 
 	function toggleTeacherSelection(teacher) {
-		const index = selectedTeachers.findIndex(id => id === teacher.id);
+		const index = selectedTeachers.findIndex((id) => id === teacher.id);
 		if (index > -1) {
-			selectedTeachers = selectedTeachers.filter(id => id !== teacher.id);
+			selectedTeachers = selectedTeachers.filter((id) => id !== teacher.id);
 		} else {
 			selectedTeachers = [...selectedTeachers, teacher.id];
 		}
 	}
 
 	function toggleSelectAllSubjects() {
-		const allFilteredSelected = sortedFilteredSubjects.every(subject => 
-			selectedSubjects.some(id => id === subject.id)
+		const allFilteredSelected = sortedFilteredSubjects.every((subject) =>
+			selectedSubjects.some((id) => id === subject.id)
 		);
-		
+
 		if (allFilteredSelected) {
 			// Remove all filtered subjects from selection
-			selectedSubjects = selectedSubjects.filter(id => 
-				!sortedFilteredSubjects.some(subject => subject.id === id)
+			selectedSubjects = selectedSubjects.filter(
+				(id) => !sortedFilteredSubjects.some((subject) => subject.id === id)
 			);
 		} else {
 			// Add all filtered subjects to selection
 			const newSelections = sortedFilteredSubjects
-				.filter(subject => !selectedSubjects.some(id => id === subject.id))
-				.map(subject => subject.id);
+				.filter((subject) => !selectedSubjects.some((id) => id === subject.id))
+				.map((subject) => subject.id);
 			selectedSubjects = [...selectedSubjects, ...newSelections];
 		}
 	}
 
 	function toggleSelectAllTeachers() {
-		const allFilteredSelected = sortedFilteredTeachers.every(teacher => 
-			selectedTeachers.some(id => id === teacher.id)
+		const allFilteredSelected = sortedFilteredTeachers.every((teacher) =>
+			selectedTeachers.some((id) => id === teacher.id)
 		);
-		
+
 		if (allFilteredSelected) {
 			// Remove all filtered teachers from selection
-			selectedTeachers = selectedTeachers.filter(id => 
-				!sortedFilteredTeachers.some(teacher => teacher.id === id)
+			selectedTeachers = selectedTeachers.filter(
+				(id) => !sortedFilteredTeachers.some((teacher) => teacher.id === id)
 			);
 		} else {
 			// Add all filtered teachers to selection
 			const newSelections = sortedFilteredTeachers
-				.filter(teacher => !selectedTeachers.some(id => id === teacher.id))
-				.map(teacher => teacher.id);
+				.filter((teacher) => !selectedTeachers.some((id) => id === teacher.id))
+				.map((teacher) => teacher.id);
 			selectedTeachers = [...selectedTeachers, ...newSelections];
 		}
 	}
 
 	function removeSubject(subjectId) {
-		selectedSubjects = selectedSubjects.filter(id => id !== subjectId);
+		selectedSubjects = selectedSubjects.filter((id) => id !== subjectId);
 	}
 
 	function removeTeacher(teacherId) {
-		selectedTeachers = selectedTeachers.filter(id => id !== teacherId);
+		selectedTeachers = selectedTeachers.filter((id) => id !== teacherId);
 	}
 
 	async function handleAssignDepartment() {
@@ -506,7 +512,7 @@
 
 		try {
 			// Find the department to get its current details
-			const department = departments.find(dept => dept.id === assigningDepartmentId);
+			const department = departments.find((dept) => dept.id === assigningDepartmentId);
 			if (!department) {
 				throw new Error('Department not found');
 			}
@@ -527,16 +533,16 @@
 			}
 
 			// Update local state to reflect the changes
-			departments = departments.map(dept => {
+			departments = departments.map((dept) => {
 				if (dept.id === assigningDepartmentId) {
 					// Get full objects for subjects and teachers based on selected IDs
-					const assignedSubjects = availableSubjects.filter(subject => 
+					const assignedSubjects = availableSubjects.filter((subject) =>
 						selectedSubjects.includes(subject.id)
 					);
-					const assignedTeachers = availableTeachers.filter(teacher => 
+					const assignedTeachers = availableTeachers.filter((teacher) =>
 						selectedTeachers.includes(teacher.id)
 					);
-					
+
 					return {
 						...dept,
 						subjects: assignedSubjects,
@@ -547,7 +553,7 @@
 			});
 
 			toastStore.success('Department assignments updated successfully');
-			
+
 			// Close assign form
 			assigningDepartmentId = null;
 			selectedSubjects = [];
@@ -559,10 +565,6 @@
 			isAssigning = false;
 		}
 	}
-
-
-
-
 
 	// Utility functions
 	function getDepartmentSubjects(department) {
@@ -603,14 +605,18 @@
 	<div class="dept-mgmt-header">
 		<div class="dept-mgmt-header-content">
 			<h1 class="dept-mgmt-page-title">Department Management</h1>
-			<p class="dept-mgmt-page-subtitle">Create and manage academic departments, assign subjects and teachers</p>
+			<p class="dept-mgmt-page-subtitle">
+				Create and manage academic departments, assign subjects and teachers
+			</p>
 		</div>
 	</div>
 
 	<!-- Create Department Section -->
 	<div class="dept-mgmt-create-section">
 		<h2 class="dept-mgmt-section-title">Create New Department</h2>
-		<p class="dept-mgmt-section-subtitle">Add a new academic department to organize subjects and teachers</p>
+		<p class="dept-mgmt-section-subtitle">
+			Add a new academic department to organize subjects and teachers
+		</p>
 
 		<div class="dept-mgmt-create-form">
 			<div class="dept-mgmt-form-row">
@@ -641,8 +647,8 @@
 
 			<!-- Submit Button -->
 			<div class="dept-mgmt-form-actions">
-				<button 
-					type="submit" 
+				<button
+					type="submit"
 					class="dept-mgmt-btn-primary"
 					disabled={isCreating || !departmentName || !departmentCode}
 					on:click={handleCreateDepartment}
@@ -664,74 +670,78 @@
 			<div class="section-header-content">
 				<div class="section-title-group">
 					<h2 class="dept-mgmt-section-title">All Departments</h2>
-					<p class="dept-mgmt-section-subtitle">Manage existing departments, assign subjects and teachers</p>
+					<p class="dept-mgmt-section-subtitle">
+						Manage existing departments, assign subjects and teachers
+					</p>
 				</div>
-				
+
 				<!-- Search and Filter Container -->
 				<div class="dept-mgmt-search-filter-container">
-			<!-- Search Input -->
-			<div class="search-container">
-				<div class="search-input-wrapper">
-					<span class="material-symbols-outlined search-icon">search</span>
-					<input 
-						type="text" 
-						class="search-input" 
-						placeholder="Search departments by name or code..."
-						bind:value={searchTerm}
-					/>
-					{#if searchTerm}
-						<button 
-							type="button" 
-							class="clear-search-button"
-							on:click={() => searchTerm = ''}
-						>
-							<span class="material-symbols-outlined">close</span>
-						</button>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Filter Dropdown -->
-			<div class="filter-container">
-				<div class="custom-dropdown" class:open={isFilterDropdownOpen}>
-					<button 
-						type="button"
-						class="dropdown-trigger filter-trigger" 
-						class:selected={selectedFilter !== 'all'}
-						on:click={toggleFilterDropdown}
-					>
-						{#if selectedFilterObj}
-							<div class="selected-option">
-								<span class="material-symbols-outlined option-icon">{selectedFilterObj.icon}</span>
-								<div class="option-content">
-									<span class="option-name">{selectedFilterObj.name}</span>
-								</div>
-							</div>
-						{:else}
-							<span class="placeholder">Filter by type</span>
-						{/if}
-						<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
-					</button>
-					<div class="dropdown-menu">
-						{#each filterOptions as filter (filter.id)}
-							<button 
-								type="button"
-								class="dropdown-option" 
-								class:selected={selectedFilter === filter.id}
-								on:click={() => selectFilter(filter)}
-							>
-								<span class="material-symbols-outlined option-icon">{filter.icon}</span>
-								<div class="option-content">
-									<span class="option-name">{filter.name}</span>
-								</div>
-							</button>
-						{/each}
+					<!-- Search Input -->
+					<div class="search-container">
+						<div class="search-input-wrapper">
+							<span class="material-symbols-outlined search-icon">search</span>
+							<input
+								type="text"
+								class="search-input"
+								placeholder="Search departments by name or code..."
+								bind:value={searchTerm}
+							/>
+							{#if searchTerm}
+								<button
+									type="button"
+									class="clear-search-button"
+									on:click={() => (searchTerm = '')}
+								>
+									<span class="material-symbols-outlined">close</span>
+								</button>
+							{/if}
+						</div>
 					</div>
-				</div>
+
+					<!-- Filter Dropdown -->
+					<div class="filter-container">
+						<div class="custom-dropdown" class:open={isFilterDropdownOpen}>
+							<button
+								type="button"
+								class="dropdown-trigger filter-trigger"
+								class:selected={selectedFilter !== 'all'}
+								on:click={toggleFilterDropdown}
+							>
+								{#if selectedFilterObj}
+									<div class="selected-option">
+										<span class="material-symbols-outlined option-icon"
+											>{selectedFilterObj.icon}</span
+										>
+										<div class="option-content">
+											<span class="option-name">{selectedFilterObj.name}</span>
+										</div>
+									</div>
+								{:else}
+									<span class="placeholder">Filter by type</span>
+								{/if}
+								<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+							</button>
+							<div class="dropdown-menu">
+								{#each filterOptions as filter (filter.id)}
+									<button
+										type="button"
+										class="dropdown-option"
+										class:selected={selectedFilter === filter.id}
+										on:click={() => selectFilter(filter)}
+									>
+										<span class="material-symbols-outlined option-icon">{filter.icon}</span>
+										<div class="option-content">
+											<span class="option-name">{filter.name}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
 
 		<!-- Departments Grid -->
 		<div class="dept-mgmt-departments-grid">
@@ -747,41 +757,51 @@
 						{searchTerm ? 'No departments found' : 'No departments created yet'}
 					</h3>
 					<p class="dept-mgmt-empty-description">
-						{searchTerm ? 'Try adjusting your search terms' : 'Create your first department to get started'}
+						{searchTerm
+							? 'Try adjusting your search terms'
+							: 'Create your first department to get started'}
 					</p>
 				</div>
 			{:else}
 				{#each filteredDepartments as department (department.id)}
-					<div class="dept-mgmt-department-card" 
-						 class:editing={editingDepartmentId === department.id}
-						 class:assigning={assigningDepartmentId === department.id}
-						 id="department-card-{department.id}">
+					<div
+						class="dept-mgmt-department-card"
+						class:editing={editingDepartmentId === department.id}
+						class:assigning={assigningDepartmentId === department.id}
+						id="department-card-{department.id}"
+					>
 						<div class="dept-mgmt-department-header">
 							<div class="dept-mgmt-department-title">
 								<h3 class="dept-mgmt-department-name">{department.name}</h3>
 							</div>
 							<div class="dept-mgmt-action-buttons">
 								<a href="#department-card-{department.id}">
-								<button 
-									type="button"
-									class="dept-mgmt-assign-button"
-									on:click={() => toggleAssignForm(department)}
-									title="{assigningDepartmentId === department.id ? 'Cancel Assign' : 'Assign'}"
-								>
-									<span class="material-symbols-outlined">{assigningDepartmentId === department.id ? 'close' : 'add_circle'}</span>
-								</button>
+									<button
+										type="button"
+										class="dept-mgmt-assign-button"
+										on:click={() => toggleAssignForm(department)}
+										title={assigningDepartmentId === department.id ? 'Cancel Assign' : 'Assign'}
+									>
+										<span class="material-symbols-outlined"
+											>{assigningDepartmentId === department.id ? 'close' : 'add_circle'}</span
+										>
+									</button>
 								</a>
 								<a href="#department-card-{department.id}">
-								<button 
-									type="button"
-									class="dept-mgmt-edit-button"
-									on:click={() => toggleEditForm(department)}
-									title="{editingDepartmentId === department.id ? 'Cancel Edit' : 'Edit Department'}"
-								>
-									<span class="material-symbols-outlined">{editingDepartmentId === department.id ? 'close' : 'edit'}</span>
-								</button>
+									<button
+										type="button"
+										class="dept-mgmt-edit-button"
+										on:click={() => toggleEditForm(department)}
+										title={editingDepartmentId === department.id
+											? 'Cancel Edit'
+											: 'Edit Department'}
+									>
+										<span class="material-symbols-outlined"
+											>{editingDepartmentId === department.id ? 'close' : 'edit'}</span
+										>
+									</button>
 								</a>
-								<button 
+								<button
 									type="button"
 									class="dept-mgmt-remove-button"
 									on:click={() => handleRemoveDepartment(department)}
@@ -791,7 +811,7 @@
 								</button>
 							</div>
 						</div>
-					
+
 						<div class="dept-mgmt-department-details">
 							<div class="dept-mgmt-department-code">
 								<span class="material-symbols-outlined">tag</span>
@@ -814,23 +834,29 @@
 						<!-- Inline Edit Form -->
 						{#if editingDepartmentId === department.id}
 							<div class="dept-mgmt-edit-form-section">
-								<div class="dept-mgmt-edit-form-container" id="admin-department-edit-form-container">
+								<div
+									class="dept-mgmt-edit-form-container"
+									id="admin-department-edit-form-container"
+								>
 									<div class="dept-mgmt-edit-form-header">
 										<h2 class="dept-mgmt-edit-form-title">Edit Department</h2>
 										<p class="dept-mgmt-edit-form-subtitle">Update department information</p>
 									</div>
-									
-									<form class="dept-mgmt-edit-form-content" on:submit|preventDefault={handleUpdateDepartment}>
+
+									<form
+										class="dept-mgmt-edit-form-content"
+										on:submit|preventDefault={handleUpdateDepartment}
+									>
 										<!-- Department Info -->
 										<div class="dept-mgmt-edit-info-row">
 											<div class="dept-mgmt-form-group">
 												<label class="dept-mgmt-form-label" for="edit-department-name">
 													Department Name *
 												</label>
-												<input 
-													type="text" 
+												<input
+													type="text"
 													id="edit-department-name"
-													class="dept-mgmt-form-input" 
+													class="dept-mgmt-form-input"
 													bind:value={editDepartmentName}
 													placeholder="Enter department name"
 													required
@@ -841,10 +867,10 @@
 												<label class="dept-mgmt-form-label" for="edit-department-code">
 													Department Code *
 												</label>
-												<input 
-													type="text" 
+												<input
+													type="text"
 													id="edit-department-code"
-													class="dept-mgmt-form-input" 
+													class="dept-mgmt-form-input"
 													bind:value={editDepartmentCode}
 													placeholder="Enter department code"
 													required
@@ -855,12 +881,16 @@
 										<!-- Form Actions -->
 										<div class="dept-mgmt-edit-form-actions">
 											<a href="#department-card-{department.id}">
-												<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleEditForm(department)}>
+												<button
+													type="button"
+													class="dept-mgmt-cancel-button"
+													on:click={() => toggleEditForm(department)}
+												>
 													Cancel
 												</button>
 											</a>
-											<button 
-												type="submit" 
+											<button
+												type="submit"
 												class="dept-mgmt-update-button"
 												disabled={isUpdating || !editDepartmentName || !editDepartmentCode}
 											>
@@ -882,34 +912,47 @@
 								<div class="dept-mgmt-assign-form-container">
 									<div class="dept-mgmt-assign-form-header">
 										<h2 class="dept-mgmt-assign-form-title">Assign Subjects & Teachers</h2>
-										<p class="dept-mgmt-assign-form-subtitle">Select subjects and teachers for this department</p>
+										<p class="dept-mgmt-assign-form-subtitle">
+											Select subjects and teachers for this department
+										</p>
 									</div>
-									
-									<form class="dept-mgmt-assign-form-content" on:submit|preventDefault={handleAssignDepartment}>
+
+									<form
+										class="dept-mgmt-assign-form-content"
+										on:submit|preventDefault={handleAssignDepartment}
+									>
 										<!-- Subjects and Teachers Selection -->
 										<div class="dept-mgmt-assign-info-row">
 											<!-- Subjects Selection -->
 											<div class="dept-mgmt-form-group">
-												<label class="dept-mgmt-form-label" for="subjects">Select Subjects ({selectedSubjects.length} selected)</label>
-												
+												<label class="dept-mgmt-form-label" for="subjects"
+													>Select Subjects ({selectedSubjects.length} selected)</label
+												>
+
 												<!-- Search and Select All -->
 												<div class="dept-mgmt-subject-controls">
-													<input 
-														type="text" 
+													<input
+														type="text"
 														class="dept-mgmt-form-input"
 														placeholder="Search subjects by name or code..."
 														bind:value={subjectSearchTerm}
 														id="subjects"
 													/>
 													{#if sortedFilteredSubjects.length > 0}
-														{@const allFilteredSelected = sortedFilteredSubjects.every(subject => selectedSubjects.some(id => id === subject.id))}
-														<button 
+														{@const allFilteredSelected = sortedFilteredSubjects.every((subject) =>
+															selectedSubjects.some((id) => id === subject.id)
+														)}
+														<button
 															type="button"
 															class="dept-mgmt-select-all-button"
 															on:click={toggleSelectAllSubjects}
-															title="{allFilteredSelected ? 'Deselect All' : 'Select All'} ({sortedFilteredSubjects.length})"
+															title="{allFilteredSelected
+																? 'Deselect All'
+																: 'Select All'} ({sortedFilteredSubjects.length})"
 														>
-															<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+															<span class="material-symbols-outlined"
+																>{allFilteredSelected ? 'deselect' : 'select_all'}</span
+															>
 														</button>
 													{/if}
 												</div>
@@ -917,20 +960,26 @@
 												<!-- Subject List -->
 												<div class="dept-mgmt-subject-list">
 													{#each sortedFilteredSubjects as subject (subject.id)}
-														<button 
+														<button
 															type="button"
-															class="dept-mgmt-subject-item" 
-															class:selected={selectedSubjects.some(id => id === subject.id)}
+															class="dept-mgmt-subject-item"
+															class:selected={selectedSubjects.some((id) => id === subject.id)}
 															on:click={() => toggleSubjectSelection(subject)}
 														>
 															<div class="dept-mgmt-option-content">
-																<span class="material-symbols-outlined dept-mgmt-option-icon">subject</span>
+																<span class="material-symbols-outlined dept-mgmt-option-icon"
+																	>subject</span
+																>
 																<span class="dept-mgmt-option-name">{subject.name}</span>
-																<span class="dept-mgmt-option-description">{subject.code} • {subject.gradeLevel}</span>
+																<span class="dept-mgmt-option-description"
+																	>{subject.code} • {subject.gradeLevel}</span
+																>
 															</div>
 															<div class="dept-mgmt-subject-checkbox">
 																<span class="material-symbols-outlined">
-																	{selectedSubjects.some(id => id === subject.id) ? 'check_box' : 'check_box_outline_blank'}
+																	{selectedSubjects.some((id) => id === subject.id)
+																		? 'check_box'
+																		: 'check_box_outline_blank'}
 																</span>
 															</div>
 														</button>
@@ -942,31 +991,41 @@
 														</div>
 													{/if}
 												</div>
-												<p class="dept-mgmt-form-help">Select subjects that will be managed by this department.</p>
+												<p class="dept-mgmt-form-help">
+													Select subjects that will be managed by this department.
+												</p>
 											</div>
 
 											<!-- Teachers Selection -->
 											<div class="dept-mgmt-form-group">
-												<label class="dept-mgmt-form-label" for="teachers">Select Teachers ({selectedTeachers.length} selected)</label>
-												
+												<label class="dept-mgmt-form-label" for="teachers"
+													>Select Teachers ({selectedTeachers.length} selected)</label
+												>
+
 												<!-- Search and Select All -->
 												<div class="dept-mgmt-teacher-controls">
-													<input 
-														type="text" 
+													<input
+														type="text"
 														class="dept-mgmt-form-input"
 														placeholder="Search teachers by name or account number..."
 														bind:value={teacherSearchTerm}
 														id="teachers"
 													/>
 													{#if sortedFilteredTeachers.length > 0}
-														{@const allFilteredSelected = sortedFilteredTeachers.every(teacher => selectedTeachers.some(id => id === teacher.id))}
-														<button 
+														{@const allFilteredSelected = sortedFilteredTeachers.every((teacher) =>
+															selectedTeachers.some((id) => id === teacher.id)
+														)}
+														<button
 															type="button"
 															class="dept-mgmt-select-all-button"
 															on:click={toggleSelectAllTeachers}
-															title="{allFilteredSelected ? 'Deselect All' : 'Select All'} ({sortedFilteredTeachers.length})"
+															title="{allFilteredSelected
+																? 'Deselect All'
+																: 'Select All'} ({sortedFilteredTeachers.length})"
 														>
-															<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+															<span class="material-symbols-outlined"
+																>{allFilteredSelected ? 'deselect' : 'select_all'}</span
+															>
 														</button>
 													{/if}
 												</div>
@@ -974,20 +1033,26 @@
 												<!-- Teacher List -->
 												<div class="dept-mgmt-teacher-list">
 													{#each sortedFilteredTeachers as teacher (teacher.id)}
-														<button 
+														<button
 															type="button"
-															class="dept-mgmt-teacher-item" 
-															class:selected={selectedTeachers.some(id => id === teacher.id)}
+															class="dept-mgmt-teacher-item"
+															class:selected={selectedTeachers.some((id) => id === teacher.id)}
 															on:click={() => toggleTeacherSelection(teacher)}
 														>
 															<div class="dept-mgmt-option-content">
-																<span class="material-symbols-outlined dept-mgmt-option-icon">person</span>
+																<span class="material-symbols-outlined dept-mgmt-option-icon"
+																	>person</span
+																>
 																<span class="dept-mgmt-option-name">{teacher.name}</span>
-																<span class="dept-mgmt-option-description">{teacher.accountNumber}</span>
+																<span class="dept-mgmt-option-description"
+																	>{teacher.accountNumber}</span
+																>
 															</div>
 															<div class="dept-mgmt-teacher-checkbox">
 																<span class="material-symbols-outlined">
-																	{selectedTeachers.some(id => id === teacher.id) ? 'check_box' : 'check_box_outline_blank'}
+																	{selectedTeachers.some((id) => id === teacher.id)
+																		? 'check_box'
+																		: 'check_box_outline_blank'}
 																</span>
 															</div>
 														</button>
@@ -999,29 +1064,35 @@
 														</div>
 													{/if}
 												</div>
-												<p class="dept-mgmt-form-help">Select teachers who will be part of this department.</p>
+												<p class="dept-mgmt-form-help">
+													Select teachers who will be part of this department.
+												</p>
 											</div>
 										</div>
-						
-											<!-- Form Actions -->
-											<div class="dept-mgmt-assign-actions">
-												<button type="button" class="dept-mgmt-cancel-button" on:click={() => toggleAssignForm(department)}>
-													Cancel
-												</button>
-												<button 
-													type="submit" 
-													class="dept-mgmt-assign-submit-button"
-													disabled={isAssigning}
-												>
-													{#if isAssigning}
-														Assigning...
-													{:else}
-														Update
-													{/if}
-												</button>
-											</div>
-										</form>
-									</div>
+
+										<!-- Form Actions -->
+										<div class="dept-mgmt-assign-actions">
+											<button
+												type="button"
+												class="dept-mgmt-cancel-button"
+												on:click={() => toggleAssignForm(department)}
+											>
+												Cancel
+											</button>
+											<button
+												type="submit"
+												class="dept-mgmt-assign-submit-button"
+												disabled={isAssigning}
+											>
+												{#if isAssigning}
+													Assigning...
+												{:else}
+													Update
+												{/if}
+											</button>
+										</div>
+									</form>
+								</div>
 							</div>
 						{/if}
 					</div>

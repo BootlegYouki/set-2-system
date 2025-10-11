@@ -47,9 +47,9 @@
 		try {
 			const response = await fetch('/api/sections?action=available-sections');
 			const result = await response.json();
-			
+
 			if (result.success) {
-				sections = result.data.map(section => ({
+				sections = result.data.map((section) => ({
 					id: section._id,
 					name: section.name,
 					grade: `Grade ${section.grade_level}`,
@@ -67,7 +67,7 @@
 	}
 
 	let scheduleAssignments = [];
-	
+
 	// Add schedule form state
 	let showAddForm = false;
 	let isSubmitting = false;
@@ -80,7 +80,7 @@
 		activityTypeId: '',
 		teacherId: ''
 	};
-	
+
 	// Dropdown states for add form
 	let subjects = [];
 	let activityTypes = [];
@@ -88,23 +88,23 @@
 	let isLoadingSubjects = false;
 	let isLoadingActivityTypes = false;
 	let isLoadingTeachers = false;
-	
+
 	// Custom dropdown states
 	let isSubjectDropdownOpen = false;
 	let isActivityTypeDropdownOpen = false;
 	let isTeacherDropdownOpen = false;
 	let isScheduleTypeDropdownOpen = false;
-	
+
 	// Time validation variables
 	let timeValidationMessage = '';
 	let calculatedDuration = '';
-	
+
 	// Conflict detection variables
 	let conflictCheckMessage = '';
 	let isCheckingConflicts = false;
 	let hasConflicts = false;
 	let currentConflicts = [];
-	
+
 	// Reactive time validation and duration calculation
 	$: {
 		if (formData.startTime && formData.endTime) {
@@ -125,22 +125,22 @@
 			currentConflicts = [];
 		}
 	}
-	
+
 	// Function to validate time range and calculate duration
 	function validateTimeRange() {
 		const startTime = formData.startTime;
 		const endTime = formData.endTime;
-		
+
 		if (!startTime || !endTime) {
 			timeValidationMessage = '';
 			calculatedDuration = '';
 			return;
 		}
-		
+
 		// Convert time strings to minutes for comparison
 		const startMinutes = timeStringToMinutes(startTime);
 		const endMinutes = timeStringToMinutes(endTime);
-		
+
 		if (endMinutes <= startMinutes) {
 			timeValidationMessage = 'End time must be after start time';
 			calculatedDuration = '';
@@ -149,7 +149,7 @@
 			const durationMinutes = endMinutes - startMinutes;
 			const hours = Math.floor(durationMinutes / 60);
 			const minutes = durationMinutes % 60;
-			
+
 			if (hours > 0 && minutes > 0) {
 				calculatedDuration = `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes > 1 ? 's' : ''}`;
 			} else if (hours > 0) {
@@ -159,7 +159,7 @@
 			}
 		}
 	}
-	
+
 	// Helper function to convert time string (HH:MM) to minutes
 	function timeStringToMinutes(timeString) {
 		const [hours, minutes] = timeString.split(':').map(Number);
@@ -177,7 +177,12 @@
 	async function checkScheduleConflicts() {
 		// Debounce the API call to avoid excessive requests
 		debounce(async () => {
-			if (!selectedFormSection || !formData.startTime || !formData.endTime || selectedDays.length === 0) {
+			if (
+				!selectedFormSection ||
+				!formData.startTime ||
+				!formData.endTime ||
+				selectedDays.length === 0
+			) {
 				return;
 			}
 
@@ -189,8 +194,8 @@
 			try {
 				// Check conflicts for each selected day
 				const conflictPromises = selectedDays.map(async (dayId) => {
-					const dayName = days.find(d => d.id === dayId)?.name.toLowerCase();
-					
+					const dayName = days.find((d) => d.id === dayId)?.name.toLowerCase();
+
 					const params = new URLSearchParams({
 						action: 'check-conflicts',
 						sectionId: selectedFormSection,
@@ -210,21 +215,21 @@
 
 					return {
 						day: dayName,
-						dayDisplay: days.find(d => d.id === dayId)?.name,
+						dayDisplay: days.find((d) => d.id === dayId)?.name,
 						...result
 					};
 				});
 
 				const conflictResults = await Promise.all(conflictPromises);
-				
+
 				// Process results
 				const allConflicts = [];
 				const conflictingDays = [];
 
-				conflictResults.forEach(result => {
+				conflictResults.forEach((result) => {
 					if (result.hasConflicts) {
 						conflictingDays.push(result.dayDisplay);
-						result.conflicts.forEach(conflict => {
+						result.conflicts.forEach((conflict) => {
 							allConflicts.push({
 								...conflict,
 								day: result.dayDisplay
@@ -236,42 +241,52 @@
 				if (allConflicts.length > 0) {
 					hasConflicts = true;
 					currentConflicts = allConflicts;
-					
+
 					// Group conflicts by type and create toast messages
-					const teacherConflicts = allConflicts.filter(c => c.type === 'teacher_conflict');
-					const sectionConflicts = allConflicts.filter(c => c.type === 'section_conflict');
-					
+					const teacherConflicts = allConflicts.filter((c) => c.type === 'teacher_conflict');
+					const sectionConflicts = allConflicts.filter((c) => c.type === 'section_conflict');
+
 					// Show toast notifications
 					if (teacherConflicts.length === 1) {
 						// Single teacher conflict - show detailed message
 						toastStore.error(teacherConflicts[0].message, 6000);
 					} else if (teacherConflicts.length > 1) {
 						// Multiple teacher conflicts - show summary
-						const conflictDays = [...new Set(teacherConflicts.map(c => c.day))];
+						const conflictDays = [...new Set(teacherConflicts.map((c) => c.day))];
 						const teacherName = teacherConflicts[0].details?.teacher_name || 'Selected teacher';
-						toastStore.error(`${teacherName} has schedule conflicts on ${conflictDays.join(', ')}. Please choose different times or another teacher.`, 8000);
+						toastStore.error(
+							`${teacherName} has schedule conflicts on ${conflictDays.join(', ')}. Please choose different times or another teacher.`,
+							8000
+						);
 					}
-					
+
 					if (sectionConflicts.length === 1) {
 						// Single section conflict - show detailed message
 						toastStore.error(sectionConflicts[0].message, 6000);
 					} else if (sectionConflicts.length > 1) {
 						// Multiple section conflicts - show summary
-						const conflictDays = [...new Set(sectionConflicts.map(c => c.day))];
-						toastStore.error(`Time conflicts detected for this section on ${conflictDays.join(', ')}. Please choose different time slots.`, 6000);
+						const conflictDays = [...new Set(sectionConflicts.map((c) => c.day))];
+						toastStore.error(
+							`Time conflicts detected for this section on ${conflictDays.join(', ')}. Please choose different time slots.`,
+							6000
+						);
 					}
-					
+
 					// Create a summary message for the button
 					let messages = [];
-					
+
 					if (teacherConflicts.length > 0) {
-						messages.push(`Teacher conflicts detected on ${[...new Set(teacherConflicts.map(c => c.day))].join(', ')}`);
+						messages.push(
+							`Teacher conflicts detected on ${[...new Set(teacherConflicts.map((c) => c.day))].join(', ')}`
+						);
 					}
-					
+
 					if (sectionConflicts.length > 0) {
-						messages.push(`Section time conflicts detected on ${[...new Set(sectionConflicts.map(c => c.day))].join(', ')}`);
+						messages.push(
+							`Section time conflicts detected on ${[...new Set(sectionConflicts.map((c) => c.day))].join(', ')}`
+						);
 					}
-					
+
 					conflictCheckMessage = messages.join('. ');
 				} else {
 					hasConflicts = false;
@@ -286,36 +301,41 @@
 			}
 		}, 500); // 500ms debounce delay
 	}
-	
+
 	// Filter form sections based on selected form year
-	$: filteredFormSections = selectedFormYear ? sections.filter(section => section.year === selectedFormYear) : [];
+	$: filteredFormSections = selectedFormYear
+		? sections.filter((section) => section.year === selectedFormYear)
+		: [];
 
 	// Filtered arrays for search functionality
-	$: filteredSectionsWithSearch = filteredFormSections.filter(section => 
-		section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase()) ||
-		section.grade.toLowerCase().includes(sectionSearchTerm.toLowerCase())
+	$: filteredSectionsWithSearch = filteredFormSections.filter(
+		(section) =>
+			section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase()) ||
+			section.grade.toLowerCase().includes(sectionSearchTerm.toLowerCase())
 	);
 
 	// Get selected objects for form display
-	$: selectedFormYearObj = years.find(y => y.id === selectedFormYear);
-	$: selectedFormSectionObj = sections.find(s => s.id === selectedFormSection);
+	$: selectedFormYearObj = years.find((y) => y.id === selectedFormYear);
+	$: selectedFormSectionObj = sections.find((s) => s.id === selectedFormSection);
 
 	// Get schedules for each day
 	$: schedulesByDay = days.reduce((acc, day) => {
-		acc[day.id] = scheduleAssignments.filter(assignment => {
-			if (!selectedFormYear || !selectedFormSection) return false;
-			
-			const yearMatch = assignment.year === selectedFormYear;
-			const sectionMatch = assignment.section === selectedFormSectionObj?.name;
-			const dayMatch = assignment.day === day.name;
-			
-			return yearMatch && sectionMatch && dayMatch;
-		}).sort((a, b) => {
-			// Sort by start time in ascending order
-			const aStartTime = timeToMinutes(a.startTime);
-			const bStartTime = timeToMinutes(b.startTime);
-			return aStartTime - bStartTime;
-		});
+		acc[day.id] = scheduleAssignments
+			.filter((assignment) => {
+				if (!selectedFormYear || !selectedFormSection) return false;
+
+				const yearMatch = assignment.year === selectedFormYear;
+				const sectionMatch = assignment.section === selectedFormSectionObj?.name;
+				const dayMatch = assignment.day === day.name;
+
+				return yearMatch && sectionMatch && dayMatch;
+			})
+			.sort((a, b) => {
+				// Sort by start time in ascending order
+				const aStartTime = timeToMinutes(a.startTime);
+				const bStartTime = timeToMinutes(b.startTime);
+				return aStartTime - bStartTime;
+			});
 		return acc;
 	}, {});
 
@@ -326,10 +346,10 @@
 	// Function to convert time string to minutes for comparison
 	function timeToMinutes(timeString) {
 		if (!timeString) return 0;
-		
+
 		const [time, period] = timeString.split(' ');
 		const [hours, minutes] = time.split(':').map(Number);
-		
+
 		let totalMinutes = minutes;
 		if (period === 'PM' && hours !== 12) {
 			totalMinutes += (hours + 12) * 60;
@@ -338,7 +358,7 @@
 		} else {
 			totalMinutes += hours * 60;
 		}
-		
+
 		return totalMinutes;
 	}
 
@@ -375,7 +395,7 @@
 	function selectFormSection(section) {
 		selectedFormSection = section ? section.id : '';
 		isFormSectionDropdownOpen = false;
-		
+
 		// Reset subjects when section changes to reload with new grade level filter
 		subjects = [];
 		formData.subjectId = '';
@@ -384,19 +404,20 @@
 	// Format time string from 24-hour format to 12-hour format with AM/PM
 	function formatTimeString(timeString) {
 		if (!timeString) return '';
-		
+
 		// Handle both HH:MM:SS and HH:MM formats
 		const timeParts = timeString.split(':');
 		let hours = parseInt(timeParts[0]);
 		const minutes = timeParts[1];
-		
+
 		const ampm = hours >= 12 ? 'PM' : 'AM';
 		hours = hours % 12;
 		hours = hours ? hours : 12; // 0 should be 12
-		
+
 		// Remove leading zero from minutes if present
-		const formattedMinutes = minutes.startsWith('0') && minutes !== '00' ? minutes.substring(1) : minutes;
-		
+		const formattedMinutes =
+			minutes.startsWith('0') && minutes !== '00' ? minutes.substring(1) : minutes;
+
 		// Only show minutes if they're not 00
 		if (formattedMinutes === '00') {
 			return `${hours}:00 ${ampm}`;
@@ -410,10 +431,10 @@
 		try {
 			const response = await fetch('/api/schedules');
 			const result = await response.json();
-			
+
 			if (result.success) {
 				// Transform API data to match the component's expected format
-				scheduleAssignments = result.data.map(schedule => ({
+				scheduleAssignments = result.data.map((schedule) => ({
 					id: schedule.id,
 					year: `grade-${schedule.grade_level}`,
 					grade: `Grade ${schedule.grade_level}`,
@@ -455,16 +476,18 @@
 
 					if (result.success) {
 						// Remove assignment from the local array only after successful API call
-						scheduleAssignments = scheduleAssignments.filter(a => a.id !== assignment.id);
-						
+						scheduleAssignments = scheduleAssignments.filter((a) => a.id !== assignment.id);
+
 						// Force reactivity update by reassigning the array
 						scheduleAssignments = [...scheduleAssignments];
-						
+
 						// Manually trigger height adjustment after DOM update
 						setTimeout(() => adjustEmptyDayHeights(), 0);
-						
+
 						// Show success message
-						toastStore.success(`Assignment for ${assignment.subject} has been deleted successfully`);
+						toastStore.success(
+							`Assignment for ${assignment.subject} has been deleted successfully`
+						);
 					} else {
 						// Show error message
 						toastStore.error(result.error || 'Failed to delete assignment');
@@ -474,8 +497,7 @@
 					toastStore.error('Failed to delete assignment. Please try again.');
 				}
 			},
-			() => {
-			}
+			() => {}
 		);
 	}
 
@@ -501,7 +523,7 @@
 
 	function toggleDaySelection(dayId) {
 		if (selectedDays.includes(dayId)) {
-			selectedDays = selectedDays.filter(id => id !== dayId);
+			selectedDays = selectedDays.filter((id) => id !== dayId);
 		} else {
 			selectedDays = [...selectedDays, dayId];
 		}
@@ -554,21 +576,21 @@
 	// Load dropdown data functions
 	async function loadSubjects() {
 		if (subjects.length > 0) return;
-		
+
 		isLoadingSubjects = true;
 		try {
 			// Get the grade level from the selected section
-			const selectedSection = sections.find(s => s.id === selectedFormSection);
+			const selectedSection = sections.find((s) => s.id === selectedFormSection);
 			const gradeLevel = selectedSection ? selectedSection.grade_level : '';
-			
+
 			// Add grade level parameter to the API call
-			const url = gradeLevel ? 
-				`/api/subjects?action=available-subjects&grade_level=${gradeLevel}` : 
-				'/api/subjects?action=available-subjects';
-			
+			const url = gradeLevel
+				? `/api/subjects?action=available-subjects&grade_level=${gradeLevel}`
+				: '/api/subjects?action=available-subjects';
+
 			const response = await fetch(url);
 			const result = await response.json();
-			
+
 			if (result.success) {
 				subjects = result.data;
 			}
@@ -581,12 +603,12 @@
 
 	async function loadActivityTypes() {
 		if (activityTypes.length > 0) return;
-		
+
 		isLoadingActivityTypes = true;
 		try {
 			const response = await fetch('/api/activity-types?action=available-activity-types');
 			const result = await response.json();
-			
+
 			if (result.success) {
 				activityTypes = result.data;
 			}
@@ -599,12 +621,12 @@
 
 	async function loadTeachers() {
 		if (teachers.length > 0) return;
-		
+
 		isLoadingTeachers = true;
 		try {
 			const response = await fetch('/api/users?action=teachers');
 			const result = await response.json();
-			
+
 			if (result.success) {
 				teachers = result.data;
 			}
@@ -640,9 +662,9 @@
 		isSubmitting = true;
 
 		try {
-			const promises = selectedDays.map(dayId => {
-				const dayName = days.find(d => d.id === dayId)?.name.toLowerCase();
-				
+			const promises = selectedDays.map((dayId) => {
+				const dayName = days.find((d) => d.id === dayId)?.name.toLowerCase();
+
 				return fetch('/api/schedules', {
 					method: 'POST',
 					headers: {
@@ -663,16 +685,16 @@
 			});
 
 			const responses = await Promise.all(promises);
-			const results = await Promise.all(responses.map(r => r.json()));
+			const results = await Promise.all(responses.map((r) => r.json()));
 
-			const failedResults = results.filter(r => !r.success);
-			const successfulResults = results.filter(r => r.success);
-			
+			const failedResults = results.filter((r) => !r.success);
+			const successfulResults = results.filter((r) => r.success);
+
 			// Always reload schedules if there were any successful additions
 			if (successfulResults.length > 0) {
 				await loadSchedules(); // Reload schedules to show successful additions
 			}
-			
+
 			if (failedResults.length === 0) {
 				toastStore.success(`Schedule added successfully for ${selectedDays.length} day(s)`);
 				resetForm();
@@ -682,25 +704,29 @@
 				if (successfulResults.length > 0) {
 					toastStore.success(`Schedule added successfully for ${successfulResults.length} day(s)`);
 				}
-				
+
 				// Handle different types of errors
-				const teacherConflicts = failedResults.filter(r => r.conflictType === 'teacher_conflict');
-				const timeConflicts = failedResults.filter(r => r.conflictType !== 'teacher_conflict');
-				
+				const teacherConflicts = failedResults.filter((r) => r.conflictType === 'teacher_conflict');
+				const timeConflicts = failedResults.filter((r) => r.conflictType !== 'teacher_conflict');
+
 				if (teacherConflicts.length > 0) {
 					// Show specific teacher conflict messages
-					teacherConflicts.forEach(conflict => {
+					teacherConflicts.forEach((conflict) => {
 						toastStore.error(conflict.error, 8000); // Longer duration for detailed message
 					});
 				}
-				
+
 				if (timeConflicts.length > 0) {
-					toastStore.error(`Failed to add schedule for ${timeConflicts.length} day(s) due to time conflicts`);
+					toastStore.error(
+						`Failed to add schedule for ${timeConflicts.length} day(s) due to time conflicts`
+					);
 				}
-				
+
 				// If there are other types of failures, show generic message
 				if (failedResults.length > teacherConflicts.length + timeConflicts.length) {
-					toastStore.error(`Failed to add schedule for ${failedResults.length - teacherConflicts.length - timeConflicts.length} day(s)`);
+					toastStore.error(
+						`Failed to add schedule for ${failedResults.length - teacherConflicts.length - timeConflicts.length} day(s)`
+					);
 				}
 			}
 		} catch (error) {
@@ -737,7 +763,7 @@
 
 		// Calculate the maximum height among all day columns
 		let maxHeight = 0;
-		dayColumns.forEach(column => {
+		dayColumns.forEach((column) => {
 			const scheduleContainer = column.querySelector('.scheduleassign-day-schedules');
 			if (scheduleContainer) {
 				const height = scheduleContainer.scrollHeight;
@@ -746,15 +772,17 @@
 		});
 
 		// Apply the maximum height to empty day containers
-		dayColumns.forEach(column => {
+		dayColumns.forEach((column) => {
 			const emptyDay = column.querySelector('.scheduleassign-empty-day');
 			const scheduleContainer = column.querySelector('.scheduleassign-day-schedules');
-			
+
 			if (emptyDay && scheduleContainer) {
 				// Check if this column has schedules
-				const hasSchedules = scheduleContainer.children.length > 1 || 
-					(scheduleContainer.children.length === 1 && !scheduleContainer.querySelector('.scheduleassign-empty-day'));
-				
+				const hasSchedules =
+					scheduleContainer.children.length > 1 ||
+					(scheduleContainer.children.length === 1 &&
+						!scheduleContainer.querySelector('.scheduleassign-empty-day'));
+
 				if (!hasSchedules) {
 					// This is an empty day, set its height to match the tallest column
 					emptyDay.style.minHeight = `${maxHeight}px`;
@@ -767,325 +795,379 @@
 <svelte:window on:click={handleClickOutside} />
 
 <div class="scheduleassign-form-section">
-    <div class="scheduleassign-section-header">
-        <h2 class="admin-section-title">Schedule Management</h2>
-        <p class="scheduleassign-form-instruction">Select year level and section to view all schedule assignments.</p>
-    </div>
+	<div class="scheduleassign-section-header">
+		<h2 class="admin-section-title">Schedule Management</h2>
+		<p class="scheduleassign-form-instruction">
+			Select year level and section to view all schedule assignments.
+		</p>
+	</div>
 
-    <form>
-        <div class="scheduleassign-hierarchical-form">
-
-            <!-- Year Level and Section Selection Row -->
-            <div class="scheduleassign-selection-row">
-                <!-- Year Level Selection -->
-                <div class="scheduleassign-form-group">
-                    <label class="scheduleassign-form-label" for="form-year">Year Level *</label>
-                    <div class="scheduleassign-custom-dropdown" class:open={isFormYearDropdownOpen}>
-                        <button 
-                            type="button"
-                            class="scheduleassign-dropdown-button" 
-                            class:selected={selectedFormYear}
-                            on:click={toggleFormYearDropdown}
-                            id="form-year"
-                        >
-                            {#if selectedFormYearObj}
-                    <div class="scheduleassign-selected-option">
-                        <span class="material-symbols-outlined option-icon">school</span>
-                        <div class="option-content">
-                            <span class="option-name">{selectedFormYearObj.name}</span>
-                        </div>
-                    </div>
-                {:else}
-                    <span class="placeholder">Select year level</span>
-                {/if}
-                            <span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-                        </button>
-                        <div class="scheduleassign-dropdown-menu">
-                            {#each years as year (year.id)}
-                        <button 
-                            type="button"
-                            class="scheduleassign-dropdown-item" 
-                            class:selected={selectedFormYear === year.id}
-                            on:click={() => selectFormYear(year)}
-                        >
-                            <span class="material-symbols-outlined option-icon">school</span>
-                            <div class="option-content">
-                                <span class="option-name">{year.name}</span>
-                                <span class="option-description">{year.description}</span>
-                            </div>
-                        </button>
-                    {/each}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section Selection -->
-                <div class="scheduleassign-form-group">
-                    <label class="scheduleassign-form-label" for="form-section">Section *</label>
-                    <div class="scheduleassign-custom-dropdown" class:open={isFormSectionDropdownOpen} class:disabled={!selectedFormYear}>
-                        <button 
-                            type="button"
-                            class="scheduleassign-dropdown-button" 
-                            class:selected={selectedFormSection}
-                            class:disabled={!selectedFormYear}
-                            on:click={toggleFormSectionDropdown}
-                            id="form-section"
-                            disabled={!selectedFormYear}
-                        >
-                            {#if selectedFormSectionObj}
-                    <div class="scheduleassign-selected-option">
-                        <span class="material-symbols-outlined option-icon">class</span>
-                        <div class="option-content">
-                            <span class="option-name">{selectedFormSectionObj.grade} · {selectedFormSectionObj.name}</span>
-                        </div>
-                    </div>
-                {:else}
-                    <span class="placeholder">{selectedFormYear ? 'Select section' : 'Select year level first'}</span>
-                {/if}
-                            <span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-                        </button>
-                        <div class="scheduleassign-dropdown-menu">
-                            <!-- Search Container -->
-                            <div class="scheduleassign-search-container">
-                                <input 
-                                    type="text" 
-                                    class="scheduleassign-search-input"
-                                    placeholder="Search sections..."
-                                    bind:value={sectionSearchTerm}
-                                />
-                                <span class="material-icons scheduleassign-search-icon">search</span>
-                            </div>
-                            {#if isLoadingSections}
-                                <div class="admin-section-loading">
-                                    <span class="section-loader"></span>
-                                    <span>Loading sections...</span>
-                                </div>
-                            {:else if filteredSectionsWithSearch.length > 0}
-                                {#each filteredSectionsWithSearch as section (section.id)}
-                                    <button 
-                                        type="button"
-                                        class="scheduleassign-dropdown-item" 
-                                        class:selected={selectedFormSection === section.id}
-                                        on:click={() => selectFormSection(section)}
-                                    >
-                                        <span class="material-symbols-outlined option-icon">class</span>
-                                        <div class="option-content">
-                                            <span class="option-name">{section.grade} · {section.name}</span>
-                                            <span class="option-description">{section.grade} Section</span>
-                                        </div>
-                                    </button>
-                                {/each}
-                            {:else}
-                                <div class="scheduleassign-empty-state">
-                                    <span class="material-symbols-outlined empty-icon">inbox</span>
-                                    <span class="empty-text">No sections available</span>
-                                </div>
-                            {/if}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Schedule Display Grid -->
-            {#if selectedFormYear && selectedFormSection}
-                <div class="scheduleassign-schedule-grid">
-                        <div class="scheduleassign-schedule-actions">
-							<a href="#addScheduleForm" class="scheduleassign-add-schedule-link">
-								<button 
-									type="button" 
-									class="scheduleassign-add-schedule-card"
-									class:cancel-mode={showAddForm}
-									on:click={toggleAddForm}
+	<form>
+		<div class="scheduleassign-hierarchical-form">
+			<!-- Year Level and Section Selection Row -->
+			<div class="scheduleassign-selection-row">
+				<!-- Year Level Selection -->
+				<div class="scheduleassign-form-group">
+					<label class="scheduleassign-form-label" for="form-year">Year Level *</label>
+					<div class="scheduleassign-custom-dropdown" class:open={isFormYearDropdownOpen}>
+						<button
+							type="button"
+							class="scheduleassign-dropdown-button"
+							class:selected={selectedFormYear}
+							on:click={toggleFormYearDropdown}
+							id="form-year"
+						>
+							{#if selectedFormYearObj}
+								<div class="scheduleassign-selected-option">
+									<span class="material-symbols-outlined option-icon">school</span>
+									<div class="option-content">
+										<span class="option-name">{selectedFormYearObj.name}</span>
+									</div>
+								</div>
+							{:else}
+								<span class="placeholder">Select year level</span>
+							{/if}
+							<span class="material-symbols-outlined scheduleassign-dropdown-arrow"
+								>expand_more</span
+							>
+						</button>
+						<div class="scheduleassign-dropdown-menu">
+							{#each years as year (year.id)}
+								<button
+									type="button"
+									class="scheduleassign-dropdown-item"
+									class:selected={selectedFormYear === year.id}
+									on:click={() => selectFormYear(year)}
 								>
-									<span class="material-symbols-outlined">
-										{showAddForm ? 'close' : 'add'}
-									</span>
-									{showAddForm ? 'Cancel Schedule' : 'Add Schedule'}
+									<span class="material-symbols-outlined option-icon">school</span>
+									<div class="option-content">
+										<span class="option-name">{year.name}</span>
+										<span class="option-description">{year.description}</span>
+									</div>
 								</button>
-							</a>
-                        </div>
-                    <!-- Add Schedule Form -->
-                    {#if showAddForm}
-                        <div class="scheduleassign-add-form" id="addScheduleForm">
-                            <h4 class="scheduleassign-form-title">Add New Schedule</h4>
-                            
-                            <!-- Day Selection with Checkboxes -->
+							{/each}
+						</div>
+					</div>
+				</div>
 
+				<!-- Section Selection -->
+				<div class="scheduleassign-form-group">
+					<label class="scheduleassign-form-label" for="form-section">Section *</label>
+					<div
+						class="scheduleassign-custom-dropdown"
+						class:open={isFormSectionDropdownOpen}
+						class:disabled={!selectedFormYear}
+					>
+						<button
+							type="button"
+							class="scheduleassign-dropdown-button"
+							class:selected={selectedFormSection}
+							class:disabled={!selectedFormYear}
+							on:click={toggleFormSectionDropdown}
+							id="form-section"
+							disabled={!selectedFormYear}
+						>
+							{#if selectedFormSectionObj}
+								<div class="scheduleassign-selected-option">
+									<span class="material-symbols-outlined option-icon">class</span>
+									<div class="option-content">
+										<span class="option-name"
+											>{selectedFormSectionObj.grade} · {selectedFormSectionObj.name}</span
+										>
+									</div>
+								</div>
+							{:else}
+								<span class="placeholder"
+									>{selectedFormYear ? 'Select section' : 'Select year level first'}</span
+								>
+							{/if}
+							<span class="material-symbols-outlined scheduleassign-dropdown-arrow"
+								>expand_more</span
+							>
+						</button>
+						<div class="scheduleassign-dropdown-menu">
+							<!-- Search Container -->
+							<div class="scheduleassign-search-container">
+								<input
+									type="text"
+									class="scheduleassign-search-input"
+									placeholder="Search sections..."
+									bind:value={sectionSearchTerm}
+								/>
+								<span class="material-icons scheduleassign-search-icon">search</span>
+							</div>
+							{#if isLoadingSections}
+								<div class="admin-section-loading">
+									<span class="section-loader"></span>
+									<span>Loading sections...</span>
+								</div>
+							{:else if filteredSectionsWithSearch.length > 0}
+								{#each filteredSectionsWithSearch as section (section.id)}
+									<button
+										type="button"
+										class="scheduleassign-dropdown-item"
+										class:selected={selectedFormSection === section.id}
+										on:click={() => selectFormSection(section)}
+									>
+										<span class="material-symbols-outlined option-icon">class</span>
+										<div class="option-content">
+											<span class="option-name">{section.grade} · {section.name}</span>
+											<span class="option-description">{section.grade} Section</span>
+										</div>
+									</button>
+								{/each}
+							{:else}
+								<div class="scheduleassign-empty-state">
+									<span class="material-symbols-outlined empty-icon">inbox</span>
+									<span class="empty-text">No sections available</span>
+								</div>
+							{/if}
+						</div>
+					</div>
+				</div>
+			</div>
 
-                            <div class="scheduleassign-form-inputs">
-                                <!-- Schedule Type and Subject/Activity Selection Row -->
-                                <div class="scheduleassign-type-subject-row">
-                                    <!-- Schedule Type Selection -->
-                                    <div class="scheduleassign-input-group">
-                                        <label class="scheduleassign-input-label">Schedule Type</label>
-                                        <div class="scheduleassign-custom-dropdown">
-                                            <button 
-                                                type="button"
-                                                id="scheduleassign-schedule-type-dropdown"
-                                                class="scheduleassign-dropdown-trigger"
-                                                class:open={isScheduleTypeDropdownOpen}
-                                                class:selected={formData.scheduleType}
-                                                on:click={toggleScheduleTypeDropdown}
-                                            >
-                                                {#if formData.scheduleType}
-                                                    <div class="scheduleassign-selected-option">
-                                                        <span class="material-symbols-outlined scheduleassign-option-icon">
-                                                            {formData.scheduleType === 'subject' ? 'book' : 'sports'}
-                                                        </span>
-                                                        <div class="scheduleassign-option-content">
-                                                            <span class="scheduleassign-option-name">
-                                                                {formData.scheduleType === 'subject' ? 'Subject' : 'Activity'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                {:else}
-                                                    <span class="scheduleassign-placeholder">Select Schedule Type</span>
-                                                {/if}
-                                                <span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-                                            </button>
-                                            <div class="scheduleassign-dropdown-menu" class:open={isScheduleTypeDropdownOpen}>
-                                                <button 
-                                                    type="button"
-                                                    class="scheduleassign-dropdown-option" 
-                                                    class:selected={formData.scheduleType === 'subject'}
-                                                    on:click={() => selectScheduleType('subject')}
-                                                >
-                                                    <span class="material-symbols-outlined scheduleassign-option-icon">book</span>
-                                                    <div class="scheduleassign-option-content">
-                                                        <span class="scheduleassign-option-name">Subject</span>
-                                                    </div>
-                                                </button>
-                                                <button 
-                                                    type="button"
-                                                    class="scheduleassign-dropdown-option" 
-                                                    class:selected={formData.scheduleType === 'activity'}
-                                                    on:click={() => selectScheduleType('activity')}
-                                                >
-                                                    <span class="material-symbols-outlined scheduleassign-option-icon">sports</span>
-                                                    <div class="scheduleassign-option-content">
-                                                        <span class="scheduleassign-option-name">Activity</span>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
+			<!-- Schedule Display Grid -->
+			{#if selectedFormYear && selectedFormSection}
+				<div class="scheduleassign-schedule-grid">
+					<div class="scheduleassign-schedule-actions">
+						<a href="#addScheduleForm" class="scheduleassign-add-schedule-link">
+							<button
+								type="button"
+								class="scheduleassign-add-schedule-card"
+								class:cancel-mode={showAddForm}
+								on:click={toggleAddForm}
+							>
+								<span class="material-symbols-outlined">
+									{showAddForm ? 'close' : 'add'}
+								</span>
+								{showAddForm ? 'Cancel Schedule' : 'Add Schedule'}
+							</button>
+						</a>
+					</div>
+					<!-- Add Schedule Form -->
+					{#if showAddForm}
+						<div class="scheduleassign-add-form" id="addScheduleForm">
+							<h4 class="scheduleassign-form-title">Add New Schedule</h4>
 
-                                    <!-- Subject/Activity Selection -->
-                                    {#if formData.scheduleType === 'subject'}
-                                        <div class="scheduleassign-input-group">
-                                            <label class="scheduleassign-input-label">Subject</label>
-                                            <div class="scheduleassign-custom-dropdown">
-                                                <button 
-                                                    type="button"
-                                                    class="scheduleassign-dropdown-trigger"
-                                                    class:open={isSubjectDropdownOpen}
-                                                    class:selected={formData.subjectId}
-                                                    disabled={isLoadingSubjects}
-                                                    on:click={toggleSubjectDropdown}
-                                                >
-                                                    {#if formData.subjectId}
-                                                        {@const selectedSubject = subjects.find(s => s.id === formData.subjectId)}
-                                                        <div class="scheduleassign-selected-option">
-                                                            <span class="material-symbols-outlined scheduleassign-option-icon">book</span>
-                                                            <div class="scheduleassign-option-content">
-                                                                <span class="scheduleassign-option-name">{selectedSubject?.name}</span>
-                                                            </div>
-                                                        </div>
-                                                    {:else}
-                                                        <span class="scheduleassign-placeholder">Select Subject</span>
-                                                    {/if}
-                                                    <span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-                                                </button>
-                                                <div class="scheduleassign-dropdown-menu" class:open={isSubjectDropdownOpen}>
-                                                    {#if isLoadingSubjects}
-                                                        <div class="scheduleassign-loading">
-                                                            <span class="scheduleassign-loader"></span>
-                                                            <span>Loading subjects...</span>
-                                                        </div>
-                                                    {:else if subjects.length > 0}
-                                                        {#each subjects as subject (subject.id)}
-                                                            <button 
-                                                                type="button"
-                                                                class="scheduleassign-dropdown-option" 
-                                                                class:selected={formData.subjectId === subject.id}
-                                                                on:click={() => selectSubject(subject)}
-                                                            >
-                                                                <span class="material-symbols-outlined scheduleassign-option-icon">book</span>
-                                                                <div class="scheduleassign-option-content">
-                                                                    <span class="scheduleassign-option-name">{subject.name}</span>
-                                                                </div>
-                                                            </button>
-                                                        {/each}
-                                                    {:else}
-                                                        <div class="scheduleassign-empty-state">
-                                                            <span class="material-symbols-outlined scheduleassign-empty-icon">inbox</span>
-                                                            <span class="scheduleassign-empty-text">No subjects available</span>
-                                                        </div>
-                                                    {/if}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {:else}
-                                        <div class="scheduleassign-input-group">
-                                            <label class="scheduleassign-input-label">Activity Type</label>
-                                            <div class="scheduleassign-custom-dropdown">
-                                                <button 
-                                                    type="button"
-                                                    class="scheduleassign-dropdown-trigger"
-                                                    class:open={isActivityTypeDropdownOpen}
-                                                    class:selected={formData.activityTypeId}
-                                                    disabled={isLoadingActivityTypes}
-                                                    on:click={toggleActivityTypeDropdown}
-                                                >
-                                                    {#if formData.activityTypeId}
-                                                        {@const selectedActivityType = activityTypes.find(a => a.id === formData.activityTypeId)}
-                                                        <div class="scheduleassign-selected-option">
-                                                            <span class="material-symbols-outlined scheduleassign-option-icon">sports</span>
-                                                            <div class="scheduleassign-option-content">
-                                                                <span class="scheduleassign-option-name">{selectedActivityType?.name}</span>
-                                                            </div>
-                                                        </div>
-                                                    {:else}
-                                                        <span class="scheduleassign-placeholder">Select Activity Type</span>
-                                                    {/if}
-                                                    <span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
-                                                </button>
-                                                <div class="scheduleassign-dropdown-menu" class:open={isActivityTypeDropdownOpen}>
-                                                    {#if isLoadingActivityTypes}
-                                                        <div class="scheduleassign-loading">
-                                                            <span class="scheduleassign-loader"></span>
-                                                            <span>Loading activity types...</span>
-                                                        </div>
-                                                    {:else if activityTypes.length > 0}
-                                                        {#each activityTypes as activityType (activityType.id)}
-                                                            <button 
-                                                                type="button"
-                                                                class="scheduleassign-dropdown-option" 
-                                                                class:selected={formData.activityTypeId === activityType.id}
-                                                                on:click={() => selectActivityType(activityType)}
-                                                            >
-                                                                <span class="material-symbols-outlined scheduleassign-option-icon">sports</span>
-                                                                <div class="scheduleassign-option-content">
-                                                                    <span class="scheduleassign-option-name">{activityType.name}</span>
-                                                                </div>
-                                                            </button>
-                                                        {/each}
-                                                    {:else}
-                                                        <div class="scheduleassign-empty-state">
-                                                            <span class="material-symbols-outlined scheduleassign-empty-icon">inbox</span>
-                                                            <span class="scheduleassign-empty-text">No activity types available</span>
-                                                        </div>
-                                                    {/if}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {/if}
+							<!-- Day Selection with Checkboxes -->
+
+							<div class="scheduleassign-form-inputs">
+								<!-- Schedule Type and Subject/Activity Selection Row -->
+								<div class="scheduleassign-type-subject-row">
+									<!-- Schedule Type Selection -->
+									<div class="scheduleassign-input-group">
+										<label class="scheduleassign-input-label">Schedule Type</label>
+										<div class="scheduleassign-custom-dropdown">
+											<button
+												type="button"
+												id="scheduleassign-schedule-type-dropdown"
+												class="scheduleassign-dropdown-trigger"
+												class:open={isScheduleTypeDropdownOpen}
+												class:selected={formData.scheduleType}
+												on:click={toggleScheduleTypeDropdown}
+											>
+												{#if formData.scheduleType}
+													<div class="scheduleassign-selected-option">
+														<span class="material-symbols-outlined scheduleassign-option-icon">
+															{formData.scheduleType === 'subject' ? 'book' : 'sports'}
+														</span>
+														<div class="scheduleassign-option-content">
+															<span class="scheduleassign-option-name">
+																{formData.scheduleType === 'subject' ? 'Subject' : 'Activity'}
+															</span>
+														</div>
+													</div>
+												{:else}
+													<span class="scheduleassign-placeholder">Select Schedule Type</span>
+												{/if}
+												<span class="material-symbols-outlined scheduleassign-dropdown-arrow"
+													>expand_more</span
+												>
+											</button>
+											<div
+												class="scheduleassign-dropdown-menu"
+												class:open={isScheduleTypeDropdownOpen}
+											>
+												<button
+													type="button"
+													class="scheduleassign-dropdown-option"
+													class:selected={formData.scheduleType === 'subject'}
+													on:click={() => selectScheduleType('subject')}
+												>
+													<span class="material-symbols-outlined scheduleassign-option-icon"
+														>book</span
+													>
+													<div class="scheduleassign-option-content">
+														<span class="scheduleassign-option-name">Subject</span>
+													</div>
+												</button>
+												<button
+													type="button"
+													class="scheduleassign-dropdown-option"
+													class:selected={formData.scheduleType === 'activity'}
+													on:click={() => selectScheduleType('activity')}
+												>
+													<span class="material-symbols-outlined scheduleassign-option-icon"
+														>sports</span
+													>
+													<div class="scheduleassign-option-content">
+														<span class="scheduleassign-option-name">Activity</span>
+													</div>
+												</button>
+											</div>
+										</div>
+									</div>
+
+									<!-- Subject/Activity Selection -->
+									{#if formData.scheduleType === 'subject'}
+										<div class="scheduleassign-input-group">
+											<label class="scheduleassign-input-label">Subject</label>
+											<div class="scheduleassign-custom-dropdown">
+												<button
+													type="button"
+													class="scheduleassign-dropdown-trigger"
+													class:open={isSubjectDropdownOpen}
+													class:selected={formData.subjectId}
+													disabled={isLoadingSubjects}
+													on:click={toggleSubjectDropdown}
+												>
+													{#if formData.subjectId}
+														{@const selectedSubject = subjects.find(
+															(s) => s.id === formData.subjectId
+														)}
+														<div class="scheduleassign-selected-option">
+															<span class="material-symbols-outlined scheduleassign-option-icon"
+																>book</span
+															>
+															<div class="scheduleassign-option-content">
+																<span class="scheduleassign-option-name"
+																	>{selectedSubject?.name}</span
+																>
+															</div>
+														</div>
+													{:else}
+														<span class="scheduleassign-placeholder">Select Subject</span>
+													{/if}
+													<span class="material-symbols-outlined scheduleassign-dropdown-arrow"
+														>expand_more</span
+													>
+												</button>
+												<div
+													class="scheduleassign-dropdown-menu"
+													class:open={isSubjectDropdownOpen}
+												>
+													{#if isLoadingSubjects}
+														<div class="scheduleassign-loading">
+															<span class="scheduleassign-loader"></span>
+															<span>Loading subjects...</span>
+														</div>
+													{:else if subjects.length > 0}
+														{#each subjects as subject (subject.id)}
+															<button
+																type="button"
+																class="scheduleassign-dropdown-option"
+																class:selected={formData.subjectId === subject.id}
+																on:click={() => selectSubject(subject)}
+															>
+																<span class="material-symbols-outlined scheduleassign-option-icon"
+																	>book</span
+																>
+																<div class="scheduleassign-option-content">
+																	<span class="scheduleassign-option-name">{subject.name}</span>
+																</div>
+															</button>
+														{/each}
+													{:else}
+														<div class="scheduleassign-empty-state">
+															<span class="material-symbols-outlined scheduleassign-empty-icon"
+																>inbox</span
+															>
+															<span class="scheduleassign-empty-text">No subjects available</span>
+														</div>
+													{/if}
+												</div>
+											</div>
+										</div>
+									{:else}
+										<div class="scheduleassign-input-group">
+											<label class="scheduleassign-input-label">Activity Type</label>
+											<div class="scheduleassign-custom-dropdown">
+												<button
+													type="button"
+													class="scheduleassign-dropdown-trigger"
+													class:open={isActivityTypeDropdownOpen}
+													class:selected={formData.activityTypeId}
+													disabled={isLoadingActivityTypes}
+													on:click={toggleActivityTypeDropdown}
+												>
+													{#if formData.activityTypeId}
+														{@const selectedActivityType = activityTypes.find(
+															(a) => a.id === formData.activityTypeId
+														)}
+														<div class="scheduleassign-selected-option">
+															<span class="material-symbols-outlined scheduleassign-option-icon"
+																>sports</span
+															>
+															<div class="scheduleassign-option-content">
+																<span class="scheduleassign-option-name"
+																	>{selectedActivityType?.name}</span
+																>
+															</div>
+														</div>
+													{:else}
+														<span class="scheduleassign-placeholder">Select Activity Type</span>
+													{/if}
+													<span class="material-symbols-outlined scheduleassign-dropdown-arrow"
+														>expand_more</span
+													>
+												</button>
+												<div
+													class="scheduleassign-dropdown-menu"
+													class:open={isActivityTypeDropdownOpen}
+												>
+													{#if isLoadingActivityTypes}
+														<div class="scheduleassign-loading">
+															<span class="scheduleassign-loader"></span>
+															<span>Loading activity types...</span>
+														</div>
+													{:else if activityTypes.length > 0}
+														{#each activityTypes as activityType (activityType.id)}
+															<button
+																type="button"
+																class="scheduleassign-dropdown-option"
+																class:selected={formData.activityTypeId === activityType.id}
+																on:click={() => selectActivityType(activityType)}
+															>
+																<span class="material-symbols-outlined scheduleassign-option-icon"
+																	>sports</span
+																>
+																<div class="scheduleassign-option-content">
+																	<span class="scheduleassign-option-name">{activityType.name}</span
+																	>
+																</div>
+															</button>
+														{/each}
+													{:else}
+														<div class="scheduleassign-empty-state">
+															<span class="material-symbols-outlined scheduleassign-empty-icon"
+																>inbox</span
+															>
+															<span class="scheduleassign-empty-text"
+																>No activity types available</span
+															>
+														</div>
+													{/if}
+												</div>
+											</div>
+										</div>
+									{/if}
 									<!-- Teacher Selection (Only for Subject type) -->
 									{#if formData.scheduleType === 'subject'}
 										<div class="scheduleassign-input-group">
 											<label class="scheduleassign-input-label">Teacher</label>
 											<div class="scheduleassign-custom-dropdown">
-												<button 
+												<button
 													type="button"
 													class="scheduleassign-dropdown-trigger"
 													class:open={isTeacherDropdownOpen}
@@ -1094,19 +1176,30 @@
 													on:click={toggleTeacherDropdown}
 												>
 													{#if formData.teacherId}
-														{@const selectedTeacher = teachers.find(t => t.id === formData.teacherId)}
+														{@const selectedTeacher = teachers.find(
+															(t) => t.id === formData.teacherId
+														)}
 														<div class="scheduleassign-selected-option">
-															<span class="material-symbols-outlined scheduleassign-option-icon">person</span>
+															<span class="material-symbols-outlined scheduleassign-option-icon"
+																>person</span
+															>
 															<div class="scheduleassign-option-content">
-																<span class="scheduleassign-option-name">{selectedTeacher?.first_name} {selectedTeacher?.last_name}</span>
+																<span class="scheduleassign-option-name"
+																	>{selectedTeacher?.first_name} {selectedTeacher?.last_name}</span
+																>
 															</div>
 														</div>
 													{:else}
 														<span class="scheduleassign-placeholder">Select Teacher</span>
 													{/if}
-													<span class="material-symbols-outlined scheduleassign-dropdown-arrow">expand_more</span>
+													<span class="material-symbols-outlined scheduleassign-dropdown-arrow"
+														>expand_more</span
+													>
 												</button>
-												<div class="scheduleassign-dropdown-menu" class:open={isTeacherDropdownOpen}>
+												<div
+													class="scheduleassign-dropdown-menu"
+													class:open={isTeacherDropdownOpen}
+												>
 													{#if isLoadingTeachers}
 														<div class="scheduleassign-loading">
 															<span class="scheduleassign-loader"></span>
@@ -1114,21 +1207,27 @@
 														</div>
 													{:else if teachers.length > 0}
 														{#each teachers as teacher (teacher.id)}
-															<button 
+															<button
 																type="button"
-																class="scheduleassign-dropdown-option" 
+																class="scheduleassign-dropdown-option"
 																class:selected={formData.teacherId === teacher.id}
 																on:click={() => selectTeacher(teacher)}
 															>
-																<span class="material-symbols-outlined scheduleassign-option-icon">person</span>
+																<span class="material-symbols-outlined scheduleassign-option-icon"
+																	>person</span
+																>
 																<div class="scheduleassign-option-content">
-																	<span class="scheduleassign-option-name">{teacher.first_name} {teacher.last_name}</span>
+																	<span class="scheduleassign-option-name"
+																		>{teacher.first_name} {teacher.last_name}</span
+																	>
 																</div>
 															</button>
 														{/each}
 													{:else}
 														<div class="scheduleassign-empty-state">
-															<span class="material-symbols-outlined scheduleassign-empty-icon">inbox</span>
+															<span class="material-symbols-outlined scheduleassign-empty-icon"
+																>inbox</span
+															>
 															<span class="scheduleassign-empty-text">No teachers available</span>
 														</div>
 													{/if}
@@ -1136,166 +1235,179 @@
 											</div>
 										</div>
 									{/if}
-                                </div>
-                                <!-- Time Section -->
-                                <div class="scheduleassign-time-section">
-                                    <div class="scheduleassign-time-row">
-                                        <div class="scheduleassign-input-group">
-                                            <TimeInput 
-                                                label="Start Time"
-                                                bind:value={formData.startTime}
-                                                placeholder="Select start time"
-                                                on:change={(e) => formData.startTime = e.detail.value}
-                                            />
-                                        </div>
-                                        <div class="scheduleassign-input-group">
-                                            <TimeInput 
-                                                label="End Time"
-                                                bind:value={formData.endTime}
-                                                placeholder="Select end time"
-                                                on:change={(e) => formData.endTime = e.detail.value}
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Time Validation and Duration Display Container -->
-                                    <div class="scheduleassign-time-info-container">
-                                        {#if formData.startTime && formData.endTime}
-                                            {#if timeValidationMessage}
-                                                <div class="scheduleassign-time-error">
-                                                    <span class="material-symbols-outlined">error</span>
-                                                    <span>{timeValidationMessage}</span>
-                                                </div>
-                                            {:else if isCheckingConflicts}
-                                                <div class="scheduleassign-time-checking">
-                                                    <span class="material-symbols-outlined checking-icon">hourglass_empty</span>
-                                                    <span>Checking for conflicts...</span>
-                                                </div>
-                                            {:else if calculatedDuration}
-                                                <div class="scheduleassign-time-duration">
-                                                    <span class="material-symbols-outlined">schedule</span>
-                                                    <span>Duration: {calculatedDuration}</span>
-                                                </div>
-                                            {/if}
-                                        {/if}
-                                    </div>
-																	<div class="scheduleassign-day-selection-section">
-																		<div class="scheduleassign-day-checkboxes">
-																			{#each days as day}
-																				<label class="scheduleassign-day-checkbox">
-																					<input 
-																						type="checkbox" 
-																						bind:group={selectedDays} 
-																						value={day.id}
-																					/>
-																					<span class="scheduleassign-checkbox-label">{day.name}</span>
-																				</label>
-																			{/each}
-																		</div>
-																	</div>
-                                </div>
-                            </div>
+								</div>
+								<!-- Time Section -->
+								<div class="scheduleassign-time-section">
+									<div class="scheduleassign-time-row">
+										<div class="scheduleassign-input-group">
+											<TimeInput
+												label="Start Time"
+												bind:value={formData.startTime}
+												placeholder="Select start time"
+												on:change={(e) => (formData.startTime = e.detail.value)}
+											/>
+										</div>
+										<div class="scheduleassign-input-group">
+											<TimeInput
+												label="End Time"
+												bind:value={formData.endTime}
+												placeholder="Select end time"
+												on:change={(e) => (formData.endTime = e.detail.value)}
+											/>
+										</div>
+									</div>
 
-                            <!-- Form Actions -->
-                            <div class="scheduleassign-form-actions">
-                                <button 
-                                    type="button" 
-                                    class="scheduleassign-save-schedule-btn"
-                                    class:has-conflicts={hasConflicts}
-                                    on:click={handleSubmitSchedule}
-                                    disabled={isSubmitting || selectedDays.length === 0 || hasConflicts || timeValidationMessage}
-                                >
-                                    <span class="material-symbols-outlined">
-                                        {hasConflicts ? 'block' : 'save'}
-                                    </span>
-                                    {#if hasConflicts}
-                                        Cannot Save - Conflicts Detected
-                                    {:else if isSubmitting}
-                                        Saving...
-                                    {:else}
-                                        Save Schedule
-                                    {/if}
-                                </button>
-                            </div>
-                        </div>
-                    {/if}
-                    
-                    <div class="scheduleassign-days-grid">
-                        {#each days as day (day.id)}
-                            <div class="scheduleassign-day-column">
-                                <!-- Day Header (Display Only) -->
-                                <div class="scheduleassign-day-header">
-                                    <span class="day-name">{day.name}</span>
-                                </div>
-                                
-                                <!-- Schedule Cards for this Day -->
-                                <div class="scheduleassign-day-schedules">
-                                    {#if schedulesByDay[day.id] && schedulesByDay[day.id].length > 0}
-                                        {#each schedulesByDay[day.id] as assignment (assignment.id)}
-                                            <div class="scheduleassign-assignment-card">
-                                                <div class="scheduleassign-assignment-header">
-                                                    <div class="scheduleassign-assignment-info">
-                                                        <h4 class="scheduleassign-assignment-title">{assignment.subject}</h4>
-                                                        <p class="scheduleassign-assignment-subtitle">{assignment.grade} - {assignment.section}</p>
-                                                    </div>
-                                                    <div class="scheduleassign-assignment-actions">
-                                                        <button 
-                                                            type="button" 
-                                                            class="scheduleassign-delete-button"
-                                                            on:click={() => handleDeleteAssignment(assignment)}
-                                                            title="Delete assignment"
-                                                        >
-                                                            <span class="material-symbols-outlined">delete</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="scheduleassign-assignment-details">
-                                                    {#if assignment.teacher}
-                                                        <div class="scheduleassign-detail-item">
-                                                            <span class="material-symbols-outlined scheduleassign-detail-icon">person</span>
-                                                            <span class="scheduleassign-detail-text">{assignment.teacher}</span>
-                                                        </div>
-                                                    {/if}
-                                                    {#if assignment.startTime && assignment.endTime}
-                                                        <div class="scheduleassign-detail-item">
-                                                            <span class="material-symbols-outlined scheduleassign-detail-icon">schedule</span>
-                                                            <span class="scheduleassign-detail-text">{assignment.startTime} - {assignment.endTime}</span>
-                                                        </div>
-                                                    {/if}
-                                                    {#if assignment.type === 'subject' && assignment.roomName}
-                                                        <div class="scheduleassign-detail-item">
-                                                            <span class="material-symbols-outlined scheduleassign-detail-icon">location_on</span>
-                                                            <span class="scheduleassign-detail-text">
-                                                                {assignment.roomName}
-                                                                {#if assignment.roomBuilding || assignment.roomFloor}
-                                                                    <span class="scheduleassign-room-details">
-                                                                        ({assignment.roomBuilding}{assignment.roomFloor ? `, Floor ${assignment.roomFloor}` : ''})
-                                                                    </span>
-                                                                {/if}
-                                                            </span>
-                                                        </div>
-                                                    {/if}
-                                                </div>
-                                            </div>
-                                        {/each}
-                                    {:else}
-                                        <div class="scheduleassign-empty-day">
-                                            <span class="material-symbols-outlined empty-icon">event_available</span>
-                                            <span class="empty-text">No schedules</span>
-                                        </div>
-                                    {/if}
-                                </div>
-                            </div>
-                        {/each}
-                    </div>
-                </div>
-            {:else}
-                <div class="scheduleassign-empty-state-main">
-                    <span class="material-symbols-outlined empty-icon">calendar_month</span>
-                    <h3>Select Year Level and Section</h3>
-                    <p>Choose a year level and section to view the weekly schedule.</p>
-                </div>
-            {/if}
-        </div>
-    </form>
+									<!-- Time Validation and Duration Display Container -->
+									<div class="scheduleassign-time-info-container">
+										{#if formData.startTime && formData.endTime}
+											{#if timeValidationMessage}
+												<div class="scheduleassign-time-error">
+													<span class="material-symbols-outlined">error</span>
+													<span>{timeValidationMessage}</span>
+												</div>
+											{:else if isCheckingConflicts}
+												<div class="scheduleassign-time-checking">
+													<span class="material-symbols-outlined checking-icon"
+														>hourglass_empty</span
+													>
+													<span>Checking for conflicts...</span>
+												</div>
+											{:else if calculatedDuration}
+												<div class="scheduleassign-time-duration">
+													<span class="material-symbols-outlined">schedule</span>
+													<span>Duration: {calculatedDuration}</span>
+												</div>
+											{/if}
+										{/if}
+									</div>
+									<div class="scheduleassign-day-selection-section">
+										<div class="scheduleassign-day-checkboxes">
+											{#each days as day}
+												<label class="scheduleassign-day-checkbox">
+													<input type="checkbox" bind:group={selectedDays} value={day.id} />
+													<span class="scheduleassign-checkbox-label">{day.name}</span>
+												</label>
+											{/each}
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Form Actions -->
+							<div class="scheduleassign-form-actions">
+								<button
+									type="button"
+									class="scheduleassign-save-schedule-btn"
+									class:has-conflicts={hasConflicts}
+									on:click={handleSubmitSchedule}
+									disabled={isSubmitting ||
+										selectedDays.length === 0 ||
+										hasConflicts ||
+										timeValidationMessage}
+								>
+									<span class="material-symbols-outlined">
+										{hasConflicts ? 'block' : 'save'}
+									</span>
+									{#if hasConflicts}
+										Cannot Save - Conflicts Detected
+									{:else if isSubmitting}
+										Saving...
+									{:else}
+										Save Schedule
+									{/if}
+								</button>
+							</div>
+						</div>
+					{/if}
+
+					<div class="scheduleassign-days-grid">
+						{#each days as day (day.id)}
+							<div class="scheduleassign-day-column">
+								<!-- Day Header (Display Only) -->
+								<div class="scheduleassign-day-header">
+									<span class="day-name">{day.name}</span>
+								</div>
+
+								<!-- Schedule Cards for this Day -->
+								<div class="scheduleassign-day-schedules">
+									{#if schedulesByDay[day.id] && schedulesByDay[day.id].length > 0}
+										{#each schedulesByDay[day.id] as assignment (assignment.id)}
+											<div class="scheduleassign-assignment-card">
+												<div class="scheduleassign-assignment-header">
+													<div class="scheduleassign-assignment-info">
+														<h4 class="scheduleassign-assignment-title">{assignment.subject}</h4>
+														<p class="scheduleassign-assignment-subtitle">
+															{assignment.grade} - {assignment.section}
+														</p>
+													</div>
+													<div class="scheduleassign-assignment-actions">
+														<button
+															type="button"
+															class="scheduleassign-delete-button"
+															on:click={() => handleDeleteAssignment(assignment)}
+															title="Delete assignment"
+														>
+															<span class="material-symbols-outlined">delete</span>
+														</button>
+													</div>
+												</div>
+												<div class="scheduleassign-assignment-details">
+													{#if assignment.teacher}
+														<div class="scheduleassign-detail-item">
+															<span class="material-symbols-outlined scheduleassign-detail-icon"
+																>person</span
+															>
+															<span class="scheduleassign-detail-text">{assignment.teacher}</span>
+														</div>
+													{/if}
+													{#if assignment.startTime && assignment.endTime}
+														<div class="scheduleassign-detail-item">
+															<span class="material-symbols-outlined scheduleassign-detail-icon"
+																>schedule</span
+															>
+															<span class="scheduleassign-detail-text"
+																>{assignment.startTime} - {assignment.endTime}</span
+															>
+														</div>
+													{/if}
+													{#if assignment.type === 'subject' && assignment.roomName}
+														<div class="scheduleassign-detail-item">
+															<span class="material-symbols-outlined scheduleassign-detail-icon"
+																>location_on</span
+															>
+															<span class="scheduleassign-detail-text">
+																{assignment.roomName}
+																{#if assignment.roomBuilding || assignment.roomFloor}
+																	<span class="scheduleassign-room-details">
+																		({assignment.roomBuilding}{assignment.roomFloor
+																			? `, Floor ${assignment.roomFloor}`
+																			: ''})
+																	</span>
+																{/if}
+															</span>
+														</div>
+													{/if}
+												</div>
+											</div>
+										{/each}
+									{:else}
+										<div class="scheduleassign-empty-day">
+											<span class="material-symbols-outlined empty-icon">event_available</span>
+											<span class="empty-text">No schedules</span>
+										</div>
+									{/if}
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{:else}
+				<div class="scheduleassign-empty-state-main">
+					<span class="material-symbols-outlined empty-icon">calendar_month</span>
+					<h3>Select Year Level and Section</h3>
+					<p>Choose a year level and section to view the weekly schedule.</p>
+				</div>
+			{/if}
+		</div>
+	</form>
 </div>
