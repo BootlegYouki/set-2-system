@@ -159,6 +159,25 @@
 		teacher.accountNumber.toLowerCase().includes(teacherSearchTerm.toLowerCase())
 	);
 
+	// Sorted filtered arrays (selected items first)
+	$: sortedFilteredSubjects = filteredSubjects.sort((a, b) => {
+		const aSelected = selectedSubjects.some(id => id === a.id);
+		const bSelected = selectedSubjects.some(id => id === b.id);
+		
+		if (aSelected && !bSelected) return -1;
+		if (!aSelected && bSelected) return 1;
+		return a.name.localeCompare(b.name);
+	});
+
+	$: sortedFilteredTeachers = filteredTeachers.sort((a, b) => {
+		const aSelected = selectedTeachers.some(id => id === a.id);
+		const bSelected = selectedTeachers.some(id => id === b.id);
+		
+		if (aSelected && !bSelected) return -1;
+		if (!aSelected && bSelected) return 1;
+		return a.name.localeCompare(b.name);
+	});
+
 	// Functions
 	function filterDepartments(depts = departments, filter = selectedFilter, search = searchTerm) {
 		let filtered = [...depts];
@@ -437,18 +456,18 @@
 	}
 
 	function toggleSelectAllSubjects() {
-		const allFilteredSelected = filteredSubjects.every(subject => 
+		const allFilteredSelected = sortedFilteredSubjects.every(subject => 
 			selectedSubjects.some(id => id === subject.id)
 		);
 		
 		if (allFilteredSelected) {
 			// Remove all filtered subjects from selection
 			selectedSubjects = selectedSubjects.filter(id => 
-				!filteredSubjects.some(subject => subject.id === id)
+				!sortedFilteredSubjects.some(subject => subject.id === id)
 			);
 		} else {
 			// Add all filtered subjects to selection
-			const newSelections = filteredSubjects
+			const newSelections = sortedFilteredSubjects
 				.filter(subject => !selectedSubjects.some(id => id === subject.id))
 				.map(subject => subject.id);
 			selectedSubjects = [...selectedSubjects, ...newSelections];
@@ -456,18 +475,18 @@
 	}
 
 	function toggleSelectAllTeachers() {
-		const allFilteredSelected = filteredTeachers.every(teacher => 
+		const allFilteredSelected = sortedFilteredTeachers.every(teacher => 
 			selectedTeachers.some(id => id === teacher.id)
 		);
 		
 		if (allFilteredSelected) {
 			// Remove all filtered teachers from selection
 			selectedTeachers = selectedTeachers.filter(id => 
-				!filteredTeachers.some(teacher => teacher.id === id)
+				!sortedFilteredTeachers.some(teacher => teacher.id === id)
 			);
 		} else {
 			// Add all filtered teachers to selection
-			const newSelections = filteredTeachers
+			const newSelections = sortedFilteredTeachers
 				.filter(teacher => !selectedTeachers.some(id => id === teacher.id))
 				.map(teacher => teacher.id);
 			selectedTeachers = [...selectedTeachers, ...newSelections];
@@ -867,201 +886,120 @@
 									</div>
 									
 									<form class="dept-mgmt-assign-form-content" on:submit|preventDefault={handleAssignDepartment}>
-										<!-- Subjects Selection -->
+										<!-- Subjects and Teachers Selection -->
 										<div class="dept-mgmt-assign-info-row">
+											<!-- Subjects Selection -->
 											<div class="dept-mgmt-form-group">
-												<label class="dept-mgmt-form-label" for="subjects">Select Subjects</label>
+												<label class="dept-mgmt-form-label" for="subjects">Select Subjects ({selectedSubjects.length} selected)</label>
 												
-												<!-- Subject Selection Dropdown -->
-												<div class="dept-mgmt-custom-dropdown" class:open={isSubjectDropdownOpen}>
-													<button 
-														type="button"
-														class="dept-mgmt-dropdown-trigger" 
-														class:selected={selectedSubjects.length > 0}
-														on:click={toggleSubjectDropdown}
+												<!-- Search and Select All -->
+												<div class="dept-mgmt-subject-controls">
+													<input 
+														type="text" 
+														class="dept-mgmt-form-input"
+														placeholder="Search subjects by name or code..."
+														bind:value={subjectSearchTerm}
 														id="subjects"
-													>
-														<span class="dept-mgmt-placeholder">Add subjects to department</span>
-														<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
-													</button>
-													<div class="dept-mgmt-dropdown-menu">
-														<div class="dept-mgmt-search-container">
-															{#if filteredSubjects.length > 0}
-																{@const allFilteredSelected = filteredSubjects.every(subject => selectedSubjects.some(id => id === subject.id))}
-																<button 
-																	type="button"
-																	class="dept-mgmt-select-all-btn"
-																	on:click={toggleSelectAllSubjects}
-																	title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredSubjects.length})"
-																>
-																	<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
-																</button>
-															{/if}
-															<input 
-																type="text" 
-																class="dept-mgmt-search-input"
-																placeholder="Search subjects..."
-																bind:value={subjectSearchTerm}
-															/>
-															<span class="material-symbols-outlined" 
-																class:dept-mgmt-search-icon-create={filteredSubjects.length > 0}
-																class:dept-mgmt-search-icon={filteredSubjects.length === 0}>search</span>
-														</div>
-														{#each filteredSubjects as subject (subject.id)}
-															<button 
-																type="button"
-																class="dept-mgmt-dropdown-option dept-mgmt-subject-option" 
-																class:selected={selectedSubjects.some(id => id === subject.id)}
-																on:click={() => toggleSubjectSelection(subject)}
-															>
-																<div class="dept-mgmt-subject-checkbox">
-																	<span class="material-symbols-outlined">
-																		{selectedSubjects.some(id => id === subject.id) ? 'check_box' : 'check_box_outline_blank'}
-																	</span>
-																</div>
+													/>
+													{#if sortedFilteredSubjects.length > 0}
+														{@const allFilteredSelected = sortedFilteredSubjects.every(subject => selectedSubjects.some(id => id === subject.id))}
+														<button 
+															type="button"
+															class="dept-mgmt-select-all-button"
+															on:click={toggleSelectAllSubjects}
+															title="{allFilteredSelected ? 'Deselect All' : 'Select All'} ({sortedFilteredSubjects.length})"
+														>
+															<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+														</button>
+													{/if}
+												</div>
+
+												<!-- Subject List -->
+												<div class="dept-mgmt-subject-list">
+													{#each sortedFilteredSubjects as subject (subject.id)}
+														<button 
+															type="button"
+															class="dept-mgmt-subject-item" 
+															class:selected={selectedSubjects.some(id => id === subject.id)}
+															on:click={() => toggleSubjectSelection(subject)}
+														>
+															<div class="dept-mgmt-option-content">
 																<span class="material-symbols-outlined dept-mgmt-option-icon">subject</span>
-																<div class="dept-mgmt-option-content">
-																	<span class="dept-mgmt-option-name">{subject.name}</span>
-																	<span class="dept-mgmt-option-description">{subject.code} • {subject.gradeLevel}</span>
-																</div>
-															</button>
-														{/each}
-														{#if filteredSubjects.length === 0}
-															<div class="dept-mgmt-no-results">
-																<span class="material-symbols-outlined">subject</span>
-																<span>No subjects found</span>
+																<span class="dept-mgmt-option-name">{subject.name}</span>
+																<span class="dept-mgmt-option-description">{subject.code} • {subject.gradeLevel}</span>
 															</div>
-														{/if}
-													</div>
+															<div class="dept-mgmt-subject-checkbox">
+																<span class="material-symbols-outlined">
+																	{selectedSubjects.some(id => id === subject.id) ? 'check_box' : 'check_box_outline_blank'}
+																</span>
+															</div>
+														</button>
+													{/each}
+													{#if sortedFilteredSubjects.length === 0}
+														<div class="dept-mgmt-no-results">
+															<span class="material-symbols-outlined">subject</span>
+															<span>No subjects found</span>
+														</div>
+													{/if}
 												</div>
 												<p class="dept-mgmt-form-help">Select subjects that will be managed by this department.</p>
-												
-												<!-- Selected Subjects Display -->
-												{#if selectedSubjects.length > 0}
-													<div class="dept-mgmt-selected-subjects">
-														<div class="dept-mgmt-selected-subjects-header">
-															<span class="dept-mgmt-selected-count">{selectedSubjects.length} subject{selectedSubjects.length !== 1 ? 's' : ''} selected</span>
-														</div>
-														<div class="dept-mgmt-selected-subjects-list">
-															{#each selectedSubjects as subjectId (subjectId)}
-																{@const subject = availableSubjects.find(s => s.id === subjectId)}
-																{#if subject}
-																	<div class="dept-mgmt-selected-subject-chip">
-																		<span class="dept-mgmt-subject-name">{subject.name}</span>
-																		<span class="dept-mgmt-subject-code">{subject.code}</span>
-																		<button 
-																			type="button" 
-																			class="dept-mgmt-remove-subject"
-																			on:click={() => removeSubject(subjectId)}
-																			aria-label="Remove {subject.name}"
-																		>
-																			<span class="material-symbols-outlined">close</span>
-																		</button>
-																	</div>
-																{/if}
-															{/each}
-														</div>
-													</div>
-												{/if}
 											</div>
-										</div>
 
-										<!-- Teachers Selection -->
-										<div class="dept-mgmt-assign-info-row">
+											<!-- Teachers Selection -->
 											<div class="dept-mgmt-form-group">
-												<label class="dept-mgmt-form-label" for="teachers">Select Teachers</label>
+												<label class="dept-mgmt-form-label" for="teachers">Select Teachers ({selectedTeachers.length} selected)</label>
 												
-												<!-- Teacher Selection Dropdown -->
-												<div class="dept-mgmt-custom-dropdown" class:open={isTeacherDropdownOpen}>
-													<button 
-														type="button"
-														class="dept-mgmt-dropdown-trigger" 
-														class:selected={selectedTeachers.length > 0}
-														on:click={toggleTeacherDropdown}
+												<!-- Search and Select All -->
+												<div class="dept-mgmt-teacher-controls">
+													<input 
+														type="text" 
+														class="dept-mgmt-form-input"
+														placeholder="Search teachers by name or account number..."
+														bind:value={teacherSearchTerm}
 														id="teachers"
-													>
-														<span class="dept-mgmt-placeholder">Add teachers to department</span>
-														<span class="material-symbols-outlined dept-mgmt-dropdown-arrow">expand_more</span>
-													</button>
-													<div class="dept-mgmt-dropdown-menu">
-														<div class="dept-mgmt-search-container">
-															{#if filteredTeachers.length > 0}
-																{@const allFilteredSelected = filteredTeachers.every(teacher => selectedTeachers.some(id => id === teacher.id))}
-																<button 
-																	type="button"
-																	class="dept-mgmt-select-all-btn"
-																	on:click={toggleSelectAllTeachers}
-																	title="{allFilteredSelected ? 'Unselect All' : 'Select All'} ({filteredTeachers.length})"
-																>
-																	<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
-																</button>
-															{/if}
-															<input 
-																type="text" 
-																class="dept-mgmt-search-input"
-																placeholder="Search teachers..."
-																bind:value={teacherSearchTerm}
-															/>
-															<span class="material-symbols-outlined" 
-																class:dept-mgmt-search-icon-create={filteredTeachers.length > 0}
-																class:dept-mgmt-search-icon={filteredTeachers.length === 0}>search</span>
-														</div>
-														{#each filteredTeachers as teacher (teacher.id)}
-															<button 
-																type="button"
-																class="dept-mgmt-dropdown-option dept-mgmt-teacher-option" 
-																class:selected={selectedTeachers.some(id => id === teacher.id)}
-																on:click={() => toggleTeacherSelection(teacher)}
-															>
-																<div class="dept-mgmt-teacher-checkbox">
-																	<span class="material-symbols-outlined">
-																		{selectedTeachers.some(id => id === teacher.id) ? 'check_box' : 'check_box_outline_blank'}
-																	</span>
-																</div>
+													/>
+													{#if sortedFilteredTeachers.length > 0}
+														{@const allFilteredSelected = sortedFilteredTeachers.every(teacher => selectedTeachers.some(id => id === teacher.id))}
+														<button 
+															type="button"
+															class="dept-mgmt-select-all-button"
+															on:click={toggleSelectAllTeachers}
+															title="{allFilteredSelected ? 'Deselect All' : 'Select All'} ({sortedFilteredTeachers.length})"
+														>
+															<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
+														</button>
+													{/if}
+												</div>
+
+												<!-- Teacher List -->
+												<div class="dept-mgmt-teacher-list">
+													{#each sortedFilteredTeachers as teacher (teacher.id)}
+														<button 
+															type="button"
+															class="dept-mgmt-teacher-item" 
+															class:selected={selectedTeachers.some(id => id === teacher.id)}
+															on:click={() => toggleTeacherSelection(teacher)}
+														>
+															<div class="dept-mgmt-option-content">
 																<span class="material-symbols-outlined dept-mgmt-option-icon">person</span>
-																<div class="dept-mgmt-option-content">
-																	<span class="dept-mgmt-option-name">{teacher.name}</span>
-																	<span class="dept-mgmt-option-description">{teacher.accountNumber}</span>
-																</div>
-															</button>
-														{/each}
-														{#if filteredTeachers.length === 0}
-															<div class="dept-mgmt-no-results">
-																<span class="material-symbols-outlined">person_off</span>
-																<span>No teachers found</span>
+																<span class="dept-mgmt-option-name">{teacher.name}</span>
+																<span class="dept-mgmt-option-description">{teacher.accountNumber}</span>
 															</div>
-														{/if}
-													</div>
+															<div class="dept-mgmt-teacher-checkbox">
+																<span class="material-symbols-outlined">
+																	{selectedTeachers.some(id => id === teacher.id) ? 'check_box' : 'check_box_outline_blank'}
+																</span>
+															</div>
+														</button>
+													{/each}
+													{#if sortedFilteredTeachers.length === 0}
+														<div class="dept-mgmt-no-results">
+															<span class="material-symbols-outlined">person_off</span>
+															<span>No teachers found</span>
+														</div>
+													{/if}
 												</div>
 												<p class="dept-mgmt-form-help">Select teachers who will be part of this department.</p>
-												
-												<!-- Selected Teachers Display -->
-												{#if selectedTeachers.length > 0}
-													<div class="dept-mgmt-selected-teachers">
-														<div class="dept-mgmt-selected-teachers-header">
-															<span class="dept-mgmt-selected-count">{selectedTeachers.length} teacher{selectedTeachers.length !== 1 ? 's' : ''} selected</span>
-														</div>
-														<div class="dept-mgmt-selected-teachers-list">
-															{#each selectedTeachers as teacherId (teacherId)}
-																{@const teacher = availableTeachers.find(t => t.id === teacherId)}
-																{#if teacher}
-																	<div class="dept-mgmt-selected-teacher-chip">
-																		<span class="dept-mgmt-teacher-name">{teacher.name}</span>
-																		<span class="dept-mgmt-teacher-subject">{teacher.accountNumber}</span>
-																		<button 
-																			type="button" 
-																			class="dept-mgmt-remove-teacher"
-																			on:click={() => removeTeacher(teacherId)}
-																			aria-label="Remove {teacher.name}"
-																		>
-																			<span class="material-symbols-outlined">close</span>
-																		</button>
-																	</div>
-																{/if}
-															{/each}
-														</div>
-													</div>
-												{/if}
 											</div>
 										</div>
 						

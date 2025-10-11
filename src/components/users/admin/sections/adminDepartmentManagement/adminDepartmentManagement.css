@@ -555,12 +555,6 @@
   flex: 1;
 }
 
-.dept-mgmt-option-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
 .dept-mgmt-option-name {
   font-family: var(--md-sys-typescale-body-medium-font);
   font-size: var(--md-sys-typescale-body-medium-size);
@@ -1633,11 +1627,6 @@
 	flex: 1;
 }
 
-.dept-mgmt-option-content {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
 
 .dept-mgmt-option-name {
 	font-family: var(--md-sys-typescale-body-medium-font);
@@ -1879,10 +1868,17 @@
 }
 
 .dept-mgmt-assign-info-row {
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-md);
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--spacing-lg);
 	margin-bottom: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+	.dept-mgmt-assign-info-row {
+		grid-template-columns: 1fr;
+		gap: var(--spacing-md);
+	}
 }
 
 .dept-mgmt-assign-actions {
@@ -1997,6 +1993,130 @@
 	color: #ffffff;
 }
 
+/* Subject and Teacher Controls Styles */
+.dept-mgmt-subject-controls,
+.dept-mgmt-teacher-controls {
+	display: flex;
+	gap: var(--spacing-sm);
+}
+
+.dept-mgmt-select-all-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-xs);
+	background: transparent;
+	border: none;
+	color: var(--md-sys-color-on-secondary-container);
+	border-radius: var(--radius-md);
+	font-family: var(--md-sys-typescale-label-medium-font);
+	font-size: var(--md-sys-typescale-label-medium-size);
+	font-weight: var(--md-sys-typescale-label-medium-weight);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	align-self: flex-start;
+	min-height: 58px;
+	min-width: 58px;
+}
+
+.dept-mgmt-select-all-button:hover {
+	color: var(--md-sys-color-secondary);
+}
+
+.dept-mgmt-select-all-button .material-symbols-outlined {
+	font-size: 24px;
+}
+
+/* Subject and Teacher List Styles */
+.dept-mgmt-subject-list,
+.dept-mgmt-teacher-list {
+	max-height: 117px;
+	overflow-y: auto;
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-md);
+	background: var(--md-sys-color-surface);
+}
+
+.dept-mgmt-subject-list::-webkit-scrollbar,
+.dept-mgmt-teacher-list::-webkit-scrollbar {
+	width: 6px;
+}
+
+.dept-mgmt-subject-list::-webkit-scrollbar-track,
+.dept-mgmt-teacher-list::-webkit-scrollbar-track {
+	background: var(--md-sys-color-surface-variant);
+}
+
+.dept-mgmt-subject-list::-webkit-scrollbar-thumb,
+.dept-mgmt-teacher-list::-webkit-scrollbar-thumb {
+	background: var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-sm);
+}
+
+.dept-mgmt-subject-item,
+.dept-mgmt-teacher-item {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+	padding: var(--spacing-md) var(--spacing-md);
+	background: transparent;
+	border: none;
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+	cursor: pointer;
+	transition: all var(--transition-normal);
+	text-align: left;
+	justify-content: space-between;
+	min-height: 58px;
+}
+
+.dept-mgmt-subject-item:last-child,
+.dept-mgmt-teacher-item:last-child {
+	border-bottom: none;
+}
+
+.dept-mgmt-subject-item:hover,
+.dept-mgmt-teacher-item:hover {
+	background: var(--md-sys-color-surface-variant);
+}
+
+.dept-mgmt-subject-item.selected,
+.dept-mgmt-teacher-item.selected {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.dept-mgmt-subject-item .dept-mgmt-subject-checkbox,
+.dept-mgmt-teacher-item .dept-mgmt-teacher-checkbox {
+	margin-right: var(--spacing-xs);
+}
+
+.dept-mgmt-subject-item .dept-mgmt-option-icon,
+.dept-mgmt-teacher-item .dept-mgmt-option-icon {
+	font-size: 20px;
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.dept-mgmt-subject-item.selected .dept-mgmt-option-icon,
+.dept-mgmt-teacher-item.selected .dept-mgmt-option-icon {
+	color: var(--md-sys-color-on-primary-container);
+}
+
+.dept-mgmt-subject-item .dept-mgmt-option-content,
+.dept-mgmt-teacher-item .dept-mgmt-option-content {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.dept-mgmt-form-help {
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
+	margin-top: var(--spacing-xs);
+	margin-bottom: 0;
+}
+
 .dept-mgmt-selection-info {
 	margin-top: 8px;
 	font-size: 12px;
@@ -2006,7 +2126,6 @@
 
 .dept-mgmt-option-content {
 	display: flex;
-	flex-direction: column;
 	gap: 2px;
 }
 
@@ -2250,9 +2369,9 @@
 }
 
 .dept-mgmt-assign-info-row {
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-md);
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--spacing-lg);
 	margin-bottom: var(--spacing-md);
 }
 
