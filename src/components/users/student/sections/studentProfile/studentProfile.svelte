@@ -529,7 +529,7 @@
 						</div>
 						<div class="info-content">
 							<div class="info-label">General Average</div>
-							<div class="info-value">{studentProfile.academicSummary.gpa !== 'Not available' ? `${studentProfile.academicSummary.gpa}%` : 'Not available'}</div>
+							<div class="info-value">{studentProfile.academicSummary.gpa !== 'Not available' ? `${studentProfile.academicSummary.gpa}` : 'Not available'}</div>
 						</div>
 					</div>
 

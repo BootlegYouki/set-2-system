@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { verifyAuth } from '../helper/auth-helper.js';
+import { ObjectId } from 'mongodb';
 
 // GET /api/student-profile - Get comprehensive student profile data
 export async function GET({ url }) {
@@ -11,75 +12,122 @@ export async function GET({ url }) {
       return json({ error: 'Student ID is required' }, { status: 400 });
     }
 
+    const db = await connectToDatabase();
+
     // Get student's section information
-    const sectionQuery = `
-      SELECT 
-        ss.student_id,
-        s.id as section_id,
-        s.name as section_name,
-        s.grade_level,
-        u.full_name as adviser_name
-      FROM section_students ss
-      JOIN sections s ON ss.section_id = s.id
-      LEFT JOIN users u ON s.adviser_id = u.id
-      WHERE ss.student_id = $1 AND ss.status = 'active'
-      LIMIT 1
-    `;
-    
-    const sectionResult = await query(sectionQuery, [studentId]);
-    const sectionInfo = sectionResult.rows[0] || null;
+    const sectionStudents = db.collection('section_students');
+    const sections = db.collection('sections');
+    const users = db.collection('users');
+
+    // Find active section enrollment for the student
+    const sectionEnrollment = await sectionStudents.findOne({
+      student_id: new ObjectId(studentId),
+      status: 'active'
+    });
+
+    let sectionInfo = null;
+    if (sectionEnrollment) {
+      // Get section details with adviser information
+      const sectionData = await sections.findOne({
+        _id: sectionEnrollment.section_id
+      });
+
+      if (sectionData) {
+        let adviserName = 'Not assigned';
+        if (sectionData.adviser_id) {
+          const adviser = await users.findOne({
+            _id: sectionData.adviser_id
+          });
+          if (adviser) {
+            adviserName = adviser.full_name;
+          }
+        }
+
+        sectionInfo = {
+          section_id: sectionData._id,
+          section_name: sectionData.name,
+          grade_level: sectionData.grade_level,
+          adviser_name: adviserName
+        };
+      }
+    }
 
     // Get student's enrolled subjects with teacher information
     let subjects = [];
     if (sectionInfo) {
-      const subjectsQuery = `
-        SELECT DISTINCT
-          s.id,
-          s.name,
-          s.code,
-          s.grade_level,
-          d.name as department_name,
-          u.full_name as teacher_name
-        FROM subjects s
-        LEFT JOIN departments d ON s.department_id = d.id
-        LEFT JOIN schedules sch ON s.id = sch.subject_id AND sch.section_id = $2
-        LEFT JOIN users u ON sch.teacher_id = u.id AND u.account_type = 'teacher'
-        WHERE s.grade_level = $1
-        ORDER BY s.name
-      `;
-      
-      const subjectsResult = await query(subjectsQuery, [sectionInfo.grade_level, sectionInfo.section_id]);
-      subjects = subjectsResult.rows.map(subject => ({
-        id: subject.id,
-        name: subject.name,
-        code: subject.code,
-        department: subject.department_name || 'General',
-        teacher: subject.teacher_name || 'No teacher',
-        color: getSubjectColor(subject.name) // Helper function for UI colors
-      }));
+      const subjectsCollection = db.collection('subjects');
+      const schedulesCollection = db.collection('schedules');
+      const departmentsCollection = db.collection('departments');
+
+      // Get all subjects for the student's grade level
+      const subjectsList = await subjectsCollection.find({
+        grade_level: sectionInfo.grade_level
+      }).sort({ name: 1 }).toArray();
+
+      // For each subject, try to find teacher and department info
+      for (const subject of subjectsList) {
+        let teacherName = 'No teacher';
+        let departmentName = 'General';
+
+        // Find schedule for this subject and section to get teacher
+        const schedule = await schedulesCollection.findOne({
+          subject_id: subject._id,
+          section_id: sectionInfo.section_id
+        });
+
+        if (schedule && schedule.teacher_id) {
+          const teacher = await users.findOne({
+            _id: schedule.teacher_id,
+            account_type: 'teacher'
+          });
+          if (teacher) {
+            teacherName = teacher.full_name;
+          }
+        }
+
+        // Get department name
+        if (subject.department_id) {
+          const department = await departmentsCollection.findOne({
+            _id: subject.department_id
+          });
+          if (department) {
+            departmentName = department.name;
+          }
+        }
+
+        subjects.push({
+          id: subject._id.toString(),
+          name: subject.name,
+          code: subject.code,
+          department: departmentName,
+          teacher: teacherName,
+          color: getSubjectColor(subject.name)
+        });
+      }
     }
 
-    // Calculate student's general average from final grades
+    // Calculate student's general average from grades
     let generalAverage = null;
     let totalSubjectsWithGrades = 0;
     
     if (sectionInfo) {
-      const gradesQuery = `
-        SELECT 
-          AVG(fg.final_grade) as average_grade,
-          COUNT(fg.final_grade) as subjects_with_grades
-        FROM final_grades fg
-        JOIN subjects s ON fg.subject_id = s.id
-        WHERE fg.student_id = $1 
-        AND s.grade_level = $2
-        AND fg.final_grade IS NOT NULL
-        AND fg.verified = true
-      `;
+      const gradesCollection = db.collection('grades');
       
-      const gradesResult = await query(gradesQuery, [studentId, sectionInfo.grade_level]);
-      if (gradesResult.rows[0] && gradesResult.rows[0].average_grade) {
-        generalAverage = Math.round(parseFloat(gradesResult.rows[0].average_grade) * 100) / 100;
-        totalSubjectsWithGrades = parseInt(gradesResult.rows[0].subjects_with_grades);
+      // Get all verified grades for the student in current section
+      const studentGrades = await gradesCollection.find({
+        student_id: new ObjectId(studentId),
+        section_id: sectionInfo.section_id,
+        'averages.final_grade': { $exists: true, $ne: null },
+        verified: true
+      }).toArray();
+
+      if (studentGrades.length > 0) {
+        const totalGrades = studentGrades.reduce((sum, grade) => {
+          return sum + (grade.averages?.final_grade || 0);
+        }, 0);
+        
+        generalAverage = Math.round((totalGrades / studentGrades.length) * 100) / 100;
+        totalSubjectsWithGrades = studentGrades.length;
       }
     }
 
@@ -88,60 +136,59 @@ export async function GET({ url }) {
     let totalStudentsInSection = 0;
     
     if (sectionInfo && generalAverage !== null) {
-      // Get all students in the same section with their averages
-      const rankQuery = `
-        WITH student_averages AS (
-          SELECT 
-            ss.student_id,
-            AVG(fg.final_grade) as average_grade
-          FROM section_students ss
-          JOIN final_grades fg ON ss.student_id = fg.student_id
-          JOIN subjects s ON fg.subject_id = s.id
-          WHERE ss.section_id = $1 
-          AND ss.status = 'active'
-          AND s.grade_level = $2
-          AND fg.final_grade IS NOT NULL
-          AND fg.verified = true
-          GROUP BY ss.student_id
-          HAVING COUNT(fg.final_grade) > 0
-        ),
-        ranked_students AS (
-          SELECT 
-            student_id,
-            average_grade,
-            RANK() OVER (ORDER BY average_grade DESC) as rank
-          FROM student_averages
-        )
-        SELECT 
-          rank,
-          (SELECT COUNT(*) FROM student_averages) as total_students
-        FROM ranked_students 
-        WHERE student_id = $3
-      `;
+      const gradesCollection = db.collection('grades');
       
-      const rankResult = await query(rankQuery, [sectionInfo.section_id, sectionInfo.grade_level, studentId]);
-      if (rankResult.rows[0]) {
-        classRank = parseInt(rankResult.rows[0].rank);
-        totalStudentsInSection = parseInt(rankResult.rows[0].total_students);
+      // Get all students in the same section with their averages
+      const allStudentsInSection = await sectionStudents.find({
+        section_id: sectionInfo.section_id,
+        status: 'active'
+      }).toArray();
+
+      const studentAverages = [];
+      
+      for (const student of allStudentsInSection) {
+        const studentGrades = await gradesCollection.find({
+          student_id: student.student_id,
+          section_id: sectionInfo.section_id,
+          'averages.final_grade': { $exists: true, $ne: null },
+          verified: true
+        }).toArray();
+
+        if (studentGrades.length > 0) {
+          const totalGrades = studentGrades.reduce((sum, grade) => {
+            return sum + (grade.averages?.final_grade || 0);
+          }, 0);
+          
+          const average = totalGrades / studentGrades.length;
+          studentAverages.push({
+            student_id: student.student_id.toString(),
+            average_grade: average
+          });
+        }
+      }
+
+      // Sort by average grade (descending) and find rank
+      studentAverages.sort((a, b) => b.average_grade - a.average_grade);
+      
+      const studentRankIndex = studentAverages.findIndex(s => s.student_id === studentId);
+      if (studentRankIndex !== -1) {
+        classRank = studentRankIndex + 1;
+        totalStudentsInSection = studentAverages.length;
       }
     }
 
     // Get total students in section (including those without grades)
     if (sectionInfo && totalStudentsInSection === 0) {
-      const totalStudentsQuery = `
-        SELECT COUNT(*) as total
-        FROM section_students ss
-        WHERE ss.section_id = $1 AND ss.status = 'active'
-      `;
-      
-      const totalResult = await query(totalStudentsQuery, [sectionInfo.section_id]);
-      totalStudentsInSection = parseInt(totalResult.rows[0]?.total || 0);
+      totalStudentsInSection = await sectionStudents.countDocuments({
+        section_id: sectionInfo.section_id,
+        status: 'active'
+      });
     }
 
     // Format response
     const profileData = {
       section: sectionInfo ? {
-        id: sectionInfo.section_id,
+        id: sectionInfo.section_id.toString(),
         name: sectionInfo.section_name,
         gradeLevel: sectionInfo.grade_level,
         adviser: sectionInfo.adviser_name || 'Not assigned'

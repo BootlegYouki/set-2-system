@@ -40,13 +40,14 @@
 		try {
 			const data = await api.get('/api/sections');
 			if (data.success) {
-				sections = data.data;
-				// Update section options with dynamic data
+				sections = data.data || [];
+				// Update section options with dynamic data - only include active sections
+				const activeSections = sections.filter(section => section.status === 'active');
 				sectionOptions = [
 					{ id: '', name: 'All Sections' },
-					...sections.map(section => ({
+					...activeSections.map(section => ({
 						id: section.name,
-						name: `Section ${section.name} (Grade ${section.grade_level})`
+						name: `Grade ${section.grade_level} · ${section.name}`
 					}))
 				];
 			}
@@ -56,13 +57,6 @@
 		}
 	}
 
-	// Calculate GWA from final grades - no longer needed since bulk endpoint provides GWA
-	// function calculateGWA(studentGrades) {
-	// 	if (!studentGrades || studentGrades.length === 0) return 0;
-	// 	
-	// 	const totalGrades = studentGrades.reduce((sum, grade) => sum + (grade.final_grade || 0), 0);
-	// 	return totalGrades / studentGrades.length;
-	// }
 
 	// Load students data with grades using optimized bulk endpoint
 	async function loadStudents() {
@@ -71,11 +65,11 @@
 			// Use the new bulk endpoint that gets all data in one query
 			const studentsData = await api.get('/api/students-bulk');
 			if (!studentsData.success) {
-				throw new Error('Failed to load students');
+				throw new Error(studentsData.error || 'Failed to load students');
 			}
 
 			// Data is already formatted from the bulk endpoint
-			students = studentsData.students;
+			students = studentsData.students || [];
 			
 			filterStudents();
 		} catch (error) {

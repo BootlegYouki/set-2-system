@@ -380,18 +380,18 @@
 
 /* Empty State */
 .sgl-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-2xl);
-  gap: var(--spacing-lg);
   text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--md-sys-color-on-surface-variant);
+  border: 2px dashed var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  margin-top: var(--spacing-lg);
 }
 
 .sgl-empty-icon {
-  font-size: 64px;
-  color: var(--md-sys-color-outline-variant);
+  font-size: 48px;
+  margin-bottom: var(--spacing-md);
+  display: block;
 }
 
 .sgl-empty-title {
@@ -399,7 +399,7 @@
   font-size: var(--md-sys-typescale-title-large-size);
   font-weight: var(--md-sys-typescale-title-large-weight);
   color: var(--md-sys-color-on-surface);
-  margin: 0;
+  margin: 0 0 var(--spacing-sm) 0;
 }
 
 .sgl-empty-description {
@@ -407,7 +407,6 @@
   font-size: var(--md-sys-typescale-body-large-size);
   color: var(--md-sys-color-on-surface-variant);
   margin: 0;
-  max-width: 400px;
 }
 
 /* Table Styles */

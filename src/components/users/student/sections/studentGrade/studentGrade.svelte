@@ -15,6 +15,12 @@
 	let totalSubjects = 0;
 	let overallAverage = 0;
 	let studentData = null;
+	let sectionInfo = null;
+	let classRank = null;
+	let totalStudentsInSection = 0;
+	
+	// Accordion state for grade breakdowns (similar to todo list)
+	let expandedGrades = new Set();
 
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -40,6 +46,23 @@
 		}
 	}
 
+	// Fetch student profile data for section and class rank information
+	async function fetchStudentProfile() {
+		try {
+			const response = await api.get(`/api/student-profile?studentId=${$authStore.userData.id}`);
+			
+			if (response.success) {
+				const { section, academicSummary } = response.data;
+				sectionInfo = section;
+				classRank = academicSummary.classRank;
+				totalStudentsInSection = academicSummary.totalStudentsInSection;
+			}
+		} catch (err) {
+			console.error('Error fetching student profile:', err);
+			// Don't set error here as it's not critical for grades display
+		}
+	}
+
 	// Function to determine grade color based on value using CSS custom properties
 	function getGradeColor(grade) {
 		if (grade === 0 || grade === null || grade === undefined) return 'var(--grade-no-grade)';
@@ -55,7 +78,17 @@
 	function formatGrade(grade, hasTeacher, hasGrade, verified) {
 		if (!hasTeacher) return 'N/A';
 		if (!hasGrade || !verified) return 'N/A';
-		return grade > 0 ? grade.toFixed(1) : 'N/A';
+		return grade > 0 ? formatGradeDisplay(grade) : 'N/A';
+	}
+
+	// Function to format grade display with clean decimals (removes .0 for whole numbers)
+	function formatGradeDisplay(grade) {
+		if (grade === null || grade === undefined || grade === 0) return 'N/A';
+		// Check if the grade is a whole number
+		if (grade % 1 === 0) {
+			return grade.toString();
+		}
+		return grade.toFixed(1);
 	}
 
 	// Function to get progress bar width
@@ -99,10 +132,43 @@
 		return 'grade-needs-improvement'; // For grades below 65 (like 38)
 	}
 
+	// Grade breakdown accordion functions (similar to todo list)
+	function toggleGradeBreakdown(subjectId) {
+		if (expandedGrades.has(subjectId)) {
+			expandedGrades.delete(subjectId);
+		} else {
+			expandedGrades.add(subjectId);
+		}
+		expandedGrades = new Set(expandedGrades); // Trigger reactivity
+	}
+
+	function isGradeExpanded(subjectId) {
+		return expandedGrades.has(subjectId);
+	}
+
+	// Helper functions for breakdown display
+	function hasDetailedScores(subject) {
+		return subject.verified && (
+			(subject.writtenWorkScores && subject.writtenWorkScores.length > 0) ||
+			(subject.performanceTasksScores && subject.performanceTasksScores.length > 0) ||
+			(subject.quarterlyAssessmentScores && subject.quarterlyAssessmentScores.length > 0)
+		);
+	}
+
+	function formatScoreLabel(index, type) {
+		const types = {
+			written: 'Quiz',
+			performance: 'Project', 
+			quarterly: 'Exam'
+		};
+		return `${types[type] || 'Task'} ${index + 1}`;
+	}
+
 	// Load data when component mounts
 	onMount(() => {
 		if ($authStore.userData?.id) {
 			fetchGrades();
+			fetchStudentProfile();
 		} else {
 			error = 'Please log in to view your grades';
 			loading = false;
@@ -189,27 +255,70 @@
 	{:else}
 		<!-- Overall Performance Card -->
 		<div class="performance-card">
-			<h2 class="performance-title">Overall Performance</h2>
-			<div class="performance-content">
-				<div class="performance-main">
-					<div class="average-section">
-						<div class="average-value" style="color: {getGradeColor(overallAverage)}">
-							<div>
-								<CountUp value={overallAverage} decimals={1} duration={2.5} />
-							</div>
-						</div>
-						<div class="average-label">Current Average</div>
-					</div>
-					<div class="subjects-section-card">
-						<div class="subjects-value">
-							<div>
-							<CountUp value={totalSubjects} decimals={0} duration={2} />
-							</div>
-						</div>
-						<div class="subjects-label">Total Subjects</div>
+			<div class="performance-header">
+				<div class="performance-title-section">
+					<div class="performance-title-content">
+						<h2 class="performance-title">Academic Performance</h2>
+						{#if sectionInfo}
+							<div class="performance-subtitle">Grade {sectionInfo.gradeLevel} • {sectionInfo.name} </div>
+						{/if}
 					</div>
 				</div>
 			</div>
+			
+			<div class="performance-stats">
+				<div class="grade-stat-item primary">
+					<div class="stat-icon">
+						<span class="material-symbols-outlined">star</span>
+					</div>
+					<div class="stat-content">
+						<div class="grade-stat-value" style="color: {getGradeColor(overallAverage)}">
+							<CountUp value={overallAverage} decimals={1} duration={2.5} />
+						</div>
+						<div class="stat-label">Overall Average</div>
+					</div>
+				</div>
+				
+				<div class="grade-stat-item secondary">
+					<div class="stat-icon">
+						<span class="material-symbols-outlined">school</span>
+					</div>
+					<div class="stat-content">
+						<div class="grade-stat-value">
+							<CountUp value={totalSubjects} decimals={0} duration={2} />
+						</div>
+						<div class="stat-label">Total Subjects</div>
+					</div>
+				</div>
+
+				<div class="grade-stat-item tertiary">
+					<div class="stat-icon">
+						<span class="material-symbols-outlined">crown</span>
+					</div>
+					<div class="stat-content">
+						<div class="grade-stat-value">
+							Rank <CountUp value={classRank} decimals={0} duration={2} />
+						</div>
+						<div class="stat-label">Out of {totalStudentsInSection} Students</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- AI Analysis Container -->
+			<!-- <div class="ai-analysis-container">
+				<div class="analysis-header">
+					<div class="analysis-icon">
+						<span class="material-symbols-outlined">psychology</span>
+					</div>
+					<h3 class="analysis-title">AI Performance Analysis</h3>
+				</div>
+				<div class="analysis-content">
+					<div class="analysis-placeholder">
+						<span class="material-symbols-outlined">auto_awesome</span>
+						<p>AI analysis will appear here</p>
+					</div>
+				</div>
+			</div> -->
 		</div>
 
 		<!-- Subjects Grid -->
@@ -230,41 +339,131 @@
 				<div class="subjects-grid">
 					{#each subjects as subject, index (subject.subject_id || subject.id)}
 						{@const cardColors = getCardColorClasses(index)}
-						<div class="subject-card" style="border-left: 4px solid {cardColors.border};">
-							<!-- Column 1: Icon -->
-							<div class="subject-icon-column">
-								<div class="subject-icon" style="color: {cardColors.icon};">
-									<span class="material-symbols-outlined">book</span>
+						{@const hasBreakdown = hasDetailedScores(subject)}
+						{@const isExpanded = isGradeExpanded(subject.id)}
+						
+						<div class="subject-accordion">
+							<!-- Main Subject Card (clickable if has breakdown) -->
+							<div 
+								class="subject-card" 
+								class:clickable={hasBreakdown}
+								style="border-left: 4px solid {cardColors.border};"
+								on:click={hasBreakdown ? () => toggleGradeBreakdown(subject.id) : undefined}
+								role={hasBreakdown ? 'button' : undefined}
+								on:keydown={hasBreakdown ? (e) => e.key === 'Enter' && toggleGradeBreakdown(subject.id) : undefined}>
+								
+								<!-- Column 1: Icon -->
+								<div class="subject-icon-column">
+									<div class="subject-icon" style="color: {cardColors.icon};">
+										<span class="material-symbols-outlined">book</span>
+									</div>
+								</div>
+								
+								<!-- Column 2: Subject Details -->
+								<div class="subject-details-column">
+									<h3 class="subject-name" style="color: {cardColors.text};">{subject.name}</h3>
+									<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher assigned yet"}>{subject.teacher}</p>
+									<div class="progress-bar">
+										{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified) > 0}
+											<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}%; background-color: {cardColors.border}"></div>
+										{/if}
+									</div>
+								</div>
+								
+								<!-- Column 3: Grade Display -->
+								<div class="grade-column">
+									<div class="grade-large" style="color: {getGradeColor(subject.numericGrade)}">
+										{#if subject.numericGrade > 0 && subject.teacher !== "No teacher assigned yet" && subject.verified}
+											<CountUp value={subject.numericGrade} decimals={1} duration={2.5} />
+										{:else}
+											{formatGrade(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}
+										{/if}
+										{#if subject.numericGrade > 0 && !subject.verified}
+											<span class="unverified-indicator" title="Grade not yet verified">*</span>
+										{/if}
+									</div>
+									<div class="grade-indicator {getGradeIndicator(subject.numericGrade).color}">
+										{getGradeIndicator(subject.numericGrade).text}
+									</div>
 								</div>
 							</div>
-							
-							<!-- Column 2: Subject Details -->
-							<div class="subject-details-column">
-								<h3 class="subject-name" style="color: {cardColors.text};">{subject.name}</h3>
-								<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher assigned yet"}>{subject.teacher}</p>
-								<div class="progress-bar">
-									{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified) > 0}
-										<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}%; background-color: {cardColors.border}"></div>
-									{/if}
+
+							<!-- Collapsible Breakdown Section -->
+							{#if expandedGrades.has(subject.id)}
+								<div class="grade-breakdown-section">
+									<div class="breakdown-container">
+										
+										<!-- Written Work Section -->
+										{#if subject.writtenWorkScores && subject.writtenWorkScores.length > 0}
+											<div class="breakdown-category">
+												<div class="category-header">
+													<div class="category-title">
+														<span class="material-symbols-outlined">edit</span>
+														<span>Written Work</span>
+													</div>
+													<div class="category-average" style="color: {getGradeColor(subject.writtenWork)}">
+														{formatGradeDisplay(subject.writtenWork)}
+													</div>
+												</div>
+												<div class="scores-list">
+													{#each subject.writtenWorkScores as score, i}
+														<div class="score-item">
+															<span class="score-label">{formatScoreLabel(i, 'written')}</span>
+															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
+														</div>
+													{/each}
+												</div>
+											</div>
+										{/if}
+
+										<!-- Performance Tasks Section -->
+										{#if subject.performanceTasksScores && subject.performanceTasksScores.length > 0}
+											<div class="breakdown-category">
+												<div class="category-header">
+													<div class="category-title">
+														<span class="material-symbols-outlined">assignment</span>
+														<span>Performance Tasks</span>
+													</div>
+													<div class="category-average" style="color: {getGradeColor(subject.performanceTasks)}">
+														{formatGradeDisplay(subject.performanceTasks)}
+													</div>
+												</div>
+												<div class="scores-list">
+													{#each subject.performanceTasksScores as score, i}
+														<div class="score-item">
+															<span class="score-label">{formatScoreLabel(i, 'performance')}</span>
+															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
+														</div>
+													{/each}
+												</div>
+											</div>
+										{/if}
+
+										<!-- Quarterly Assessment Section -->
+										{#if subject.quarterlyAssessmentScores && subject.quarterlyAssessmentScores.length > 0}
+											<div class="breakdown-category quarterly-assessment-category">
+												<div class="category-header">
+													<div class="category-title">
+														<span class="material-symbols-outlined">quiz</span>
+														<span>Quarterly Assessment</span>
+													</div>
+													<div class="category-average" style="color: {getGradeColor(subject.quarterlyAssessment)}">
+														{formatGradeDisplay(subject.quarterlyAssessment)}
+													</div>
+												</div>
+												<div class="scores-list">
+													{#each subject.quarterlyAssessmentScores as score, i}
+														<div class="score-item">
+															<span class="score-label">{formatScoreLabel(i, 'quarterly')}</span>
+															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
+														</div>
+													{/each}
+												</div>
+											</div>
+										{/if}
+									</div>
 								</div>
-							</div>
-							
-							<!-- Column 3: Grade Display -->
-							<div class="grade-column">
-								<div class="grade-large" style="color: {getGradeColor(subject.numericGrade)}">
-									{#if subject.numericGrade > 0 && subject.teacher !== "No teacher assigned yet" && subject.verified}
-										<CountUp value={subject.numericGrade} decimals={1} duration={2.5} />
-									{:else}
-										{formatGrade(subject.numericGrade, subject.teacher !== "No teacher assigned yet", subject.numericGrade > 0, subject.verified)}
-									{/if}
-									{#if subject.numericGrade > 0 && !subject.verified}
-										<span class="unverified-indicator" title="Grade not yet verified">*</span>
-									{/if}
-								</div>
-								<div class="grade-indicator {getGradeIndicator(subject.numericGrade).color}">
-									{getGradeIndicator(subject.numericGrade).text}
-								</div>
-							</div>
+							{/if}
 						</div>
 					{/each}
 				</div>

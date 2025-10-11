@@ -117,6 +117,10 @@ export async function GET({ url, request }) {
         written_work_avg: isVerified ? (gradeData.averages?.written_work || 0) : 0,
         performance_tasks_avg: isVerified ? (gradeData.averages?.performance_tasks || 0) : 0,
         quarterly_assessment_avg: isVerified ? (gradeData.averages?.quarterly_assessment || 0) : 0,
+        // Include individual score arrays for detailed breakdown (show even if not verified)
+        written_work_scores: gradeData ? (gradeData.written_work || []) : [],
+        performance_tasks_scores: gradeData ? (gradeData.performance_tasks || []) : [],
+        quarterly_assessment_scores: gradeData ? (gradeData.quarterly_assessment || []) : [],
         verified: isVerified,
         verified_at: isVerified ? (gradeData.verification?.verified_at || gradeData.verified_at) : null,
         verified_by: isVerified ? (gradeData.verification?.verified_by || gradeData.verified_by) : null,
@@ -127,9 +131,9 @@ export async function GET({ url, request }) {
 
     // Calculate overall statistics
     const validGrades = grades.filter(g => g.final_grade && g.final_grade > 0);
-    const totalSubjects = validGrades.length;
-    const overallAverage = totalSubjects > 0 
-      ? Math.round((validGrades.reduce((sum, grade) => sum + grade.final_grade, 0) / totalSubjects) * 10) / 10
+    const totalSubjects = grades.length; // Count all subjects, not just those with grades
+    const overallAverage = validGrades.length > 0 
+      ? Math.round((validGrades.reduce((sum, grade) => sum + grade.final_grade, 0) / validGrades.length) * 10) / 10
       : 0;
 
     // Format grades for frontend
@@ -143,6 +147,10 @@ export async function GET({ url, request }) {
       writtenWork: grade.written_work_avg || 0,
       performanceTasks: grade.performance_tasks_avg || 0,
       quarterlyAssessment: grade.quarterly_assessment_avg || 0,
+      // Include individual score arrays for breakdown
+      writtenWorkScores: grade.written_work_scores || [],
+      performanceTasksScores: grade.performance_tasks_scores || [],
+      quarterlyAssessmentScores: grade.quarterly_assessment_scores || [],
       verified: grade.verified || false,
       verifiedAt: grade.verified_at,
       verifiedBy: grade.verified_by
