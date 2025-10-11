@@ -300,22 +300,28 @@ export async function DELETE({ request }) {
     }
 
     if (id) {
+      // First check if notification exists and belongs to user
+      const existingNotification = await notificationsCollection.findOne({
+        _id: new ObjectId(id),
+        student_id: user.id
+      });
+
+      if (!existingNotification) {
+        return json({ 
+          error: 'Notification not found or access denied' 
+        }, { status: 404 });
+      }
+
       // Delete single notification
       const result = await notificationsCollection.findOneAndDelete({
         _id: new ObjectId(id),
         student_id: user.id
       });
 
-      if (!result.value) {
-        return json({ 
-          error: 'Notification not found or access denied' 
-        }, { status: 404 });
-      }
-
       // Log activity
       await logActivityWithUser(
         'notification_delete',
-        `Deleted notification: ${result.value.title}`,
+        `Deleted notification: ${existingNotification.title}`,
         user,
         request.headers.get('x-forwarded-for') || 'unknown'
       );
