@@ -21,6 +21,12 @@
 	
 	// Accordion state for grade breakdowns (similar to todo list)
 	let expandedGrades = new Set();
+	
+	// AI Analysis variables
+	let aiAnalysis = '';
+	let aiAnalysisLoading = false;
+	let aiAnalysisError = null;
+	let showAiAnalysis = false;
 
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -153,6 +159,59 @@
 			(subject.performanceTasksScores && subject.performanceTasksScores.length > 0) ||
 			(subject.quarterlyAssessmentScores && subject.quarterlyAssessmentScores.length > 0)
 		);
+	}
+
+	// Function to get AI analysis
+	async function getAiAnalysis() {
+		if (aiAnalysisLoading || !subjects.length) return;
+		
+		aiAnalysisLoading = true;
+		aiAnalysisError = null;
+		
+		try {
+			const response = await fetch('/api/ai-grade-analysis', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					studentData: {
+						name: studentData?.name || 'Student',
+						gradeLevel: sectionInfo?.gradeLevel || 'N/A',
+						section: sectionInfo?.name || 'N/A'
+					},
+					grades: {
+						overallAverage,
+						subjects,
+						classRank,
+						totalStudentsInSection
+					}
+				})
+			});
+
+			const result = await response.json();
+			
+			if (result.success) {
+				aiAnalysis = result.analysis;
+				showAiAnalysis = true;
+			} else {
+				throw new Error(result.error || 'Failed to get AI analysis');
+			}
+		} catch (error) {
+			console.error('AI Analysis Error:', error);
+			aiAnalysisError = error.message;
+		} finally {
+			aiAnalysisLoading = false;
+		}
+	}
+
+	// Function to toggle AI analysis visibility
+	function toggleAiAnalysis() {
+		if (!showAiAnalysis && !aiAnalysis) {
+			getAiAnalysis();
+		} else {
+			showAiAnalysis = !showAiAnalysis;
+		}
 	}
 
 	function formatScoreLabel(index, type) {
@@ -307,17 +366,49 @@
 			<!-- AI Analysis Container -->
 			<div class="ai-analysis-container">
 				<div class="analysis-header">
-					<div class="analysis-icon">
-						<span class="material-symbols-outlined">psychology</span>
-					</div>
 					<h3 class="analysis-title">AI Performance Analysis</h3>
+					<button 
+						class="ai-analysis-toggle-btn" 
+						on:click={toggleAiAnalysis}
+						title={showAiAnalysis ? 'Hide AI Analysis' : 'Get AI Analysis'}>
+						{#if showAiAnalysis}
+							<span class="material-symbols-outlined">expand_less</span>
+						{:else}
+							<span class="material-symbols-outlined">auto_awesome</span>
+						{/if}
+					</button>
 				</div>
-				<div class="analysis-content">
-					<div class="analysis-placeholder">
-						<span class="material-symbols-outlined">auto_awesome</span>
-						<p>AI analysis will appear here</p>
+				
+				{#if aiAnalysisLoading}
+					<div class="ai-analysis-loading-container">
+						<div class="system-loader"></div>
+						<p>Generating AI analysis...</p>
 					</div>
-				</div>
+				{/if}
+				
+				{#if showAiAnalysis}
+					<div class="analysis-content">
+						{#if aiAnalysisError}
+							<div class="analysis-error">
+								<span class="material-symbols-outlined">error</span>
+								<p>Failed to generate AI analysis: {aiAnalysisError}</p>
+								<button class="retry-analysis-btn" on:click={getAiAnalysis}>
+									<span class="material-symbols-outlined">refresh</span>
+									Try Again
+								</button>
+							</div>
+						{:else if aiAnalysis}
+							<div class="analysis-text">
+								{@html aiAnalysis.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
+							</div>
+						{:else}
+							<div class="analysis-placeholder">
+								<span class="material-symbols-outlined">auto_awesome</span>
+								<p>Click the AI button to get personalized insights about your academic performance</p>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 
