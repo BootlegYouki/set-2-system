@@ -23,17 +23,15 @@
 		{ id: '7', name: 'Grade 7', icon: 'looks_one' },
 		{ id: '8', name: 'Grade 8', icon: 'looks_two' },
 		{ id: '9', name: 'Grade 9', icon: 'looks_3' },
-		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
+		{ id: '10', name: 'Grade 10', icon: 'looks_4' }
 	];
 
 	// Dynamic section options - will be populated from API
-	let sectionOptions = [
-		{ id: '', name: 'All Sections' }
-	];
+	let sectionOptions = [{ id: '', name: 'All Sections' }];
 
 	// Computed values
-	$: selectedGradeLevelObj = gradeLevelOptions.find(level => level.id === selectedGradeLevel);
-	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
+	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
+	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
 
 	// Load sections from API
 	async function loadSections() {
@@ -42,10 +40,10 @@
 			if (data.success) {
 				sections = data.data || [];
 				// Update section options with dynamic data - only include active sections
-				const activeSections = sections.filter(section => section.status === 'active');
+				const activeSections = sections.filter((section) => section.status === 'active');
 				sectionOptions = [
 					{ id: '', name: 'All Sections' },
-					...activeSections.map(section => ({
+					...activeSections.map((section) => ({
 						id: section.name,
 						name: `Grade ${section.grade_level} · ${section.name}`
 					}))
@@ -56,7 +54,6 @@
 			toastStore.error('Failed to load sections');
 		}
 	}
-
 
 	// Load students data with grades using optimized bulk endpoint
 	async function loadStudents() {
@@ -70,7 +67,7 @@
 
 			// Data is already formatted from the bulk endpoint
 			students = studentsData.students || [];
-			
+
 			filterStudents();
 		} catch (error) {
 			console.error('Error loading students:', error);
@@ -83,17 +80,16 @@
 
 	// Filter students based on search query, grade level, and section
 	function filterStudents() {
-		filteredStudents = students.filter(student => {
-			const matchesSearch = !searchQuery || 
+		filteredStudents = students.filter((student) => {
+			const matchesSearch =
+				!searchQuery ||
 				student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				student.id.toString().toLowerCase().includes(searchQuery.toLowerCase());
-			
-			const matchesGradeLevel = !selectedGradeLevel || 
-				student.gradeLevel === selectedGradeLevel;
-			
-			const matchesSection = !selectedSection || 
-				student.section === selectedSection;
-			
+
+			const matchesGradeLevel = !selectedGradeLevel || student.gradeLevel === selectedGradeLevel;
+
+			const matchesSection = !selectedSection || student.section === selectedSection;
+
 			return matchesSearch && matchesGradeLevel && matchesSection;
 		});
 	}
@@ -156,7 +152,7 @@
 	function getGradeLevelName(gradeLevel) {
 		const gradeMap = {
 			'7': 'Grade 7',
-			'8': 'Grade 8', 
+			'8': 'Grade 8',
 			'9': 'Grade 9',
 			'10': 'Grade 10'
 		};
@@ -176,7 +172,7 @@
 		await loadSections();
 		await loadStudents();
 		document.addEventListener('click', handleClickOutside);
-		
+
 		return () => {
 			document.removeEventListener('click', handleClickOutside);
 		};
@@ -204,17 +200,17 @@
 			<div class="sgl-search-container">
 				<div class="sgl-search-input-wrapper">
 					<span class="material-symbols-outlined sgl-search-icon">search</span>
-					<input 
-						type="text" 
-						class="sgl-search-input" 
+					<input
+						type="text"
+						class="sgl-search-input"
 						placeholder="Search students by name, email, or ID..."
 						bind:value={searchQuery}
 					/>
 					{#if searchQuery}
-						<button 
-							type="button" 
+						<button
+							type="button"
 							class="sgl-clear-search-button"
-							on:click={() => searchQuery = ''}
+							on:click={() => (searchQuery = '')}
 						>
 							<span class="material-symbols-outlined">close</span>
 						</button>
@@ -228,14 +224,16 @@
 				<div class="sgl-filter-group">
 					<label class="sgl-filter-label">Grade Level</label>
 					<div class="sgl-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
-						<button 
+						<button
 							type="button"
-							class="sgl-dropdown-trigger sgl-filter-trigger" 
+							class="sgl-dropdown-trigger sgl-filter-trigger"
 							on:click={toggleGradeLevelDropdown}
 						>
 							{#if selectedGradeLevelObj && selectedGradeLevel}
 								<div class="sgl-selected-option">
-									<span class="material-symbols-outlined sgl-option-icon">{selectedGradeLevelObj.icon}</span>
+									<span class="material-symbols-outlined sgl-option-icon"
+										>{selectedGradeLevelObj.icon}</span
+									>
 									<span class="sgl-option-name">{selectedGradeLevelObj.name}</span>
 								</div>
 							{:else}
@@ -245,9 +243,9 @@
 						</button>
 						<div class="sgl-dropdown-menu">
 							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
-								<button 
+								<button
 									type="button"
-									class="sgl-dropdown-option" 
+									class="sgl-dropdown-option"
 									class:selected={selectedGradeLevel === gradeLevel.id}
 									on:click={() => selectGradeLevel(gradeLevel)}
 								>
@@ -265,9 +263,9 @@
 				<div class="sgl-filter-group">
 					<label class="sgl-filter-label">Section</label>
 					<div class="sgl-custom-dropdown" class:open={isSectionDropdownOpen}>
-						<button 
+						<button
 							type="button"
-							class="sgl-dropdown-trigger sgl-filter-trigger" 
+							class="sgl-dropdown-trigger sgl-filter-trigger"
 							on:click={toggleSectionDropdown}
 						>
 							{#if selectedSectionObj && selectedSection}
@@ -281,9 +279,9 @@
 						</button>
 						<div class="sgl-dropdown-menu">
 							{#each sectionOptions as section (section.id)}
-								<button 
+								<button
 									type="button"
-									class="sgl-dropdown-option" 
+									class="sgl-dropdown-option"
 									class:selected={selectedSection === section.id}
 									on:click={() => selectSection(section)}
 								>
@@ -298,11 +296,7 @@
 
 				<!-- Clear Filters Button -->
 				{#if searchQuery || selectedGradeLevel || selectedSection}
-					<button 
-						type="button" 
-						class="sgl-clear-filters-button"
-						on:click={clearFilters}
-					>
+					<button type="button" class="sgl-clear-filters-button" on:click={clearFilters}>
 						<span class="material-symbols-outlined">filter_alt_off</span>
 					</button>
 				{/if}
@@ -312,7 +306,7 @@
 
 	<!-- Results Section -->
 	<div class="sgl-results-section">
-			<!-- Loading State -->
+		<!-- Loading State -->
 		{#if isLoading}
 			<div class="sgl-masterlist-loading-container">
 				<span class="sgl-student-loader"></span>
@@ -343,24 +337,24 @@
 			<div class="sgl-table-container">
 				<table class="sgl-students-table">
 					<thead>
-							<tr>
-								<th>Student ID</th>
-								<th>Name</th>
-								<th>Grade Level</th>
-								<th>Section</th>
-								<th>GWA</th>
-							</tr>
-						</thead>
+						<tr>
+							<th>Student ID</th>
+							<th>Name</th>
+							<th>Grade Level</th>
+							<th>Section</th>
+							<th>GWA</th>
+						</tr>
+					</thead>
 					<tbody>
 						{#each filteredStudents as student (student.id)}
-						<tr class="sgl-student-row" class:low-gwa={student.gwa < 75}>
-							<td class="sgl-student-id">{student.id}</td>
-							<td class="sgl-student-name">{student.name}</td>
-							<td class="sgl-year-level">{getGradeLevelName(student.gradeLevel)}</td>
-							<td class="sgl-section">{student.section}</td>
-							<td class="sgl-gwa">{student.gwa.toFixed(1)}</td>
-						</tr>
-					{/each}
+							<tr class="sgl-student-row" class:low-gwa={student.gwa < 75}>
+								<td class="sgl-student-id">{student.id}</td>
+								<td class="sgl-student-name">{student.name}</td>
+								<td class="sgl-year-level">{getGradeLevelName(student.gradeLevel)}</td>
+								<td class="sgl-section">{student.section}</td>
+								<td class="sgl-gwa">{student.gwa.toFixed(1)}</td>
+							</tr>
+						{/each}
 					</tbody>
 				</table>
 			</div>

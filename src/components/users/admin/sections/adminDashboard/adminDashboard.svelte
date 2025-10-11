@@ -18,18 +18,42 @@
 			if (!silent) {
 				dashboardStore.setLoading(true);
 			}
-			
+
 			const data = await api.get('/api/dashboard');
-			
+
 			if (data.success) {
 				// Update the stats with real data
 				const newStats = [
-					{ id: 'students', label: 'Total Students', value: data.data.students.toLocaleString(), icon: 'school', color: 'primary' },
-					{ id: 'teachers', label: 'Total Teachers', value: data.data.teachers.toLocaleString(), icon: 'person', color: 'primary' },
-					{ id: 'sections', label: 'Total Sections', value: data.data.sections.toLocaleString(), icon: 'class', color: 'primary' },
-					{ id: 'rooms', label: 'Total Rooms', value: data.data.rooms.toLocaleString(), icon: 'meeting_room', color: 'primary' }
+					{
+						id: 'students',
+						label: 'Total Students',
+						value: data.data.students.toLocaleString(),
+						icon: 'school',
+						color: 'primary'
+					},
+					{
+						id: 'teachers',
+						label: 'Total Teachers',
+						value: data.data.teachers.toLocaleString(),
+						icon: 'person',
+						color: 'primary'
+					},
+					{
+						id: 'sections',
+						label: 'Total Sections',
+						value: data.data.sections.toLocaleString(),
+						icon: 'class',
+						color: 'primary'
+					},
+					{
+						id: 'rooms',
+						label: 'Total Rooms',
+						value: data.data.rooms.toLocaleString(),
+						icon: 'meeting_room',
+						color: 'primary'
+					}
 				];
-				
+
 				dashboardStore.updateData(newStats);
 			} else {
 				throw new Error(data.error || 'Failed to fetch dashboard statistics');
@@ -40,8 +64,6 @@
 		}
 	}
 
-
-
 	// Fetch recent activities from API
 	async function fetchRecentActivities(silent = false) {
 		try {
@@ -49,9 +71,9 @@
 				activitiesLoading = true;
 				activitiesError = null;
 			}
-			
+
 			const data = await api.get('/api/activity-logs');
-			
+
 			if (data.success) {
 				recentActivities = data.activities;
 			} else {
@@ -72,17 +94,17 @@
 		if (cachedData) {
 			dashboardStore.init(cachedData);
 		}
-		
+
 		// Fetch fresh data (silent if we have cache, visible loading if not)
 		fetchDashboardStats(!!cachedData);
 		fetchRecentActivities(false); // Always show loading for activity logs
-		
+
 		// Set up periodic silent refresh every 30 seconds
 		const refreshInterval = setInterval(() => {
 			fetchDashboardStats(true); // Always silent for periodic refresh
 			fetchRecentActivities(true); // Always silent for periodic refresh
 		}, 30000);
-		
+
 		// Cleanup interval on component destroy
 		return () => {
 			clearInterval(refreshInterval);
@@ -105,7 +127,7 @@
 			<h2 class="section-title">System Statistics</h2>
 			<p class="dashboard-section-subtitle">Current overview of your school management system</p>
 		</div>
-		
+
 		{#if statsError}
 			<div class="stats-error">
 				<span class="material-symbols-outlined">error</span>
@@ -138,14 +160,12 @@
 		{/if}
 	</div>
 
-
-
 	<!-- Recent Activities Section -->
 	<div class="activities-section">
 		<div class="section-header">
 			<h2 class="section-title">Activity Logs</h2>
-			<button 
-				class="refresh-button" 
+			<button
+				class="refresh-button"
 				on:click={() => fetchRecentActivities(false)}
 				disabled={activitiesLoading}
 				title="Refresh activity logs"
@@ -154,7 +174,7 @@
 				Refresh
 			</button>
 		</div>
-		
+
 		<div class="activities-list">
 			{#if activitiesLoading}
 				<div class="activities-loading">

@@ -23,17 +23,15 @@
 		{ id: '7', name: 'Grade 7', icon: 'looks_one' },
 		{ id: '8', name: 'Grade 8', icon: 'looks_two' },
 		{ id: '9', name: 'Grade 9', icon: 'looks_3' },
-		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
+		{ id: '10', name: 'Grade 10', icon: 'looks_4' }
 	];
 
 	// Section options - will be populated from database
-	let sectionOptions = [
-		{ id: '', name: 'All Sections' }
-	];
+	let sectionOptions = [{ id: '', name: 'All Sections' }];
 
 	// Computed values
-	$: selectedGradeLevelObj = gradeLevelOptions.find(level => level.id === selectedGradeLevel);
-	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
+	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
+	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
 
 	// Load students data
 	async function loadStudents() {
@@ -43,9 +41,9 @@
 			if (!data.success) {
 				throw new Error('Failed to load students');
 			}
-			
+
 			// Transform API data to match our component structure
-			students = data.accounts.map(account => ({
+			students = data.accounts.map((account) => ({
 				id: account.id,
 				name: account.name,
 				number: account.number, // Add the student ID number
@@ -75,16 +73,13 @@
 			const data = await api.get('/api/sections');
 			if (data.success && data.data) {
 				// Transform sections data and add to dropdown options
-				const sectionsFromDB = data.data.map(section => ({
+				const sectionsFromDB = data.data.map((section) => ({
 					id: section.name, // Use section name as ID for filtering
 					name: section.name
 				}));
-				
+
 				// Combine "All Sections" with actual sections
-				sectionOptions = [
-					{ id: '', name: 'All Sections' },
-					...sectionsFromDB
-				];
+				sectionOptions = [{ id: '', name: 'All Sections' }, ...sectionsFromDB];
 			}
 		} catch (error) {
 			console.error('Error loading sections:', error);
@@ -94,18 +89,17 @@
 
 	// Filter students based on search query, grade level, and section
 	function filterStudents() {
-		filteredStudents = students.filter(student => {
-			const matchesSearch = !searchQuery || 
+		filteredStudents = students.filter((student) => {
+			const matchesSearch =
+				!searchQuery ||
 				student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(student.number && student.number.toLowerCase().includes(searchQuery.toLowerCase()));
-			
-			const matchesGradeLevel = !selectedGradeLevel || 
-				student.gradeLevel === selectedGradeLevel;
-			
-			const matchesSection = !selectedSection || 
-				student.section === selectedSection;
-			
+
+			const matchesGradeLevel = !selectedGradeLevel || student.gradeLevel === selectedGradeLevel;
+
+			const matchesSection = !selectedSection || student.section === selectedSection;
+
 			return matchesSearch && matchesGradeLevel && matchesSection;
 		});
 	}
@@ -207,7 +201,7 @@
 		loadSections(); // Load sections first
 		loadStudents();
 		document.addEventListener('click', handleClickOutside);
-		
+
 		return () => {
 			document.removeEventListener('click', handleClickOutside);
 		};
@@ -230,18 +224,14 @@
 			<div class="search-container">
 				<div class="search-input-wrapper">
 					<span class="material-symbols-outlined search-icon">search</span>
-					<input 
-						type="text" 
-					class="search-input" 
-					placeholder="Search students by name, email, or ID..."
-					bind:value={searchQuery}
+					<input
+						type="text"
+						class="search-input"
+						placeholder="Search students by name, email, or ID..."
+						bind:value={searchQuery}
 					/>
 					{#if searchQuery}
-						<button 
-							type="button" 
-							class="clear-search-button"
-							on:click={() => searchQuery = ''}
-						>
+						<button type="button" class="clear-search-button" on:click={() => (searchQuery = '')}>
 							<span class="material-symbols-outlined">close</span>
 						</button>
 					{/if}
@@ -254,14 +244,16 @@
 				<div class="filter-group">
 					<label class="filter-label">Grade Level</label>
 					<div class="custom-dropdown" class:open={isGradeLevelDropdownOpen}>
-						<button 
+						<button
 							type="button"
-							class="dropdown-trigger filter-trigger" 
+							class="dropdown-trigger filter-trigger"
 							on:click={toggleGradeLevelDropdown}
 						>
 							{#if selectedGradeLevelObj && selectedGradeLevel}
 								<div class="selected-option">
-									<span class="material-symbols-outlined option-icon">{selectedGradeLevelObj.icon}</span>
+									<span class="material-symbols-outlined option-icon"
+										>{selectedGradeLevelObj.icon}</span
+									>
 									<span class="option-name">{selectedGradeLevelObj.name}</span>
 								</div>
 							{:else}
@@ -271,9 +263,9 @@
 						</button>
 						<div class="dropdown-menu">
 							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
-								<button 
+								<button
 									type="button"
-									class="dropdown-option" 
+									class="dropdown-option"
 									class:selected={selectedGradeLevel === gradeLevel.id}
 									on:click={() => selectGradeLevel(gradeLevel)}
 								>
@@ -291,9 +283,9 @@
 				<div class="filter-group">
 					<label class="filter-label">Section</label>
 					<div class="custom-dropdown" class:open={isSectionDropdownOpen}>
-						<button 
+						<button
 							type="button"
-							class="dropdown-trigger filter-trigger" 
+							class="dropdown-trigger filter-trigger"
 							on:click={toggleSectionDropdown}
 						>
 							{#if selectedSectionObj && selectedSection}
@@ -307,9 +299,9 @@
 						</button>
 						<div class="dropdown-menu">
 							{#each sectionOptions as section (section.id)}
-								<button 
+								<button
 									type="button"
-									class="dropdown-option" 
+									class="dropdown-option"
 									class:selected={selectedSection === section.id}
 									on:click={() => selectSection(section)}
 								>
@@ -324,11 +316,7 @@
 
 				<!-- Clear Filters Button -->
 				{#if searchQuery || selectedGradeLevel || selectedSection}
-					<button 
-						type="button" 
-						class="clear-filters-button"
-						on:click={clearFilters}
-					>
+					<button type="button" class="clear-filters-button" on:click={clearFilters}>
 						<span class="material-symbols-outlined">filter_alt_off</span>
 					</button>
 				{/if}
@@ -349,10 +337,12 @@
 					<div class="account-card">
 						<div class="account-card-header">
 							<div class="account-title">
-								<h3 class="account-name">{#if student.number}{student.number}{/if} · {student.name}</h3>
+								<h3 class="account-name">
+									{#if student.number}{student.number}{/if} · {student.name}
+								</h3>
 							</div>
 							<div class="action-buttons">
-								<button 
+								<button
 									type="button"
 									class="archive-button"
 									title="Archive Student"
@@ -362,7 +352,7 @@
 								</button>
 							</div>
 						</div>
-						
+
 						<div class="master-account-details">
 							{#if student.email}
 								<div class="account-detail-item">
@@ -373,13 +363,19 @@
 							{#if student.gradeLevel && student.gradeLevel !== 'Not specified'}
 								<div class="account-detail-item">
 									<span class="material-symbols-outlined">school</span>
-									<span>{gradeLevelOptions.find(level => level.id === student.gradeLevel)?.name || student.gradeLevel}</span>
+									<span
+										>{gradeLevelOptions.find((level) => level.id === student.gradeLevel)?.name ||
+											student.gradeLevel}</span
+									>
 								</div>
 							{/if}
 							{#if student.section && student.section !== 'Not specified'}
 								<div class="account-detail-item">
 									<span class="material-symbols-outlined">class</span>
-									<span>Section: {sectionOptions.find(section => section.id === student.section)?.name || student.section}</span>
+									<span
+										>Section: {sectionOptions.find((section) => section.id === student.section)
+											?.name || student.section}</span
+									>
 								</div>
 							{/if}
 							{#if student.birthdate && student.birthdate !== 'Not specified'}

@@ -107,7 +107,7 @@
 	async function loadDocumentRequests() {
 		isLoading = true;
 		error = null;
-		
+
 		try {
 			const data = await api.get('/api/document-requests?admin_view=true');
 			documentRequests = data.data || [];
@@ -125,20 +125,26 @@
 	});
 
 	// Computed properties for filtering
-	$: selectedStatusFilterObj = requestStatuses.find(status => status.id === selectedStatusFilter);
-	$: selectedDocumentTypeFilterObj = documentTypes.find(type => type.id === selectedDocumentTypeFilter);
-	$: selectedGradeFilterObj = gradeLevels.find(grade => grade.value === selectedGradeFilter);
+	$: selectedStatusFilterObj = requestStatuses.find((status) => status.id === selectedStatusFilter);
+	$: selectedDocumentTypeFilterObj = documentTypes.find(
+		(type) => type.id === selectedDocumentTypeFilter
+	);
+	$: selectedGradeFilterObj = gradeLevels.find((grade) => grade.value === selectedGradeFilter);
 
-	$: filteredRequests = documentRequests.filter(request => {
-		const matchesSearchTerm = 
-			(request.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			 request.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-			 request.documentType.toLowerCase().includes(searchTerm.toLowerCase()));
+	$: filteredRequests = documentRequests.filter((request) => {
+		const matchesSearchTerm =
+			request.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			request.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			request.documentType.toLowerCase().includes(searchTerm.toLowerCase());
 
 		const matchesStatus = selectedStatusFilter ? request.status === selectedStatusFilter : true;
-		const matchesDocumentType = selectedDocumentTypeFilter ? 
-			request.documentType.toLowerCase() === documentTypes.find(t => t.id === selectedDocumentTypeFilter)?.name.toLowerCase() : true;
-		const matchesGrade = selectedGradeFilter ? request.gradeLevel === `Grade ${selectedGradeFilter}` : true;
+		const matchesDocumentType = selectedDocumentTypeFilter
+			? request.documentType.toLowerCase() ===
+				documentTypes.find((t) => t.id === selectedDocumentTypeFilter)?.name.toLowerCase()
+			: true;
+		const matchesGrade = selectedGradeFilter
+			? request.gradeLevel === `Grade ${selectedGradeFilter}`
+			: true;
 
 		return matchesSearchTerm && matchesStatus && matchesDocumentType && matchesGrade;
 	});
@@ -197,15 +203,16 @@
 						action: 'approve',
 						admin_note: note && note.trim() ? note.trim() : null
 					});
-					
+
 					if (result.success) {
 						// Update local state
-						documentRequests = documentRequests.map(request => {
+						documentRequests = documentRequests.map((request) => {
 							if (request.id === requestId && request.status === 'pending') {
 								return {
 									...request,
 									status: 'processing',
-									approvalNote: note && note.trim() ? note.trim() : 'Approved without additional notes'
+									approvalNote:
+										note && note.trim() ? note.trim() : 'Approved without additional notes'
 								};
 							}
 							return request;
@@ -243,10 +250,10 @@
 						action: 'reject',
 						rejection_reason: reason.trim()
 					});
-					
+
 					if (result.success) {
 						// Update local state
-						documentRequests = documentRequests.map(request => {
+						documentRequests = documentRequests.map((request) => {
 							if (request.id === requestId && request.status === 'pending') {
 								return {
 									...request,
@@ -278,10 +285,10 @@
 				id: requestId,
 				action: 'complete'
 			});
-			
+
 			if (result.success) {
 				// Update local state
-				documentRequests = documentRequests.map(request => {
+				documentRequests = documentRequests.map((request) => {
 					if (request.id === requestId && request.status === 'processing') {
 						return {
 							...request,
@@ -310,10 +317,10 @@
 			async () => {
 				try {
 					const result = await api.delete('/api/document-requests', { id: requestId });
-					
+
 					if (result.success) {
 						// Remove from local state
-						documentRequests = documentRequests.filter(request => request.id !== requestId);
+						documentRequests = documentRequests.filter((request) => request.id !== requestId);
 						toastStore.success('Document request removed successfully');
 					} else {
 						toastStore.error(result.error || 'Failed to remove request');
@@ -343,23 +350,35 @@
 
 	function getStatusIcon(status) {
 		switch (status) {
-			case 'completed': return 'check_circle';
-			case 'processing': return 'sync';
-			case 'pending': return 'hourglass_empty';
-			case 'rejected': return 'cancel';
-			case 'cancelled': return 'block';
-			default: return 'help';
+			case 'completed':
+				return 'check_circle';
+			case 'processing':
+				return 'sync';
+			case 'pending':
+				return 'hourglass_empty';
+			case 'rejected':
+				return 'cancel';
+			case 'cancelled':
+				return 'block';
+			default:
+				return 'help';
 		}
 	}
 
 	function getStatusColor(status) {
 		switch (status) {
-			case 'completed': return 'success';
-			case 'processing': return 'info';
-			case 'pending': return 'warning';
-			case 'rejected': return 'error';
-			case 'cancelled': return 'neutral';
-			default: return 'neutral';
+			case 'completed':
+				return 'success';
+			case 'processing':
+				return 'info';
+			case 'pending':
+				return 'warning';
+			case 'rejected':
+				return 'error';
+			case 'cancelled':
+				return 'neutral';
+			default:
+				return 'neutral';
 		}
 	}
 </script>
@@ -395,7 +414,10 @@
 			</div>
 
 			<!-- Status Filter -->
-			<div class="admindocreq-status-filter admindocreq-custom-dropdown" class:open={isStatusFilterDropdownOpen}>
+			<div
+				class="admindocreq-status-filter admindocreq-custom-dropdown"
+				class:open={isStatusFilterDropdownOpen}
+			>
 				<button
 					type="button"
 					class="admindocreq-dropdown-trigger"
@@ -444,7 +466,10 @@
 			</div>
 
 			<!-- Document Type Filter -->
-			<div class="admindocreq-doctype-filter admindocreq-custom-dropdown" class:open={isDocumentTypeFilterDropdownOpen}>
+			<div
+				class="admindocreq-doctype-filter admindocreq-custom-dropdown"
+				class:open={isDocumentTypeFilterDropdownOpen}
+			>
 				<button
 					type="button"
 					class="admindocreq-dropdown-trigger"
@@ -493,7 +518,10 @@
 			</div>
 
 			<!-- Grade Level Filter -->
-			<div class="admindocreq-grade-filter admindocreq-custom-dropdown" class:open={isGradeFilterDropdownOpen}>
+			<div
+				class="admindocreq-grade-filter admindocreq-custom-dropdown"
+				class:open={isGradeFilterDropdownOpen}
+			>
 				<button
 					type="button"
 					class="admindocreq-dropdown-trigger"
@@ -575,7 +603,6 @@
 								</div>
 							</div>
 							<div class="admindocreq-action-buttons">
-								
 								<div class="admindocreq-status-badge admindocreq-status-{request.status}">
 									<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
 									{request.status.charAt(0).toUpperCase() + request.status.slice(1)}
@@ -605,11 +632,17 @@
 						<!-- Status-specific footer -->
 						{#if request.status === 'pending'}
 							<div class="admindocreq-request-actions">
-								<button class="admindocreq-approve-button" on:click={() => handleApproveRequest(request.id)}>
+								<button
+									class="admindocreq-approve-button"
+									on:click={() => handleApproveRequest(request.id)}
+								>
 									<span class="material-symbols-outlined">check_circle</span>
 									Approve
 								</button>
-								<button class="admindocreq-reject-button" on:click={() => handleRejectRequest(request.id)}>
+								<button
+									class="admindocreq-reject-button"
+									on:click={() => handleRejectRequest(request.id)}
+								>
 									<span class="material-symbols-outlined">cancel</span>
 									Reject
 								</button>
@@ -617,17 +650,22 @@
 						{:else if request.status === 'processing'}
 							<div class="admindocreq-request-actions processing-footer">
 								{#if request.adminNote}
-								<span class="admindocreq-footer-info">Note: {request.adminNote}</span>
+									<span class="admindocreq-footer-info">Note: {request.adminNote}</span>
 								{/if}
-								<button class="admindocreq-complete-button" on:click={() => handleCompleteRequest(request.id)}>
+								<button
+									class="admindocreq-complete-button"
+									on:click={() => handleCompleteRequest(request.id)}
+								>
 									<span class="material-symbols-outlined">task_alt</span>
 									Mark Complete
 								</button>
 							</div>
 						{:else if request.status === 'completed'}
 							<div class="admindocreq-request-actions completed-footer">
-								<span class="admindocreq-footer-info">Completed on {request.completedDate || 'N/A'}</span>
-								<button 
+								<span class="admindocreq-footer-info"
+									>Completed on {request.completedDate || 'N/A'}</span
+								>
+								<button
 									class="admindocreq-action-btn remove-btn"
 									on:click={() => handleRemoveRequest(request.id)}
 									title="Remove request"
@@ -641,8 +679,10 @@
 							</div>
 						{:else if request.status === 'cancelled'}
 							<div class="admindocreq-request-actions cancelled-footer">
-								<span class="admindocreq-footer-info">Cancelled on {request.cancelledDate || 'N/A'}</span>
-								<button 
+								<span class="admindocreq-footer-info"
+									>Cancelled on {request.cancelledDate || 'N/A'}</span
+								>
+								<button
 									class="admindocreq-action-btn remove-btn"
 									on:click={() => handleRemoveRequest(request.id)}
 									title="Remove request"

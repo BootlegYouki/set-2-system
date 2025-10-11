@@ -1,7 +1,11 @@
 <script>
 	import './adminMenu.css';
 	// Props
-	let { adminActiveSection = $bindable('dashboard'), adminNavRailVisible = true, onnavigate } = $props();
+	let {
+		adminActiveSection = $bindable('dashboard'),
+		adminNavRailVisible = true,
+		onnavigate
+	} = $props();
 
 	// Folder state
 	let managementFolderExpanded = $state(false);
@@ -14,7 +18,7 @@
 			icon: 'dashboard',
 			type: 'item'
 		},
-				{
+		{
 			id: 'management-folder',
 			label: 'Management',
 			icon: 'folder',
@@ -35,7 +39,7 @@
 					id: 'subjects-and-activities',
 					label: 'Subjects & Activities',
 					icon: 'school'
-				},
+				}
 			]
 		},
 		{
@@ -67,7 +71,7 @@
 			label: 'Archived Students',
 			icon: 'archive',
 			type: 'item'
-		},
+		}
 	];
 
 	// Handle navigation
@@ -88,18 +92,23 @@
 
 	// Check if any item in folder is active
 	function isFolderActive(folder) {
-		return folder.items?.some(item => item.id === adminActiveSection) || false;
+		return folder.items?.some((item) => item.id === adminActiveSection) || false;
 	}
 </script>
 
 <!-- Navigation Rail (Desktop) -->
-<nav class="admin-menu-navigation-rail" class:collapsed={!adminNavRailVisible} role="navigation" aria-label="Admin portal navigation">
+<nav
+	class="admin-menu-navigation-rail"
+	class:collapsed={!adminNavRailVisible}
+	role="navigation"
+	aria-label="Admin portal navigation"
+>
 	<div class="admin-menu-rail-container">
 		{#each navigationItems as item (item.id)}
 			{#if item.type === 'folder'}
 				<!-- Folder item -->
-				<button 
-					class="admin-menu-rail-item admin-menu-folder" 
+				<button
+					class="admin-menu-rail-item admin-menu-folder"
 					class:active={isFolderActive(item)}
 					class:expanded={managementFolderExpanded}
 					onclick={() => toggleFolder(item.id)}
@@ -113,13 +122,13 @@
 					</div>
 					<span class="admin-menu-rail-label">{item.label}</span>
 				</button>
-				
+
 				<!-- Folder contents -->
 				{#if managementFolderExpanded}
 					<div class="admin-menu-folder-contents">
 						{#each item.items as subItem (subItem.id)}
-							<button 
-								class="admin-menu-rail-item admin-menu-sub-item" 
+							<button
+								class="admin-menu-rail-item admin-menu-sub-item"
 								class:active={subItem.id === adminActiveSection}
 								onclick={() => handleNavigation(subItem.id)}
 								aria-label={subItem.label}
@@ -137,8 +146,8 @@
 				{/if}
 			{:else}
 				<!-- Regular item -->
-				<button 
-					class="admin-menu-rail-item" 
+				<button
+					class="admin-menu-rail-item"
 					class:active={item.id === adminActiveSection}
 					onclick={() => handleNavigation(item.id)}
 					aria-label={item.label}
@@ -163,8 +172,8 @@
 		{#each navigationItems as item (item.id)}
 			{#if item.type === 'folder'}
 				<!-- Folder item for mobile -->
-				<button 
-					class="admin-menu-nav-item admin-menu-folder" 
+				<button
+					class="admin-menu-nav-item admin-menu-folder"
 					class:active={isFolderActive(item)}
 					onclick={() => toggleFolder(item.id)}
 					aria-label={item.label}
@@ -178,8 +187,8 @@
 				</button>
 			{:else}
 				<!-- Regular item for mobile -->
-				<button 
-					class="admin-menu-nav-item" 
+				<button
+					class="admin-menu-nav-item"
 					class:active={item.id === adminActiveSection}
 					onclick={() => handleNavigation(item.id)}
 					aria-label={item.label}
@@ -193,33 +202,40 @@
 				</button>
 			{/if}
 		{/each}
-	
-	<!-- Mobile folder overlay -->
-	{#if managementFolderExpanded}
-		<div class="admin-menu-mobile-folder-overlay" onclick={() => toggleFolder('management-folder')}>
-			<div class="admin-menu-mobile-folder-content" onclick={(e) => e.stopPropagation()}>
-				<div class="admin-menu-mobile-folder-header">
-					<h3>Management</h3>
-					<button class="admin-menu-close-folder" onclick={() => toggleFolder('management-folder')}>
-						<span class="material-symbols-outlined">close</span>
-					</button>
-				</div>
-				<div class="admin-menu-mobile-folder-items">
-					{#each navigationItems.find(item => item.id === 'management-folder')?.items || [] as subItem (subItem.id)}
-						<button 
-							class="admin-menu-mobile-folder-item" 
-							class:active={subItem.id === adminActiveSection}
-							onclick={() => {
-								handleNavigation(subItem.id);
-								toggleFolder('management-folder');
-							}}
+
+		<!-- Mobile folder overlay -->
+		{#if managementFolderExpanded}
+			<div
+				class="admin-menu-mobile-folder-overlay"
+				onclick={() => toggleFolder('management-folder')}
+			>
+				<div class="admin-menu-mobile-folder-content" onclick={(e) => e.stopPropagation()}>
+					<div class="admin-menu-mobile-folder-header">
+						<h3>Management</h3>
+						<button
+							class="admin-menu-close-folder"
+							onclick={() => toggleFolder('management-folder')}
 						>
-							<span class="material-symbols-outlined">{subItem.icon}</span>
-							<span>{subItem.label}</span>
+							<span class="material-symbols-outlined">close</span>
 						</button>
-					{/each}
+					</div>
+					<div class="admin-menu-mobile-folder-items">
+						{#each navigationItems.find((item) => item.id === 'management-folder')?.items || [] as subItem (subItem.id)}
+							<button
+								class="admin-menu-mobile-folder-item"
+								class:active={subItem.id === adminActiveSection}
+								onclick={() => {
+									handleNavigation(subItem.id);
+									toggleFolder('management-folder');
+								}}
+							>
+								<span class="material-symbols-outlined">{subItem.icon}</span>
+								<span>{subItem.label}</span>
+							</button>
+						{/each}
+					</div>
 				</div>
 			</div>
-		</div>
-	{/if}
+		{/if}
+	</div>
 </nav>

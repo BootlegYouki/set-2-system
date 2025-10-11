@@ -68,15 +68,19 @@
 		try {
 			isLoadingAdvisers = true;
 			const gradeParam = teacherGradeLevel ? `&teacherGradeLevel=${teacherGradeLevel}` : '';
-			const result = await api.get(`/api/sections?action=available-teachers&schoolYear=${schoolYear}${gradeParam}`);
-			
+			const result = await api.get(
+				`/api/sections?action=available-teachers&schoolYear=${schoolYear}${gradeParam}`
+			);
+
 			if (result.success) {
-				availableAdvisers = result.data.map(teacher => {
+				availableAdvisers = result.data.map((teacher) => {
 					// Check if this teacher is already assigned to a section
 					// Only check if sections array is available
-		const hasSection = sectionsData && sectionsData.length > 0 ?
-			sectionsData.some(section => section.adviser_id === teacher.id) : false;
-					
+					const hasSection =
+						sectionsData && sectionsData.length > 0
+							? sectionsData.some((section) => section.adviser_id === teacher.id)
+							: false;
+
 					return {
 						id: teacher.id,
 						name: teacher.full_name,
@@ -86,12 +90,15 @@
 						hasSection: hasSection
 					};
 				});
-				
+
 				// Add current section advisers to the list if they're not already there
 				// This ensures that when editing a section, the current adviser appears in the dropdown
 				if (sectionsData && sectionsData.length > 0) {
-			for (const section of sectionsData) {
-						if (section.adviser_id && !availableAdvisers.find(adviser => adviser.id === section.adviser_id)) {
+					for (const section of sectionsData) {
+						if (
+							section.adviser_id &&
+							!availableAdvisers.find((adviser) => adviser.id === section.adviser_id)
+						) {
 							availableAdvisers.push({
 								id: section.adviser_id,
 								name: section.adviser_name,
@@ -115,10 +122,12 @@
 	async function loadAvailableStudents(grade) {
 		try {
 			isLoadingStudents = true;
-			const result = await api.get(`/api/sections?action=available-students&gradeLevel=${grade}&schoolYear=${schoolYear}`);
-			
+			const result = await api.get(
+				`/api/sections?action=available-students&gradeLevel=${grade}&schoolYear=${schoolYear}`
+			);
+
 			if (result.success) {
-				availableStudents = result.data.map(student => ({
+				availableStudents = result.data.map((student) => ({
 					id: student.id,
 					name: student.full_name,
 					studentId: student.account_number,
@@ -137,9 +146,9 @@
 	async function loadSectionStudents(sectionId) {
 		try {
 			const result = await api.get(`/api/sections?action=section-students&sectionId=${sectionId}`);
-			
+
 			if (result.success) {
-				return result.data.map(student => ({
+				return result.data.map((student) => ({
 					id: student.id,
 					name: student.full_name,
 					studentId: student.account_number,
@@ -156,16 +165,16 @@
 	// Edit student selection functions
 
 	function toggleEditStudentSelection(student) {
-		const index = editSelectedStudents.findIndex(s => s.id === student.id);
+		const index = editSelectedStudents.findIndex((s) => s.id === student.id);
 		if (index > -1) {
-			editSelectedStudents = editSelectedStudents.filter(s => s.id !== student.id);
+			editSelectedStudents = editSelectedStudents.filter((s) => s.id !== student.id);
 		} else {
 			editSelectedStudents = [...editSelectedStudents, student];
 		}
 	}
 
 	function removeEditSelectedStudent(student) {
-		editSelectedStudents = editSelectedStudents.filter(s => s.id !== student.id);
+		editSelectedStudents = editSelectedStudents.filter((s) => s.id !== student.id);
 	}
 
 	function clearAllEditSelectedStudents() {
@@ -173,12 +182,19 @@
 	}
 
 	function toggleSelectAllEditStudents() {
-		if (editSelectedStudents.length === editFilteredStudents.length && editFilteredStudents.every(student => editSelectedStudents.some(s => s.id === student.id))) {
+		if (
+			editSelectedStudents.length === editFilteredStudents.length &&
+			editFilteredStudents.every((student) => editSelectedStudents.some((s) => s.id === student.id))
+		) {
 			// All filtered students are selected, so unselect all
-			editSelectedStudents = editSelectedStudents.filter(selected => !editFilteredStudents.some(filtered => filtered.id === selected.id));
+			editSelectedStudents = editSelectedStudents.filter(
+				(selected) => !editFilteredStudents.some((filtered) => filtered.id === selected.id)
+			);
 		} else {
 			// Not all filtered students are selected, so select all
-			const newSelections = editFilteredStudents.filter(student => !editSelectedStudents.some(s => s.id === student.id));
+			const newSelections = editFilteredStudents.filter(
+				(student) => !editSelectedStudents.some((s) => s.id === student.id)
+			);
 			editSelectedStudents = [...editSelectedStudents, ...newSelections];
 		}
 	}
@@ -202,7 +218,10 @@
 
 	// Close dropdowns when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.sectionmgmt-custom-dropdown') && !event.target.closest('.adminform-custom-dropdown')) {
+		if (
+			!event.target.closest('.sectionmgmt-custom-dropdown') &&
+			!event.target.closest('.adminform-custom-dropdown')
+		) {
 			isGradeLevelDropdownOpen = false;
 			isAdviserDropdownOpen = false;
 			isFilterDropdownOpen = false;
@@ -248,47 +267,56 @@
 	}
 
 	function toggleStudentSelection(student) {
-		const index = selectedStudents.findIndex(s => s.id === student.id);
+		const index = selectedStudents.findIndex((s) => s.id === student.id);
 		if (index > -1) {
-			selectedStudents = selectedStudents.filter(s => s.id !== student.id);
+			selectedStudents = selectedStudents.filter((s) => s.id !== student.id);
 		} else {
 			selectedStudents = [...selectedStudents, student];
 		}
 	}
 
 	function removeStudent(studentId) {
-		selectedStudents = selectedStudents.filter(s => s.id !== studentId);
+		selectedStudents = selectedStudents.filter((s) => s.id !== studentId);
 	}
 
 	function toggleSelectAllStudents() {
-		if (selectedStudents.length === filteredStudents.length && filteredStudents.every(student => selectedStudents.some(s => s.id === student.id))) {
+		if (
+			selectedStudents.length === filteredStudents.length &&
+			filteredStudents.every((student) => selectedStudents.some((s) => s.id === student.id))
+		) {
 			// All filtered students are selected, so unselect all
-			selectedStudents = selectedStudents.filter(selected => !filteredStudents.some(filtered => filtered.id === selected.id));
+			selectedStudents = selectedStudents.filter(
+				(selected) => !filteredStudents.some((filtered) => filtered.id === selected.id)
+			);
 		} else {
 			// Not all filtered students are selected, so select all
-			const newSelections = filteredStudents.filter(student => !selectedStudents.some(s => s.id === student.id));
+			const newSelections = filteredStudents.filter(
+				(student) => !selectedStudents.some((s) => s.id === student.id)
+			);
 			selectedStudents = [...selectedStudents, ...newSelections];
 		}
 	}
 
 	// Computed values
-	$: selectedGradeObj = gradeLevels.find(g => g.id === gradeLevel);
-	$: selectedFilterObj = filterOptions.find(filter => filter.id === selectedFilter);
-	$: filteredAdvisers = availableAdvisers.filter(adviser => 
-		!adviser.hasSection && 
-		adviser.name.toLowerCase().includes(adviserSearchTerm.toLowerCase())
+	$: selectedGradeObj = gradeLevels.find((g) => g.id === gradeLevel);
+	$: selectedFilterObj = filterOptions.find((filter) => filter.id === selectedFilter);
+	$: filteredAdvisers = availableAdvisers.filter(
+		(adviser) =>
+			!adviser.hasSection && adviser.name.toLowerCase().includes(adviserSearchTerm.toLowerCase())
 	);
-	$: filteredStudents = availableStudents.filter(student => 
-		!student.hasSection && 
-		student.grade === gradeLevel &&
-		student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
+	$: filteredStudents = availableStudents.filter(
+		(student) =>
+			!student.hasSection &&
+			student.grade === gradeLevel &&
+			student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
 	);
-	$: filteredSections = sectionsData.filter(section => {
+	$: filteredSections = sectionsData.filter((section) => {
 		const matchesSearchTerm =
-			(section.name.toLowerCase().includes(sectionsSearchTerm.toLowerCase()) ||
-				section.grade_level.toString().includes(sectionsSearchTerm.toLowerCase()));
+			section.name.toLowerCase().includes(sectionsSearchTerm.toLowerCase()) ||
+			section.grade_level.toString().includes(sectionsSearchTerm.toLowerCase());
 
-		const matchesFilter = selectedFilter === 'all' || section.grade_level.toString() === selectedFilter;
+		const matchesFilter =
+			selectedFilter === 'all' || section.grade_level.toString() === selectedFilter;
 
 		return matchesSearchTerm && matchesFilter;
 	});
@@ -296,10 +324,14 @@
 	// Clear selections when grade level changes
 	$: if (gradeLevel) {
 		// Clear selected students that don't match the new grade level
-		selectedStudents = selectedStudents.filter(student => student.grade === gradeLevel);
-		
+		selectedStudents = selectedStudents.filter((student) => student.grade === gradeLevel);
+
 		// Clear selected adviser if they don't match the new grade level
-		if (selectedAdviser && selectedAdviser.subject_grade_level && selectedAdviser.subject_grade_level !== parseInt(gradeLevel)) {
+		if (
+			selectedAdviser &&
+			selectedAdviser.subject_grade_level &&
+			selectedAdviser.subject_grade_level !== parseInt(gradeLevel)
+		) {
 			selectedAdviser = null;
 		}
 	}
@@ -319,7 +351,7 @@
 				gradeLevel: parseInt(gradeLevel),
 				schoolYear,
 				adviserId: selectedAdviser?.id || null,
-				studentIds: selectedStudents.map(s => s.id),
+				studentIds: selectedStudents.map((s) => s.id),
 				roomId: null // Room assignment can be added later
 			});
 
@@ -342,7 +374,6 @@
 			} else {
 				toastStore.error(result.error || 'Failed to create section');
 			}
-
 		} catch (error) {
 			console.error('Error creating section:', error);
 			toastStore.error('Failed to create section. Please try again.');
@@ -367,27 +398,29 @@
 			editingSectionId = section.id;
 			editSectionName = section.name;
 			// Find the adviser by ID from availableAdvisers
-			editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id);
-			
+			editSelectedAdviser = availableAdvisers.find((adviser) => adviser.id === section.adviser_id);
+
 			// If not found in availableAdvisers, create a placeholder but don't use cached name
 			if (!editSelectedAdviser && section.adviser_id) {
-				editSelectedAdviser = { 
-					id: section.adviser_id, 
-					name: 'Loading...', 
-					employeeId: '', 
-					subject: '', 
-					hasSection: true 
+				editSelectedAdviser = {
+					id: section.adviser_id,
+					name: 'Loading...',
+					employeeId: '',
+					subject: '',
+					hasSection: true
 				};
 				// Reload teachers for the section's grade level to get the correct name
 				await loadAvailableTeachers(section.grade_level);
-				editSelectedAdviser = availableAdvisers.find(adviser => adviser.id === section.adviser_id) || editSelectedAdviser; // Use .id instead of ._id
+				editSelectedAdviser =
+					availableAdvisers.find((adviser) => adviser.id === section.adviser_id) ||
+					editSelectedAdviser; // Use .id instead of ._id
 			}
-			
+
 			// Load students for this section
 			editSelectedStudents = await loadSectionStudents(section.id);
 			originalSectionStudents = [...editSelectedStudents]; // Store original students
 			editStudentSearchTerm = '';
-			
+
 			// Load available students for the grade level (for adding new students)
 			await loadAvailableStudents(section.grade_level);
 		}
@@ -406,7 +439,7 @@
 				sectionId: editingSectionId,
 				sectionName: editSectionName,
 				adviserId: editSelectedAdviser?.id || null, // Use .id instead of ._id, allow null
-				studentIds: editSelectedStudents.map(s => s.id || s._id), // Handle both id formats
+				studentIds: editSelectedStudents.map((s) => s.id || s._id), // Handle both id formats
 				roomId: null
 			};
 
@@ -432,7 +465,6 @@
 			} else {
 				toastStore.error(result.error || 'Failed to update section');
 			}
-
 		} catch (error) {
 			console.error('Error updating section:', error);
 			toastStore.error('Failed to update section. Please try again.');
@@ -451,12 +483,12 @@
 		editSelectedAdviser = adviser;
 		isEditAdviserDropdownOpen = false;
 		editAdviserSearchTerm = '';
-		
+
 		// Refresh available advisers to update hasSection status
 		await loadAvailableTeachers();
-		
+
 		// Re-find the selected adviser in the refreshed list to maintain correct reference
-		editSelectedAdviser = availableAdvisers.find(a => a.id === selectedAdviserId) || adviser;
+		editSelectedAdviser = availableAdvisers.find((a) => a.id === selectedAdviserId) || adviser;
 	}
 
 	// Handle section removal with modal confirmation
@@ -496,19 +528,27 @@
 	}
 
 	// Edit filtered data
-	$: editFilteredAdvisers = availableAdvisers.filter(adviser => {
+	$: editFilteredAdvisers = availableAdvisers.filter((adviser) => {
 		// Allow advisers without sections OR the current section's adviser
-		const currentSectionAdviser = editingSectionId && sectionsData.find(s => s.id === editingSectionId)?.adviser_id;
+		const currentSectionAdviser =
+			editingSectionId && sectionsData.find((s) => s.id === editingSectionId)?.adviser_id;
 		const isAvailable = !adviser.hasSection || adviser.id === currentSectionAdviser;
-		
+
 		// Get the current section's grade level for filtering
-		const currentSection = editingSectionId && sectionsData.find(s => s.id === editingSectionId);
+		const currentSection = editingSectionId && sectionsData.find((s) => s.id === editingSectionId);
 		const sectionGradeLevel = currentSection?.grade_level;
-		
+
 		// Filter by grade level if we have the section's grade level and adviser has subject_grade_level
-		const gradeMatches = !sectionGradeLevel || !adviser.subject_grade_level || adviser.subject_grade_level === sectionGradeLevel;
-		
-		return isAvailable && gradeMatches && adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase());
+		const gradeMatches =
+			!sectionGradeLevel ||
+			!adviser.subject_grade_level ||
+			adviser.subject_grade_level === sectionGradeLevel;
+
+		return (
+			isAvailable &&
+			gradeMatches &&
+			adviser.name.toLowerCase().includes(editAdviserSearchTerm.toLowerCase())
+		);
 	});
 	// Store original section students when editing starts
 	let originalSectionStudents = [];
@@ -516,20 +556,23 @@
 	$: editFilteredStudents = (() => {
 		// Combine available students with original section students
 		const allPossibleStudents = [...availableStudents];
-		
+
 		// Add original section students if they're not already in availableStudents
-		originalSectionStudents.forEach(student => {
-			if (!allPossibleStudents.some(s => s.id === student.id)) {
-				allPossibleStudents.push({...student, hasSection: true});
+		originalSectionStudents.forEach((student) => {
+			if (!allPossibleStudents.some((s) => s.id === student.id)) {
+				allPossibleStudents.push({ ...student, hasSection: true });
 			}
 		});
-		
-		return allPossibleStudents.filter(student => {
+
+		return allPossibleStudents.filter((student) => {
 			// Show students that don't have a section OR are currently selected OR are from original section
-			const isAvailable = !student.hasSection || 
-						   editSelectedStudents.some(s => s.id === student.id) ||
-						   originalSectionStudents.some(s => s.id === student.id);
-			const matchesSearch = student.name.toLowerCase().includes(editStudentSearchTerm.toLowerCase());
+			const isAvailable =
+				!student.hasSection ||
+				editSelectedStudents.some((s) => s.id === student.id) ||
+				originalSectionStudents.some((s) => s.id === student.id);
+			const matchesSearch = student.name
+				.toLowerCase()
+				.includes(editStudentSearchTerm.toLowerCase());
 			return isAvailable && matchesSearch;
 		});
 	})();
@@ -539,7 +582,9 @@
 	<div class="sectionmgmt-creation-form-section">
 		<div class="sectionmgmt-section-header">
 			<h2 class="sectionmgmt-section-title">Create New Section</h2>
-			<p class="sectionmgmt-section-subtitle">Fill in the details below to create a new class section</p>
+			<p class="sectionmgmt-section-subtitle">
+				Fill in the details below to create a new class section
+			</p>
 		</div>
 
 		<div class="sectionmgmt-form-container">
@@ -548,10 +593,10 @@
 				<div class="sectionmgmt-basic-info-row">
 					<div class="sectionmgmt-form-group">
 						<label class="sectionmgmt-form-label" for="section-name">Section Name *</label>
-						<input 
-							type="text" 
+						<input
+							type="text"
 							id="section-name"
-							class="sectionmgmt-form-input" 
+							class="sectionmgmt-form-input"
 							bind:value={sectionName}
 							placeholder="Enter section name (e.g., Mabini, Rizal, Bonifacio)"
 							required
@@ -560,10 +605,10 @@
 
 					<div class="sectionmgmt-form-group">
 						<label class="sectionmgmt-form-label" for="school-year">School Year</label>
-						<input 
-							type="text" 
+						<input
+							type="text"
 							id="school-year"
-							class="sectionmgmt-form-input" 
+							class="sectionmgmt-form-input"
 							bind:value={schoolYear}
 							readonly
 						/>
@@ -576,9 +621,9 @@
 					<div class="sectionmgmt-form-group">
 						<label class="sectionmgmt-form-label" for="grade-level">Grade Level *</label>
 						<div class="sectionmgmt-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
-							<button 
+							<button
 								type="button"
-								class="sectionmgmt-dropdown-trigger" 
+								class="sectionmgmt-dropdown-trigger"
 								class:selected={gradeLevel}
 								on:click={toggleGradeLevelDropdown}
 								id="grade-level"
@@ -593,13 +638,14 @@
 								{:else}
 									<span class="sectionmgmt-placeholder">Select grade level</span>
 								{/if}
-								<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
+								<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span
+								>
 							</button>
 							<div class="sectionmgmt-dropdown-menu">
 								{#each gradeLevels as grade (grade.id)}
-									<button 
+									<button
 										type="button"
-										class="sectionmgmt-dropdown-option" 
+										class="sectionmgmt-dropdown-option"
 										class:selected={gradeLevel === grade.id}
 										on:click={() => selectGradeLevel(grade)}
 									>
@@ -616,98 +662,109 @@
 
 					<!-- Adviser Selection -->
 					<div class="sectionmgmt-form-group">
-					<label class="sectionmgmt-form-label" for="adviser">Advisory Teacher (Optional)</label>
-					<div class="sectionmgmt-custom-dropdown" class:open={isAdviserDropdownOpen}>
-						<button 
-							type="button"
-							class="sectionmgmt-dropdown-trigger" 
-							class:selected={selectedAdviser}
-							on:click={toggleAdviserDropdown}
-							id="adviser"
-							disabled={!gradeLevel}
-						>
-							{#if selectedAdviser}
-							<div class="sectionmgmt-selected-option">
-								<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
-								<div class="sectionmgmt-option-content">
-									<span class="sectionmgmt-option-name">{selectedAdviser.name}</span>
-								</div>
-							</div>
-							{:else if gradeLevel}
-								<span class="sectionmgmt-placeholder">Select advisory teacher</span>
-							{:else}
-								<span class="sectionmgmt-placeholder">Select grade level first</span>
-							{/if}
-							<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
-						</button>
-						<div class="sectionmgmt-dropdown-menu">
-							<div class="sectionmgmt-search-container">
-								<input 
-									type="text" 
-									class="sectionmgmt-search-input"
-									placeholder="Search teachers..."
-									bind:value={adviserSearchTerm}
-								/>
-								<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
-							</div>
-							{#if isLoadingAdvisers}
-								<div class="admin-section-loading">
-									<span class="section-loader"></span>
-									<p>Loading teachers...</p>
-								</div>
-							{:else if filteredAdvisers.length === 0}
-								<div class="sectionmgmt-no-results">
-									<span class="material-symbols-outlined">person_off</span>
-									<span>No available teachers found</span>
-								</div>
-							{:else}
-								{#each filteredAdvisers as adviser (adviser.id)}
-									<button 
-										type="button"
-										class="sectionmgmt-dropdown-option" 
-										class:selected={selectedAdviser?.id === adviser.id}
-										on:click={() => selectAdviser(adviser)}
-									>
+						<label class="sectionmgmt-form-label" for="adviser">Advisory Teacher (Optional)</label>
+						<div class="sectionmgmt-custom-dropdown" class:open={isAdviserDropdownOpen}>
+							<button
+								type="button"
+								class="sectionmgmt-dropdown-trigger"
+								class:selected={selectedAdviser}
+								on:click={toggleAdviserDropdown}
+								id="adviser"
+								disabled={!gradeLevel}
+							>
+								{#if selectedAdviser}
+									<div class="sectionmgmt-selected-option">
 										<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
 										<div class="sectionmgmt-option-content">
-											<span class="sectionmgmt-option-name">{adviser.name}</span>
-											<span class="sectionmgmt-option-description">{adviser.employeeId}</span>
+											<span class="sectionmgmt-option-name">{selectedAdviser.name}</span>
 										</div>
-									</button>
-								{/each}
-							{/if}
+									</div>
+								{:else if gradeLevel}
+									<span class="sectionmgmt-placeholder">Select advisory teacher</span>
+								{:else}
+									<span class="sectionmgmt-placeholder">Select grade level first</span>
+								{/if}
+								<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span
+								>
+							</button>
+							<div class="sectionmgmt-dropdown-menu">
+								<div class="sectionmgmt-search-container">
+									<input
+										type="text"
+										class="sectionmgmt-search-input"
+										placeholder="Search teachers..."
+										bind:value={adviserSearchTerm}
+									/>
+									<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
+								</div>
+								{#if isLoadingAdvisers}
+									<div class="admin-section-loading">
+										<span class="section-loader"></span>
+										<p>Loading teachers...</p>
+									</div>
+								{:else if filteredAdvisers.length === 0}
+									<div class="sectionmgmt-no-results">
+										<span class="material-symbols-outlined">person_off</span>
+										<span>No available teachers found</span>
+									</div>
+								{:else}
+									{#each filteredAdvisers as adviser (adviser.id)}
+										<button
+											type="button"
+											class="sectionmgmt-dropdown-option"
+											class:selected={selectedAdviser?.id === adviser.id}
+											on:click={() => selectAdviser(adviser)}
+										>
+											<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
+											<div class="sectionmgmt-option-content">
+												<span class="sectionmgmt-option-name">{adviser.name}</span>
+												<span class="sectionmgmt-option-description">{adviser.employeeId}</span>
+											</div>
+										</button>
+									{/each}
+								{/if}
+							</div>
 						</div>
-					</div>
-						<p class="sectionmgmt-form-help">Only teachers without assigned sections are shown. Each teacher can only advise one section.</p>
+						<p class="sectionmgmt-form-help">
+							Only teachers without assigned sections are shown. Each teacher can only advise one
+							section.
+						</p>
 					</div>
 				</div>
 
 				<!-- Student Selection -->
 				<div class="sectionmgmt-form-group">
 					<label class="sectionmgmt-form-label" for="students">Students (Optional)</label>
-					
+
 					{#if gradeLevel}
-					<!-- Search and Select All -->
-					<div class="sectionmgmt-student-controls">
-						<input 
-							type="text" 
-							class="sectionmgmt-form-input"
-							placeholder="Search students by name or ID..."
-							bind:value={studentSearchTerm}
-							id="students"
-						/>
-						{#if filteredStudents.length > 0}
-							{@const allFilteredSelected = filteredStudents.every(student => selectedStudents.some(s => s.id === student.id))}
-							<button 
-								type="button"
-								class="sectionmgmt-select-all-button"
-								on:click={toggleSelectAllStudents}
-								title="{allFilteredSelected ? 'Deselect All' : 'Select All'} ({filteredStudents.length})"
-							>
-								<span class="material-symbols-outlined">{allFilteredSelected ? 'deselect' : 'select_all'}</span>
-							</button>
-						{/if}
-					</div>						<!-- Student List -->
+						<!-- Search and Select All -->
+						<div class="sectionmgmt-student-controls">
+							<input
+								type="text"
+								class="sectionmgmt-form-input"
+								placeholder="Search students by name or ID..."
+								bind:value={studentSearchTerm}
+								id="students"
+							/>
+							{#if filteredStudents.length > 0}
+								{@const allFilteredSelected = filteredStudents.every((student) =>
+									selectedStudents.some((s) => s.id === student.id)
+								)}
+								<button
+									type="button"
+									class="sectionmgmt-select-all-button"
+									on:click={toggleSelectAllStudents}
+									title="{allFilteredSelected
+										? 'Deselect All'
+										: 'Select All'} ({filteredStudents.length})"
+								>
+									<span class="material-symbols-outlined"
+										>{allFilteredSelected ? 'deselect' : 'select_all'}</span
+									>
+								</button>
+							{/if}
+						</div>
+						<!-- Student List -->
 						<div class="sectionmgmt-student-list">
 							{#if isLoadingStudents}
 								<div class="admin-section-loading">
@@ -721,20 +778,24 @@
 								</div>
 							{:else}
 								{#each filteredStudents as student (student.id)}
-									<button 
+									<button
 										type="button"
-										class="sectionmgmt-student-item" 
-										class:selected={selectedStudents.some(s => s.id === student.id)}
+										class="sectionmgmt-student-item"
+										class:selected={selectedStudents.some((s) => s.id === student.id)}
 										on:click={() => toggleStudentSelection(student)}
 									>
 										<div class="sectionmgmt-option-content">
 											<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
 											<span class="sectionmgmt-option-name">Grade {student.grade} | </span>
-											<span class="sectionmgmt-option-description">{student.name} • {student.studentId}</span>
+											<span class="sectionmgmt-option-description"
+												>{student.name} • {student.studentId}</span
+											>
 										</div>
 										<div class="sectionmgmt-student-checkbox">
 											<span class="material-symbols-outlined">
-												{selectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
+												{selectedStudents.some((s) => s.id === student.id)
+													? 'check_box'
+													: 'check_box_outline_blank'}
 											</span>
 										</div>
 									</button>
@@ -751,18 +812,18 @@
 
 				<!-- Submit Button -->
 				<div class="sectionmgmt-form-actions">
-					<button 
-						type="submit" 
+					<button
+						type="submit"
 						class="sectionmgmt-create-button"
 						class:loading={isCreating}
 						disabled={isCreating || !sectionName || !gradeLevel}
 					>
 						{#if isCreating}
-						Creating...
-					{:else}
-						<span class="material-symbols-outlined">groups</span>
-						Create Section
-					{/if}
+							Creating...
+						{:else}
+							<span class="material-symbols-outlined">groups</span>
+							Create Section
+						{/if}
 					</button>
 				</div>
 			</form>
@@ -776,7 +837,7 @@
 					<h2 class="sectionmgmt-section-title">All Sections</h2>
 					<p class="sectionmgmt-section-subtitle">All sections in the system</p>
 				</div>
-				
+
 				<!-- Search and Filter Container -->
 				<div class="adminform-search-filter-container">
 					<!-- Search Input -->
@@ -790,10 +851,10 @@
 								bind:value={sectionsSearchTerm}
 							/>
 							{#if sectionsSearchTerm}
-								<button 
-									type="button" 
+								<button
+									type="button"
 									class="adminform-clear-search-button"
-									on:click={() => sectionsSearchTerm = ''}
+									on:click={() => (sectionsSearchTerm = '')}
 								>
 									<span class="material-symbols-outlined">close</span>
 								</button>
@@ -804,15 +865,17 @@
 					<!-- Filter Dropdown -->
 					<div class="adminform-filter-container">
 						<div class="adminform-custom-dropdown" class:open={isFilterDropdownOpen}>
-							<button 
+							<button
 								type="button"
-								class="adminform-dropdown-trigger adminform-filter-trigger" 
+								class="adminform-dropdown-trigger adminform-filter-trigger"
 								class:selected={selectedFilter !== 'all'}
 								on:click={toggleFilterDropdown}
 							>
 								{#if selectedFilterObj}
 									<div class="adminform-selected-option">
-										<span class="material-symbols-outlined adminform-option-icon">{selectedFilterObj.icon}</span>
+										<span class="material-symbols-outlined adminform-option-icon"
+											>{selectedFilterObj.icon}</span
+										>
 										<div class="adminform-option-content">
 											<span class="adminform-option-name">{selectedFilterObj.name}</span>
 										</div>
@@ -824,13 +887,15 @@
 							</button>
 							<div class="adminform-dropdown-menu">
 								{#each filterOptions as filter (filter.id)}
-									<button 
+									<button
 										type="button"
-										class="adminform-dropdown-option" 
+										class="adminform-dropdown-option"
 										class:selected={selectedFilter === filter.id}
 										on:click={() => selectFilter(filter)}
 									>
-										<span class="material-symbols-outlined adminform-option-icon">{filter.icon}</span>
+										<span class="material-symbols-outlined adminform-option-icon"
+											>{filter.icon}</span
+										>
 										<div class="adminform-option-content">
 											<span class="adminform-option-name">{filter.name}</span>
 										</div>
@@ -840,7 +905,6 @@
 						</div>
 					</div>
 				</div>
-
 			</div>
 		</div>
 
@@ -852,235 +916,282 @@
 				</div>
 			{:else}
 				{#each filteredSections as section (section.id)}
-			<div class="sectionmgmt-section-card" class:editing={editingSectionId === section.id} 
-			id="sectionmgmt-section-card-{section.id}">
-				<div class="sectionmgmt-section-header-card">
-					<div class="sectionmgmt-section-title">
-						<h3 class="sectionmgmt-section-name">{section.name} · Grade {section.grade_level}</h3>
-					</div>
-					<div class="sectionmgmt-action-buttons">
-						<a href="#sectionmgmt-section-card-{section.id}">
-							<button 
-								type="button"
-								class="sectionmgmt-edit-button"
-								on:click={() => toggleEditForm(section)}
-								title="{editingSectionId === section.id ? 'Cancel Edit' : 'Edit Section'}"
-							>
-								<span class="material-symbols-outlined">{editingSectionId === section.id ? 'close' : 'edit'}</span>
-							</button>
-						</a>
-						<button 
-						type="button"
-						class="sectionmgmt-remove-button"
-						title="Remove Section"
-						on:click={() => openRemoveModal(section)}
+					<div
+						class="sectionmgmt-section-card"
+						class:editing={editingSectionId === section.id}
+						id="sectionmgmt-section-card-{section.id}"
 					>
-						<span class="material-symbols-outlined">delete</span>
-					</button>
-					</div>
-				</div>
-				
-				<div class="sectionmgmt-section-details">
-						<div class="sectionmgmt-section-adviser">
-							<span class="material-symbols-outlined">person_book</span>
-							<span>{section.adviser_name || 'No adviser'}</span>
-						</div>
-						<div class="sectionmgmt-section-students">
-							<span class="material-symbols-outlined">group</span>
-							<span>{section.student_count} students</span>
-						</div>
-						<div class="sectionmgmt-section-room">
-							<span class="material-symbols-outlined">location_on</span>
-							<span>{section.room_name ? `${section.room_name} (${section.room_building}, ${section.room_floor})` : 'No room assigned'}</span>
-						</div>
-						<div class="sectionmgmt-section-created">
-						<span class="material-symbols-outlined">calendar_today</span>
-						<span>Created: {new Date(section.created_at).toLocaleDateString()}</span>
-					</div>
-					{#if section.updated_at && section.updated_at !== section.created_at}
-						<div class="sectionmgmt-section-updated">
-							<span class="material-symbols-outlined">update</span>
-							<span>Updated: {new Date(section.updated_at).toLocaleDateString()}</span>
-						</div>
-					{/if}
-				</div>
-				
-				<!-- Inline Edit Form -->
-				{#if editingSectionId === section.id}
-					<div class="sectionmgmt-edit-form-section">
-						<div class="sectionmgmt-edit-form-container" id="section-edit-form-container">
-							<div class="sectionmgmt-edit-form-header">
-								<h2 class="sectionmgmt-edit-form-title">Edit Section</h2>
-								<p class="sectionmgmt-edit-form-subtitle">Update section information and manage students</p>
+						<div class="sectionmgmt-section-header-card">
+							<div class="sectionmgmt-section-title">
+								<h3 class="sectionmgmt-section-name">
+									{section.name} · Grade {section.grade_level}
+								</h3>
 							</div>
-							
-							<form class="sectionmgmt-edit-form-content" on:submit|preventDefault={handleEditSection}>
-								<!-- Section Name and Adviser Row -->
-								<div class="sectionmgmt-edit-info-row">
-									<!-- Section Name -->
-									<div class="sectionmgmt-form-group">
-										<label class="sectionmgmt-form-label" for="edit-section-name">
-											Section Name
-										</label>
-										<input 
-											type="text" 
-											id="edit-section-name"
-											class="sectionmgmt-form-input" 
-											bind:value={editSectionName}
-											placeholder="Enter section name (e.g., Mabini, Rizal, Bonifacio)"
-											required
-										/>
-									</div>
-
-									<!-- Section Adviser -->
-									<div class="sectionmgmt-form-group">
-									<label class="sectionmgmt-form-label" for="edit-section-adviser">
-										Section Adviser
-									</label>
-									<div class="sectionmgmt-custom-dropdown" class:open={isEditAdviserDropdownOpen}>
-										<button 
-											type="button"
-											class="sectionmgmt-dropdown-trigger" 
-											class:selected={editSelectedAdviser}
-											on:click={toggleEditAdviserDropdown}
-											id="edit-section-adviser"
+							<div class="sectionmgmt-action-buttons">
+								<a href="#sectionmgmt-section-card-{section.id}">
+									<button
+										type="button"
+										class="sectionmgmt-edit-button"
+										on:click={() => toggleEditForm(section)}
+										title={editingSectionId === section.id ? 'Cancel Edit' : 'Edit Section'}
+									>
+										<span class="material-symbols-outlined"
+											>{editingSectionId === section.id ? 'close' : 'edit'}</span
 										>
-											{#if editSelectedAdviser}
-										<div class="sectionmgmt-selected-option">
-											<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
-											<div class="sectionmgmt-option-content">
-												<span class="sectionmgmt-option-name">{editSelectedAdviser.name}</span>
-											</div>
-										</div>
-											{:else}
-												<span class="sectionmgmt-placeholder">Select section adviser</span>
-											{/if}
-											<span class="material-symbols-outlined sectionmgmt-dropdown-arrow">expand_more</span>
-										</button>
-										<div class="sectionmgmt-dropdown-menu">
-											<div class="sectionmgmt-search-container">
-												<input 
-													type="text" 
-													class="sectionmgmt-search-input"
-													placeholder="Search advisers..."
-													bind:value={editAdviserSearchTerm}
-												/>
-												<span class="material-symbols-outlined sectionmgmt-search-icon">search</span>
-											</div>
-											{#each editFilteredAdvisers as adviser (adviser.id)}
-												<button 
-													type="button"
-													class="sectionmgmt-dropdown-option" 
-													class:selected={editSelectedAdviser?.id === adviser.id}
-													on:click={() => selectEditAdviser(adviser)}
-												>
-													<span class="material-symbols-outlined sectionmgmt-option-icon">person</span>
-													<div class="sectionmgmt-option-content">
-														<span class="sectionmgmt-option-name">{adviser.name}</span>
-														<span class="sectionmgmt-option-description">{adviser.employeeId}</span>
-													</div>
-												</button>
-											{/each}
-											{#if editFilteredAdvisers.length === 0}
-												<div class="sectionmgmt-no-results">
-													<span class="material-symbols-outlined">person_off</span>
-													<span>No available advisers found</span>
-												</div>
-											{/if}
-										</div>
-									</div>
-									</div>
-								</div>
-
-								<!-- Student Selection -->
-								<div class="sectionmgmt-form-group">
-									<label class="sectionmgmt-form-label" for="edit-students">
-										Students ({editSelectedStudents.length} selected)
-									</label>
-									
-									<!-- Search and Select All -->
-									<div class="sectionmgmt-student-controls">
-										<input 
-											type="text" 
-											class="sectionmgmt-form-input"
-											placeholder="Search students by name or ID..."
-											bind:value={editStudentSearchTerm}
-											id="edit-students"
-										/>
-										{#if editFilteredStudents.length > 0}
-											{@const allEditFilteredSelected = editFilteredStudents.every(student => editSelectedStudents.some(s => s.id === student.id))}
-											<button 
-												type="button"
-												class="sectionmgmt-select-all-button"
-												on:click={toggleSelectAllEditStudents}
-												title="{allEditFilteredSelected ? 'Deselect All' : 'Select All'} ({editFilteredStudents.length})"
-											>
-												<span class="material-symbols-outlined">{allEditFilteredSelected ? 'deselect' : 'select_all'}</span>
-											</button>
-										{/if}
-									</div>
-
-									<!-- Student List -->
-									<div class="sectionmgmt-student-list">
-										{#each editFilteredStudents as student (student.id)}
-											<button 
-												type="button"
-												class="sectionmgmt-student-item" 
-												class:selected={editSelectedStudents.some(s => s.id === student.id)}
-												on:click={() => toggleEditStudentSelection(student)}
-											>
-												<div class="sectionmgmt-option-content">
-													<span class="material-symbols-outlined sectionmgmt-option-icon">school</span>
-													<span class="sectionmgmt-option-name">{student.name}</span>
-													<span class="sectionmgmt-option-description">{student.studentId} • Grade {student.grade}</span>
-												</div>
-												<span class="material-symbols-outlined sectionmgmt-option-icon">
-													{editSelectedStudents.some(s => s.id === student.id) ? 'check_box' : 'check_box_outline_blank'}
-												</span>
-											</button>
-										{/each}
-										{#if editFilteredStudents.length === 0}
-											<div class="sectionmgmt-no-results">
-												<span class="material-symbols-outlined">person_off</span>
-												<span>No available students found</span>
-											</div>
-										{/if}
-									</div>
-								</div>
-
-								<!-- Form Actions -->
-								<div class="sectionmgmt-edit-form-actions">
-									<button type="button" class="sectionmgmt-cancel-button" on:click={() => toggleEditForm(section)}>
-										Cancel
 									</button>
-									<button 
-						type="submit" 
-						class="sectionmgmt-submit-button"
-						disabled={isUpdating || !editSectionName}
-					>
-						{#if isUpdating}
-							Updating...
-						{:else}
-							Update
-						{/if}
-					</button>
-								</div>
-							</form>
+								</a>
+								<button
+									type="button"
+									class="sectionmgmt-remove-button"
+									title="Remove Section"
+									on:click={() => openRemoveModal(section)}
+								>
+									<span class="material-symbols-outlined">delete</span>
+								</button>
+							</div>
 						</div>
+
+						<div class="sectionmgmt-section-details">
+							<div class="sectionmgmt-section-adviser">
+								<span class="material-symbols-outlined">person_book</span>
+								<span>{section.adviser_name || 'No adviser'}</span>
+							</div>
+							<div class="sectionmgmt-section-students">
+								<span class="material-symbols-outlined">group</span>
+								<span>{section.student_count} students</span>
+							</div>
+							<div class="sectionmgmt-section-room">
+								<span class="material-symbols-outlined">location_on</span>
+								<span
+									>{section.room_name
+										? `${section.room_name} (${section.room_building}, ${section.room_floor})`
+										: 'No room assigned'}</span
+								>
+							</div>
+							<div class="sectionmgmt-section-created">
+								<span class="material-symbols-outlined">calendar_today</span>
+								<span>Created: {new Date(section.created_at).toLocaleDateString()}</span>
+							</div>
+							{#if section.updated_at && section.updated_at !== section.created_at}
+								<div class="sectionmgmt-section-updated">
+									<span class="material-symbols-outlined">update</span>
+									<span>Updated: {new Date(section.updated_at).toLocaleDateString()}</span>
+								</div>
+							{/if}
+						</div>
+
+						<!-- Inline Edit Form -->
+						{#if editingSectionId === section.id}
+							<div class="sectionmgmt-edit-form-section">
+								<div class="sectionmgmt-edit-form-container" id="section-edit-form-container">
+									<div class="sectionmgmt-edit-form-header">
+										<h2 class="sectionmgmt-edit-form-title">Edit Section</h2>
+										<p class="sectionmgmt-edit-form-subtitle">
+											Update section information and manage students
+										</p>
+									</div>
+
+									<form
+										class="sectionmgmt-edit-form-content"
+										on:submit|preventDefault={handleEditSection}
+									>
+										<!-- Section Name and Adviser Row -->
+										<div class="sectionmgmt-edit-info-row">
+											<!-- Section Name -->
+											<div class="sectionmgmt-form-group">
+												<label class="sectionmgmt-form-label" for="edit-section-name">
+													Section Name
+												</label>
+												<input
+													type="text"
+													id="edit-section-name"
+													class="sectionmgmt-form-input"
+													bind:value={editSectionName}
+													placeholder="Enter section name (e.g., Mabini, Rizal, Bonifacio)"
+													required
+												/>
+											</div>
+
+											<!-- Section Adviser -->
+											<div class="sectionmgmt-form-group">
+												<label class="sectionmgmt-form-label" for="edit-section-adviser">
+													Section Adviser
+												</label>
+												<div
+													class="sectionmgmt-custom-dropdown"
+													class:open={isEditAdviserDropdownOpen}
+												>
+													<button
+														type="button"
+														class="sectionmgmt-dropdown-trigger"
+														class:selected={editSelectedAdviser}
+														on:click={toggleEditAdviserDropdown}
+														id="edit-section-adviser"
+													>
+														{#if editSelectedAdviser}
+															<div class="sectionmgmt-selected-option">
+																<span class="material-symbols-outlined sectionmgmt-option-icon"
+																	>person</span
+																>
+																<div class="sectionmgmt-option-content">
+																	<span class="sectionmgmt-option-name"
+																		>{editSelectedAdviser.name}</span
+																	>
+																</div>
+															</div>
+														{:else}
+															<span class="sectionmgmt-placeholder">Select section adviser</span>
+														{/if}
+														<span class="material-symbols-outlined sectionmgmt-dropdown-arrow"
+															>expand_more</span
+														>
+													</button>
+													<div class="sectionmgmt-dropdown-menu">
+														<div class="sectionmgmt-search-container">
+															<input
+																type="text"
+																class="sectionmgmt-search-input"
+																placeholder="Search advisers..."
+																bind:value={editAdviserSearchTerm}
+															/>
+															<span class="material-symbols-outlined sectionmgmt-search-icon"
+																>search</span
+															>
+														</div>
+														{#each editFilteredAdvisers as adviser (adviser.id)}
+															<button
+																type="button"
+																class="sectionmgmt-dropdown-option"
+																class:selected={editSelectedAdviser?.id === adviser.id}
+																on:click={() => selectEditAdviser(adviser)}
+															>
+																<span class="material-symbols-outlined sectionmgmt-option-icon"
+																	>person</span
+																>
+																<div class="sectionmgmt-option-content">
+																	<span class="sectionmgmt-option-name">{adviser.name}</span>
+																	<span class="sectionmgmt-option-description"
+																		>{adviser.employeeId}</span
+																	>
+																</div>
+															</button>
+														{/each}
+														{#if editFilteredAdvisers.length === 0}
+															<div class="sectionmgmt-no-results">
+																<span class="material-symbols-outlined">person_off</span>
+																<span>No available advisers found</span>
+															</div>
+														{/if}
+													</div>
+												</div>
+											</div>
+										</div>
+
+										<!-- Student Selection -->
+										<div class="sectionmgmt-form-group">
+											<label class="sectionmgmt-form-label" for="edit-students">
+												Students ({editSelectedStudents.length} selected)
+											</label>
+
+											<!-- Search and Select All -->
+											<div class="sectionmgmt-student-controls">
+												<input
+													type="text"
+													class="sectionmgmt-form-input"
+													placeholder="Search students by name or ID..."
+													bind:value={editStudentSearchTerm}
+													id="edit-students"
+												/>
+												{#if editFilteredStudents.length > 0}
+													{@const allEditFilteredSelected = editFilteredStudents.every((student) =>
+														editSelectedStudents.some((s) => s.id === student.id)
+													)}
+													<button
+														type="button"
+														class="sectionmgmt-select-all-button"
+														on:click={toggleSelectAllEditStudents}
+														title="{allEditFilteredSelected
+															? 'Deselect All'
+															: 'Select All'} ({editFilteredStudents.length})"
+													>
+														<span class="material-symbols-outlined"
+															>{allEditFilteredSelected ? 'deselect' : 'select_all'}</span
+														>
+													</button>
+												{/if}
+											</div>
+
+											<!-- Student List -->
+											<div class="sectionmgmt-student-list">
+												{#each editFilteredStudents as student (student.id)}
+													<button
+														type="button"
+														class="sectionmgmt-student-item"
+														class:selected={editSelectedStudents.some((s) => s.id === student.id)}
+														on:click={() => toggleEditStudentSelection(student)}
+													>
+														<div class="sectionmgmt-option-content">
+															<span class="material-symbols-outlined sectionmgmt-option-icon"
+																>school</span
+															>
+															<span class="sectionmgmt-option-name">{student.name}</span>
+															<span class="sectionmgmt-option-description"
+																>{student.studentId} • Grade {student.grade}</span
+															>
+														</div>
+														<span class="material-symbols-outlined sectionmgmt-option-icon">
+															{editSelectedStudents.some((s) => s.id === student.id)
+																? 'check_box'
+																: 'check_box_outline_blank'}
+														</span>
+													</button>
+												{/each}
+												{#if editFilteredStudents.length === 0}
+													<div class="sectionmgmt-no-results">
+														<span class="material-symbols-outlined">person_off</span>
+														<span>No available students found</span>
+													</div>
+												{/if}
+											</div>
+										</div>
+
+										<!-- Form Actions -->
+										<div class="sectionmgmt-edit-form-actions">
+											<button
+												type="button"
+												class="sectionmgmt-cancel-button"
+												on:click={() => toggleEditForm(section)}
+											>
+												Cancel
+											</button>
+											<button
+												type="submit"
+												class="sectionmgmt-submit-button"
+												disabled={isUpdating || !editSectionName}
+											>
+												{#if isUpdating}
+													Updating...
+												{:else}
+													Update
+												{/if}
+											</button>
+										</div>
+									</form>
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/each}
+				{#if filteredSections.length === 0}
+					<div class="sectionmgmt-sections-empty">
+						<span class="material-symbols-outlined">school</span>
+						{#if sectionsData.length === 0}
+							<p>No sections found</p>
+						{:else}
+							<p>No sections found matching your search.</p>
+						{/if}
 					</div>
 				{/if}
-		</div>
-	{/each}
-	{#if filteredSections.length === 0}
-		<div class="sectionmgmt-sections-empty">
-			<span class="material-symbols-outlined">school</span>
-			{#if sectionsData.length === 0}
-				<p>No sections found</p>
-			{:else}
-				<p>No sections found matching your search.</p>
-			{/if}
-		</div>
-	{/if}
 			{/if}
 		</div>
 	</div>

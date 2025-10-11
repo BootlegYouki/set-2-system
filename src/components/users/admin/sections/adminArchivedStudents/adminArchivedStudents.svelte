@@ -23,31 +23,29 @@
 		{ id: '7', name: 'Grade 7', icon: 'looks_one' },
 		{ id: '8', name: 'Grade 8', icon: 'looks_two' },
 		{ id: '9', name: 'Grade 9', icon: 'looks_3' },
-		{ id: '10', name: 'Grade 10', icon: 'looks_4' },
+		{ id: '10', name: 'Grade 10', icon: 'looks_4' }
 	];
 
 	// Section options - will be populated from database
-	let sectionOptions = [
-		{ id: '', name: 'All Sections' }
-	];
+	let sectionOptions = [{ id: '', name: 'All Sections' }];
 
 	// Computed values
-	$: selectedGradeLevelObj = gradeLevelOptions.find(level => level.id === selectedGradeLevel);
-	$: selectedSectionObj = sectionOptions.find(section => section.id === selectedSection);
+	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
+	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
 
 	// Load archived students data
 	async function loadArchivedStudents() {
 		isLoading = true;
 		try {
 			const data = await api.get('/api/archived-students');
-			
+
 			// Check if we have students data (API returns { students: [...] })
 			if (!data.students) {
 				throw new Error('No students data received');
 			}
-			
+
 			// Transform API data to match our component structure
-			students = data.students.map(student => ({
+			students = data.students.map((student) => ({
 				id: student.id,
 				name: student.name,
 				number: student.number,
@@ -77,16 +75,13 @@
 			const data = await api.get('/api/sections');
 			if (data.success && data.data) {
 				// Transform sections data and add to dropdown options
-				const sectionsFromDB = data.data.map(section => ({
+				const sectionsFromDB = data.data.map((section) => ({
 					id: section.name, // Use section name as ID for filtering
 					name: section.name
 				}));
-				
+
 				// Combine "All Sections" with actual sections
-				sectionOptions = [
-					{ id: '', name: 'All Sections' },
-					...sectionsFromDB
-				];
+				sectionOptions = [{ id: '', name: 'All Sections' }, ...sectionsFromDB];
 			}
 		} catch (error) {
 			console.error('Error loading sections:', error);
@@ -96,18 +91,17 @@
 
 	// Filter students based on search query, grade level, and section
 	function filterStudents() {
-		filteredStudents = students.filter(student => {
-			const matchesSearch = !searchQuery || 
+		filteredStudents = students.filter((student) => {
+			const matchesSearch =
+				!searchQuery ||
 				student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(student.number && student.number.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-			const matchesGradeLevel = !selectedGradeLevel || 
-				student.gradeLevel === selectedGradeLevel;
-        
-			const matchesSection = !selectedSection || 
-				student.section === selectedSection;
-        
+
+			const matchesGradeLevel = !selectedGradeLevel || student.gradeLevel === selectedGradeLevel;
+
+			const matchesSection = !selectedSection || student.section === selectedSection;
+
 			return matchesSearch && matchesGradeLevel && matchesSection;
 		});
 	}
@@ -178,10 +172,10 @@
 			async () => {
 				try {
 					const result = await api.put('/api/archived-students', { id: studentId });
-					
+
 					// Show success toast
 					toastStore.success(result.message || 'Student restored successfully');
-					
+
 					// Reload the archived students list
 					await loadArchivedStudents();
 				} catch (error) {
@@ -218,7 +212,7 @@
 		loadSections(); // Load sections first
 		loadArchivedStudents();
 		document.addEventListener('click', handleClickOutside);
-		
+
 		return () => {
 			document.removeEventListener('click', handleClickOutside);
 		};
@@ -242,18 +236,14 @@
 			<div class="search-container">
 				<div class="search-input-wrapper">
 					<span class="material-symbols-outlined search-icon">search</span>
-					<input 
-						type="text" 
-						class="search-input" 
+					<input
+						type="text"
+						class="search-input"
 						placeholder="Search archived students by name, email, or ID..."
 						bind:value={searchQuery}
 					/>
 					{#if searchQuery}
-						<button 
-							type="button" 
-							class="clear-search-button"
-							on:click={() => searchQuery = ''}
-						>
+						<button type="button" class="clear-search-button" on:click={() => (searchQuery = '')}>
 							<span class="material-symbols-outlined">close</span>
 						</button>
 					{/if}
@@ -266,14 +256,16 @@
 				<div class="filter-group">
 					<label class="filter-label">Grade Level</label>
 					<div class="aas-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
-						<button 
+						<button
 							type="button"
-							class="aas-dropdown-trigger aas-filter-trigger" 
+							class="aas-dropdown-trigger aas-filter-trigger"
 							on:click={toggleGradeLevelDropdown}
 						>
 							{#if selectedGradeLevelObj && selectedGradeLevel}
 								<div class="aas-selected-option">
-									<span class="material-symbols-outlined aas-option-icon">{selectedGradeLevelObj.icon}</span>
+									<span class="material-symbols-outlined aas-option-icon"
+										>{selectedGradeLevelObj.icon}</span
+									>
 									<span class="aas-option-name">{selectedGradeLevelObj.name}</span>
 								</div>
 							{:else}
@@ -283,9 +275,9 @@
 						</button>
 						<div class="aas-dropdown-menu">
 							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
-								<button 
+								<button
 									type="button"
-									class="aas-dropdown-option" 
+									class="aas-dropdown-option"
 									class:selected={selectedGradeLevel === gradeLevel.id}
 									on:click={() => selectGradeLevel(gradeLevel)}
 								>
@@ -303,9 +295,9 @@
 				<div class="filter-group">
 					<label class="filter-label">Section</label>
 					<div class="aas-custom-dropdown" class:open={isSectionDropdownOpen}>
-						<button 
+						<button
 							type="button"
-							class="aas-dropdown-trigger aas-filter-trigger" 
+							class="aas-dropdown-trigger aas-filter-trigger"
 							on:click={toggleSectionDropdown}
 						>
 							{#if selectedSectionObj && selectedSection}
@@ -319,9 +311,9 @@
 						</button>
 						<div class="aas-dropdown-menu">
 							{#each sectionOptions as section (section.id)}
-								<button 
+								<button
 									type="button"
-									class="aas-dropdown-option" 
+									class="aas-dropdown-option"
 									class:selected={selectedSection === section.id}
 									on:click={() => selectSection(section)}
 								>
@@ -336,11 +328,7 @@
 
 				<!-- Clear Filters Button -->
 				{#if searchQuery || selectedGradeLevel || selectedSection}
-					<button 
-						type="button" 
-						class="clear-filters-button"
-						on:click={clearFilters}
-					>
+					<button type="button" class="clear-filters-button" on:click={clearFilters}>
 						<span class="material-symbols-outlined">filter_alt_off</span>
 					</button>
 				{/if}
@@ -361,14 +349,16 @@
 					<div class="aas-account-card">
 						<div class="aas-account-card-header">
 							<div class="aas-account-title">
-								<h3 class="aas-account-name">{#if student.number}{student.number}{/if} · {student.name}</h3>
+								<h3 class="aas-account-name">
+									{#if student.number}{student.number}{/if} · {student.name}
+								</h3>
 								<div class="aas-archived-badge">
 									<span class="material-symbols-outlined">archive</span>
 									<span>Archived {formatArchivedDate(student.archivedDate)}</span>
 								</div>
 							</div>
 							<div class="aas-action-buttons">
-								<button 
+								<button
 									type="button"
 									class="aas-restore-button"
 									title="Restore Student"
@@ -378,7 +368,7 @@
 								</button>
 							</div>
 						</div>
-						
+
 						<div class="aas-account-details">
 							{#if student.email}
 								<div class="aas-account-detail-item">
@@ -389,13 +379,19 @@
 							{#if student.gradeLevel && student.gradeLevel !== 'Not specified'}
 								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">school</span>
-									<span>{gradeLevelOptions.find(level => level.id === student.gradeLevel)?.name || student.gradeLevel}</span>
+									<span
+										>{gradeLevelOptions.find((level) => level.id === student.gradeLevel)?.name ||
+											student.gradeLevel}</span
+									>
 								</div>
 							{/if}
 							{#if student.section && student.section !== 'Not specified'}
 								<div class="aas-account-detail-item">
 									<span class="material-symbols-outlined">class</span>
-									<span>Section: {sectionOptions.find(section => section.id === student.section)?.name || student.section}</span>
+									<span
+										>Section: {sectionOptions.find((section) => section.id === student.section)
+											?.name || student.section}</span
+									>
 								</div>
 							{/if}
 							{#if student.birthdate && student.birthdate !== 'Not specified'}
@@ -445,11 +441,8 @@
 					{/if}
 				</p>
 				{#if searchQuery || selectedGradeLevel || selectedSection}
-					<button 
-						type="button" 
-						class="aas-clear-search-button-inline"
-						on:click={clearFilters}
-					>Clear
+					<button type="button" class="aas-clear-search-button-inline" on:click={clearFilters}
+						>Clear
 					</button>
 				{/if}
 			</div>

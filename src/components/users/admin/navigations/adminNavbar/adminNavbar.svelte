@@ -4,7 +4,16 @@
 	import { showSuccess } from '../../../../common/js/toastStore.js';
 
 	// Props
-	let { adminName = 'Admin User', firstName = 'Admin', gender = 'male', accountNumber = 'ADM-2025-0001', profileImage = null, onlogout, onToggleNavRail, onNavigateToSettings } = $props();
+	let {
+		adminName = 'Admin User',
+		firstName = 'Admin',
+		gender = 'male',
+		accountNumber = 'ADM-2025-0001',
+		profileImage = null,
+		onlogout,
+		onToggleNavRail,
+		onNavigateToSettings
+	} = $props();
 
 	// Function to get title based on gender
 	function getTitle(gender) {
@@ -40,7 +49,7 @@
 	// Add event listener for click outside
 	onMount(() => {
 		const savedTheme = localStorage.getItem('theme');
-		
+
 		// Default to dark mode if no saved preference
 		isDarkMode = savedTheme !== 'light';
 		updateTheme();
@@ -75,7 +84,7 @@
 	function getInitials(name) {
 		return name
 			.split(' ')
-			.map(word => word.charAt(0))
+			.map((word) => word.charAt(0))
 			.join('')
 			.toUpperCase()
 			.slice(0, 2);
@@ -87,14 +96,14 @@
 		<!-- Left section - Hamburger menu and Logo/Title -->
 		<div class="navbar-left">
 			<!-- Hamburger menu button (desktop only) -->
-			<button 
-				class="icon-button hamburger-menu" 
+			<button
+				class="icon-button hamburger-menu"
 				onclick={onToggleNavRail}
 				aria-label="Toggle navigation menu"
 			>
 				<span class="material-symbols-outlined">menu</span>
 			</button>
-			
+
 			<div class="logo-section">
 				<span class="material-symbols-outlined logo-icon">admin_panel_settings</span>
 				<span class="app-title">Welcome, {displayName}</span>
@@ -104,8 +113,8 @@
 		<!-- Right section - User info and controls -->
 		<div class="navbar-right">
 			<!-- Dark mode toggle -->
-			<button 
-				class="icon-button dark-mode-toggle" 
+			<button
+				class="icon-button dark-mode-toggle"
 				onclick={toggleDarkMode}
 				aria-label="Toggle dark mode"
 			>
@@ -121,7 +130,7 @@
 						<span class="user-name">{adminName}</span>
 						<span class="user-id">Account: {accountNumber}</span>
 					</div>
-					
+
 					<div class="user-avatar">
 						{#if profileImage}
 							<img src={profileImage} alt="Profile" class="avatar-image" />
@@ -136,11 +145,24 @@
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
 					<div class="user-dropdown-menu">
-						<button class="dropdown-item" onclick={() => { closeDropdown(); onNavigateToSettings(); }}>
+						<button
+							class="dropdown-item"
+							onclick={() => {
+								closeDropdown();
+								onNavigateToSettings();
+							}}
+						>
 							<span class="material-symbols-outlined">settings</span>
 							Settings
 						</button>
-						<button class="dropdown-item" onclick={async () => { closeDropdown(); await onlogout(); showSuccess('Logged out successfully. See you next time!'); }}>
+						<button
+							class="dropdown-item"
+							onclick={async () => {
+								closeDropdown();
+								await onlogout();
+								showSuccess('Logged out successfully. See you next time!');
+							}}
+						>
 							<span class="material-symbols-outlined">logout</span>
 							Logout
 						</button>
