@@ -154,10 +154,10 @@ export async function POST({ request, getClientAddress }) {
   }
 }
 
-// GET /api/accounts - Fetch recent accounts
+// GET /api/accounts - Fetch all accounts
 export async function GET({ url }) {
   try {
-    const limit = parseInt(url.searchParams.get('limit') || '10');
+    const limit = url.searchParams.get('limit'); // Get limit parameter but don't set default
     const type = url.searchParams.get('type'); // Get the type parameter
     
     // Connect to MongoDB
@@ -177,11 +177,16 @@ export async function GET({ url }) {
       filter.account_type = type;
     }
     
-    const accounts = await usersCollection
+    let query = usersCollection
       .find(filter)
-      .sort({ created_at: -1 })
-      .limit(limit)
-      .toArray();
+      .sort({ created_at: -1 });
+    
+    // Only apply limit if explicitly provided
+    if (limit && !isNaN(parseInt(limit))) {
+      query = query.limit(parseInt(limit));
+    }
+    
+    const accounts = await query.toArray();
     
     // Format the data to match frontend expectations
     const formattedAccounts = accounts.map(account => ({

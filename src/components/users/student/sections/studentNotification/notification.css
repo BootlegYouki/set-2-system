@@ -623,12 +623,7 @@
 
   .actions-section {
     justify-content: center;
-  }
-
-  .notification-details {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
+  }w
 
   .notification-header-card {
     flex-direction: column;

@@ -72,17 +72,12 @@ export async function GET({ url }) {
       studentGradesMap[studentId].push(grade);
     });
 
-    // Calculate GWA for each student and format the response
+    // Calculate GWA for each student and format the response - INCLUDE ALL STUDENTS
     const studentsWithGrades = activeStudents
-      .filter(student => {
-        // Only include students who are enrolled in active sections
-        const sectionId = studentSectionMap[student._id.toString()];
-        return sectionId && sectionMap[sectionId.toString()];
-      })
       .map(student => {
         const studentId = student._id.toString();
         const sectionId = studentSectionMap[studentId];
-        const section = sectionMap[sectionId.toString()];
+        const section = sectionId && sectionMap[sectionId.toString()];
         const studentGrades = studentGradesMap[studentId] || [];
         
         // Calculate GWA from verified final grades
@@ -105,8 +100,8 @@ export async function GET({ url }) {
           _id: student._id.toString(),
           name: student.full_name,
           email: student.email,
-          gradeLevel: section.grade_level.toString(),
-          section: section.name,
+          gradeLevel: section ? section.grade_level.toString() : student.grade_level?.toString() || 'N/A',
+          section: section ? section.name : 'No Section',
           gwa: Math.round(gwa * 10) / 10, // Round to 1 decimal place
           totalSubjects: studentGrades.length,
           verifiedGrades: studentGrades.filter(grade => 
@@ -115,14 +110,16 @@ export async function GET({ url }) {
         };
       })
       .sort((a, b) => {
-        // Sort by grade level first, then by section name, then by student name
-        if (a.gradeLevel !== b.gradeLevel) {
-          return a.gradeLevel.localeCompare(b.gradeLevel);
-        }
-        if (a.section !== b.section) {
-          return a.section.localeCompare(b.section);
-        }
-        return a.name.localeCompare(b.name);
+        // Sort by account number (ID) - extract numeric part for proper ordering
+        const extractNumber = (id) => {
+          const match = id.match(/-(\d+)$/);
+          return match ? parseInt(match[1]) : 0;
+        };
+        
+        const numA = extractNumber(a.id);
+        const numB = extractNumber(b.id);
+        
+        return numA - numB;
       });
 
     return json({

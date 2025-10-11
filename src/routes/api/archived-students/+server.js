@@ -17,7 +17,7 @@ export async function GET({ url, request }) {
       return json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const limit = url.searchParams.get('limit'); // Get limit parameter but don't set default
     const search = url.searchParams.get('search') || '';
     const gradeLevel = url.searchParams.get('gradeLevel') || '';
     const gender = url.searchParams.get('gender') || '';
@@ -52,12 +52,17 @@ export async function GET({ url, request }) {
       query.gender = gender;
     }
     
-    // Execute query with limit and sort by archived_at descending
-    const archivedStudents = await usersCollection
+    // Build query and sort by archived_at descending
+    let queryBuilder = usersCollection
       .find(query)
-      .sort({ archived_at: -1 })
-      .limit(limit)
-      .toArray();
+      .sort({ archived_at: -1 });
+    
+    // Only apply limit if explicitly provided
+    if (limit && !isNaN(parseInt(limit))) {
+      queryBuilder = queryBuilder.limit(parseInt(limit));
+    }
+    
+    const archivedStudents = await queryBuilder.toArray();
     
     // Format the data to match frontend expectations
     const formattedStudents = archivedStudents.map(student => ({
