@@ -65,135 +65,169 @@
     'July', 'August', 'September', 'October', 'November', 'December'];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // Functions
-  async function loadTodos() {
+  // API Functions
+  async function fetchTodos() {
     try {
       loading = true;
       error = null;
       
-      if (!$authStore.userData?.id) {
-        error = 'User not authenticated';
-        return;
+      const user = $authStore.userData;
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
       }
 
-      const result = await api.get(`/api/student-todos?student_id=${$authStore.userData.id}`);
-      todos = result.data || [];
+      const response = await api.get(`/api/student-todos?studentId=${user.id}`);
+      
+      if (response.success) {
+        todos = response.data || [];
+      } else {
+        throw new Error(response.error || 'Failed to fetch todos');
+      }
     } catch (err) {
-      console.error('Error loading todos:', err);
-      error = 'Failed to load todos';
+      console.error('Error fetching todos:', err);
+      error = err.message;
+      toastStore.error('Failed to load todos: ' + err.message);
     } finally {
       loading = false;
     }
   }
 
   async function addTodo() {
-    if (newTodoTitle.trim()) {
-      try {
-        buttonLoading = true;
-        error = null;
-
-        if (!$authStore.userData?.id) {
-          error = 'User not authenticated';
-          toastStore.error('User not authenticated');
-          return;
-        }
-
-        const todoData = {
-          studentId: $authStore.userData.id,
-          title: newTodoTitle.trim(),
-          description: newTodoDescription.trim(),
-          category: newTodoCategory,
-          dueDate: newTodoDueDate || null
-        };
-
-        const result = await api.post('/api/student-todos', todoData);
-        
-        if (result.success) {
-          // Add the new todo to the top of the list
-          todos = [result.data, ...todos];
-          
-          // Reset form
-          newTodoTitle = '';
-          newTodoDescription = '';
-          newTodoCategory = 'personal';
-          newTodoDueDate = '';
-          isAddTodoFormOpen = false;
-          
-          // Show success toast
-          toastStore.success('Task added successfully!');
-        } else {
-          error = result.error || 'Failed to add todo';
-          toastStore.error(result.error || 'Failed to add todo');
-        }
-      } catch (err) {
-        console.error('Error adding todo:', err);
-        error = 'Failed to add todo';
-        toastStore.error('Failed to add todo. Please try again.');
-      } finally {
-        buttonLoading = false;
-      }
-    }
-  }
-
-  async function toggleTodo(todoId, currentCompleted) {
     try {
-      error = null;
+      buttonLoading = true;
+      
+      const user = $authStore.userData;
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
+      }
 
-      const result = await api.put('/api/student-todos', {
-          id: todoId,
-          studentId: $authStore.userData.id,
-          completed: !currentCompleted
-        });
+      if (!newTodoTitle.trim()) {
+        toastStore.error('Please enter a title for your todo');
+        return;
+      }
 
-      if (result.success) {
-        // Update the todo in the local array
-        todos = todos.map(todo => 
-          todo.id === todoId 
-            ? { ...todo, completed: !currentCompleted }
-            : todo
-        );
+      const todoData = {
+        studentId: user.id,
+        title: newTodoTitle.trim(),
+        description: newTodoDescription.trim() || null,
+        category: newTodoCategory,
+        dueDate: newTodoDueDate || null
+      };
+
+      const response = await api.post('/api/student-todos', todoData);
+      
+      if (response.success) {
+        todos = [response.data, ...todos]; // Add to beginning of array
+        toastStore.success('Todo added successfully!');
         
-        // Show success toast based on completion status
-        if (!currentCompleted) {
-          toastStore.success('Task marked as completed!');
-        } else {
-          toastStore.success('Task marked as incomplete!');
-        }
+        // Reset form
+        newTodoTitle = '';
+        newTodoDescription = '';
+        newTodoCategory = 'personal';
+        newTodoDueDate = '';
+        isAddTodoFormOpen = false;
       } else {
-        error = result.error || 'Failed to update todo';
-        toastStore.error(result.error || 'Failed to update todo');
+        throw new Error(response.error || 'Failed to add todo');
       }
     } catch (err) {
-      console.error('Error updating todo:', err);
-      error = 'Failed to update todo';
-      toastStore.error('Failed to update todo. Please try again.');
+      console.error('Error adding todo:', err);
+      toastStore.error('Failed to add todo: ' + err.message);
+    } finally {
+      buttonLoading = false;
     }
   }
 
   async function deleteTodo(todoId) {
     try {
-      error = null;
+      const user = $authStore.userData;
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
+      }
 
-      const result = await api.delete('/api/student-todos', {
-          id: todoId,
-          studentId: $authStore.userData.id
-        });
-
-      if (result.success) {
-        // Remove the todo from the local array
+      const response = await api.delete('/api/student-todos', {
+        id: todoId,
+        studentId: user.id
+      });
+      
+      if (response.success) {
         todos = todos.filter(todo => todo.id !== todoId);
-        // Show success toast
-        toastStore.success('Task deleted successfully!');
+        toastStore.success('Todo deleted successfully!');
       } else {
-        error = result.error || 'Failed to delete todo';
-        toastStore.error(result.error || 'Failed to delete todo');
+        throw new Error(response.error || 'Failed to delete todo');
       }
     } catch (err) {
       console.error('Error deleting todo:', err);
-      error = 'Failed to delete todo';
-      toastStore.error('Failed to delete todo. Please try again.');
+      toastStore.error('Failed to delete todo: ' + err.message);
     }
   }
+
+  async function toggleTodo(todoId) {
+    try {
+      const user = $authStore.userData;
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await api.put('/api/student-todos', {
+        id: todoId,
+        studentId: user.id,
+        action: 'toggle'
+      });
+      
+      if (response.success) {
+        // Update the todo in the local array
+        todos = todos.map(todo => 
+          todo.id === todoId ? response.data : todo
+        );
+        
+        const todo = response.data;
+        const message = todo.completed ? 'Todo marked as completed!' : 'Todo marked as pending!';
+        toastStore.success(message);
+      } else {
+        throw new Error(response.error || 'Failed to update todo');
+      }
+    } catch (err) {
+      console.error('Error toggling todo:', err);
+      toastStore.error('Failed to update todo: ' + err.message);
+    }
+  }
+
+  async function updateTodo(todoId, updateData) {
+    try {
+      const user = $authStore.userData;
+      if (!user || !user.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await api.put('/api/student-todos', {
+        id: todoId,
+        studentId: user.id,
+        action: 'update',
+        ...updateData
+      });
+      
+      if (response.success) {
+        // Update the todo in the local array
+        todos = todos.map(todo => 
+          todo.id === todoId ? response.data : todo
+        );
+        toastStore.success('Todo updated successfully!');
+      } else {
+        throw new Error(response.error || 'Failed to update todo');
+      }
+    } catch (err) {
+      console.error('Error updating todo:', err);
+      toastStore.error('Failed to update todo: ' + err.message);
+    }
+  }
+
+  // Load todos when component mounts
+  onMount(() => {
+    fetchTodos();
+  });
+
+  // Functions
+
 
   // Handle todo deletion with confirmation
   function handleDeleteTodo(todo) {
@@ -289,7 +323,7 @@
     
     // Load todos when component mounts
     if ($authStore.userData?.id) {
-      loadTodos();
+      fetchTodos();
     }
     
     return () => {
@@ -747,7 +781,7 @@
       <div class="error-state">
         <span class="material-symbols-outlined">error</span>
         <p>{error}</p>
-        <button class="retry-btn" on:click={loadTodos}>
+        <button class="retry-btn" on:click={fetchTodos}>
           Retry
         </button>
       </div>
@@ -759,7 +793,7 @@
               <input
                 type="checkbox"
                 checked={todo.completed}
-                on:change={() => toggleTodo(todo.id, todo.completed)}
+                on:change={() => toggleTodo(todo.id)}
                 id="todo-{todo.id}"
                 disabled={loading}
               />
