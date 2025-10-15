@@ -469,7 +469,7 @@
 							<div 
 								class="subject-card" 
 								class:clickable={hasBreakdown}
-								style="border-left: 4px solid {cardColors.border};"
+								style="border: 2px solid {cardColors.border};"
 								on:click={hasBreakdown ? () => toggleGradeBreakdown(subject.id) : undefined}
 								role={hasBreakdown ? 'button' : undefined}
 								on:keydown={hasBreakdown ? (e) => e.key === 'Enter' && toggleGradeBreakdown(subject.id) : undefined}>
@@ -487,7 +487,7 @@
 									<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher"}>{subject.teacher}</p>
 									<div class="progress-bar">
 										{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified) > 0}
-											<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}%; background-color: {cardColors.border}"></div>
+											<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}%; background-color: {getGradeColor(subject.numericGrade)}"></div>
 										{/if}
 									</div>
 								</div>
