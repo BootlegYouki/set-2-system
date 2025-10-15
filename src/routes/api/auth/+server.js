@@ -73,14 +73,14 @@ export async function POST({ request, getClientAddress }) {
       await activityLogsCollection.insertOne({
         activity_type: 'user_login',
         user_id: user._id,
-        account_number: user.account_number,
-        details: {
+        user_account_number: user.account_number,
+        activity_data: {
           full_name: user.full_name,
           account_type: user.account_type
         },
         ip_address: ip_address,
         user_agent: user_agent,
-        timestamp: new Date()
+        created_at: new Date()
       });
     } catch (logError) {
       console.error('Error logging login activity:', logError);

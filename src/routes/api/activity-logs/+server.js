@@ -119,7 +119,26 @@ export async function GET({ url }) {
 				$match: {
 					$or: [
 						{ 'user.account_type': 'admin' },
-						{ user: { $exists: false } }
+						{ user: { $exists: false } },
+						// Include login/logout activities for admin users
+						{
+							$and: [
+								{
+									$or: [
+										{ activity_type: 'user_login' },
+										{ activity_type: 'user_logout' },
+										{ action: 'login' },
+										{ action: 'logout' }
+									]
+								},
+								{
+									$or: [
+										{ 'details.account_type': 'admin' },
+										{ 'activity_data.account_type': 'admin' }
+									]
+								}
+							]
+						}
 					]
 				}
 			}
