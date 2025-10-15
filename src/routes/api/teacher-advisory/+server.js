@@ -3,13 +3,27 @@ import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 import { createGradeVerificationNotification, createBulkGradeVerificationNotifications, formatTeacherName } from '../helper/notification-helper.js';
 
+// Helper function to get current school year from admin settings
+async function getCurrentSchoolYear(db) {
+    try {
+        const schoolYearSetting = await db.collection('admin_settings').findOne({
+            setting_key: 'current_school_year'
+        });
+        return schoolYearSetting?.setting_value || '2025-2026';
+    } catch (error) {
+        console.error('Error fetching current school year:', error);
+        return '2025-2026'; // Default fallback
+    }
+}
+
 export async function GET({ request, url }) {
     try {
         const db = await connectToDatabase();
         
         // Get query parameters
         const teacherId = url.searchParams.get('teacher_id');
-        const schoolYear = url.searchParams.get('school_year') || '2024-2025';
+        // Use current school year for grades (not section's school year)
+        const schoolYear = url.searchParams.get('school_year') || await getCurrentSchoolYear(db);
         const quarter = parseInt(url.searchParams.get('quarter')) || 1;
 
         console.log('Teacher Advisory API - Parameters:', { teacherId, schoolYear, quarter });
@@ -25,9 +39,9 @@ export async function GET({ request, url }) {
         }
 
         // Get the section where this teacher is the adviser
+        // Don't filter by school_year - sections are historical, but grades use current school year
         const section = await db.collection('sections').findOne({
             adviser_id: new ObjectId(teacherId),
-            school_year: schoolYear,
             status: 'active'
         });
 
@@ -77,10 +91,11 @@ export async function GET({ request, url }) {
         console.log('Found grades:', gradesData.length);
 
         // Get subjects for this section with teacher information
+        // Use section's school year for schedules (historical data)
         console.log('Getting schedules for section:', section._id);
         const schedules = await db.collection('schedules').find({
             section_id: section._id,
-            school_year: schoolYear
+            school_year: section.school_year // Use section's school year for schedules
         }).toArray();
 
         console.log('Found schedules:', schedules.length);
@@ -263,10 +278,12 @@ export async function POST({ request }) {
                 student_id,
                 section_id,
                 teacher_id,
-                school_year = '2024-2025',
                 quarter = 1,
                 verified = true
             } = body;
+
+            // Use current school year from admin settings if not provided
+            const school_year = body.school_year || await getCurrentSchoolYear(db);
 
             if (!student_id || !section_id || !teacher_id) {
                 return json({ error: 'Missing required fields' }, { status: 400 });
@@ -337,10 +354,12 @@ export async function POST({ request }) {
             const {
                 section_id,
                 teacher_id,
-                school_year = '2024-2025',
                 quarter = 1,
                 verified = true
             } = body;
+
+            // Use current school year from admin settings if not provided
+            const school_year = body.school_year || await getCurrentSchoolYear(db);
 
             if (!section_id || !teacher_id) {
                 return json({ error: 'Missing required fields' }, { status: 400 });

@@ -2,13 +2,26 @@ import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 
+// Helper function to get current school year from admin settings
+async function getCurrentSchoolYear(db) {
+    try {
+        const schoolYearSetting = await db.collection('admin_settings').findOne({
+            setting_key: 'current_school_year'
+        });
+        return schoolYearSetting?.setting_value || '2025-2026';
+    } catch (error) {
+        console.error('Error fetching current school year:', error);
+        return '2025-2026'; // Default fallback
+    }
+}
+
 export async function GET({ url }) {
     try {
         const sectionId = url.searchParams.get('sectionId');
         const subjectId = url.searchParams.get('subjectId');
         const teacherId = url.searchParams.get('teacherId');
-        const schoolYear = url.searchParams.get('schoolYear') || '2024-2025';
         const verificationOnly = url.searchParams.get('verificationOnly') === 'true';
+        const gradingPeriodId = parseInt(url.searchParams.get('gradingPeriodId')) || 1; // Get grading period from query params
 
         if (!sectionId) {
             return json({ 
@@ -18,7 +31,7 @@ export async function GET({ url }) {
         }
 
         const db = await connectToDatabase();
-
+        
         // Get actual section data from database
         const section = await db.collection('sections').findOne({
             _id: new ObjectId(sectionId),
@@ -31,6 +44,12 @@ export async function GET({ url }) {
                 error: 'Section not found or inactive' 
             }, { status: 404 });
         }
+
+        // Use section's school year for schedules/subjects (historical data)
+        const sectionSchoolYear = section.school_year || '2024-2025';
+        
+        // But use current school year from admin settings for grades
+        const currentSchoolYear = await getCurrentSchoolYear(db);
 
         // Get adviser information
         let adviserInfo = { first_name: '', last_name: '' };
@@ -87,13 +106,13 @@ export async function GET({ url }) {
             const studentsWithVerification = [];
             
             for (const student of actualStudents) {
-                // Check verification status from grades collection
+                // Check verification status from grades collection using CURRENT school year
                 const gradeRecord = await db.collection('grades').findOne({
                     student_id: student.id,
                     section_id: sectionId,
                     subject_id: subjectId,
-                    school_year: schoolYear,
-                    quarter: 1
+                    school_year: currentSchoolYear, // Use current school year for grades
+                    quarter: gradingPeriodId // Use dynamic grading period
                 });
                 
                 const isVerified = gradeRecord ? (gradeRecord.verified || gradeRecord.verification?.verified) : false;
@@ -120,7 +139,7 @@ export async function GET({ url }) {
             const scheduleQuery = {
                 section_id: new ObjectId(sectionId),
                 schedule_type: 'subject',
-                school_year: schoolYear
+                school_year: sectionSchoolYear // Use section's school year for schedules
             };
             
             if (teacherId) {
@@ -149,13 +168,13 @@ export async function GET({ url }) {
         
         if (subjectId) {
             for (const student of actualStudents) {
-                // Get grades from MongoDB grades collection
+                // Get grades from MongoDB grades collection using CURRENT school year
                 const gradeRecord = await db.collection('grades').findOne({
                     student_id: new ObjectId(student.id),
                     section_id: new ObjectId(sectionId),
                     subject_id: new ObjectId(subjectId),
-                    school_year: schoolYear,
-                    quarter: 1
+                    school_year: currentSchoolYear, // Use current school year for grades
+                    quarter: gradingPeriodId // Use dynamic grading period
                 });
 
                 const studentData = {

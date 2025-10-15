@@ -8,7 +8,9 @@
 	// State variables
 	let loading = true;
 	let error = null;
-	let currentQuarter = '1st Quarter';
+	let currentQuarter = '2nd Quarter'; // Default to 2nd Quarter based on current date
+	let currentQuarterNum = 2; // Store the numeric quarter value (default to 2)
+	let currentSchoolYear = '2025-2026'; // Store current school year
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
 	let isDropdownOpen = false;
 	let subjects = [];
@@ -224,8 +226,10 @@
 	}
 
 	// Load data when component mounts
-	onMount(() => {
+	onMount(async () => {
 		if ($authStore.userData?.id) {
+			// Fetch current quarter and school year first
+			await fetchCurrentQuarter();
 			fetchGrades();
 			fetchStudentProfile();
 		} else {
@@ -234,6 +238,25 @@
 		}
 	});
 
+	// Fetch current quarter and school year
+	async function fetchCurrentQuarter() {
+		try {
+			const response = await fetch('/api/current-quarter');
+			const data = await response.json();
+			
+			if (data.success && data.data) {
+				currentQuarterNum = data.data.currentQuarter;
+				currentQuarter = data.data.quarterName;
+				currentSchoolYear = data.data.currentSchoolYear; // Get school year from same endpoint
+				console.log(`Current quarter set to: ${currentQuarter} (Quarter ${currentQuarterNum})`);
+				console.log(`Current school year set to: ${currentSchoolYear}`);
+			}
+		} catch (err) {
+			console.error('Error fetching current quarter/school year:', err);
+			// Keep default values if fetch fails
+		}
+	}
+
 	// Fetch grades from MongoDB API
 	async function fetchGrades() {
 		try {
@@ -241,7 +264,7 @@
 			error = null;
 
 			const quarter = quarterToGradingPeriod[currentQuarter];
-			const response = await api.get(`/api/student-grades?student_id=${$authStore.userData.id}&quarter=${quarter}&school_year=2024-2025`);
+			const response = await api.get(`/api/student-grades?student_id=${$authStore.userData.id}&quarter=${quarter}&school_year=${currentSchoolYear}`);
 			
 			if (response.success) {
 				const { grades, statistics } = response.data;

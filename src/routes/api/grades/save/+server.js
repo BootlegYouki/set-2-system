@@ -34,6 +34,14 @@ export async function POST({ request }) {
     const db = await connectToDatabase();
 
     try {
+      // Fetch current school year from admin settings
+      const schoolYearSetting = await db.collection('admin_settings').findOne({
+        setting_key: 'current_school_year'
+      });
+      const currentSchoolYear = schoolYearSetting?.setting_value || '2025-2026';
+      
+      console.log(`Using school year: ${currentSchoolYear}, quarter: ${grading_period_id}`);
+
       // Process each student's grades
       const results = {
         writtenWork: [],
@@ -72,8 +80,8 @@ export async function POST({ request }) {
           student_id: new ObjectId(studentId),
           section_id: new ObjectId(section_id),
           subject_id: new ObjectId(subject_id),
-          school_year: '2024-2025', // You might want to make this dynamic
-          quarter: 1, // You might want to make this dynamic
+          school_year: currentSchoolYear, // Use dynamic school year from admin settings
+          quarter: grading_period_id, // Use the quarter passed from the frontend
           written_work: studentGrade.writtenWork || [],
           performance_tasks: studentGrade.performanceTasks || [],
           quarterly_assessment: studentGrade.quarterlyAssessment || [],

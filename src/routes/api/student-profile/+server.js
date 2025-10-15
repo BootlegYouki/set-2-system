@@ -3,6 +3,19 @@ import { connectToDatabase } from '../../database/db.js';
 import { verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
+// Helper function to get current school year from admin settings
+async function getCurrentSchoolYear(db) {
+  try {
+    const schoolYearSetting = await db.collection('admin_settings').findOne({
+      setting_key: 'current_school_year'
+    });
+    return schoolYearSetting?.setting_value || '2025-2026';
+  } catch (error) {
+    console.error('Error fetching current school year:', error);
+    return '2025-2026'; // Default fallback
+  }
+}
+
 // GET /api/student-profile - Get comprehensive student profile data
 export async function GET({ url }) {
   try {
@@ -13,6 +26,9 @@ export async function GET({ url }) {
     }
 
     const db = await connectToDatabase();
+    
+    // Get current school year from admin settings
+    const currentSchoolYear = await getCurrentSchoolYear(db);
 
     // Get student's section information
     const sectionStudents = db.collection('section_students');
@@ -47,6 +63,7 @@ export async function GET({ url }) {
           section_id: sectionData._id,
           section_name: sectionData.name,
           grade_level: sectionData.grade_level,
+          school_year: sectionData.school_year, // Include section's school year
           adviser_name: adviserName
         };
       }
@@ -70,9 +87,11 @@ export async function GET({ url }) {
         let departmentName = 'General';
 
         // Find schedule for this subject and section to get teacher
+        // Use section's school year for schedules (historical data)
         const schedule = await schedulesCollection.findOne({
           subject_id: subject._id,
-          section_id: sectionInfo.section_id
+          section_id: sectionInfo.section_id,
+          school_year: sectionInfo.school_year // Use section's school year for schedules
         });
 
         if (schedule && schedule.teacher_id) {
@@ -106,17 +125,18 @@ export async function GET({ url }) {
       }
     }
 
-    // Calculate student's general average from grades
+    // Calculate student's general average from grades using current school year
     let generalAverage = null;
     let totalSubjectsWithGrades = 0;
     
     if (sectionInfo) {
       const gradesCollection = db.collection('grades');
       
-      // Get all verified grades for the student in current section
+      // Get all verified grades for the student in current section and current school year
       const studentGrades = await gradesCollection.find({
         student_id: new ObjectId(studentId),
         section_id: sectionInfo.section_id,
+        school_year: currentSchoolYear, // Use current school year from admin settings
         'averages.final_grade': { $exists: true, $ne: null },
         verified: true
       }).toArray();
@@ -150,6 +170,7 @@ export async function GET({ url }) {
         const studentGrades = await gradesCollection.find({
           student_id: student.student_id,
           section_id: sectionInfo.section_id,
+          school_year: currentSchoolYear, // Use current school year from admin settings
           'averages.final_grade': { $exists: true, $ne: null },
           verified: true
         }).toArray();

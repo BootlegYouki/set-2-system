@@ -2,6 +2,19 @@ import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 
+// Helper function to get current school year from admin settings
+async function getCurrentSchoolYear(db) {
+  try {
+    const schoolYearSetting = await db.collection('admin_settings').findOne({
+      setting_key: 'current_school_year'
+    });
+    return schoolYearSetting?.setting_value || '2025-2026';
+  } catch (error) {
+    console.error('Error fetching current school year:', error);
+    return '2025-2026'; // Default fallback
+  }
+}
+
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
   try {
@@ -9,7 +22,8 @@ export async function GET({ url, request }) {
     
     // Get query parameters
     const student_id = url.searchParams.get('student_id');
-    const school_year = url.searchParams.get('school_year') || '2024-2025';
+    // Use current school year from admin settings if not provided
+    const school_year = url.searchParams.get('school_year') || await getCurrentSchoolYear(db);
     const quarter = parseInt(url.searchParams.get('quarter')) || 1;
 
     if (!student_id) {
@@ -40,7 +54,7 @@ export async function GET({ url, request }) {
       }, { status: 404 });
     }
 
-    // Get the section details to find grade level
+    // Get the section details to find grade level and school year
     const section = await db.collection('sections').findOne({
       _id: studentEnrollment.section_id,
       status: 'active'
@@ -53,16 +67,23 @@ export async function GET({ url, request }) {
       }, { status: 404 });
     }
 
+    // Use section's school year for schedules (historical data)
+    const sectionSchoolYear = section.school_year || '2024-2025';
+    
+    // Use current school year for grades
+    const gradesSchoolYear = school_year;
+
     // Get all subjects for the student's grade level
     const allSubjects = await db.collection('subjects').find({
       grade_level: section.grade_level
     }).toArray();
 
     // Get all schedules for the student's section to find assigned teachers
+    // Use section's school year since schedules are historical
     const schedules = await db.collection('schedules').find({
       section_id: section._id,
       schedule_type: 'subject',
-      school_year: school_year
+      school_year: sectionSchoolYear
     }).toArray();
 
     // Create a map of subject_id to teacher_id from schedules
@@ -74,9 +95,10 @@ export async function GET({ url, request }) {
     });
 
     // Get all grades for this student (both verified and unverified)
+    // Use current school year for grades
     const existingGrades = await db.collection('grades').find({
       student_id: new ObjectId(student_id),
-      school_year: school_year,
+      school_year: gradesSchoolYear,
       quarter: quarter
     }).toArray();
 
@@ -164,7 +186,7 @@ export async function GET({ url, request }) {
           totalSubjects,
           overallAverage,
           quarter,
-          schoolYear: school_year
+          schoolYear: gradesSchoolYear // Use the grades school year
         }
       }
     });

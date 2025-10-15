@@ -3,17 +3,33 @@ import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 import { createGradeVerificationNotification, formatTeacherName } from '../helper/notification-helper.js';
 
+// Helper function to get current school year from admin settings
+async function getCurrentSchoolYear(db) {
+  try {
+    const schoolYearSetting = await db.collection('admin_settings').findOne({
+      setting_key: 'current_school_year'
+    });
+    return schoolYearSetting?.setting_value || '2025-2026';
+  } catch (error) {
+    console.error('Error fetching current school year:', error);
+    return '2025-2026'; // Default fallback
+  }
+}
+
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
   try {
-    const { db } = await connectToDatabase();
+    const db = await connectToDatabase();
+    
+    // Get current school year from database
+    const currentSchoolYear = await getCurrentSchoolYear(db);
     
     // Get query parameters
     const student_id = url.searchParams.get('student_id');
     const teacher_id = url.searchParams.get('teacher_id');
     const section_id = url.searchParams.get('section_id');
     const subject_id = url.searchParams.get('subject_id');
-    const school_year = url.searchParams.get('school_year') || '2024-2025';
+    const school_year = url.searchParams.get('school_year') || currentSchoolYear;
     const quarter = parseInt(url.searchParams.get('quarter')) || 1;
     const action = url.searchParams.get('action');
 
@@ -182,6 +198,9 @@ export async function POST({ request }) {
       return json({ error: 'Database connection failed' }, { status: 500 });
     }
     
+    // Get current school year from database
+    const currentSchoolYear = await getCurrentSchoolYear(db);
+    
     const body = await request.json();
     const { action } = body;
 
@@ -192,7 +211,7 @@ export async function POST({ request }) {
         teacher_id,
         section_id,
         subject_id,
-        school_year = '2024-2025',
+        school_year = currentSchoolYear,
         quarter = 1,
         category,
         name,
@@ -269,7 +288,7 @@ export async function POST({ request }) {
         student_id,
         section_id,
         subject_id,
-        school_year = '2024-2025',
+        school_year = currentSchoolYear,
         quarter = 1,
         category,
         grade_index,
@@ -317,7 +336,7 @@ export async function POST({ request }) {
         student_id,
         section_id,
         subject_id,
-        school_year = '2024-2025',
+        school_year = currentSchoolYear,
         quarter = 1,
         teacher_id,
         verified = true
@@ -430,7 +449,7 @@ export async function POST({ request }) {
             section_id: new ObjectId(section_id),
             subject_id: new ObjectId(subject_id),
             teacher_id: new ObjectId(teacher_id),
-            school_year: '2024-2025',
+            school_year: currentSchoolYear,
             quarter: grading_period_id,
             written_work: written_work_items || [],
             performance_tasks: performance_tasks_items || [],
@@ -460,7 +479,7 @@ export async function POST({ request }) {
             student_id: student._id,
             section_id: new ObjectId(section_id),
             subject_id: new ObjectId(subject_id),
-            school_year: '2024-2025',
+            school_year: currentSchoolYear,
             quarter: grading_period_id
           };
 
@@ -545,14 +564,18 @@ async function recalculateAverages(db, filter) {
 /** @type {import('./$types').RequestHandler} */
 export async function DELETE({ request }) {
   try {
-    const { db } = await connectToDatabase();
+    const db = await connectToDatabase();
+    
+    // Get current school year from database
+    const currentSchoolYear = await getCurrentSchoolYear(db);
+    
     const body = await request.json();
     
     const {
       student_id,
       section_id,
       subject_id,
-      school_year = '2024-2025',
+      school_year = currentSchoolYear,
       quarter = 1,
       category,
       grade_index

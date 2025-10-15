@@ -756,23 +756,6 @@
   font-weight: 500;
 }
 
-.verification-info {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-  margin: var(--spacing-md) 0 0 0;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  box-shadow: var(--shadow-xs);
-}
-
-.verification-info .material-symbols-outlined {
-  color: var(--md-sys-color-primary);
-  font-size: 20px;
-  margin-top: 2px;
-}
-
 .verification-text span {
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-sys-typescale-body-small-size);

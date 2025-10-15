@@ -9,12 +9,31 @@
 	let loading = $state(false);
 	let saving = $state(false);
 
-	// Current school year state
+	// Current school year state (will be calculated from dates)
 	let currentSchoolYear = $state('2024-2025');
 
 	// School year dates
 	let startDate = $state('');
 	let endDate = $state('');
+
+	// Function to calculate school year from start and end dates
+	function calculateSchoolYear(start, end) {
+		if (!start || !end) return '2024-2025'; // Default fallback
+		
+		const startDateObj = new Date(start);
+		const endDateObj = new Date(end);
+		
+		const startYear = startDateObj.getFullYear();
+		const endYear = endDateObj.getFullYear();
+		
+		// If the school year spans two calendar years (typical case)
+		if (endYear > startYear) {
+			return `${startYear}-${endYear}`;
+		} else {
+			// If it's within the same year (edge case)
+			return `${startYear}-${startYear}`;
+		}
+	}
 
 	// Quarter dates
 	let quarter1Start = $state('');
@@ -44,9 +63,12 @@
 				}
 
 				// Update state with loaded settings
-				currentSchoolYear = settings.current_school_year || '2024-2025';
 				startDate = convertToYYYYMMDD(settings.school_year_start_date) || '';
 				endDate = convertToYYYYMMDD(settings.school_year_end_date) || '';
+				
+				// Calculate school year from dates instead of using stored value
+				currentSchoolYear = calculateSchoolYear(startDate, endDate);
+				
 				quarter1Start = convertToYYYYMMDD(settings.quarter_1_start_date) || '';
 				quarter1End = convertToYYYYMMDD(settings.quarter_1_end_date) || '';
 				quarter2Start = convertToYYYYMMDD(settings.quarter_2_start_date) || '';
@@ -173,6 +195,8 @@
 				dateValidationError = 'Start date must be before end date';
 			} else {
 				dateValidationError = '';
+				// Automatically calculate and update school year when dates change
+				currentSchoolYear = calculateSchoolYear(startDate, endDate);
 			}
 		} else {
 			dateValidationError = '';

@@ -15,6 +15,9 @@
   let addingColumn = $state(false); // Track column addition in progress
   let sectionData = $state(null);
   let verificationCheckInterval = null; // For periodic verification status checking
+  let currentQuarter = $state(1); // Current quarter from database
+  let currentQuarterName = $state('1st Quarter'); // Current quarter name
+  let currentSchoolYear = $state('2025-2026'); // Current school year from database
   
   // Subject tab management
   let activeSubjectIndex = $state(0);
@@ -94,7 +97,7 @@
     gradeName: `Grade ${sectionData.section.grade_level}`,
     subject: activeSubject?.name || "No Subject",
     section: `Grade ${sectionData.section.grade_level} - ${sectionData.section.section_name}`,
-    quarter: "1st Quarter",
+    quarter: currentQuarterName,
     totalStudents: sectionData.students?.length || 0,
     adviser: `${sectionData.section.adviser_first_name || ''} ${sectionData.section.adviser_last_name || ''}`.trim() || 'No Adviser',
     room: sectionData.section.room_name || 'No Room'
@@ -104,7 +107,7 @@
     gradeName: `Grade ${selectedClass.yearLevel}`,
     subject: "Loading...",
     section: `Grade ${selectedClass.yearLevel} - ${selectedClass.sectionName}`,
-    quarter: "1st Quarter",
+    quarter: currentQuarterName,
     totalStudents: 0
   } : {
     yearLevel: 7,
@@ -112,12 +115,40 @@
     gradeName: "Grade 7",
     subject: "Mathematics",
     section: "Grade 7 - Section A",
-    quarter: "1st Quarter",
+    quarter: currentQuarterName,
     totalStudents: 0
   });
 
   // Dynamic student data from database
   let students = $state([]);
+
+  // Fetch current quarter from the database based on system date
+  async function fetchCurrentQuarter() {
+    try {
+      const response = await fetch('/api/current-quarter');
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        currentQuarter = result.data.currentQuarter;
+        currentQuarterName = result.data.quarterName;
+        currentSchoolYear = result.data.currentSchoolYear || '2025-2026';
+        console.log(`Current quarter set to: ${currentQuarterName} (Quarter ${currentQuarter})`);
+        console.log(`Current school year set to: ${currentSchoolYear}`);
+      } else {
+        // Default to 1st quarter if API fails
+        currentQuarter = 1;
+        currentQuarterName = '1st Quarter';
+        currentSchoolYear = '2025-2026';
+        console.warn('Failed to fetch current quarter, defaulting to 1st Quarter and 2025-2026');
+      }
+    } catch (error) {
+      console.error('Error fetching current quarter:', error);
+      // Default to 1st quarter if error occurs
+      currentQuarter = 1;
+      currentQuarterName = '1st Quarter';
+      currentSchoolYear = '2025-2026';
+    }
+  }
 
   // Fetch existing grade items and build// Fetch grading configuration for the active subject
   async function fetchGradingConfiguration() {
@@ -126,7 +157,7 @@
     }
 
     try {
-      const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${activeSubject.id}&grading_period_id=1&teacher_id=${$authStore.userData.id}`, {
+      const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${activeSubject.id}&grading_period_id=${currentQuarter}&teacher_id=${$authStore.userData.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -202,8 +233,8 @@
       const teacherId = authState.isAuthenticated ? authState.userData?.id : null;
 
       const params = new URLSearchParams({
-        sectionId: selectedClass.sectionId.toString(),
-        schoolYear: '2024-2025'
+        sectionId: selectedClass.sectionId.toString()
+        // Removed schoolYear - let backend determine it from the section
       });
 
       if (teacherId) {
@@ -251,7 +282,7 @@
 
       const params = new URLSearchParams({
         sectionId: selectedClass.sectionId.toString(),
-        schoolYear: '2024-2025'
+        schoolYear: currentSchoolYear
       });
 
       if (teacherId) {
@@ -261,6 +292,11 @@
       // Add subject ID to filter grades by subject
       if (activeSubject?.id) {
         params.append('subjectId', activeSubject.id.toString());
+      }
+
+      // Add grading period ID to filter grades by quarter
+      if (currentQuarter) {
+        params.append('gradingPeriodId', currentQuarter.toString());
       }
 
       const response = await fetch(`/api/class-students?${params}`);
@@ -310,7 +346,7 @@
 
       const params = new URLSearchParams({
         sectionId: selectedClass.sectionId.toString(),
-        schoolYear: '2024-2025',
+        schoolYear: currentSchoolYear,
         verificationOnly: 'true' // Flag to indicate we only need verification status
       });
 
@@ -320,6 +356,11 @@
 
       if (activeSubject?.id) {
         params.append('subjectId', activeSubject.id.toString());
+      }
+
+      // Add grading period ID to check verification for correct quarter
+      if (currentQuarter) {
+        params.append('gradingPeriodId', currentQuarter.toString());
       }
 
       const response = await fetch(`/api/class-students?${params}`);
@@ -446,7 +487,7 @@
             action: 'create_grade_item',
             section_id: selectedClass?.sectionId || sectionData?.section?.id,
             subject_id: activeSubject?.id || selectedClass?.subjectId || (sectionData?.subjects?.[0]?.id),
-            grading_period_id: 1, // Assuming first quarter
+            grading_period_id: currentQuarter, // Use dynamic current quarter
             teacher_id: $authStore.userData.id,
             category: category,
             name: defaultName,
@@ -618,7 +659,10 @@
   // Load data on component mount
   onMount(async () => {
     if (!isDestroyed) { // Only check if component is not destroyed
-      // First fetch basic section data without subject filtering
+      // First, fetch the current quarter based on system date
+      await fetchCurrentQuarter();
+      
+      // Then fetch basic section data without subject filtering
       await fetchSectionData();
       
       // Wait for the next tick to ensure reactive variables are updated
@@ -811,7 +855,7 @@
         bind:gradingConfig 
         sectionId={selectedClass?.sectionId}
         subjectId={activeSubject?.id}
-        gradingPeriodId={1}
+        gradingPeriodId={currentQuarter}
       />
     {/if}
   </div>
