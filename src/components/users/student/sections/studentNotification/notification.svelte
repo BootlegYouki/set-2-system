@@ -25,194 +25,6 @@
   let selectedFilter = 'all';
   let isFilterDropdownOpen = false;
 
-  // API Functions
-  async function fetchNotifications() {
-    if (!browser) return;
-    
-    // Check if user is authenticated
-    const authState = $authStore;
-    if (!authState.isAuthenticated) {
-      error = 'User not authenticated';
-      loading = false;
-      return;
-    }
-    
-    loading = true;
-    error = null;
-    
-    try {
-      const params = new URLSearchParams();
-      if (selectedFilter !== 'all') {
-        params.append('type', selectedFilter);
-      }
-      params.append('limit', '50');
-      params.append('offset', '0');
-      
-      const url = `/api/notifications?${params.toString()}`;
-      
-      const response = await authenticatedFetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        notifications = result.data.notifications;
-        unreadCount = result.data.unreadCount;
-        totalCount = result.data.pagination.total;
-      } else {
-        throw new Error(result.error || 'Failed to fetch notifications');
-      }
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-      error = `Failed to load notifications: ${err.message}`;
-      // Don't clear notifications on error to maintain UI state
-      if (notifications.length === 0) {
-        notifications = [];
-        unreadCount = 0;
-        totalCount = 0;
-      }
-    } finally {
-      loading = false;
-    }
-  }
-
-  async function updateNotificationStatus(id, isRead) {
-    try {
-      // Clear any existing errors
-      error = null;
-      
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          id: id,
-          action: isRead ? 'mark_read' : 'mark_unread'
-        })
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Individual mark read API error response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update notification');
-      }
-
-      // Fetch fresh data from database instead of updating local state
-      await fetchNotifications();
-    } catch (err) {
-      console.error('Error in updateNotificationStatus:', err);
-      error = err.message;
-    }
-  }
-
-  async function deleteNotificationAPI(id) {
-    try {
-      // Clear any existing errors
-      error = null;
-      
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'DELETE',
-        body: JSON.stringify({ id: id })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete notification');
-      }
-
-      // Fetch fresh data from database instead of updating local state
-      await fetchNotifications();
-    } catch (err) {
-      console.error('Error deleting notification:', err);
-      error = err.message;
-    }
-  }
-
-  async function markAllAsReadAPI() {
-    try {
-      // Clear any existing errors
-      error = null;
-      
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          action: 'mark_all_read'
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to mark all as read');
-      }
-
-      // Fetch fresh data from database instead of updating local state
-      await fetchNotifications();
-    } catch (err) {
-      console.error('Error marking all as read:', err);
-      error = err.message;
-    }
-  }
-
-  async function clearAllReadAPI() {
-    try {
-      // Clear any existing errors
-      error = null;
-      
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'DELETE',
-        body: JSON.stringify({
-          action: 'delete_read'
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to clear read notifications');
-      }
-
-      // Fetch fresh data from database instead of updating local state
-      await fetchNotifications();
-    } catch (err) {
-      console.error('Error clearing read notifications:', err);
-      error = err.message;
-    }
-  }
-
-  // Component lifecycle
-  onMount(() => {
-    // Wait for auth store to be initialized before fetching
-    let unsubscribe;
-    unsubscribe = authStore.subscribe((authState) => {
-      if (authState.isAuthenticated) {
-        fetchNotifications();
-        if (unsubscribe) {
-          unsubscribe(); // Unsubscribe after first successful fetch
-        }
-      }
-    });
-  });
 
   // Functions
   function toggleFilterDropdown() {
@@ -287,6 +99,198 @@
     const filter = filterOptions.find(f => f.value === value);
     return filter ? filter.icon : 'notifications';
   }
+
+  // API Functions
+  async function fetchNotifications() {
+    try {
+      loading = true;
+      error = null;
+      
+      const user = $authStore.userData;
+      console.log('Auth store userData:', user);
+      
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const params = new URLSearchParams({
+        student_id: user.id,
+        ...(selectedFilter !== 'all' && selectedFilter !== 'unread' && { type: selectedFilter }),
+        ...(selectedFilter === 'unread' && { is_read: 'false' })
+      });
+
+      console.log('Fetching notifications with params:', params.toString());
+      const response = await authenticatedFetch(`/api/notifications?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch notifications: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('API response data:', data);
+      
+      // The API returns data in data.data structure and notifications are already transformed
+      const responseData = data.data || data;
+      notifications = responseData.notifications || [];
+      
+      console.log('Transformed notifications:', notifications);
+      
+      unreadCount = responseData.unreadCount || 0;
+      totalCount = responseData.pagination?.total || notifications.length;
+      
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      error = err.message;
+      notifications = [];
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function updateNotificationStatus(id, isRead) {
+    try {
+      const user = $authStore.userData;
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await authenticatedFetch('/api/notifications', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: id,
+          action: isRead ? 'mark_read' : 'mark_unread'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update notification: ${response.status}`);
+      }
+
+      // Update local state
+      notifications = notifications.map(n => 
+        n.id === id ? { ...n, isRead } : n
+      );
+      
+      // Update unread count
+      if (isRead) {
+        unreadCount = Math.max(0, unreadCount - 1);
+      } else {
+        unreadCount += 1;
+      }
+
+    } catch (err) {
+      console.error('Error updating notification status:', err);
+      error = err.message;
+    }
+  }
+
+  async function deleteNotificationAPI(id) {
+    try {
+      const user = $authStore.userData;
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await authenticatedFetch('/api/notifications', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: id })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete notification: ${response.status}`);
+      }
+
+      // Remove from local state
+      const deletedNotification = notifications.find(n => n.id === id);
+      notifications = notifications.filter(n => n.id !== id);
+      
+      // Update counts
+      if (deletedNotification && !deletedNotification.isRead) {
+        unreadCount = Math.max(0, unreadCount - 1);
+      }
+      totalCount = Math.max(0, totalCount - 1);
+
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+      error = err.message;
+    }
+  }
+
+  async function markAllAsReadAPI() {
+    try {
+      const user = $authStore.userData;
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await authenticatedFetch('/api/notifications', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'mark_all_read'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to mark all as read: ${response.status}`);
+      }
+
+      // Update local state
+      notifications = notifications.map(n => ({ ...n, isRead: true }));
+      unreadCount = 0;
+
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+      error = err.message;
+    }
+  }
+
+  async function clearAllReadAPI() {
+    try {
+      const user = $authStore.userData;
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await authenticatedFetch('/api/notifications', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'delete_read'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear read notifications: ${response.status}`);
+      }
+
+      // Remove read notifications from local state
+      const readCount = notifications.filter(n => n.isRead).length;
+      notifications = notifications.filter(n => !n.isRead);
+      totalCount = Math.max(0, totalCount - readCount);
+
+    } catch (err) {
+      console.error('Error clearing read notifications:', err);
+      error = err.message;
+    }
+  }
+
+  // Initialize component
+  onMount(() => {
+    if (browser && $authStore.userData?.id) {
+      fetchNotifications();
+    }
+  });
 
   // Reactive statements
   $: filteredNotifications = (() => {

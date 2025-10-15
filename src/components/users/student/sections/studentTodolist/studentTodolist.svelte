@@ -394,8 +394,6 @@
   }
 
   function selectDate(day) {
-    console.log('selectDate called with day:', day);
-    console.log('selectedYear:', selectedYear, 'selectedMonth:', selectedMonth);
     selectedDay = day;
     // Create date in local timezone to avoid timezone issues
     const year = selectedYear;
@@ -403,7 +401,6 @@
     const dayStr = day.toString().padStart(2, '0');
     const monthStr = month.toString().padStart(2, '0');
     newTodoDueDate = `${year}-${monthStr}-${dayStr}`;
-    console.log('Created newTodoDueDate:', newTodoDueDate);
     isDatePickerOpen = false;
   }
 
@@ -472,8 +469,6 @@
 
   // Helper function to format due date
   function formatDueDate(dateString) {
-    console.log('formatDueDate called with:', dateString);
-    
     if (!dateString || dateString === 'No due date') return 'No due date';
     
     // If it's already a formatted string (like 'Today', 'Tomorrow', 'Next Week'), return as is
@@ -491,8 +486,6 @@
     const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed in JavaScript
     const day = parseInt(dateParts[2]);
     
-    console.log('Parsed date components:', { year, month: month + 1, day });
-    
     // Check if the parsed values are valid
     if (isNaN(year) || isNaN(month) || isNaN(day)) {
       return dateString;
@@ -504,11 +497,8 @@
     const todayMonth = now.getMonth();
     const todayDay = now.getDate();
     
-    console.log('Today components:', { year: todayYear, month: todayMonth + 1, day: todayDay });
-    
     // Compare date components directly
     if (year === todayYear && month === todayMonth && day === todayDay) {
-      console.log('Returning: Today');
       return 'Today';
     }
     
@@ -519,10 +509,7 @@
     const tomorrowMonth = tomorrowDate.getMonth();
     const tomorrowDay = tomorrowDate.getDate();
     
-    console.log('Tomorrow components:', { year: tomorrowYear, month: tomorrowMonth + 1, day: tomorrowDay });
-    
     if (year === tomorrowYear && month === tomorrowMonth && day === tomorrowDay) {
-      console.log('Returning: Tomorrow');
       return 'Tomorrow';
     }
     
@@ -538,7 +525,6 @@
     // Replace comma with colon after weekday
     const finalFormatted = formatted.replace(/^(\w+),/, '$1:');
     
-    console.log('Returning formatted date:', finalFormatted);
     return finalFormatted;
   }
 
