@@ -40,6 +40,26 @@
 
 	// Dynamic sections loaded from API
 	let sections = [];
+	
+	// Current school year from database
+	let currentSchoolYear = '2024-2025'; // Default fallback
+
+	// Fetch current school year from database
+	async function fetchCurrentSchoolYear() {
+		try {
+			const response = await fetch('/api/current-quarter');
+			const result = await response.json();
+
+			if (result.success && result.data) {
+				currentSchoolYear = result.data.currentSchoolYear;
+				console.log(`School year set to: ${currentSchoolYear}`);
+			} else {
+				console.warn('Failed to fetch current school year, using default: 2024-2025');
+			}
+		} catch (error) {
+			console.error('Error fetching current school year:', error);
+		}
+	}
 
 	// Load sections from API
 	async function loadSections() {
@@ -94,6 +114,10 @@
 	let isActivityTypeDropdownOpen = false;
 	let isTeacherDropdownOpen = false;
 	let isScheduleTypeDropdownOpen = false;
+
+	// Time input states
+	let isStartTimeOpen = false;
+	let isEndTimeOpen = false;
 
 	// Time validation variables
 	let timeValidationMessage = '';
@@ -202,7 +226,7 @@
 						dayOfWeek: dayName,
 						startTime: formData.startTime,
 						endTime: formData.endTime,
-						schoolYear: '2024-2025'
+						schoolYear: currentSchoolYear
 					});
 
 					// Add teacher ID if selected
@@ -371,6 +395,13 @@
 			isSubjectDropdownOpen = false;
 			isActivityTypeDropdownOpen = false;
 			isTeacherDropdownOpen = false;
+			isScheduleTypeDropdownOpen = false;
+		}
+		
+		// Close time inputs when clicking outside
+		if (!event.target.closest('.time-input-container')) {
+			isStartTimeOpen = false;
+			isEndTimeOpen = false;
 		}
 	}
 
@@ -546,6 +577,17 @@
 		isScheduleTypeDropdownOpen = !isScheduleTypeDropdownOpen;
 	}
 
+	// TimeInput handlers
+	function handleStartTimeOpen() {
+		isStartTimeOpen = true;
+		isEndTimeOpen = false; // Close end time when start time opens
+	}
+
+	function handleEndTimeOpen() {
+		isEndTimeOpen = true;
+		isStartTimeOpen = false; // Close start time when end time opens
+	}
+
 	// Selection functions
 	function selectSubject(subject) {
 		formData.subjectId = subject.id;
@@ -675,7 +717,7 @@
 						subjectId: formData.scheduleType === 'subject' ? formData.subjectId : null,
 						activityTypeId: formData.scheduleType === 'activity' ? formData.activityTypeId : null,
 						teacherId: formData.teacherId || null,
-						schoolYear: '2024-2025'
+						schoolYear: currentSchoolYear
 					});
 					return result;
 				} catch (error) {
@@ -745,9 +787,12 @@
 	}
 
 	// Load data on component mount
-	onMount(() => {
+	onMount(async () => {
+		// First fetch the current school year from database
+		await fetchCurrentSchoolYear();
+		// Then load sections and schedules using the current school year
 		loadSections();
-		loadSchedules(); // Add this to load existing schedules
+		loadSchedules();
 	});
 
 	// Dynamic height adjustment for empty day containers
@@ -1243,16 +1288,20 @@
 											<TimeInput
 												label="Start Time"
 												bind:value={formData.startTime}
+												bind:isOpen={isStartTimeOpen}
 												placeholder="Select start time"
 												on:change={(e) => (formData.startTime = e.detail.value)}
+												on:open={handleStartTimeOpen}
 											/>
 										</div>
 										<div class="scheduleassign-input-group">
 											<TimeInput
 												label="End Time"
 												bind:value={formData.endTime}
+												bind:isOpen={isEndTimeOpen}
 												placeholder="Select end time"
 												on:change={(e) => (formData.endTime = e.detail.value)}
+												on:open={handleEndTimeOpen}
 											/>
 										</div>
 									</div>

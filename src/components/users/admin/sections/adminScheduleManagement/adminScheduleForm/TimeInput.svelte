@@ -5,13 +5,13 @@
 	export let placeholder = 'Select time';
 	export let disabled = false;
 	export let label = '';
+	export let isOpen = false; // Changed from internal state to exported prop
 
 	const dispatch = createEventDispatcher();
 
 	let hours = '';
 	let minutes = '';
 	let period = 'AM';
-	let isOpen = false;
 
 	// Generate hour options (1-12)
 	const hourOptions = Array.from({ length: 12 }, (_, i) => {
@@ -107,6 +107,9 @@
 	function toggleDropdown() {
 		if (!disabled) {
 			isOpen = !isOpen;
+			if (isOpen) {
+				dispatch('open'); // Dispatch event when opening
+			}
 		}
 	}
 

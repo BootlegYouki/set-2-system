@@ -3,16 +3,31 @@ import { connectToDatabase } from '../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
+// Helper function to get current school year from admin settings
+async function getCurrentSchoolYear(db) {
+    try {
+        const setting = await db.collection('admin_settings').findOne({ 
+            setting_key: 'current_school_year' 
+        });
+        return setting?.setting_value || '2024-2025'; // Fallback if not set
+    } catch (error) {
+        console.error('Error fetching current school year:', error);
+        return '2024-2025'; // Fallback on error
+    }
+}
+
 // GET - Fetch schedules with optional filtering
 export async function GET({ url }) {
     try {
         const action = url.searchParams.get('action');
         const sectionId = url.searchParams.get('sectionId');
-        const schoolYear = url.searchParams.get('schoolYear') || '2024-2025';
         const dayOfWeek = url.searchParams.get('dayOfWeek');
         const scheduleId = url.searchParams.get('scheduleId');
 
         const db = await connectToDatabase();
+        
+        // Get school year from query params or use current school year from admin settings
+        const schoolYear = url.searchParams.get('schoolYear') || await getCurrentSchoolYear(db);
 
         switch (action) {
             case 'schedule-details':
@@ -438,7 +453,7 @@ export async function GET({ url }) {
                 const checkStartTime = url.searchParams.get('startTime');
                 const checkEndTime = url.searchParams.get('endTime');
                 const checkTeacherId = url.searchParams.get('teacherId');
-                const checkSchoolYear = url.searchParams.get('schoolYear') || '2024-2025';
+                const checkSchoolYear = url.searchParams.get('schoolYear') || await getCurrentSchoolYear(db);
 
                 if (!checkSectionId || !checkDayOfWeek || !checkStartTime || !checkEndTime) {
                     return json({ success: false, error: 'Missing required parameters for conflict check' }, { status: 400 });
