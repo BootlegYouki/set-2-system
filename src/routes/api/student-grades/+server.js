@@ -68,7 +68,7 @@ export async function GET({ url, request }) {
     }
 
     // Use section's school year for schedules (historical data)
-    const sectionSchoolYear = section.school_year || '2024-2025';
+    const sectionSchoolYear = section.school_year || '2025-2026';
     
     // Use current school year for grades
     const gradesSchoolYear = school_year;

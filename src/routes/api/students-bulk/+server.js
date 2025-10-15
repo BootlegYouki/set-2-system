@@ -7,8 +7,11 @@ export async function GET({ url }) {
   try {
     const db = await connectToDatabase();
     
-    // Get query parameters
-    const school_year = url.searchParams.get('school_year') || '2024-2025';
+    // Get current school year from admin settings
+    const schoolYearSetting = await db.collection('admin_settings').findOne({ 
+      setting_key: 'current_school_year' 
+    });
+    const school_year = url.searchParams.get('school_year') || schoolYearSetting?.setting_value || '2025-2026';
     const quarter = parseInt(url.searchParams.get('quarter')) || 1;
 
     // Get all active students

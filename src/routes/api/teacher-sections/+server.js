@@ -5,7 +5,6 @@ import { ObjectId } from 'mongodb';
 export async function GET({ url }) {
     try {
         const teacherId = url.searchParams.get('teacherId');
-        const schoolYear = url.searchParams.get('schoolYear') || '2024-2025';
 
         if (!teacherId) {
             return json({ 
@@ -15,6 +14,12 @@ export async function GET({ url }) {
         }
 
         const db = await connectToDatabase();
+
+        // Get current school year from admin settings
+        const schoolYearSetting = await db.collection('admin_settings').findOne({ 
+            setting_key: 'current_school_year' 
+        });
+        const schoolYear = url.searchParams.get('schoolYear') || schoolYearSetting?.setting_value || '2025-2026';
 
         // MongoDB aggregation pipeline to get sections that the teacher is teaching
         const pipeline = [

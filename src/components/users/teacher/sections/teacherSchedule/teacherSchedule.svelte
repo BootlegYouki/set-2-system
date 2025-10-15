@@ -203,7 +203,12 @@
 				throw new Error('User not authenticated');
 			}
 
-			const response = await fetch(`/api/schedules?action=teacher-schedules&teacherId=${authState.userData.id}&schoolYear=2024-2025`);
+			// Fetch current school year from admin settings
+			const currentQuarterResponse = await fetch('/api/current-quarter');
+			const currentQuarterData = await currentQuarterResponse.json();
+			const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
+
+			const response = await fetch(`/api/schedules?action=teacher-schedules&teacherId=${authState.userData.id}&schoolYear=${schoolYear}`);
 			const result = await response.json();
 
 			if (!result.success) {

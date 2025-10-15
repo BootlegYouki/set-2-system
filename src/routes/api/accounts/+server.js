@@ -188,26 +188,49 @@ export async function GET({ url }) {
     
     const accounts = await query.toArray();
     
+    // Get all sections to check for advisory assignments (for teachers)
+    const sectionsCollection = db.collection('sections');
+    const activeSections = await sectionsCollection.find({ 
+      status: 'active' 
+    }).toArray();
+    
+    // Create a map of adviser_id to section for quick lookup
+    const adviserSectionMap = new Map();
+    activeSections.forEach(section => {
+      if (section.adviser_id) {
+        adviserSectionMap.set(section.adviser_id.toString(), {
+          name: section.name,
+          grade_level: section.grade_level
+        });
+      }
+    });
+    
     // Format the data to match frontend expectations
-    const formattedAccounts = accounts.map(account => ({
-      id: account._id.toString(),
-      name: account.full_name,
-      firstName: account.first_name,
-      lastName: account.last_name,
-      middleInitial: account.middle_initial,
-      email: account.email,
-      type: account.account_type === 'student' ? 'Student' : account.account_type === 'teacher' ? 'Teacher' : 'Admin',
-      number: account.account_number,
-      gradeLevel: account.grade_level,
-      birthdate: account.birthdate,
-      address: account.address,
-      age: account.age,
-      guardian: account.guardian,
-      contactNumber: account.contact_number,
-      createdDate: new Date(account.created_at).toLocaleDateString('en-US'),
-      updatedDate: new Date(account.updated_at).toLocaleDateString('en-US'),
-      status: 'active'
-    }));
+    const formattedAccounts = accounts.map(account => {
+      const accountId = account._id.toString();
+      const advisorySection = adviserSectionMap.get(accountId);
+      
+      return {
+        id: accountId,
+        name: account.full_name,
+        firstName: account.first_name,
+        lastName: account.last_name,
+        middleInitial: account.middle_initial,
+        email: account.email,
+        type: account.account_type === 'student' ? 'Student' : account.account_type === 'teacher' ? 'Teacher' : 'Admin',
+        number: account.account_number,
+        gradeLevel: account.grade_level,
+        birthdate: account.birthdate,
+        address: account.address,
+        age: account.age,
+        guardian: account.guardian,
+        contactNumber: account.contact_number,
+        advisorySection: advisorySection ? `${advisorySection.name} (Grade ${advisorySection.grade_level})` : null,
+        createdDate: new Date(account.created_at).toLocaleDateString('en-US'),
+        updatedDate: new Date(account.updated_at).toLocaleDateString('en-US'),
+        status: 'active'
+      };
+    });
     
     return json({ success: true, accounts: formattedAccounts });
     

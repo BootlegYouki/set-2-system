@@ -1196,6 +1196,12 @@
 								<span class="material-symbols-outlined">badge</span>
 								<span>{account.type} Account</span>
 							</div>
+							{#if account.type === 'Teacher'}
+								<div class="account-detail-item">
+									<span class="material-symbols-outlined">class</span>
+									<span>{account.advisorySection || 'No advisory section assigned'}</span>
+								</div>
+							{/if}
 							{#if account.type === 'Student' && account.gradeLevel}
 								<div class="account-detail-item">
 									<span class="material-symbols-outlined">school</span>

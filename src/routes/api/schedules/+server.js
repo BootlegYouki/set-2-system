@@ -9,10 +9,10 @@ async function getCurrentSchoolYear(db) {
         const setting = await db.collection('admin_settings').findOne({ 
             setting_key: 'current_school_year' 
         });
-        return setting?.setting_value || '2024-2025'; // Fallback if not set
+        return setting?.setting_value || '2025-2026'; // Fallback if not set
     } catch (error) {
         console.error('Error fetching current school year:', error);
-        return '2024-2025'; // Fallback on error
+        return '2025-2026'; // Fallback on error
     }
 }
 

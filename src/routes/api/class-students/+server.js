@@ -46,7 +46,7 @@ export async function GET({ url }) {
         }
 
         // Use section's school year for schedules/subjects (historical data)
-        const sectionSchoolYear = section.school_year || '2024-2025';
+        const sectionSchoolYear = section.school_year || '2025-2026';
         
         // But use current school year from admin settings for grades
         const currentSchoolYear = await getCurrentSchoolYear(db);

@@ -15,7 +15,7 @@
 	let isCreating = false;
 	let sectionName = '';
 	let gradeLevel = '';
-	let schoolYear = '2024-2025';
+	let schoolYear = ''; // Current school year
 	let selectedAdviser = null;
 	let selectedStudents = [];
 
@@ -54,8 +54,24 @@
 	let isLoadingAdvisers = false;
 	let isLoadingStudents = false;
 
+	// Fetch current school year from admin settings
+	async function fetchCurrentSchoolYear() {
+		try {
+			const response = await fetch('/api/current-quarter');
+			const result = await response.json();
+			if (result.success && result.data?.currentSchoolYear) {
+				schoolYear = result.data.currentSchoolYear;
+			}
+		} catch (error) {
+			console.error('Error fetching current school year:', error);
+			// Keep default value of 2025-2026
+		}
+	}
+
 	// Load data on component mount
 	onMount(async () => {
+		// Fetch current school year first
+		await fetchCurrentSchoolYear();
 		// Initialize sections from cache (instant load if available)
 		const hasCachedSections = sectionManagementStore.initSections();
 		// Load sections using store method (silent if we have cache, visible loading if not)
@@ -304,12 +320,27 @@
 		(adviser) =>
 			!adviser.hasSection && adviser.name.toLowerCase().includes(adviserSearchTerm.toLowerCase())
 	);
-	$: filteredStudents = availableStudents.filter(
-		(student) =>
-			!student.hasSection &&
-			student.grade === gradeLevel &&
-			student.name.toLowerCase().includes(studentSearchTerm.toLowerCase())
-	);
+	$: filteredStudents = availableStudents
+		.filter((student) => {
+			const matchesGrade = student.grade === gradeLevel;
+			const matchesSearch = student.name.toLowerCase().includes(studentSearchTerm.toLowerCase());
+			const notInSection = !student.hasSection;
+			const notAlreadySelected = !selectedStudents.some((s) => s.id === student.id);
+			
+			// Show students that: match grade, match search, and either (not in any section OR already selected in current form)
+			return matchesGrade && matchesSearch && (notInSection || !notAlreadySelected);
+		})
+		.sort((a, b) => {
+			// Sort selected students to the top
+			const aSelected = selectedStudents.some((s) => s.id === a.id);
+			const bSelected = selectedStudents.some((s) => s.id === b.id);
+			
+			if (aSelected && !bSelected) return -1;
+			if (!aSelected && bSelected) return 1;
+			
+			// If both selected or both not selected, sort alphabetically by name
+			return a.name.localeCompare(b.name);
+		});
 	$: filteredSections = sectionsData.filter((section) => {
 		const matchesSearchTerm =
 			section.name.toLowerCase().includes(sectionsSearchTerm.toLowerCase()) ||
@@ -554,6 +585,9 @@
 	let originalSectionStudents = [];
 
 	$: editFilteredStudents = (() => {
+		// Get current section being edited
+		const currentSection = sectionsData.find((s) => s.id === editingSectionId);
+		
 		// Combine available students with original section students
 		const allPossibleStudents = [...availableStudents];
 
@@ -564,17 +598,36 @@
 			}
 		});
 
-		return allPossibleStudents.filter((student) => {
-			// Show students that don't have a section OR are currently selected OR are from original section
-			const isAvailable =
-				!student.hasSection ||
-				editSelectedStudents.some((s) => s.id === student.id) ||
-				originalSectionStudents.some((s) => s.id === student.id);
-			const matchesSearch = student.name
-				.toLowerCase()
-				.includes(editStudentSearchTerm.toLowerCase());
-			return isAvailable && matchesSearch;
-		});
+		return allPossibleStudents
+			.filter((student) => {
+				const matchesSearch = student.name
+					.toLowerCase()
+					.includes(editStudentSearchTerm.toLowerCase());
+				
+				// Check if student is currently selected in the edit form
+				const isCurrentlySelected = editSelectedStudents.some((s) => s.id === student.id);
+				
+				// Check if student was originally in this section
+				const wasOriginallyInSection = originalSectionStudents.some((s) => s.id === student.id);
+				
+				// Show students that:
+				// - Match the search term AND
+				// - Either: (don't have a section OR are currently selected OR were originally in this section)
+				const isAvailable = !student.hasSection || isCurrentlySelected || wasOriginallyInSection;
+				
+				return matchesSearch && isAvailable;
+			})
+			.sort((a, b) => {
+				// Sort selected students to the top
+				const aSelected = editSelectedStudents.some((s) => s.id === a.id);
+				const bSelected = editSelectedStudents.some((s) => s.id === b.id);
+				
+				if (aSelected && !bSelected) return -1;
+				if (!aSelected && bSelected) return 1;
+				
+				// If both selected or both not selected, sort alphabetically by name
+				return a.name.localeCompare(b.name);
+			});
 	})();
 </script>
 

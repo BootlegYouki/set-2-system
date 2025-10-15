@@ -72,7 +72,11 @@
       }
 
       const teacherId = authState.userData.id;
-      const schoolYear = '2024-2025'; // You can make this dynamic if needed
+      
+      // Fetch current school year from admin settings
+      const currentQuarterResponse = await fetch('/api/current-quarter');
+      const currentQuarterData = await currentQuarterResponse.json();
+      const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 
       const response = await fetch(`/api/teacher-sections?teacherId=${teacherId}&schoolYear=${schoolYear}`);
       const result = await response.json();

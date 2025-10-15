@@ -9,7 +9,12 @@ export async function GET({ url }) {
         const db = await connectToDatabase();
         const action = url.searchParams.get('action');
         const gradeLevel = url.searchParams.get('gradeLevel');
-        const schoolYear = url.searchParams.get('schoolYear') || '2024-2025';
+        
+        // Get current school year from admin settings
+        const schoolYearSetting = await db.collection('admin_settings').findOne({ 
+            setting_key: 'current_school_year' 
+        });
+        const schoolYear = url.searchParams.get('schoolYear') || schoolYearSetting?.setting_value || '2025-2026';
         const sectionId = url.searchParams.get('sectionId');
 
         switch (action) {
@@ -301,7 +306,10 @@ export async function GET({ url }) {
                         $addFields: {
                             id: '$_id',
                             adviser_name: { $arrayElemAt: ['$adviser.full_name', 0] },
+                            adviser_account_number: { $arrayElemAt: ['$adviser.account_number', 0] },
                             room_name: { $arrayElemAt: ['$room.name', 0] },
+                            room_building: { $arrayElemAt: ['$room.building', 0] },
+                            room_floor: { $arrayElemAt: ['$room.floor', 0] },
                             student_count: { $size: '$students' }
                         }
                     },
