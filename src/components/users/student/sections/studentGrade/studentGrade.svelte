@@ -169,6 +169,8 @@
 		
 		aiAnalysisLoading = true;
 		aiAnalysisError = null;
+		aiAnalysis = ''; // Reset analysis
+		showAiAnalysis = true; // Show the container immediately
 		
 		try {
 			const response = await fetch('/api/ai-grade-analysis', {
@@ -191,18 +193,32 @@
 				})
 			});
 
-			const result = await response.json();
-			
-			if (result.success) {
-				aiAnalysis = result.analysis;
-				showAiAnalysis = true;
-			} else {
-				throw new Error(result.error || 'Failed to get AI analysis');
+			if (!response.ok) {
+				throw new Error('Failed to get AI analysis');
+			}
+
+			aiAnalysisLoading = false; // Stop loading before streaming starts
+
+			// Read the streaming response
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+
+			while (true) {
+				const { done, value } = await reader.read();
+				
+				if (done) {
+					break;
+				}
+
+				const chunk = decoder.decode(value, { stream: true });
+				aiAnalysis += chunk;
+				
+				// Force Svelte to update the UI
+				aiAnalysis = aiAnalysis;
 			}
 		} catch (error) {
 			console.error('AI Analysis Error:', error);
 			aiAnalysisError = error.message;
-		} finally {
 			aiAnalysisLoading = false;
 		}
 	}
@@ -397,17 +413,10 @@
 						{#if showAiAnalysis}
 							<span class="material-symbols-outlined">expand_less</span>
 						{:else}
-							<span class="material-symbols-outlined">auto_awesome</span>
+							<span class="material-symbols-outlined">expand_more</span>
 						{/if}
 					</button>
 				</div>
-				
-				{#if aiAnalysisLoading}
-					<div class="ai-analysis-loading-container">
-						<div class="system-loader"></div>
-						<p>Generating AI analysis...</p>
-					</div>
-				{/if}
 				
 				{#if showAiAnalysis}
 					<div class="analysis-content">
@@ -416,7 +425,6 @@
 								<span class="material-symbols-outlined">error</span>
 								<p>Failed to generate AI analysis: {aiAnalysisError}</p>
 								<button class="retry-analysis-btn" on:click={getAiAnalysis}>
-									<span class="material-symbols-outlined">refresh</span>
 									Try Again
 								</button>
 							</div>
@@ -427,7 +435,7 @@
 						{:else}
 							<div class="analysis-placeholder">
 								<span class="material-symbols-outlined">auto_awesome</span>
-								<p>Click the AI button to get personalized insights about your academic performance</p>
+								<p>Generating Grade Analysis...</p>
 							</div>
 						{/if}
 					</div>
