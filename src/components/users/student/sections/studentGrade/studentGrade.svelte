@@ -45,6 +45,10 @@
 	async function selectQuarter(quarter) {
 		currentQuarter = quarter;
 		isDropdownOpen = false;
+		// Reset AI analysis when quarter changes
+		aiAnalysis = '';
+		showAiAnalysis = false;
+		aiAnalysisError = null;
 		await fetchGrades();
 	}
 
@@ -165,7 +169,7 @@
 
 	// Function to get AI analysis
 	async function getAiAnalysis() {
-		if (aiAnalysisLoading || !subjects.length) return;
+		if (aiAnalysisLoading || !subjects.length || !$authStore.userData?.id) return;
 		
 		aiAnalysisLoading = true;
 		aiAnalysisError = null;
@@ -173,23 +177,17 @@
 		showAiAnalysis = true; // Show the container immediately
 		
 		try {
+			const quarter = quarterToGradingPeriod[currentQuarter];
+			
 			const response = await fetch('/api/ai-grade-analysis', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					studentData: {
-						name: studentData?.name || 'Student',
-						gradeLevel: sectionInfo?.gradeLevel || 'N/A',
-						section: sectionInfo?.name || 'N/A'
-					},
-					grades: {
-						overallAverage,
-						subjects,
-						classRank,
-						totalStudentsInSection
-					}
+					studentId: $authStore.userData.id,
+					quarter: quarter,
+					schoolYear: currentSchoolYear
 				})
 			});
 

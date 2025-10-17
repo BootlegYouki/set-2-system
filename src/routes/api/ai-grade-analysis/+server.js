@@ -1,16 +1,41 @@
 import { json } from '@sveltejs/kit';
 import { OPENROUTER_AI_KEY } from '$env/static/private';
+import { connectToDatabase } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
 
 export async function POST({ request }) {
     try {
-        const { studentData, grades } = await request.json();
+        const { studentId, quarter, schoolYear } = await request.json();
 
-        if (!studentData || !grades) {
-            return json({ error: 'Missing required data' }, { status: 400 });
+        if (!studentId) {
+            return json({ error: 'Missing student ID' }, { status: 400 });
         }
 
-        // Prepare the grade data for AI analysis
-        const gradeAnalysisData = prepareGradeData(studentData, grades);
+        // Connect to MongoDB
+        const db = await connectToDatabase();
+
+        // Fetch student data
+        const student = await db.collection('users').findOne({ _id: new ObjectId(studentId) });
+        if (!student) {
+            return json({ error: 'Student not found' }, { status: 404 });
+        }
+
+        // Fetch all grades for the student (only verified ones)
+        const gradesQuery = { 
+            student_id: new ObjectId(studentId),
+            verified: true // Only fetch verified grades
+        };
+        if (quarter) gradesQuery.quarter = quarter;
+        if (schoolYear) gradesQuery.school_year = schoolYear;
+
+        const studentGrades = await db.collection('grades').find(gradesQuery).toArray();
+
+        if (studentGrades.length === 0) {
+            return json({ error: 'No grades found for this student' }, { status: 404 });
+        }
+
+        // Fetch grade configurations and subject/teacher details
+        const gradeAnalysisData = await prepareGradeDataFromDB(db, student, studentGrades);
 
         // Create the prompt for AI analysis
         const prompt = createAnalysisPrompt(gradeAnalysisData);
@@ -25,14 +50,14 @@ export async function POST({ request }) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'meta-llama/llama-3.2-3b-instruct:free',
+                model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
                 messages: [
                     {
                         role: 'user',
                         content: prompt,
                     },
                 ],
-                max_tokens: 1000,
+                max_tokens: 2000,
                 temperature: 0.7,
                 stream: true, // Enable streaming
             }),
@@ -104,98 +129,202 @@ export async function POST({ request }) {
     }
 }
 
-function prepareGradeData(studentData, grades) {
-    const overallAverage = grades.overallAverage || 0;
-    const totalSubjects = grades.subjects?.length || 0;
-    const classRank = grades.classRank || 'N/A';
-    const totalStudentsInSection = grades.totalStudentsInSection || 'N/A';
+async function prepareGradeDataFromDB(db, student, studentGrades) {
+    // Get section info
+    const section = student.section_id 
+        ? await db.collection('sections').findOne({ _id: new ObjectId(student.section_id) })
+        : null;
 
-    const subjectBreakdown = grades.subjects?.map(subject => ({
-        name: subject.name,
-        teacher: subject.teacher,
-        overallGrade: subject.numericGrade,
-        writtenWork: subject.writtenWork,
-        performanceTasks: subject.performanceTasks,
-        quarterlyAssessment: subject.quarterlyAssessment,
-        writtenWorkScores: subject.writtenWorkScores || [],
-        performanceTasksScores: subject.performanceTasksScores || [],
-        quarterlyAssessmentScores: subject.quarterlyAssessmentScores || [],
-        verified: subject.verified
-    })) || [];
+    // Calculate overall average
+    const totalGrades = studentGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
+    const overallAverage = studentGrades.length > 0 ? totalGrades / studentGrades.length : 0;
+
+    // Get class rank if possible
+    const sectionStudents = section 
+        ? await db.collection('section_students').find({ section_id: new ObjectId(student.section_id) }).toArray()
+        : [];
+
+    // Prepare subject breakdown with detailed score analysis
+    const subjectBreakdown = [];
+
+    for (const grade of studentGrades) {
+        const subject = await db.collection('subjects').findOne({ _id: new ObjectId(grade.subject_id) });
+        const teacher = await db.collection('users').findOne({ _id: new ObjectId(grade.teacher_id) });
+        
+        // Get grade configuration for detailed item names and total scores
+        const gradeConfig = await db.collection('grade_configurations').findOne({
+            section_id: new ObjectId(grade.section_id),
+            subject_id: new ObjectId(grade.subject_id),
+            grading_period_id: grade.quarter
+        });
+
+        // Build detailed score breakdown
+        const writtenWorkDetails = buildScoreDetails(
+            grade.written_work || [],
+            gradeConfig?.grade_items?.writtenWork || [],
+            'Written Work'
+        );
+
+        const performanceTasksDetails = buildScoreDetails(
+            grade.performance_tasks || [],
+            gradeConfig?.grade_items?.performanceTasks || [],
+            'Performance Tasks'
+        );
+
+        const quarterlyAssessmentDetails = buildScoreDetails(
+            grade.quarterly_assessment || [],
+            gradeConfig?.grade_items?.quarterlyAssessment || [],
+            'Quarterly Assessment'
+        );
+
+        subjectBreakdown.push({
+            name: subject?.name || 'Unknown Subject',
+            teacher: teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown Teacher',
+            overallGrade: grade.averages?.final_grade || 0,
+            writtenWorkAverage: grade.averages?.written_work || 0,
+            performanceTasksAverage: grade.averages?.performance_tasks || 0,
+            quarterlyAssessmentAverage: grade.averages?.quarterly_assessment || 0,
+            writtenWorkDetails,
+            performanceTasksDetails,
+            quarterlyAssessmentDetails,
+            verified: grade.verified || false,
+            quarter: grade.quarter,
+            schoolYear: grade.school_year
+        });
+    }
 
     return {
         studentInfo: {
-            name: studentData.name || 'Student',
-            gradeLevel: studentData.gradeLevel || 'N/A',
-            section: studentData.section || 'N/A'
+            name: `${student.first_name} ${student.last_name}`,
+            gradeLevel: student.grade_level || 'N/A',
+            section: section?.name || 'N/A',
+            studentId: student.student_id || 'N/A'
         },
         academicPerformance: {
-            overallAverage,
-            totalSubjects,
-            classRank,
-            totalStudentsInSection
+            overallAverage: Math.round(overallAverage * 100) / 100,
+            totalSubjects: studentGrades.length,
+            totalStudentsInSection: sectionStudents.length || 'N/A'
         },
         subjects: subjectBreakdown
+    };
+}
+
+function buildScoreDetails(scores, gradeItems, category) {
+    if (!scores || scores.length === 0) {
+        return { items: [], average: 0, count: 0 };
+    }
+
+    const items = scores.map((score, index) => {
+        const item = gradeItems[index];
+        const itemName = item?.name || `${category} ${index + 1}`;
+        const totalScore = item?.totalScore || 100;
+        const percentage = totalScore > 0 ? Math.round((score / totalScore) * 100 * 100) / 100 : 0;
+
+        return {
+            name: itemName,
+            score,
+            totalScore,
+            percentage
+        };
+    });
+
+    const average = items.reduce((sum, item) => sum + item.percentage, 0) / items.length;
+
+    return {
+        items,
+        average: Math.round(average * 100) / 100,
+        count: items.length
     };
 }
 
 function createAnalysisPrompt(gradeData) {
     const { studentInfo, academicPerformance, subjects } = gradeData;
 
-    let prompt = `As an educational AI assistant, analyze the academic performance of ${studentInfo.name}, a Grade ${studentInfo.gradeLevel} student in section ${studentInfo.section}.
+    let prompt = `As an educational AI assistant, analyze the academic performance of ${studentInfo.name} (Student ID: ${studentInfo.studentId}), a Grade ${studentInfo.gradeLevel} student in section ${studentInfo.section}.
 
 ACADEMIC OVERVIEW:
 - Overall Average: ${academicPerformance.overallAverage}
 - Total Subjects: ${academicPerformance.totalSubjects}
-- Class Rank: ${academicPerformance.classRank} out of ${academicPerformance.totalStudentsInSection} students
+- Section Size: ${academicPerformance.totalStudentsInSection} students
 
-SUBJECT BREAKDOWN:
+DETAILED SUBJECT BREAKDOWN:
 `;
 
     subjects.forEach(subject => {
         prompt += `
-${subject.name} (Teacher: ${subject.teacher}):
-- Overall Grade: ${subject.overallGrade}
-- Written Work: ${subject.writtenWork}
-- Performance Tasks: ${subject.performanceTasks}
-- Quarterly Assessment: ${subject.quarterlyAssessment}
-- Verified: ${subject.verified ? 'Yes' : 'No'}`;
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 ${subject.name} (Teacher: ${subject.teacher})
+Quarter: ${subject.quarter} | School Year: ${subject.schoolYear}
+Verified: ${subject.verified ? 'Yes ✓' : 'No ✗'}
 
-        if (subject.writtenWorkScores.length > 0) {
-            prompt += `
-- Written Work Scores: [${subject.writtenWorkScores.join(', ')}]`;
+Overall Grade: ${subject.overallGrade}
+
+Component Averages:
+- Written Work: ${subject.writtenWorkAverage}% (${subject.writtenWorkDetails.count} items)
+- Performance Tasks: ${subject.performanceTasksAverage}% (${subject.performanceTasksDetails.count} items)  
+- Quarterly Assessment: ${subject.quarterlyAssessmentAverage}% (${subject.quarterlyAssessmentDetails.count} items)
+`;
+
+        // Add detailed Written Work scores
+        if (subject.writtenWorkDetails.items.length > 0) {
+            prompt += `\n📝 Written Work Details:\n`;
+            subject.writtenWorkDetails.items.forEach((item, idx) => {
+                prompt += `   ${idx + 1}. ${item.name}: ${item.score}/${item.totalScore} (${item.percentage}%)\n`;
+            });
         }
-        if (subject.performanceTasksScores.length > 0) {
-            prompt += `
-- Performance Task Scores: [${subject.performanceTasksScores.join(', ')}]`;
+
+        // Add detailed Performance Tasks scores
+        if (subject.performanceTasksDetails.items.length > 0) {
+            prompt += `\n🎯 Performance Tasks Details:\n`;
+            subject.performanceTasksDetails.items.forEach((item, idx) => {
+                prompt += `   ${idx + 1}. ${item.name}: ${item.score}/${item.totalScore} (${item.percentage}%)\n`;
+            });
         }
-        if (subject.quarterlyAssessmentScores.length > 0) {
-            prompt += `
-- Quarterly Assessment Scores: [${subject.quarterlyAssessmentScores.join(', ')}]`;
+
+        // Add detailed Quarterly Assessment scores
+        if (subject.quarterlyAssessmentDetails.items.length > 0) {
+            prompt += `\n📊 Quarterly Assessment Details:\n`;
+            subject.quarterlyAssessmentDetails.items.forEach((item, idx) => {
+                prompt += `   ${idx + 1}. ${item.name}: ${item.score}/${item.totalScore} (${item.percentage}%)\n`;
+            });
         }
     });
 
     prompt += `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Please provide a comprehensive analysis in the following format:
+Based on the comprehensive grade data above, provide a detailed analysis in the following format:
 
 **STRENGTHS:**
-- Identify the student's strongest subjects and areas of excellence
-- Highlight consistent performance patterns
+- Identify the student's strongest subjects and specific assessment types
+- Highlight exceptional individual scores and consistent high performance
+- Point out subjects where all assessment types show excellence
 
 **AREAS FOR IMPROVEMENT:**
-- Point out subjects or assessment types that need attention
-- Identify specific weaknesses in Written Work, Performance Tasks, or Quarterly Assessments
+- Identify subjects or specific assessment types that need attention
+- Point out individual low scores and patterns of weakness
+- Note any subjects with inconsistent performance across assessment types
 
 **RECOMMENDATIONS:**
-- Provide specific, actionable advice for improvement
-- Suggest study strategies or focus areas
-- Recommend which subjects to prioritize
+- Provide specific, actionable advice based on actual score patterns
+- Suggest which specific assessment types (WW/PT/QA) to focus on per subject
+- Recommend study strategies tailored to the identified weaknesses
+- Prioritize subjects that need immediate attention
 
-**CONSISTENCY ANALYSIS:**
-- Comment on the consistency of performance across subjects
-- Note any significant variations in different assessment types
+**PERFORMANCE PATTERNS:**
+- Analyze consistency across different assessment types (Written Work vs Performance Tasks vs Quarterly Assessment)
+- Identify if the student performs better in certain types of assessments
+- Note any subjects showing improvement or decline trends
+- Comment on overall score distribution and variability
 
-Keep the analysis concise, constructive, and focused on actionable insights. Use a supportive and encouraging tone while being honest about areas needing improvement.`;
+**ACTIONABLE INSIGHTS:**
+- Provide 3-5 concrete next steps the student should take
+- Suggest specific areas to review or practice
+- Recommend time allocation across subjects based on current performance
+
+Keep the analysis professional, constructive, and data-driven. Focus on actionable insights based on the actual scores provided. Use a supportive tone while being honest about areas needing improvement. Reference specific scores and subjects when making observations.
+Make the response first-person perspective don't use "This student", use "You"
+`;
+    
     return prompt;
 }
