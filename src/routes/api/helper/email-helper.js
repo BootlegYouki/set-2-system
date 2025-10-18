@@ -1247,7 +1247,7 @@ Please do not reply to this email.
         address: process.env.SMTP_USER
       },
       to: email,
-      subject: `✓ Password Reset Successful - SET-2 System`,
+      subject: `Password Reset Successful - SET-2 System`,
       text: textContent,
       html: htmlContent
     };

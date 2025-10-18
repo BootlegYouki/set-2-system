@@ -129,6 +129,9 @@
         if (nextInput) {
           nextInput.focus();
         }
+      } else if (index === 5 && codeDigits.every(digit => digit !== '')) {
+        // All 6 digits are filled, automatically verify
+        handleVerifyCode({ preventDefault: () => {} });
       }
     } else {
       codeDigits[index] = '';
@@ -161,6 +164,11 @@
       const targetInput = document.getElementById(`code-digit-${focusIndex}`);
       if (targetInput) {
         targetInput.focus();
+      }
+      
+      // If all 6 digits are filled from paste, automatically verify
+      if (pastedData.length === 6) {
+        handleVerifyCode({ preventDefault: () => {} });
       }
     }
   }
@@ -517,7 +525,7 @@
 
       <!-- Step 2: Code Verification -->
       {#if forgotPasswordStep === 2}
-        <form class="login-form" onsubmit={handleVerifyCode}>
+        <form class="login-form" onsubmit={(e) => { e.preventDefault(); }}>
           <div class="form-field">
             <div class="code-boxes-container">
               {#each codeDigits as digit, index}
@@ -533,26 +541,20 @@
                   autocomplete="off"
                   class="code-box"
                   required
+                  disabled={isLoading}
                 />
               {/each}
             </div>
             {#if attemptsRemaining < 5}
               <div class="info-text">Attempts remaining: {attemptsRemaining}</div>
             {/if}
-          </div>
-
-          <button 
-            type="submit" 
-            class="custom-filled-button login-submit"
-            disabled={isLoading}
-          >
             {#if isLoading}
-              <div class="login-loading-spinner"></div>
-            {:else}
-              <span class="material-symbols-outlined">verified</span>
-              <span>Verify Code</span>
+              <div class="verification-loading">
+                <div class="login-loading-spinner"></div>
+                <span>Verifying code...</span>
+              </div>
             {/if}
-          </button>
+          </div>
 
           <button 
             type="button" 
@@ -579,7 +581,7 @@
         <form class="login-form" onsubmit={handleResetPassword}>
           <div class="form-field">
             <div class="custom-text-field">
-              <span class="leading-icon material-symbols-outlined">lock_reset</span>
+              <span class="leading-icon material-symbols-outlined">lock</span>
               <input
                 type={showNewPassword ? 'text' : 'password'}
                 bind:value={newPassword}
@@ -605,7 +607,7 @@
 
           <div class="form-field">
             <div class="custom-text-field">
-              <span class="leading-icon material-symbols-outlined">lock</span>
+              <span class="leading-icon material-symbols-outlined">lock_reset</span>
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 bind:value={confirmPassword}

@@ -229,6 +229,22 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* Verification loading indicator */
+.verification-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+}
+
+[data-theme="dark"] .verification-loading {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 /* Code input specific styling */
 .code-input {
   letter-spacing: 0.5em;
@@ -274,6 +290,11 @@
 .code-box:hover {
   border-color: rgba(255, 255, 255, 0.5);
   background-color: rgba(255, 255, 255, 0.12);
+}
+
+.code-box:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Dark mode styling for code boxes */
