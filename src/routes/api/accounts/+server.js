@@ -2,7 +2,11 @@ import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
 import bcrypt from 'bcrypt';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { sendAccountCreationEmail } from '../helper/email-helper.js';
 import { ObjectId } from 'mongodb';
+
+// Email validation regex - standard email format validation
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // POST /api/accounts - Create a new account
 export async function POST({ request, getClientAddress }) {
@@ -17,6 +21,28 @@ export async function POST({ request, getClientAddress }) {
     // Validate email for students and teachers
     if ((accountType === 'student' || accountType === 'teacher') && !email) {
       return json({ error: 'Email is required for students and teachers' }, { status: 400 });
+    }
+    
+    // Validate email format
+    if (email && !EMAIL_REGEX.test(email)) {
+      return json({ error: 'Invalid email format' }, { status: 400 });
+    }
+    
+    // Check if email already exists (case-insensitive)
+    if (email) {
+      const db = client.db(process.env.MONGODB_DB_NAME);
+      const usersCollection = db.collection('users');
+      const existingEmail = await usersCollection.findOne({ 
+        email: email.toLowerCase(),
+        $or: [
+          { status: { $exists: false } },
+          { status: 'active' }
+        ]
+      });
+      
+      if (existingEmail) {
+        return json({ error: 'This email is already registered' }, { status: 409 });
+      }
     }
     
     // Validate grade level for students
@@ -65,7 +91,7 @@ export async function POST({ request, getClientAddress }) {
       middle_initial: middleInitial || null,
       full_name: fullName,
       gender: gender,
-      email: email || null,
+      email: email ? email.toLowerCase() : null, // Store email in lowercase
       grade_level: gradeLevel || null,
       birthdate: birthdate ? new Date(birthdate) : null,
       address: address || null,
@@ -129,7 +155,25 @@ export async function POST({ request, getClientAddress }) {
       status: 'active'
     };
     
-    return json({ success: true, account: response }, { status: 201 });
+    // Send account creation email (don't block the response if email fails)
+    if (email) {
+      sendAccountCreationEmail({
+        email: email,
+        fullName: fullName,
+        accountNumber: accountNumber,
+        accountType: accountType
+      }).then(emailResult => {
+        if (emailResult.success) {
+          console.log(`Account creation email sent to ${email}`);
+        } else {
+          console.error(`Failed to send account creation email to ${email}:`, emailResult.error);
+        }
+      }).catch(emailError => {
+        console.error(`Error sending account creation email to ${email}:`, emailError);
+      });
+    }
+    
+    return json({ success: true, account: response, emailSent: !!email }, { status: 201 });
     
   } catch (error) {
     console.error('Error creating account:', error);

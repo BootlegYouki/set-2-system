@@ -198,6 +198,92 @@
   color: var(--md-sys-color-on-surface-variant);
 }
 
+/* Email Input Wrapper */
+.email-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.email-input-wrapper .form-input {
+  padding-right: 48px;
+}
+
+.email-input-wrapper .form-input.error {
+  border-color: var(--md-sys-color-error);
+}
+
+.email-input-wrapper .form-input.valid {
+  border-color: var(--md-sys-color-primary);
+}
+
+.email-status {
+  position: absolute;
+  right: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.email-status.checking {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.email-status.valid {
+  color: var(--md-sys-color-primary);
+}
+
+.email-status.error {
+  color: var(--md-sys-color-error);
+}
+
+.email-status .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.email-status .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.form-error {
+  font-size: var(--md-sys-typescale-body-small-size);
+  color: var(--md-sys-color-error);
+  margin-bottom: 0;
+  display: flex;
+  align-items: end;
+  justify-content: end;
+  gap: var(--spacing-xs);
+}
+
+.form-error::before {
+  content: 'error';
+  font-family: 'Material Symbols Outlined';
+  font-size: 16px;
+}
+
+.form-success {
+  font-size: var(--md-sys-typescale-body-small-size);
+  color: var(--md-sys-color-primary);
+  margin-bottom: 0;
+  display: flex;
+  align-items: end;
+  justify-content: end;
+  gap: var(--spacing-xs);
+}
+
+.form-success::before {
+  content: 'check_circle';
+  font-family: 'Material Symbols Outlined';
+  font-size: 16px;
+}
+
 /* Additional Information Section */
 .additional-info-section {
   margin-top: var(--spacing-xl);

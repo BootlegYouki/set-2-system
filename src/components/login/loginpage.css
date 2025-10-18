@@ -120,6 +120,128 @@
 .login-header {
   width: 100%;
   margin-bottom: var(--spacing-xl);
+  position: relative;
+}
+
+.back-to-login-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 20px;
+  background-color: transparent;
+  color: rgba(26, 26, 26, 0.8);
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  letter-spacing: var(--md-sys-typescale-label-large-tracking);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  overflow: hidden;
+  outline: none;
+  width: 50%;
+  transform: translateX(50%);
+}
+
+
+[data-theme="dark"] .back-to-login-btn {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="dark"] .back-to-login-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Success and Error Message Boxes */
+.success-message-box,
+.error-message-box {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  animation: slideIn 0.3s ease;
+  width: 100%;
+}
+
+.success-message-box {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+[data-theme="dark"] .success-message-box {
+  background-color: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #81c784;
+}
+
+.error-message-box {
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #f44336;
+}
+
+[data-theme="dark"] .error-message-box {
+  background-color: rgba(244, 67, 54, 0.15);
+  border-color: rgba(244, 67, 54, 0.4);
+  color: #ef5350;
+}
+
+.success-message-box .material-symbols-outlined,
+.error-message-box .material-symbols-outlined {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Info text for attempts remaining */
+.info-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--md-sys-typescale-body-small-font);
+  margin-top: 4px;
+  margin-left: 16px;
+  padding-left: 36px;
+  line-height: 16px;
+}
+
+[data-theme="dark"] .info-text {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Code input specific styling */
+.code-input {
+  letter-spacing: 0.5em;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Button with icon styling */
+.custom-filled-button .material-symbols-outlined,
+.custom-text-button .material-symbols-outlined {
+  font-size: 20px;
 }
 
 .school-logo {
@@ -454,7 +576,6 @@ input:-webkit-autofill:active {
 
 .custom-text-button:active {
   background-color: rgba(26, 26, 26, 0.12);
-  transform: scale(0.98);
 }
 
 .custom-text-button:disabled {

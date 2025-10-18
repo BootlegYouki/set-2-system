@@ -15,6 +15,12 @@
 	let lastName = '';
 	let middleInitial = '';
 	let email = '';
+	
+	// Email validation state
+	let emailError = '';
+	let isCheckingEmail = false;
+	let emailCheckTimeout = null;
+	const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 	// Additional Information for students
 	let birthdate = '';
@@ -124,6 +130,63 @@
 			contactNumber = formatted;
 		}
 		event.target.value = formatted;
+	}
+
+	// Email validation function
+	async function validateEmail(emailValue) {
+		// Clear previous error
+		emailError = '';
+		
+		// Check if email is empty
+		if (!emailValue || emailValue.trim() === '') {
+			return;
+		}
+		
+		// Check email format
+		if (!EMAIL_REGEX.test(emailValue)) {
+			emailError = 'Invalid email format';
+			return;
+		}
+		
+		// Check if email is already taken
+		isCheckingEmail = true;
+		try {
+			const data = await api.get(`/api/accounts/check-email?email=${encodeURIComponent(emailValue)}`);
+			
+			if (!data.valid) {
+				emailError = data.error || 'Invalid email format';
+			} else if (data.exists) {
+				emailError = 'This email is already registered';
+			} else {
+				emailError = ''; // Email is valid and available
+			}
+		} catch (error) {
+			console.error('Error checking email:', error);
+			// Don't show error for network issues, allow submission attempt
+		} finally {
+			isCheckingEmail = false;
+		}
+	}
+
+	// Handle email input with debouncing
+	function handleEmailInput(event) {
+		const value = event.target.value.trim().toLowerCase();
+		email = value;
+		
+		// Clear previous timeout
+		if (emailCheckTimeout) {
+			clearTimeout(emailCheckTimeout);
+		}
+		
+		// Only validate if there's a value
+		if (value) {
+			// Debounce email validation (wait 500ms after user stops typing)
+			emailCheckTimeout = setTimeout(() => {
+				validateEmail(value);
+			}, 500);
+		} else {
+			emailError = '';
+		}
 	}
 
 	// Date validation function
@@ -486,6 +549,18 @@
 			toastStore.error('Please enter an email address.');
 			return;
 		}
+		
+		// Check for email validation errors
+		if (emailError) {
+			toastStore.error(emailError);
+			return;
+		}
+		
+		// Don't allow submission while checking email
+		if (isCheckingEmail) {
+			toastStore.error('Please wait while we verify the email address.');
+			return;
+		}
 
 		// Check if student account requires grade level selection
 		if (selectedAccountType === 'student' && !selectedGradeLevel) {
@@ -581,6 +656,7 @@
 			lastName = '';
 			middleInitial = '';
 			email = '';
+			emailError = '';
 			birthdate = '';
 			address = '';
 			guardian = '';
@@ -916,14 +992,37 @@
 				{#if selectedAccountType === 'student' || selectedAccountType === 'teacher'}
 					<div class="form-group">
 						<label class="form-label" for="email">Email Address *</label>
-						<input
-							type="email"
-							id="email"
-							class="form-input"
-							bind:value={email}
-							placeholder="Enter email address"
-							required
-						/>
+						<div class="email-input-wrapper">
+							<input
+								type="email"
+								id="email"
+								class="form-input"
+								class:error={emailError}
+								class:valid={email && !emailError && !isCheckingEmail}
+								bind:value={email}
+								on:input={handleEmailInput}
+								placeholder="Enter email address"
+								required
+							/>
+							{#if isCheckingEmail}
+								<span class="email-status checking">
+									<span class="material-symbols-outlined spinning">progress_activity</span>
+								</span>
+							{:else if email && !emailError}
+								<span class="email-status valid">
+									<span class="material-symbols-outlined">check_circle</span>
+								</span>
+							{:else if emailError}
+								<span class="email-status error">
+									<span class="material-symbols-outlined">error</span>
+								</span>
+							{/if}
+						</div>
+						{#if emailError}
+							<p class="form-error">{emailError}</p>
+						{:else if email && !isCheckingEmail}
+							<p class="form-success">Email is available</p>
+						{/if}
 					</div>
 				{/if}
 
@@ -1051,7 +1150,7 @@
 							!firstName ||
 							!lastName ||
 							((selectedAccountType === 'student' || selectedAccountType === 'teacher') &&
-								!email) ||
+								(!email || emailError || isCheckingEmail)) ||
 							(selectedAccountType === 'student' &&
 								(!birthdate || !address || !guardian || !contactNumber))}
 					>
