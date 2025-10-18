@@ -580,11 +580,11 @@
         const percentage = (score / total) * 100;
         sum += percentage;
       }
-      return Math.round((sum / validScores.length) * 100) / 100;
+      return Math.round((sum / validScores.length) * 10) / 10;
     } else {
       // Original calculation for backward compatibility
       const sum = validScores.reduce((acc, score) => acc + parseFloat(score), 0);
-      return Math.round((sum / validScores.length) * 100) / 100;
+      return Math.round((sum / validScores.length) * 10) / 10;
     }
   }
 
@@ -603,7 +603,7 @@
                       (ptAvg * gradingConfig.performanceTasks.weight) + 
                       (qaAvg * gradingConfig.quarterlyAssessment.weight);
     
-    return Math.round(finalGrade * 100) / 100;
+    return Math.round(finalGrade * 10) / 10;
   }
 
   // Get grade status

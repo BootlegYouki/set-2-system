@@ -137,7 +137,7 @@
 				student.finalGrades?.filter((finalGrade) => finalGrade.verified) || [];
 			return {
 				...student,
-				average: Math.round(average * 100) / 100,
+				average: Math.round(average * 10) / 10,
 				verifiedGradesCount: verifiedFinalGrades.length,
 				pendingGradesCount: (student.finalGrades?.length || 0) - verifiedFinalGrades.length
 			};
@@ -154,8 +154,8 @@
 			if (validAverages.length > 0) {
 				advisoryData.averageGrade =
 					Math.round(
-						(validAverages.reduce((sum, avg) => sum + avg, 0) / validAverages.length) * 100
-					) / 100;
+						(validAverages.reduce((sum, avg) => sum + avg, 0) / validAverages.length) * 10
+					) / 10;
 			} else {
 				advisoryData.averageGrade = null;
 			}

@@ -201,12 +201,12 @@
       
 
       if (validPercentageCount === 0) return '';
-      const average = Math.round((percentageSum / validPercentageCount) * 100) / 100;
+      const average = Math.round((percentageSum / validPercentageCount) * 10) / 10;
       return formatScore(average);
     } else {
       // Original calculation for backward compatibility
       sum = validScores.reduce((acc, score) => acc + parseFloat(score), 0);
-      const average = Math.round((sum / validScores.length) * 100) / 100;
+      const average = Math.round((sum / validScores.length) * 10) / 10;
       return formatScore(average);
     }
   }
@@ -230,7 +230,7 @@
                       (ptNum * gradingConfig.performanceTasks.weight) +
                       (qaNum * gradingConfig.quarterlyAssessment.weight);
 
-    const roundedGrade = Math.round(finalGrade * 100) / 100;
+    const roundedGrade = Math.round(finalGrade * 10) / 10;
     return formatScore(roundedGrade);
   }
 

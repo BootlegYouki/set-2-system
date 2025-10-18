@@ -1,7 +1,9 @@
 import { json } from '@sveltejs/kit';
-import { OPENROUTER_AI_KEY } from '$env/static/private';
+import dotenv from 'dotenv';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
+
+dotenv.config();
 
 export async function POST({ request }) {
     try {
@@ -44,13 +46,13 @@ export async function POST({ request }) {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${OPENROUTER_AI_KEY}`,
+                'Authorization': `Bearer ${process.env.OPENROUTER_AI_KEY}`,
                 'HTTP-Referer': '',
                 'X-Title': '',
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'deepseek/deepseek-r1-0528-qwen3-8b:free',
+                model: process.env.AI_MODEL,
                 messages: [
                     {
                         role: 'user',

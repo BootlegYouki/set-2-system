@@ -20,6 +20,7 @@
   let email = $state('');
   let resetToken = $state('');
   let verificationCode = $state('');
+  let codeDigits = $state(['', '', '', '', '', '']); // Individual digits for the 6-box input
   let newPassword = $state('');
   let confirmPassword = $state('');
   let showNewPassword = $state(false);
@@ -101,6 +102,7 @@
       email = '';
       resetToken = '';
       verificationCode = '';
+      codeDigits = ['', '', '', '', '', ''];
       newPassword = '';
       confirmPassword = '';
       errors = { idNumber: '', password: '', general: '' };
@@ -109,7 +111,61 @@
     }
   }
 
-  // Handle verification code input (only allow numbers, max 6 digits)
+  // Handle individual digit input for verification code
+  function handleDigitInput(index, event) {
+    const input = event.target;
+    const value = input.value.replace(/\D/g, ''); // Only allow numbers
+    
+    if (value.length > 0) {
+      // Update the current digit
+      codeDigits[index] = value[value.length - 1]; // Take only the last digit
+      
+      // Update the full verification code
+      verificationCode = codeDigits.join('');
+      
+      // Auto-focus next input
+      if (index < 5 && value) {
+        const nextInput = document.getElementById(`code-digit-${index + 1}`);
+        if (nextInput) {
+          nextInput.focus();
+        }
+      }
+    } else {
+      codeDigits[index] = '';
+      verificationCode = codeDigits.join('');
+    }
+  }
+
+  // Handle backspace to move to previous input
+  function handleDigitKeydown(index, event) {
+    if (event.key === 'Backspace' && !codeDigits[index] && index > 0) {
+      const prevInput = document.getElementById(`code-digit-${index - 1}`);
+      if (prevInput) {
+        prevInput.focus();
+      }
+    }
+  }
+
+  // Handle paste event for verification code
+  function handleCodePaste(event) {
+    event.preventDefault();
+    const pastedData = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    
+    if (pastedData.length > 0) {
+      const digits = pastedData.split('');
+      codeDigits = [...digits, ...Array(6 - digits.length).fill('')];
+      verificationCode = codeDigits.join('');
+      
+      // Focus the last filled input or the first empty one
+      const focusIndex = Math.min(digits.length, 5);
+      const targetInput = document.getElementById(`code-digit-${focusIndex}`);
+      if (targetInput) {
+        targetInput.focus();
+      }
+    }
+  }
+
+  // Handle verification code input (only allow numbers, max 6 digits) - Legacy method for compatibility
   function handleCodeChange(e) {
     const value = e.target.value.replace(/\D/g, '').slice(0, 6);
     verificationCode = value;
@@ -274,6 +330,7 @@
   // Resend code
   async function resendCode() {
     verificationCode = '';
+    codeDigits = ['', '', '', '', '', ''];
     attemptsRemaining = 5;
     await handleRequestCode({ preventDefault: () => {} });
   }
@@ -389,7 +446,7 @@
           aria-label="forgot-password"
           onclick={toggleForgotPassword}
         >
-          Forgot Password?
+          Forgot Password
         </button>
       </form>
     {:else}
@@ -462,20 +519,22 @@
       {#if forgotPasswordStep === 2}
         <form class="login-form" onsubmit={handleVerifyCode}>
           <div class="form-field">
-            <div class="custom-text-field">
-              <span class="leading-icon material-symbols-outlined">pin</span>
-              <input
-                type="text"
-                bind:value={verificationCode}
-                oninput={handleCodeChange}
-                maxlength="6"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                class="text-input code-input"
-                placeholder=" "
-                required
-              />
-              <label class="text-label">Verification Code</label>
+            <div class="code-boxes-container">
+              {#each codeDigits as digit, index}
+                <input
+                  id="code-digit-{index}"
+                  type="text"
+                  value={digit}
+                  oninput={(e) => handleDigitInput(index, e)}
+                  onkeydown={(e) => handleDigitKeydown(index, e)}
+                  onpaste={index === 0 ? handleCodePaste : null}
+                  maxlength="1"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  class="code-box"
+                  required
+                />
+              {/each}
             </div>
             {#if attemptsRemaining < 5}
               <div class="info-text">Attempts remaining: {attemptsRemaining}</div>
@@ -497,12 +556,16 @@
 
           <button 
             type="button" 
-            class="custom-text-button forgot-password"
+            class="custom-filled-button login-submit"
             onclick={resendCode}
             disabled={isLoading}
           >
-            <span class="material-symbols-outlined">refresh</span>
-            Resend Code
+            {#if isLoading}
+              <div class="login-loading-spinner"></div>
+            {:else}
+              <span class="material-symbols-outlined">refresh</span>
+              <span>Resend Code</span>
+            {/if}
           </button>
 
           <button class="back-to-login-btn" onclick={toggleForgotPassword} aria-label="Back to login">
@@ -574,7 +637,6 @@
             {#if isLoading}
               <div class="login-loading-spinner"></div>
             {:else}
-              <span class="material-symbols-outlined">check</span>
               <span>Reset Password</span>
             {/if}
           </button>
