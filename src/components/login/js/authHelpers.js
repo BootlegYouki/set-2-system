@@ -1,5 +1,5 @@
 import { authStore } from './auth.js';
-import { showSuccess, showError } from '../../common/js/toastStore.js';
+import { showSuccess } from '../../common/js/toastStore.js';
 
 /**
  * Simulate API call with delay
@@ -80,7 +80,7 @@ export const handleLogin = async ({ accountNumber, password }) => {
       authStore.login(userData.accountType, userData);
       
       // Show success message
-      showSuccess(`Login successful! Welcome back, ${userData.name}.`);
+      showSuccess(`Login successful! Welcome back, ${userData.name}`);
       
       console.log('Login successful:', { accountNumber, userType: userData.accountType });
       
@@ -90,7 +90,6 @@ export const handleLogin = async ({ accountNumber, password }) => {
     }
   } catch (error) {
     const errorMessage = error.message || 'Network error. Please try again.';
-    showError(errorMessage);
     throw new Error(errorMessage);
   }
 };

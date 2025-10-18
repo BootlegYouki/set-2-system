@@ -431,6 +431,24 @@
           {/if}
         </div>
 
+        <!-- Error Container -->
+        {#if errors.idNumber || errors.password || errors.general}
+          <div class="login-error-container">
+            <span class="material-symbols-outlined">error</span>
+            <div class="error-messages">
+              {#if errors.idNumber}
+                <div class="error-message-item">{errors.idNumber}</div>
+              {/if}
+              {#if errors.password}
+                <div class="error-message-item">{errors.password}</div>
+              {/if}
+              {#if errors.general}
+                <div class="error-message-item">{errors.general}</div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+
         <!-- Submit Button -->
         <button 
           id="login-submit-btn"
