@@ -912,7 +912,7 @@ Please do not reply to this email.
         address: process.env.SMTP_USER
       },
       to: email,
-      subject: `🔒 Password Reset Code - SET-2 System`,
+      subject: `Password Reset Code - SET-2 System`,
       text: textContent,
       html: htmlContent
     };
@@ -1160,7 +1160,6 @@ export async function sendPasswordResetConfirmationEmail(confirmData) {
         <div class="email-container">
           <div class="header">
             <div class="header-content">
-              <div class="header-icon">✓</div>
               <h1>Password Reset Successful</h1>
               <p>SET-2 System</p>
             </div>
@@ -1180,7 +1179,7 @@ export async function sendPasswordResetConfirmationEmail(confirmData) {
             </div>
             
             <div class="info-box">
-              <h3>🔐 Security Recommendations</h3>
+              <h3>Security Recommendations</h3>
               <p>• Use a strong, unique password for your account</p>
               <p>• Never share your password with anyone</p>
               <p>• Change your password regularly</p>
