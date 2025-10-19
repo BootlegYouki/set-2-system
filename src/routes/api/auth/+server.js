@@ -32,13 +32,10 @@ export async function POST({ request, getClientAddress }) {
     const db = client.db(process.env.MONGODB_DB_NAME || 'set-2-system');
     const usersCollection = db.collection('users');
     
+    // Optimized query: check account_number first (indexed), then filter status
     const user = await usersCollection.findOne({
       account_number: sanitizedAccountNumber,
-      $or: [
-        { status: { $exists: false } },
-        { status: null },
-        { status: 'active' }
-      ]
+      status: { $ne: 'archived' } // Simpler condition: not archived = active/null/undefined
     });
     
     if (!user) {
@@ -62,30 +59,27 @@ export async function POST({ request, getClientAddress }) {
       accountType: user.account_type
     };
     
-    // Log the login activity
-    try {
-      // Get client IP and user agent
-      const ip_address = getClientAddress();
-      const user_agent = request.headers.get('user-agent');
-      
-      // Log activity to MongoDB
-      const activityLogsCollection = db.collection('activity_logs');
-      await activityLogsCollection.insertOne({
-        activity_type: 'user_login',
-        user_id: user._id,
-        user_account_number: user.account_number,
-        activity_data: {
-          full_name: user.full_name,
-          account_type: user.account_type
-        },
-        ip_address: ip_address,
-        user_agent: user_agent,
-        created_at: new Date()
-      });
-    } catch (logError) {
+    // Log the login activity asynchronously (don't await - improves response time)
+    const ip_address = getClientAddress();
+    const user_agent = request.headers.get('user-agent');
+    const activityLogsCollection = db.collection('activity_logs');
+    
+    // Fire and forget - log activity without blocking the response
+    activityLogsCollection.insertOne({
+      activity_type: 'user_login',
+      user_id: user._id,
+      user_account_number: user.account_number,
+      activity_data: {
+        full_name: user.full_name,
+        account_type: user.account_type
+      },
+      ip_address: ip_address,
+      user_agent: user_agent,
+      created_at: new Date()
+    }).catch(logError => {
       console.error('Error logging login activity:', logError);
-      // Don't fail the login if logging fails
-    }
+      // Activity logging failure doesn't affect login success
+    });
     
     return json({ 
       success: true, 
