@@ -85,22 +85,22 @@
   word-wrap: break-word;
 }
 
-.teacher-menu-navigation-rail:not(.collapsed) .teacher-menu-rail-label {
+.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-label {
   display: none;
 }
 
-.teacher-menu-navigation-rail:not(.collapsed) .teacher-menu-rail-item {
+.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-item {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.teacher-menu-navigation-rail.collapsed {
+.teacher-menu-navigation-rail:not(.collapsed) {
   width: 230px;
 }
 
 
-.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-item {
+.teacher-menu-navigation-rail:not(.collapsed) .teacher-menu-rail-item {
   display: flex;
   flex-direction: row;
   justify-content: start;
@@ -111,11 +111,11 @@
 }
 
 
-.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-icon-container{
+.teacher-menu-navigation-rail:not(.collapsed) .teacher-menu-rail-icon-container{
   justify-content: start;
 }
 
-.teacher-menu-navigation-rail.collapsed .teacher-menu-rail-label {
+.teacher-menu-navigation-rail:not(.collapsed) .teacher-menu-rail-label {
   font-size: 14px;
   max-width: none;
   white-space: nowrap;

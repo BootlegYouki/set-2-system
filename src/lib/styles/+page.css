@@ -89,7 +89,7 @@
   }
 
   .content-area {
-    left: 73px; /* Account for collapsed navigation rail width */
+    left: 230px;
     top: 64px; /* Account for navbar height */
     bottom: 0; /* No bottom menu on desktop */
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
@@ -99,6 +99,14 @@
   .student-portal.nav-rail-collapsed .content-area, 
   .teacher-portal.nav-rail-collapsed .content-area,
   .admin-portal.nav-rail-collapsed .content-area {
+    left: 73px;
+    transition: left 150ms cubic-bezier(.2,.9,.2,1);
+  }
+
+  /* Hover state adjustments for collapsed navigation rails */
+  .student-portal.nav-rail-collapsed .navigation-rail:hover ~ .content-area,
+  .teacher-portal.nav-rail-collapsed .teacher-menu-navigation-rail:hover ~ .content-area,
+  .admin-portal.nav-rail-collapsed .admin-menu-navigation-rail:hover ~ .content-area {
     left: 230px;
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
@@ -133,13 +141,13 @@
 /* Tablet layout adjustments */
 @media (min-width: 769px) and (max-width: 1024px) {
   .content-area {
-    left: 73px;
+    left: 230px;
   }
   
   .student-portal.nav-rail-collapsed .content-area, 
   .teacher-portal.nav-rail-collapsed .content-area,
   .admin-portal.nav-rail-collapsed .content-area {
-    left: 230px;
+    left: 73px;
   }
 
 }
