@@ -12,7 +12,63 @@ export async function GET({ url }) {
       setting_key: 'current_school_year' 
     });
     const school_year = url.searchParams.get('school_year') || schoolYearSetting?.setting_value || '2025-2026';
-    const quarter = parseInt(url.searchParams.get('quarter')) || 1;
+    
+    // Determine current quarter based on system date and quarter settings
+    let currentQuarter = 1; // Default fallback
+    
+    if (!url.searchParams.has('quarter')) {
+      // Only auto-detect if quarter is not explicitly provided
+      try {
+        const quarterSettings = await db.collection('admin_settings').find({
+          setting_key: { 
+            $in: [
+              'quarter_1_start_date', 'quarter_1_end_date',
+              'quarter_2_start_date', 'quarter_2_end_date',
+              'quarter_3_start_date', 'quarter_3_end_date',
+              'quarter_4_start_date', 'quarter_4_end_date'
+            ]
+          }
+        }).toArray();
+
+        const settings = {};
+        quarterSettings.forEach(row => {
+          settings[row.setting_key] = row.setting_value;
+        });
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Helper function to parse MM-DD-YYYY format
+        const parseDate = (dateStr) => {
+          if (!dateStr || dateStr.trim() === '') return null;
+          const parts = dateStr.split('-');
+          if (parts.length !== 3) return null;
+          const [month, day, year] = parts.map(p => parseInt(p, 10));
+          if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
+          return new Date(year, month - 1, day);
+        };
+
+        // Check each quarter to find the current one
+        const quarters = [
+          { num: 1, start: parseDate(settings.quarter_1_start_date), end: parseDate(settings.quarter_1_end_date) },
+          { num: 2, start: parseDate(settings.quarter_2_start_date), end: parseDate(settings.quarter_2_end_date) },
+          { num: 3, start: parseDate(settings.quarter_3_start_date), end: parseDate(settings.quarter_3_end_date) },
+          { num: 4, start: parseDate(settings.quarter_4_start_date), end: parseDate(settings.quarter_4_end_date) }
+        ];
+
+        for (const quarter of quarters) {
+          if (quarter.start && quarter.end && today >= quarter.start && today <= quarter.end) {
+            currentQuarter = quarter.num;
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('Error determining current quarter:', error);
+        // Fall back to default quarter 1
+      }
+    }
+    
+    const quarter = parseInt(url.searchParams.get('quarter')) || currentQuarter;
 
     // Get all active students
     const activeStudents = await db.collection('users').find({
