@@ -11,6 +11,7 @@
   import StudentTodoList from '../components/users/student/sections/studentTodolist/studentTodolist.svelte';
   import TeacherNavbar from '../components/users/teacher/navigations/teacherNavbar/teacherNavbar.svelte';
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
+  import TeacherProfile from '../components/users/teacher/sections/teacherProfile/teacherProfile.svelte';
   import TeacherSchedule from '../components/users/teacher/sections/teacherSchedule/teacherSchedule.svelte';
   import TeacherClassSelection from '../components/users/teacher/sections/teacherClassManagement/teacherClassSelection/teacherClassSelection.svelte';
   import TeacherClassList from '../components/users/teacher/sections/teacherClassManagement/teacherClassList/teacherClassList.svelte';
@@ -70,9 +71,15 @@
   
   // Handle navigation from teacher menu
   function handleTeacherNavigation(event) {
-    teacherActiveSection = event.detail.section;
+    // Handle both event objects (from menu) and direct strings (from navbar)
+    if (typeof event === 'string') {
+      teacherActiveSection = event;
+    } else {
+      teacherActiveSection = event.detail.section;
+    }
     // Reset selected class when navigating away from class list
-    if (event.detail.section !== 'class-list') {
+    const section = typeof event === 'string' ? event : event.detail.section;
+    if (section !== 'class-list') {
       selectedClass = null;
     }
   }
@@ -193,10 +200,13 @@
         profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleTeacherToggleNavRail}
+        onnavigate={handleTeacherNavigation}
       />
       
       <main class="content-area">
-        {#if teacherActiveSection === 'schedule'}
+        {#if teacherActiveSection === 'profile'}
+          <TeacherProfile />
+        {:else if teacherActiveSection === 'schedule'}
           <TeacherSchedule />
         {:else if teacherActiveSection === 'students'}
           <TeacherClassSelection onNavigateToClassList={handleNavigateToClassList} />

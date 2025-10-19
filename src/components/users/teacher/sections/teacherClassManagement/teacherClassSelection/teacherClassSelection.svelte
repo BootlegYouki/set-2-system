@@ -124,7 +124,7 @@
   <!-- Header Section -->
   <div class="class-mgmt-page-header">
     <div class="header-content">
-      <h1 class="class-mgmt-page-title">Class Management Dashboard</h1>
+      <h1 class="class-mgmt-page-title">Class Management</h1>
       <p class="class-mgmt-page-subtitle">Overview of your teaching assignments and student distribution</p>
     </div>
   </div>

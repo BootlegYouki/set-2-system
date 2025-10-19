@@ -589,7 +589,7 @@
 															class="grade-score-display"
 															style="color: {getGradeColor(finalGrade.finalGrade)}"
 														>
-															{finalGrade.finalGrade}
+															{Math.round(finalGrade.finalGrade * 10) / 10}
 														</div>
 													{:else}
 														<div class="grade-score-display" style="color: #666;">N/A</div>

@@ -566,7 +566,7 @@
 				{:else if studentProfile.subjects.length > 0}
 				<div class="subjects-grid">
 					{#each studentProfile.subjects as subject (subject.id)}
-						<div class="subject-card">
+						<div class="subject-card" style="border-color: {subject.color};">
 							<!-- Subject Icon -->
 							<div class="subject-icon-column">
 								<div class="subject-icon" style="background-color: {subject.color}20; color: {subject.color}">
