@@ -110,16 +110,33 @@ export async function GET({ url }) {
       sectionMap[section._id.toString()] = section;
     });
 
-    // Get all grades for these students in the specified school year and quarter
-    const gradesData = await db.collection('grades').find({
-      student_id: { $in: studentIds },
-      school_year: school_year,
-      quarter: quarter,
-      $or: [
-        { verified: true },
-        { 'verification.verified': true }
-      ]
-    }).toArray();
+    // Determine if we're calculating overall (all quarters) or specific quarter
+    const calculateOverall = url.searchParams.get('quarter') === 'all';
+    
+    // Get grades based on whether we're calculating overall or specific quarter
+    let gradesData;
+    if (calculateOverall) {
+      // Get all grades for all quarters
+      gradesData = await db.collection('grades').find({
+        student_id: { $in: studentIds },
+        school_year: school_year,
+        $or: [
+          { verified: true },
+          { 'verification.verified': true }
+        ]
+      }).toArray();
+    } else {
+      // Get grades for specific quarter
+      gradesData = await db.collection('grades').find({
+        student_id: { $in: studentIds },
+        school_year: school_year,
+        quarter: quarter,
+        $or: [
+          { verified: true },
+          { 'verification.verified': true }
+        ]
+      }).toArray();
+    }
 
     // Create a map of student_id to their grades
     const studentGradesMap = {};
@@ -139,18 +156,50 @@ export async function GET({ url }) {
         const section = sectionId && sectionMap[sectionId.toString()];
         const studentGrades = studentGradesMap[studentId] || [];
         
-        // Calculate GWA from verified final grades
+        // Calculate GWA based on mode (overall or specific quarter)
         let gwa = 0;
-        if (studentGrades.length > 0) {
-          const validGrades = studentGrades.filter(grade => 
-            grade.averages && grade.averages.final_grade && grade.averages.final_grade > 0
-          );
+        if (calculateOverall) {
+          // Calculate overall GWA across all quarters
+          // Group grades by quarter and subject, then calculate quarter averages, then overall average
+          const quarterAverages = {};
           
-          if (validGrades.length > 0) {
-            const totalGrades = validGrades.reduce((sum, grade) => 
-              sum + grade.averages.final_grade, 0
+          studentGrades.forEach(grade => {
+            const quarter = grade.quarter;
+            if (!quarterAverages[quarter]) {
+              quarterAverages[quarter] = [];
+            }
+            if (grade.averages && grade.averages.final_grade && grade.averages.final_grade > 0) {
+              quarterAverages[quarter].push(grade.averages.final_grade);
+            }
+          });
+          
+          // Calculate average for each quarter
+          const quarterGWAs = [];
+          Object.keys(quarterAverages).forEach(quarter => {
+            const grades = quarterAverages[quarter];
+            if (grades.length > 0) {
+              const quarterGWA = grades.reduce((sum, grade) => sum + grade, 0) / grades.length;
+              quarterGWAs.push(quarterGWA);
+            }
+          });
+          
+          // Calculate overall average from quarter GWAs
+          if (quarterGWAs.length > 0) {
+            gwa = quarterGWAs.reduce((sum, qGWA) => sum + qGWA, 0) / quarterGWAs.length;
+          }
+        } else {
+          // Calculate GWA for specific quarter (original logic)
+          if (studentGrades.length > 0) {
+            const validGrades = studentGrades.filter(grade => 
+              grade.averages && grade.averages.final_grade && grade.averages.final_grade > 0
             );
-            gwa = totalGrades / validGrades.length;
+            
+            if (validGrades.length > 0) {
+              const totalGrades = validGrades.reduce((sum, grade) => 
+                sum + grade.averages.final_grade, 0
+              );
+              gwa = totalGrades / validGrades.length;
+            }
           }
         }
 
@@ -191,7 +240,8 @@ export async function GET({ url }) {
       metadata: {
         totalStudents: studentsWithGrades.length,
         schoolYear: school_year,
-        quarter: quarter,
+        quarter: calculateOverall ? 'all' : quarter,
+        quarterDisplay: calculateOverall ? 'Overall (All Quarters)' : `Quarter ${quarter}`,
         timestamp: new Date().toISOString()
       }
     });

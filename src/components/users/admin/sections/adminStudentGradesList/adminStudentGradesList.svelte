@@ -12,10 +12,12 @@
 	let searchQuery = '';
 	let selectedGradeLevel = '';
 	let selectedSection = '';
+	let selectedQuarter = ''; // Empty string means "Current Quarter"
 
 	// Dropdown states
 	let isGradeLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
+	let isQuarterDropdownOpen = false;
 
 	// Grade level options
 	const gradeLevelOptions = [
@@ -26,12 +28,23 @@
 		{ id: '10', name: 'Grade 10', icon: 'looks_4' }
 	];
 
+	// Quarter options
+	const quarterOptions = [
+		{ id: '', name: 'Current Quarter', icon: 'event' },
+		{ id: 'all', name: 'Overall (All Quarters)', icon: 'summarize' },
+		{ id: '1', name: '1st Quarter', icon: 'filter_1' },
+		{ id: '2', name: '2nd Quarter', icon: 'filter_2' },
+		{ id: '3', name: '3rd Quarter', icon: 'filter_3' },
+		{ id: '4', name: '4th Quarter', icon: 'filter_4' }
+	];
+
 	// Dynamic section options - will be populated from API
 	let sectionOptions = [{ id: '', name: 'All Sections' }];
 
 	// Computed values
 	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
+	$: selectedQuarterObj = quarterOptions.find((quarter) => quarter.id === selectedQuarter);
 
 	// Load sections from API
 	async function loadSections() {
@@ -59,8 +72,15 @@
 	async function loadStudents() {
 		isLoading = true;
 		try {
+			// Build query parameters
+			const params = new URLSearchParams();
+			if (selectedQuarter) {
+				params.append('quarter', selectedQuarter);
+			}
+			
 			// Use the new bulk endpoint that gets all data in one query
-			const studentsData = await api.get('/api/students-bulk');
+			const url = `/api/students-bulk${params.toString() ? '?' + params.toString() : ''}`;
+			const studentsData = await api.get(url);
 			if (!studentsData.success) {
 				throw new Error(studentsData.error || 'Failed to load students');
 			}
@@ -98,11 +118,19 @@
 	function toggleGradeLevelDropdown() {
 		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
 		isSectionDropdownOpen = false;
+		isQuarterDropdownOpen = false;
 	}
 
 	function toggleSectionDropdown() {
 		isSectionDropdownOpen = !isSectionDropdownOpen;
 		isGradeLevelDropdownOpen = false;
+		isQuarterDropdownOpen = false;
+	}
+
+	function toggleQuarterDropdown() {
+		isQuarterDropdownOpen = !isQuarterDropdownOpen;
+		isGradeLevelDropdownOpen = false;
+		isSectionDropdownOpen = false;
 	}
 
 	function selectGradeLevel(gradeLevel) {
@@ -117,6 +145,13 @@
 		filterStudents();
 	}
 
+	function selectQuarter(quarter) {
+		selectedQuarter = quarter.id;
+		isQuarterDropdownOpen = false;
+		// Reload students data when quarter changes
+		loadStudents();
+	}
+
 	// Search handler
 	function handleSearch() {
 		filterStudents();
@@ -127,7 +162,9 @@
 		searchQuery = '';
 		selectedGradeLevel = '';
 		selectedSection = '';
-		filterStudents();
+		selectedQuarter = '';
+		// Reload students when clearing quarter filter
+		loadStudents();
 	}
 
 	// Get GWA status class
@@ -164,6 +201,7 @@
 		if (!event.target.closest('.sgl-custom-dropdown')) {
 			isGradeLevelDropdownOpen = false;
 			isSectionDropdownOpen = false;
+			isQuarterDropdownOpen = false;
 		}
 	}
 
@@ -220,6 +258,45 @@
 
 			<!-- Filter Dropdowns -->
 			<div class="sgl-filter-container">
+				<!-- Quarter Filter -->
+				<div class="sgl-filter-group">
+					<label class="sgl-filter-label">Quarter</label>
+					<div class="sgl-custom-dropdown" class:open={isQuarterDropdownOpen}>
+						<button
+							type="button"
+							class="sgl-dropdown-trigger sgl-filter-trigger"
+							on:click={toggleQuarterDropdown}
+						>
+							{#if selectedQuarterObj}
+								<div class="sgl-selected-option">
+									<span class="material-symbols-outlined sgl-option-icon"
+										>{selectedQuarterObj.icon}</span
+									>
+									<span class="sgl-option-name">{selectedQuarterObj.name}</span>
+								</div>
+							{:else}
+								<span class="sgl-placeholder">Current Quarter</span>
+							{/if}
+							<span class="material-symbols-outlined sgl-dropdown-arrow">expand_more</span>
+						</button>
+						<div class="sgl-dropdown-menu">
+							{#each quarterOptions as quarter (quarter.id)}
+								<button
+									type="button"
+									class="sgl-dropdown-option"
+									class:selected={selectedQuarter === quarter.id}
+									on:click={() => selectQuarter(quarter)}
+								>
+									<span class="material-symbols-outlined sgl-option-icon">{quarter.icon}</span>
+									<div class="sgl-option-content">
+										<span class="sgl-option-name">{quarter.name}</span>
+									</div>
+								</button>
+							{/each}
+						</div>
+					</div>
+				</div>
+
 				<!-- Grade Level Filter -->
 				<div class="sgl-filter-group">
 					<label class="sgl-filter-label">Grade Level</label>
@@ -295,7 +372,7 @@
 				</div>
 
 				<!-- Clear Filters Button -->
-				{#if searchQuery || selectedGradeLevel || selectedSection}
+				{#if searchQuery || selectedGradeLevel || selectedSection || selectedQuarter}
 					<button type="button" class="sgl-clear-filters-button" on:click={clearFilters}>
 						<span class="material-symbols-outlined">filter_alt_off</span>
 					</button>
