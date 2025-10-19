@@ -161,12 +161,6 @@
 		<div class="classes-header">
 			<h2>{fullDayName} Classes</h2>
 			<div class="refresh-controls">
-				{#if isRefreshing}
-					<div class="silent-refresh-indicator">
-						<div class="silent-loader"></div>
-						<span>Updating...</span>
-					</div>
-				{/if}
 				<button class="refresh-button" on:click={handleRefresh} disabled={isLoading}>
 					<span class="material-symbols-outlined">refresh</span>
 				</button>

@@ -196,7 +196,7 @@
 		// Refresh every 60 seconds
 		const refreshInterval = setInterval(() => {
 			fetchStudentsData();
-		}, 60000);
+		}, 5 * 60 * 1000);
 
 		// Listen for theme changes
 		const observer = new MutationObserver((mutations) => {
