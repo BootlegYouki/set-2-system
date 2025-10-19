@@ -27,7 +27,7 @@
 	let selectedDay = dayIndexToAbbrev[todayIndex] || 'Mon'; // Default to Monday if weekend
 
 	// Subscribe to the store
-	let { scheduleData, isLoading, isRefreshing, error, lastUpdated } = $derived($studentScheduleStore);
+	$: ({ scheduleData, isLoading, isRefreshing, error, lastUpdated } = $studentScheduleStore);
 
 	// Handle refresh functionality
 	async function handleRefresh() {
@@ -62,6 +62,7 @@
 		}
 	});
 
+	// Week days for navigation
 	const weekDays = [
 		{ day: 'Mon' },
 		{ day: 'Tue' },
@@ -70,29 +71,29 @@
 		{ day: 'Fri' }
 	];
 
-	// Map abbreviated days to full day names
+	// Map day abbreviations to full names
 	const dayNameMap = {
-		'Mon': 'Monday',
-		'Tue': 'Tuesday', 
-		'Wed': 'Wednesday',
-		'Thu': 'Thursday',
-		'Fri': 'Friday'
+		Mon: 'Monday',
+		Tue: 'Tuesday', 
+		Wed: 'Wednesday',
+		Thu: 'Thursday',
+		Fri: 'Friday'
 	};
 
-	// Derived values using Svelte 5 runes
-	let currentClasses = $derived(scheduleData[selectedDay] || []);
-	let fullDayName = $derived(dayNameMap[selectedDay] || selectedDay);
-	
-	// Mobile dropdown state
+	// Reactive statements
+	$: currentClasses = scheduleData[selectedDay] || [];
+	$: fullDayName = dayNameMap[selectedDay] || 'Monday';
+
+	// Dropdown state
 	let isDropdownOpen = false;
-	
+
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
 		if (!event.target.closest('.schedule-mobile-dropdown')) {
 			isDropdownOpen = false;
 		}
 	}
-	
+
 	// Toggle dropdown
 	function toggleDropdown() {
 		isDropdownOpen = !isDropdownOpen;
