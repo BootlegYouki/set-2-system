@@ -38,9 +38,61 @@
 	font-size: var(--md-sys-typescale-body-large-size);
 	margin: 0;
 	opacity: 0.9;
-	color: white;
 }
 
+/* Refresh Controls */
+.header-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+}
+
+.student-refresh-btn {
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-sm);
+	color: white;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 40px;
+	height: 40px;
+}
+
+.student-refresh-btn:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.2);
+	transform: translateY(-1px);
+}
+
+.student-refresh-btn:disabled {	
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.silent-refresh-indicator {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.refresh-spinner {
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgba(255, 255, 255, 0.3);
+	border-top: 2px solid white;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
 
 
 /* Section Titles */

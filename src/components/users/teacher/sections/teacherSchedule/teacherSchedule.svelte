@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { authStore } from '../../../../login/js/auth.js';
+	import { teacherScheduleStore } from '../../../../../lib/stores/teacher/teacherScheduleStore.js';
 	import './teacherSchedule.css';
 
 	// Get current date info
@@ -25,217 +26,48 @@
 	const todayIndex = today.getDay();
 	let selectedDay = dayIndexToAbbrev[todayIndex] || 'Mon'; // Default to Monday if weekend
 
-	// Slot-based colors (each slot gets a designated color)
-	const slotColors = ['blue', 'green', 'purple', 'yellow', 'orange'];
-	
-	// Function to get color based on slot index
-	function getSlotColor(slotIndex) {
-		return slotColors[slotIndex % slotColors.length];
-	}
-
-	// Schedule data from API
-	let scheduleData = [];
-	let loading = true;
-	let error = null;
-
-	// Process schedule data into the format expected by the component
-	function processScheduleData(data) {
-		const processedSchedule = {
-			Mon: [],
-			Tue: [],
-			Wed: [],
-			Thu: [],
-			Fri: []
-		};
-
-		// Map database day names to abbreviated names
-		const dayMapping = {
-			'monday': 'Mon',
-			'tuesday': 'Tue',
-			'wednesday': 'Wed',
-			'thursday': 'Thu',
-			'friday': 'Fri'
-		};
-
-		// Group by day to track slot indices
-		const daySlotCounters = {
-			Mon: 0,
-			Tue: 0,
-			Wed: 0,
-			Thu: 0,
-			Fri: 0
-		};
-
-		data.forEach(item => {
-			const dayAbbrev = dayMapping[item.day_of_week.toLowerCase()];
-			if (dayAbbrev) {
-				// Format time from 24-hour to 12-hour format
-				const startTime = formatTime(item.start_time);
-				const endTime = formatTime(item.end_time);
-				
-				// Determine the class name and subject
-				let className, subject;
-				if (item.schedule_type === 'subject') {
-					className = item.section_name;
-					subject = item.subject_name || 'Unknown Subject';
-				} else if (item.schedule_type === 'activity') {
-					className = item.activity_type_name || 'Activity';
-					subject = item.activity_type_name || 'Activity';
-				}
-
-				const classItem = {
-					name: className,
-					time: `${startTime} - ${endTime}`,
-					room: item.room_name || 'TBA',
-					subject: subject,
-					gradeLevel: item.grade_level, // Add grade level as separate field
-					scheduleType: item.schedule_type, // Add schedule type for conditional display
-					color: getSlotColor(daySlotCounters[dayAbbrev]) // Assign color based on slot
-				};
-
-				processedSchedule[dayAbbrev].push(classItem);
-				daySlotCounters[dayAbbrev]++; // Increment slot counter for this day
-			}
-		});
-
-		// Add vacant time slots for each day
-		Object.keys(processedSchedule).forEach(day => {
-			const classes = processedSchedule[day];
-			const vacantTimes = detectVacantTimes(classes);
-			
-			// Combine regular classes and vacant times, then sort by start time
-			const combinedSchedule = [...classes, ...vacantTimes].sort((a, b) => {
-				const aStartTime = timeToMinutes(a.time.split(' - ')[0]);
-				const bStartTime = timeToMinutes(b.time.split(' - ')[0]);
-				return aStartTime - bStartTime;
-			});
-			
-			processedSchedule[day] = combinedSchedule;
-		});
-
-		return processedSchedule;
-	}
-
-	// Format time from 24-hour to 12-hour format
-	function formatTime(timeString) {
-		const [hours, minutes] = timeString.split(':');
-		const hour = parseInt(hours);
-		const ampm = hour >= 12 ? 'PM' : 'AM';
-		const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-		return `${displayHour.toString().padStart(2, '0')}:${minutes} ${ampm}`;
-	}
-
-	// Convert time string to minutes for comparison
-	function timeToMinutes(timeString) {
-		const [time, period] = timeString.split(' ');
-		const [hours, minutes] = time.split(':').map(Number);
-		
-		let totalMinutes = minutes;
-		if (period === 'PM' && hours !== 12) {
-			totalMinutes += (hours + 12) * 60;
-		} else if (period === 'AM' && hours === 12) {
-			totalMinutes += 0; // 12 AM is 0 hours
-		} else {
-			totalMinutes += hours * 60;
-		}
-		
-		return totalMinutes;
-	}
-
-	// Convert minutes back to time string
-	function minutesToTime(totalMinutes) {
-		const hours = Math.floor(totalMinutes / 60);
-		const minutes = totalMinutes % 60;
-		const ampm = hours >= 12 ? 'PM' : 'AM';
-		const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-		return `${displayHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
-	}
-
-	// Function to detect vacant time slots between scheduled classes
-	function detectVacantTimes(classes) {
-		if (classes.length <= 1) return [];
-
-		// Sort classes by start time
-		const sortedClasses = [...classes].sort((a, b) => {
-			const aStartTime = timeToMinutes(a.time.split(' - ')[0]);
-			const bStartTime = timeToMinutes(b.time.split(' - ')[0]);
-			return aStartTime - bStartTime;
-		});
-
-		const vacantTimes = [];
-
-		// Check for gaps between consecutive classes
-		for (let i = 0; i < sortedClasses.length - 1; i++) {
-			const currentClass = sortedClasses[i];
-			const nextClass = sortedClasses[i + 1];
-
-			const currentEndTime = timeToMinutes(currentClass.time.split(' - ')[1]);
-			const nextStartTime = timeToMinutes(nextClass.time.split(' - ')[0]);
-
-			// If there's a gap between classes (more than 0 minutes)
-			if (nextStartTime > currentEndTime) {
-				const vacantStartTime = minutesToTime(currentEndTime);
-				const vacantEndTime = minutesToTime(nextStartTime);
-
-				vacantTimes.push({
-					name: 'Vacant Time',
-					time: `${vacantStartTime} - ${vacantEndTime}`,
-					room: 'Available',
-					subject: 'Free Period',
-					color: 'gray',
-					isVacant: true
-				});
-			}
-		}
-
-		return vacantTimes;
-	}
-
-	// Fetch schedule data from API
-	async function fetchScheduleData() {
-		try {
-			loading = true;
-			error = null;
-
-			// Get current user data from auth store
-			const authState = $authStore;
-			if (!authState.isAuthenticated || !authState.userData?.id) {
-				throw new Error('User not authenticated');
-			}
-
-			// Fetch current school year from admin settings
-			const currentQuarterResponse = await fetch('/api/current-quarter');
-			const currentQuarterData = await currentQuarterResponse.json();
-			const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
-
-			const response = await fetch(`/api/schedules?action=teacher-schedules&teacherId=${authState.userData.id}&schoolYear=${schoolYear}`);
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.error || 'Failed to fetch schedule data');
-			}
-
-			scheduleData = processScheduleData(result.data);
-		} catch (err) {
-			console.error('Error fetching schedule data:', err);
-			error = err.message;
-			// Fallback to empty schedule
-			scheduleData = {
-				Mon: [],
-				Tue: [],
-				Wed: [],
-				Thu: [],
-				Fri: []
-			};
-		} finally {
-			loading = false;
-		}
-	}
+	// Subscribe to the store
+	$: ({ scheduleData, isLoading, isRefreshing, error, lastUpdated } = $teacherScheduleStore);
 
 	// Load schedule data on component mount
-	onMount(() => {
-		fetchScheduleData();
+	onMount(async () => {
+		// Get current user data from auth store
+		const authState = $authStore;
+		if (!authState.isAuthenticated || !authState.userData?.id) {
+			console.error('User not authenticated');
+			return;
+		}
+
+		const teacherId = authState.userData.id;
+		
+		// Try to initialize with cached data first
+		const hasCachedData = teacherScheduleStore.init(teacherId, null);
+		
+		// Always load fresh data (silently if we have cached data)
+		await teacherScheduleStore.loadSchedule(teacherId, null, hasCachedData);
+		
+		// Set up periodic refresh every 5 minutes
+		const refreshInterval = setInterval(async () => {
+			await teacherScheduleStore.loadSchedule(teacherId, null, true); // Silent refresh
+		}, 5 * 60 * 1000); // 5 minutes
+
+		// Cleanup interval on component destroy
+		return () => {
+			clearInterval(refreshInterval);
+		};
 	});
+
+	// Manual refresh function
+	async function handleRefresh() {
+		const authState = $authStore;
+		if (!authState.isAuthenticated || !authState.userData?.id) {
+			console.error('User not authenticated');
+			return;
+		}
+
+		const teacherId = authState.userData.id;
+		await teacherScheduleStore.forceRefresh(teacherId, null);
+	}
 
 	// Map day abbreviations to full names
 	const dayNameMap = {
@@ -329,12 +161,25 @@
 	</div>
 
 	<div class="classes-section">
-		<h2>{fullDayName} Classes</h2>
+		<div class="classes-header">
+			<h2>{fullDayName} Classes</h2>
+			<div class="refresh-controls">
+				{#if isRefreshing}
+					<div class="silent-refresh-indicator">
+						<div class="silent-loader"></div>
+						<span>Updating...</span>
+					</div>
+				{/if}
+				<button class="refresh-button" on:click={handleRefresh} disabled={isLoading}>
+					<span class="material-symbols-outlined">refresh</span>
+				</button>
+			</div>
+		</div>
 		
-		{#if loading}
+		{#if isLoading}
 			<div class="loading-message">
 				<div class="system-loader"></div>
-				<h3>Loading Schedule...</h3>
+				<p>Loading Schedule...</p>
 			</div>
 		{:else if error}
 			<div class="error-message">
@@ -343,7 +188,7 @@
 				</div>
 				<h3>Error Loading Schedule</h3>
 				<p>{error}</p>
-				<button class="retry-button" on:click={fetchScheduleData}>
+				<button class="retry-button" on:click={handleRefresh}>
 					<span class="material-symbols-outlined">refresh</span>
 					Try Again
 				</button>

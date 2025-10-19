@@ -4,15 +4,11 @@
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { showSuccess, showError } from '../../../../common/js/toastStore.js';
 	import { authStore } from '../../../../../components/login/js/auth.js';
-	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { studentProfileStore } from '../../../../../lib/stores/student/studentProfileStore.js';
 	import { onMount } from 'svelte';
 
 	// Get basic auth data
 	let authState = $state();
-	let studentData = $state(null);
-	let studentProfileData = $state(null);
-	let isLoading = $state(true);
-	let error = $state(null);
 	
 	// Subscribe to auth store changes
 	$effect(() => {
@@ -22,85 +18,39 @@
 		return unsubscribe;
 	});
 
-	// Fetch complete student data from API
-	async function fetchStudentData() {
-		try {
-			isLoading = true;
-			error = null;
-			
-			if (!authState?.userData?.id) {
-				throw new Error('User not authenticated');
-			}
+	// Subscribe to student profile store
+	let storeData = $derived($studentProfileStore);
+	let { studentData, studentProfileData, isLoading, isRefreshing, error, lastUpdated } = $derived(storeData);
 
-			// Fetch complete user data from accounts API - get current user specifically
-			const response = await api.get(`/api/accounts?type=student&limit=1000`);
-			
-			if (!response.success) {
-				throw new Error(response.message || 'Failed to fetch student data');
-			}
-
-			console.log('API Response:', response);
-			console.log('Auth State User Data:', authState.userData);
-			console.log('Looking for user ID:', authState.userData.id);
-			console.log('Looking for account number:', authState.userData.accountNumber);
-			console.log('Available accounts:', response.accounts.map(acc => ({ id: acc.id, name: acc.name, number: acc.number })));
-
-			// Find the current user's data in the accounts list
-			const currentUserData = response.accounts.find(account => 
-				account.id === authState.userData.id || 
-				account.number === authState.userData.accountNumber
-			);
-
-			if (!currentUserData) {
-				console.error('User not found in accounts list');
-				console.error('Auth user ID:', authState.userData.id);
-				console.error('Auth account number:', authState.userData.accountNumber);
-				console.error('Available account IDs:', response.accounts.map(acc => acc.id));
-				console.error('Available account numbers:', response.accounts.map(acc => acc.number));
-				throw new Error('Student data not found');
-			}
-
-			studentData = currentUserData;
-
-			// Fetch additional student profile data (subjects, section, grades, etc.)
-			await fetchStudentProfileData();
-
-		} catch (err) {
-			console.error('Error fetching student data:', err);
-			error = err.message;
-			toastStore.error(`Failed to load profile data: ${err.message}`);
-		} finally {
-			isLoading = false;
+	// Handle refresh functionality
+	function handleRefresh() {
+		if (authState?.userData?.id) {
+			studentProfileStore.forceRefresh(authState.userData.id);
 		}
 	}
 
-	// Fetch additional student profile data
-	async function fetchStudentProfileData() {
-		try {
-			if (!authState?.userData?.id) {
-				return;
-			}
-
-			const profileResponse = await api.get(`/api/student-profile?studentId=${authState.userData.id}`);
-			
-			if (profileResponse.success) {
-				studentProfileData = profileResponse.data;
-				console.log('Student Profile Data:', studentProfileData);
-			} else {
-				console.warn('Failed to fetch student profile data:', profileResponse.error);
-				// Don't throw error here as basic profile should still work
-			}
-		} catch (err) {
-			console.warn('Error fetching student profile data:', err);
-			// Don't throw error here as basic profile should still work
-		}
-	}
-
-	// Load student data when component mounts or auth state changes
+	// Initialize store and load data when auth state changes
 	$effect(() => {
 		if (authState?.userData?.id) {
-			fetchStudentData();
+			// Try to initialize with cached data first
+			const hasCachedData = studentProfileStore.init(authState.userData.id);
+			
+			// If no cached data, load fresh data
+			if (!hasCachedData) {
+				studentProfileStore.loadProfile(authState.userData.id, false);
+			}
 		}
+	});
+
+	// Set up periodic refresh (every 5 minutes)
+	onMount(() => {
+		const refreshInterval = setInterval(() => {
+			if (authState?.userData?.id) {
+				studentProfileStore.loadProfile(authState.userData.id, true); // Silent refresh
+			}
+		}, 5 * 60 * 1000); // 5 minutes
+
+		return () => clearInterval(refreshInterval);
 	});
 
 	// Dynamic student profile data based on fetched data
@@ -328,7 +278,7 @@
 				<span class="material-symbols-outlined">error</span>
 			</div>
 			<p class="error-message">Failed to load profile data: {error}</p>
-			<button class="retry-btn" onclick={fetchStudentData}>
+			<button class="retry-btn" onclick={handleRefresh}>
 				<span class="material-symbols-outlined">refresh</span>
 				Retry
 			</button>
@@ -339,6 +289,21 @@
 			<div class="header-content">
 				<h1 class="page-title">Student Profile</h1>
 				<p class="page-subtitle">Personal Information & Academic Details</p>
+			</div>
+			<div class="header-actions">
+				{#if isRefreshing}
+					<div class="silent-refresh-indicator">
+						<span class="refresh-spinner"></span>
+					</div>
+				{/if}
+				<button 
+					class="student-refresh-btn" 
+					onclick={handleRefresh} 
+					disabled={isLoading}
+					aria-label="Refresh profile data"
+				>
+					<span class="material-symbols-outlined">refresh</span>
+				</button>
 			</div>
 		</div>
 

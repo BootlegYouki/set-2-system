@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { authStore } from '../../../../login/js/auth.js';
+	import { studentScheduleStore } from '../../../../../lib/stores/student/studentScheduleStore.js';
 	import './studentSchedule.css';
 
 	// Get current date info
@@ -25,134 +26,40 @@
 	const todayIndex = today.getDay();
 	let selectedDay = dayIndexToAbbrev[todayIndex] || 'Mon'; // Default to Monday if weekend
 
-	// Slot-based colors (each slot gets a designated color)
-	const slotColors = ['blue', 'green', 'purple', 'yellow', 'orange'];
-	
-	// Function to get color based on slot index
-	function getSlotColor(slotIndex) {
-		return slotColors[slotIndex % slotColors.length];
-	}
+	// Subscribe to the store
+	let { scheduleData, isLoading, isRefreshing, error, lastUpdated } = $derived($studentScheduleStore);
 
-	// Schedule data from API
-	let scheduleData = [];
-	let loading = true;
-	let error = null;
-
-	// Process schedule data into the format expected by the component
-	function processScheduleData(data) {
-		const processedSchedule = {
-			Mon: [],
-			Tue: [],
-			Wed: [],
-			Thu: [],
-			Fri: []
-		};
-
-		// Map database day names to abbreviated names
-		const dayMapping = {
-			'monday': 'Mon',
-			'tuesday': 'Tue',
-			'wednesday': 'Wed',
-			'thursday': 'Thu',
-			'friday': 'Fri'
-		};
-
-		// Group by day to track slot indices
-		const daySlotCounters = {
-			Mon: 0,
-			Tue: 0,
-			Wed: 0,
-			Thu: 0,
-			Fri: 0
-		};
-
-		data.forEach(item => {
-			const dayAbbrev = dayMapping[item.day_of_week.toLowerCase()];
-			if (dayAbbrev) {
-				// Format time from 24-hour to 12-hour format
-				const startTime = formatTime(item.start_time);
-				const endTime = formatTime(item.end_time);
-				
-				// Determine the class name and teacher
-				let className, teacher;
-				if (item.schedule_type === 'subject') {
-					className = item.subject_name || 'Unknown Subject';
-					teacher = item.teacher_name || 'No Teacher Assigned';
-				} else if (item.schedule_type === 'activity') {
-					className = item.activity_type_name || 'Activity';
-					teacher = item.teacher_name || '';
-				}
-
-				const classItem = {
-					name: className,
-					time: `${startTime} - ${endTime}`,
-					room: item.room_name || 'TBA',
-					teacher: teacher,
-					scheduleType: item.schedule_type, // Add schedule type for conditional display
-					color: getSlotColor(daySlotCounters[dayAbbrev]) // Assign color based on slot
-				};
-
-				processedSchedule[dayAbbrev].push(classItem);
-				daySlotCounters[dayAbbrev]++; // Increment slot counter for this day
-			}
-		});
-
-		return processedSchedule;
-	}
-
-	// Format time from 24-hour to 12-hour format
-	function formatTime(timeString) {
-		const [hours, minutes] = timeString.split(':');
-		const hour = parseInt(hours);
-		const ampm = hour >= 12 ? 'PM' : 'AM';
-		const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-		return `${displayHour.toString().padStart(2, '0')}:${minutes} ${ampm}`;
-	}
-
-	// Fetch schedule data from API
-	async function fetchScheduleData() {
-		try {
-			loading = true;
-			error = null;
-
-			// Get current user data from auth store
-			const authState = $authStore;
-			if (!authState.isAuthenticated || !authState.userData?.id) {
-				throw new Error('User not authenticated');
-			}
-
-			// Fetch current school year from admin settings
-			const currentQuarterResponse = await fetch('/api/current-quarter');
-			const currentQuarterData = await currentQuarterResponse.json();
-			const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
-
-			const response = await fetch(`/api/schedules?action=student-schedules&studentId=${authState.userData.id}&schoolYear=${schoolYear}`);
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.error || 'Failed to fetch schedule data');
-			}
-
-			scheduleData = processScheduleData(result.data);
-		} catch (err) {
-			console.error('Error fetching schedule data:', err);
-			error = err.message;
-			// Fallback to empty schedule
-			scheduleData = {
-				Mon: [],
-				Tue: [],
-				Wed: [],
-				Thu: [],
-				Fri: []
-			};
-		} finally {
-			loading = false;
+	// Handle refresh functionality
+	async function handleRefresh() {
+		const authState = $authStore;
+		if (authState.isAuthenticated && authState.userData?.id) {
+			await studentScheduleStore.forceRefresh(authState.userData.id);
 		}
 	}
 
-	// Load schedule data on component mount
+	// Initialize store and set up periodic refresh
 	onMount(() => {
-		fetchScheduleData();
+		const authState = $authStore;
+		if (authState.isAuthenticated && authState.userData?.id) {
+			// Initialize store with cached data if available
+			const hasCachedData = studentScheduleStore.init(authState.userData.id);
+			
+			// Load fresh data if no cache or load silently if cached
+			studentScheduleStore.loadSchedule(authState.userData.id, hasCachedData);
+
+			// Set up periodic refresh every 5 minutes
+			const refreshInterval = setInterval(() => {
+				const currentAuthState = $authStore;
+				if (currentAuthState.isAuthenticated && currentAuthState.userData?.id) {
+					studentScheduleStore.loadSchedule(currentAuthState.userData.id, true); // Silent refresh
+				}
+			}, 5 * 60 * 1000); // 5 minutes
+
+			// Cleanup interval on component destroy
+			return () => {
+				clearInterval(refreshInterval);
+			};
+		}
 	});
 
 	const weekDays = [
@@ -172,8 +79,9 @@
 		'Fri': 'Friday'
 	};
 
-	$: currentClasses = scheduleData[selectedDay] || [];
-	$: fullDayName = dayNameMap[selectedDay] || selectedDay;
+	// Derived values using Svelte 5 runes
+	let currentClasses = $derived(scheduleData[selectedDay] || []);
+	let fullDayName = $derived(dayNameMap[selectedDay] || selectedDay);
 	
 	// Mobile dropdown state
 	let isDropdownOpen = false;
@@ -199,8 +107,12 @@
 
 <div class="schedule-container" on:click={handleClickOutside} on:keydown={handleClickOutside} role="button" tabindex="0">
 	<div class="schedule-header">
-		<h1 class="page-title">Schedule</h1>
-		<p class="page-subtitle">Your weekly class schedule</p>
+		<div class="schedule-header-content">
+			<div class="schedule-header-text">
+				<h1 class="page-title">Schedule</h1>
+				<p class="page-subtitle">Your weekly class schedule</p>
+			</div>
+		</div>
 	</div>
 
 	<div class="week-navigation">
@@ -245,21 +157,34 @@
 	</div>
 
 	<div class="classes-section">
-		<h2>{fullDayName} Classes</h2>
+		<div class="classes-header">
+			<h2>{fullDayName} Classes</h2>
+			<div class="refresh-controls">
+				{#if isRefreshing}
+					<div class="silent-refresh-indicator">
+						<div class="silent-loader"></div>
+						<span>Updating...</span>
+					</div>
+				{/if}
+				<button class="refresh-button" on:click={handleRefresh} disabled={isLoading}>
+					<span class="material-symbols-outlined">refresh</span>
+				</button>
+			</div>
+		</div>
 		
-		{#if loading}
+		{#if isLoading}
 			<div class="loading-message">
 				<div class="system-loader"></div>
-				<h3>Loading Schedule...</h3>
+				<p>Loading Schedule...</p>
 			</div>
 		{:else if error}
 			<div class="error-message">
 				<div class="error-icon">
 					<span class="material-symbols-outlined">error</span>
 				</div>
-				<h3>Error Loading Schedule</h3>
+				<p>Error Loading Schedule</p>
 				<p>{error}</p>
-				<button class="retry-button" on:click={fetchScheduleData}>
+				<button class="retry-button" on:click={handleRefresh}>
 					<span class="material-symbols-outlined">refresh</span>
 					Try Again
 				</button>

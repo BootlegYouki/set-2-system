@@ -5,14 +5,14 @@
 	import { showSuccess, showError } from '../../../../common/js/toastStore.js';
 	import { authStore } from '../../../../../components/login/js/auth.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { teacherProfileStore } from '../../../../../lib/stores/teacher/teacherProfileStore.js';
 	import { onMount } from 'svelte';
 
 	// Get basic auth data
 	let authState = $state();
-	let teacherData = $state(null);
-	let teacherProfileData = $state(null);
-	let isLoading = $state(true);
-	let error = $state(null);
+	
+	// Subscribe to the profile store
+	let { teacherData, teacherProfileData, teacherSections, isLoading, isRefreshing, error, lastUpdated } = $derived($teacherProfileStore);
 	
 	// Subscribe to auth store changes
 	$effect(() => {
@@ -22,73 +22,52 @@
 		return unsubscribe;
 	});
 
-	// Fetch complete teacher data from API
-	async function fetchTeacherData() {
-		try {
-			isLoading = true;
-			error = null;
-			
-			if (!authState?.userData?.id) {
-				throw new Error('User not authenticated');
-			}
-
-			// Fetch complete user data from accounts API - get current user specifically
-			const response = await api.get(`/api/accounts?type=teacher&limit=1000`);
-			
-			if (!response.success) {
-				throw new Error(response.message || 'Failed to fetch teacher data');
-			}
-
-			// Find the current user's data in the accounts list
-			const currentUserData = response.accounts.find(account => 
-				account.id === authState.userData.id || 
-				account.number === authState.userData.accountNumber
-			);
-
-			if (!currentUserData) {
-				throw new Error('Teacher data not found');
-			}
-
-			teacherData = currentUserData;
-
-			// Fetch additional teacher profile data (subjects, classes, etc.)
-			await fetchTeacherProfileData();
-
-		} catch (err) {
-			error = err.message;
-			toastStore.error(`Failed to load profile data: ${err.message}`);
-		} finally {
-			isLoading = false;
+	// Load profile data when component mounts or auth state changes
+	onMount(async () => {
+		if (!authState?.userData?.id) {
+			console.error('User not authenticated');
+			return;
 		}
+
+		const teacherId = authState.userData.id;
+		
+		// Try to initialize with cached data first
+		const hasCachedData = teacherProfileStore.init(teacherId);
+		
+		// Always load fresh data (silently if we have cached data)
+		await teacherProfileStore.loadProfile(teacherId, hasCachedData);
+		
+		// Set up periodic refresh every 5 minutes
+		const refreshInterval = setInterval(async () => {
+			await teacherProfileStore.loadProfile(teacherId, true); // Silent refresh
+		}, 5 * 60 * 1000); // 5 minutes
+
+		// Cleanup interval on component destroy
+		return () => {
+			clearInterval(refreshInterval);
+		};
+	});
+
+	// Manual refresh function
+	async function handleRefresh() {
+		const authState = $authStore;
+		if (!authState.isAuthenticated || !authState.userData?.id) {
+			console.error('User not authenticated');
+			return;
+		}
+
+		const teacherId = authState.userData.id;
+		await teacherProfileStore.forceRefresh(teacherId);
 	}
 
-	// Fetch additional teacher profile data
-	async function fetchTeacherProfileData() {
-		try {
-			if (!authState?.userData?.id) {
-				return;
-			}
-
-			const profileResponse = await api.get(`/api/teacher-profile?teacherId=${authState.userData.id}`);
-			
-			if (profileResponse.success) {
-				teacherProfileData = profileResponse.data;
-				console.log('Teacher Profile Data:', teacherProfileData);
-			} else {
-				console.warn('Failed to fetch teacher profile data:', profileResponse.error);
-				// Don't throw error here as basic profile should still work
-			}
-		} catch (err) {
-			console.warn('Error fetching teacher profile data:', err);
-			// Don't throw error here as basic profile should still work
-		}
-	}
-
-	// Load teacher data when component mounts or auth state changes
+	// Load profile data when auth state changes
 	$effect(() => {
 		if (authState?.userData?.id) {
-			fetchTeacherData();
-			fetchTeacherSections();
+			const teacherId = authState.userData.id;
+			const hasCachedData = teacherProfileStore.init(teacherId);
+			if (!hasCachedData) {
+				teacherProfileStore.loadProfile(teacherId, false);
+			}
 		}
 	});
 
@@ -133,28 +112,6 @@
 	let isTeacherInfoCollapsed = $state(true);
 	let isSectionsCollapsed = $state(true);
 	let isTeachingAssignmentsCollapsed = $state(true);
-
-	// Fetch teacher's sections from schedule
-	let teacherSections = $state([]);
-
-	async function fetchTeacherSections() {
-		try {
-			// Fetch current school year from admin settings
-			const currentQuarterResponse = await fetch('/api/current-quarter');
-			const currentQuarterData = await currentQuarterResponse.json();
-			const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
-
-			const response = await fetch(`/api/teacher-sections?teacherId=${authState.userData.id}&schoolYear=${schoolYear}`);
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success) {
-					teacherSections = result.data.classData;
-				}
-			}
-		} catch (error) {
-			// Error handling without console logging
-		}
-	}
 
 	// Toggle functions for collapsible sections
 	function toggleTeacherInfo() {
@@ -343,7 +300,7 @@
 				<span class="material-symbols-outlined">error</span>
 			</div>
 			<p class="teacher-error-message">Failed to load profile data: {error}</p>
-			<button class="teacher-retry-btn" onclick={fetchTeacherData}>
+			<button class="teacher-retry-btn" onclick={handleRefresh}>
 				<span class="material-symbols-outlined">refresh</span>
 				Retry
 			</button>
@@ -354,6 +311,16 @@
 			<div class="teacher-header-content">
 				<h1 class="teacher-page-title">Teacher Profile</h1>
 				<p class="teacher-page-subtitle">Personal Information & Teaching Details</p>
+			</div>
+			<div class="teacher-header-actions">
+				<button 
+					class="teacher-refresh-btn" 
+					onclick={handleRefresh} 
+					disabled={isLoading}
+					aria-label="Refresh profile data"
+				>
+					<span class="material-symbols-outlined">refresh</span>
+				</button>
 			</div>
 		</div>
 
