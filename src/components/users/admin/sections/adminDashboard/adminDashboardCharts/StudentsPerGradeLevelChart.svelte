@@ -15,10 +15,10 @@
 	const gradeLevels = ['7', '8', '9', '10'];
 
 	const colors = [
-		'rgb(255, 99, 132)',   // Grade 7 - Red
-		'rgb(54, 162, 235)',   // Grade 8 - Blue
-		'rgb(255, 205, 86)',   // Grade 9 - Yellow
-		'rgb(75, 192, 192)'    // Grade 10 - Teal
+		'rgb(0, 114, 178)', // Grade 7 - Red
+		'rgb(230, 159, 0)', // Grade 8 - Blue
+		'rgb(86, 180, 233)', // Grade 9 - Yellow
+		'rgb(102, 102, 102)' // Grade 10 - Teal
 	];
 
 	async function fetchStudentsData() {
@@ -28,7 +28,7 @@
 
 			// Fetch students data from API
 			const response = await api.get('/api/dashboard/students-per-grade');
-			
+
 			if (response.success) {
 				chartData = response.data;
 				loading = false;
@@ -61,7 +61,7 @@
 
 		// Transform data into chart format
 		const transformedData = gradeLevels.map((level, index) => {
-			const gradeData = data.find(d => d.grade_level === level);
+			const gradeData = data.find((d) => d.grade_level === level);
 			return gradeData ? gradeData.count : 0;
 		});
 
@@ -69,29 +69,31 @@
 		chartInstance = new Chart(ctx, {
 			type: 'doughnut',
 			data: {
-				labels: gradeLevels.map(g => `Grade ${g}`),
-				datasets: [{
-					label: 'Students',
-					data: transformedData,
-					backgroundColor: colors,
-					borderColor: colors.map(color => color.replace('rgb', 'rgba').replace(')', ', 0.8)')),
-					borderWidth: 2
-				}]
+				labels: gradeLevels.map((g) => `Grade ${g}`),
+				datasets: [
+					{
+						label: 'Students',
+						data: transformedData,
+						backgroundColor: colors,
+						borderWidth: 5,
+						borderRadius: 2,
+						borderColor: getComputedStyle(document.documentElement)
+							.getPropertyValue('--md-sys-color-surface-container')
+							.trim(),
+						hoverBorderWidth: 1,
+						hoverBorderColor: getComputedStyle(document.documentElement)
+							.getPropertyValue('--md-sys-color-surface-container')
+							.trim()
+					}
+				]
 			},
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
+				cutout: '50%', // control donut thickness
 				plugins: {
 					legend: {
-						position: 'bottom',
-						labels: {
-							padding: 15,
-							font: {
-								size: 12
-							},
-							color: getComputedStyle(document.documentElement)
-								.getPropertyValue('--md-sys-color-on-surface').trim()
-						}
+						display: false
 					},
 					title: {
 						display: true,
@@ -101,7 +103,8 @@
 							weight: 'bold'
 						},
 						color: getComputedStyle(document.documentElement)
-							.getPropertyValue('--md-sys-color-on-surface').trim(),
+							.getPropertyValue('--md-sys-color-on-surface')
+							.trim(),
 						padding: {
 							top: 10,
 							bottom: 20
@@ -109,7 +112,7 @@
 					},
 					tooltip: {
 						callbacks: {
-							label: function(context) {
+							label: function (context) {
 								const label = context.label || '';
 								const value = context.parsed || 0;
 								const total = context.dataset.data.reduce((a, b) => a + b, 0);
@@ -117,9 +120,66 @@
 								return `${label}: ${value} students (${percentage}%)`;
 							}
 						}
+					},
+					centerText: {
+						display: true,
+						text: (chart) => {
+							const data = chart.data.datasets[0].data;
+							const total = data.reduce((a, b) => a + b, 0);
+							return `${total}\nTotal\nStudents`;
+						},
+						color: getComputedStyle(document.documentElement)
+							.getPropertyValue('--md-sys-color-on-surface')
+							.trim(),
+						font: {
+							size: 20,
+							weight: 'bold'
+						}
 					}
 				}
-			}
+			},
+			plugins: [
+				{
+					id: 'centerText',
+					beforeDraw(chart) {
+						const {
+							ctx,
+							chartArea: { width, height }
+						} = chart;
+						const pluginOpts = chart.config.options.plugins.centerText;
+						if (!pluginOpts?.display) return;
+
+						// Get total students
+						const data = chart.data.datasets[0].data;
+						const total = data.reduce((a, b) => a + b, 0);
+
+						// Style setup
+						const color = pluginOpts.color;
+						const bigFontSize = pluginOpts.font.size * 1.5; // larger number
+						const smallFontSize = pluginOpts.font.size * 0.8; // smaller label
+						const verticalOffset = 45;
+
+						ctx.save();
+						ctx.textAlign = 'center';
+						ctx.textBaseline = 'middle';
+						ctx.fillStyle = color;
+
+						// Positioning
+						const centerX = width / 2;
+						const centerY = height / 2;
+
+						// Draw the large number (total)
+						ctx.font = `${pluginOpts.font.weight} ${bigFontSize}px sans-serif`;
+						ctx.fillText(total, centerX, centerY - smallFontSize / 1.5 + verticalOffset);
+
+						// Draw the smaller text below
+						ctx.font = `400 ${smallFontSize}px sans-serif`;
+						ctx.fillText('Total Students', centerX, centerY + bigFontSize / 1.8 + verticalOffset);
+
+						ctx.restore();
+					}
+				}
+			]
 		});
 	}
 
@@ -182,6 +242,14 @@
 		</div>
 	{:else}
 		<canvas bind:this={chartCanvas}></canvas>
+		<div class="graph-label">
+			{#each gradeLevels as grade, index}
+				<div class="legend-item">
+					<div class="legend-circle" style="background-color: {colors[index]};"></div>
+					<span class="legend-text">Grade {grade}</span>
+				</div>
+			{/each}
+		</div>
 	{/if}
 </div>
 
@@ -196,11 +264,41 @@
 		align-items: center;
 		justify-content: center;
 		box-shadow: var(--elevation-1);
+		display: flex;
+		flex-direction: column;
 	}
 
 	canvas {
 		max-height: 100%;
 		max-width: 100%;
+	}
+
+	.graph-label {
+		display: flex;
+		gap: var(--spacing-md);
+		margin-top: var(--spacing-md);
+		justify-content: center;
+		flex-wrap: wrap;
+	}
+
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+	}
+
+	.legend-circle {
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.legend-text {
+		font-family: var(--md-sys-typescale-body-small-font);
+		font-size: var(--md-sys-typescale-body-small-size);
+		color: var(--md-sys-color-on-surface);
+		font-weight: 500;
 	}
 
 	.chart-loading {
@@ -237,8 +335,12 @@
 	}
 
 	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
+		0% {
+			transform: rotate(0deg);
+		}
+		100% {
+			transform: rotate(360deg);
+		}
 	}
 
 	.chart-error .material-symbols-outlined {

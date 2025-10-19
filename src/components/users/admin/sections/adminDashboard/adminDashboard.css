@@ -232,14 +232,29 @@
 
 .stat-card {
 	background-color: var(--md-sys-color-surface-container);
-	border: 1px solid var(--md-sys-color-outline-variant);
+	border: 2px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
 	padding: var(--spacing-lg);
-	display: flex;
-	align-items: center;
 	gap: var(--spacing-md);
 	transition: all var(--transition-normal);
 	box-shadow: var(--elevation-1);
+}
+
+/* Border color variants for stat cards */
+.stat-card.border-blue {
+	border-color: #2196F3;
+}
+
+.stat-card.border-green {
+	border-color: #4CAF50;
+}
+
+.stat-card.border-orange {
+	border-color: #FF9800;
+}
+
+.stat-card.border-purple {
+	border-color: #9C27B0;
 }
 
 .stat-card:hover {
@@ -247,40 +262,43 @@
 	transform: translateY(-2px);
 }
 
-.stat-icon {
+.stat-card-header{
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.dashboard-stat-icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	width: 48px;
 	height: 48px;
 	border-radius: var(--radius-md);
-	background-color: var(--md-sys-color-primary-container);
-	color: var(--md-sys-color-on-primary-container);
+	color: white;
 }
 
-.stat-card.stat-secondary .stat-icon {
-	background-color: var(--md-sys-color-secondary-container);
-	color: var(--md-sys-color-on-secondary-container);
+/* Icon background colors matching border colors */
+.stat-card.border-blue .dashboard-stat-icon {
+	background-color: #2196F3;
 }
 
-.stat-card.stat-primary .stat-icon {
-    background-color: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
+.stat-card.border-green .dashboard-stat-icon {
+	background-color: #4CAF50;
 }
 
-.stat-card.stat-error .stat-icon {
-	background-color: var(--md-sys-color-error-container);
-	color: var(--md-sys-color-on-error-container);
+.stat-card.border-orange .dashboard-stat-icon {
+	background-color: #FF9800;
 }
 
-.stat-content {
-	flex: 1;
+.stat-card.border-purple .dashboard-stat-icon {
+	background-color: #9C27B0;
 }
 
-.stat-value {
+.stat-card-value {
 	font-family: var(--md-sys-typescale-headline-medium-font);
-	font-size: var(--md-sys-typescale-headline-medium-size);
-	font-weight: var(--md-sys-typescale-headline-medium-weight);
+	font-size: var(--md-sys-typescale-headline-large-size);
+	font-weight: 700;
 	color: var(--md-sys-color-on-surface);
 	margin: 0 0 var(--spacing-xs) 0;
 }
@@ -296,15 +314,14 @@
 
 /* Graph Row Section */
 .graph-row {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+	display: flex;
 	gap: var(--spacing-lg);
 	margin-bottom: var(--spacing-xl);
 }
 
 .accounts-stats-container,
 .average-grades-stats-container {
-	min-height: 400px;
+	flex: 1;
 }
 
 /* Recent Activities Section */
@@ -560,7 +577,7 @@
 	}
 	
 	.graph-row {
-		grid-template-columns: 1fr;
+		flex-direction: column;
 	}
 	
 	.stat-card,

@@ -14,6 +14,14 @@
 	let activitiesLoading = false;
 	let activitiesError = null;
 
+	// Array of border color classes for each stat card
+	const borderColors = ['border-blue', 'border-green', 'border-orange', 'border-purple'];
+
+	// Function to get border color by index
+	function getBorderColorByIndex(index) {
+		return borderColors[index % borderColors.length];
+	}
+
 	// Fetch dashboard statistics from API
 	async function fetchDashboardStats(silent = false) {
 		try {
@@ -125,11 +133,6 @@
 
 	<!-- Statistics Section -->
 	<div class="stats-section">
-		<div class="section-header">
-			<h2 class="section-title">System Statistics</h2>
-			<p class="dashboard-section-subtitle">Current overview of your school management system</p>
-		</div>
-
 		{#if statsError}
 			<div class="stats-error">
 				<span class="material-symbols-outlined">error</span>
@@ -141,20 +144,22 @@
 			</div>
 		{:else}
 			<div class="stats-grid">
-				{#each dashboardStats as stat (stat.id)}
-					<div class="stat-card stat-{stat.color}">
-						<div class="stat-icon">
-							<span class="material-symbols-outlined">{stat.icon}</span>
+				{#each dashboardStats as stat, index (stat.id)}
+				<div class="stat-card {getBorderColorByIndex(index)}">
+						<div class="stat-card-header">
+							<p class="stat-label">{stat.label}</p>
+							<div class="dashboard-stat-icon">
+								<span class="material-symbols-outlined">{stat.icon}</span>
+							</div>
 						</div>
-						<div class="stat-content">
-							<h3 class="stat-value">
+						<div class="stat-card-content">
+							<h3 class="stat-card-value">
 								{#if statsLoading}
 									Loading...
 								{:else}
 									{stat.value}
 								{/if}
 							</h3>
-							<p class="stat-label">{stat.label}</p>
 						</div>
 					</div>
 				{/each}
