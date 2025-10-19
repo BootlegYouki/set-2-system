@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { dashboardStore } from '../../../../../lib/stores/admin/dashboardStore.js';
+	import StudentsPerGradeLevelChart from './adminDashboardCharts/StudentsPerGradeLevelChart.svelte';
+	import AverageGradesChart from './adminDashboardCharts/AverageGradesChart.svelte';
 
 	// Subscribe to dashboard store
 	$: ({ data: dashboardStats, isLoading: statsLoading, error: statsError } = $dashboardStore);
@@ -160,6 +162,14 @@
 		{/if}
 	</div>
 
+	<div class="graph-row">
+		<div class="accounts-stats-container">
+			<StudentsPerGradeLevelChart />
+		</div>
+		<div class="average-grades-stats-container">
+			<AverageGradesChart />
+		</div>
+	</div>
 	<!-- Recent Activities Section -->
 	<div class="activities-section">
 		<div class="section-header">

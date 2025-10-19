@@ -294,8 +294,23 @@
 
 
 
-/* Recent Activities Section */
+/* Graph Row Section */
+.graph-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+	gap: var(--spacing-lg);
+	margin-bottom: var(--spacing-xl);
+}
 
+.accounts-stats-container,
+.average-grades-stats-container {
+	min-height: 400px;
+}
+
+/* Recent Activities Section */
+.activities-section {
+	margin-top: var(--spacing-xl);
+}
 
 .activities-list {
 	display: flex;
@@ -541,6 +556,10 @@
 	}
 	
 	.actions-grid {
+		grid-template-columns: 1fr;
+	}
+	
+	.graph-row {
 		grid-template-columns: 1fr;
 	}
 	
