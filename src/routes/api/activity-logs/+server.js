@@ -468,8 +468,10 @@ export async function GET({ url }) {
 					icon = 'info';
 			}
 			
-			// Get timestamp
+			// Get timestamp (adjusted to UTC+8 / add +8 hours)
 			const activityTime = new Date(row.created_at || row.timestamp);
+			// Add 8 hours (in milliseconds) to convert timestamp to UTC+8
+			activityTime.setTime(activityTime.getTime() + 8 * 60 * 60 * 1000);
 			const timestamp = activityTime.toLocaleString('en-US', {
 				month: '2-digit',
 				day: '2-digit',
