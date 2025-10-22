@@ -152,11 +152,13 @@ export async function GET({ url, request }) {
     }).sort((a, b) => a.subject_name.localeCompare(b.subject_name));
 
     // Calculate overall statistics
-    const subjectsWithGrades = grades.filter(grade => grade.has_grade);
-    const totalSubjects = subjectsWithGrades.length; // Count only subjects with grades
-    // Calculate average from subjects that have grades
-    const overallAverage = totalSubjects > 0 
-      ? Math.round((subjectsWithGrades.reduce((sum, grade) => sum + (grade.final_grade || 0), 0) / totalSubjects) * 10) / 10
+    // totalSubjects should count all subjects regardless of whether they have grades (so frontend can show all subjects)
+    const totalSubjects = grades.length; // Count all subjects
+
+    const subjectsForAverage = grades.filter(grade => typeof grade.final_grade === 'number' && grade.final_grade > 0);
+    const countedSubjects = subjectsForAverage.length; // number of subjects used in average
+    const overallAverage = countedSubjects > 0
+      ? Math.round((subjectsForAverage.reduce((sum, grade) => sum + (grade.final_grade || 0), 0) / countedSubjects) * 10) / 10
       : 0;
 
     // Format grades for frontend
@@ -185,6 +187,7 @@ export async function GET({ url, request }) {
         grades: formattedGrades,
         statistics: {
           totalSubjects,
+          countedSubjects,
           overallAverage,
           quarter,
           schoolYear: gradesSchoolYear // Use the grades school year
