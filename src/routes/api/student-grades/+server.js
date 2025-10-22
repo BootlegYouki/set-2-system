@@ -152,10 +152,13 @@ export async function GET({ url, request }) {
     }).sort((a, b) => a.subject_name.localeCompare(b.subject_name));
 
     // Calculate overall statistics
+    const validGrades = grades.filter(grade => grade.final_grade > 0);
     const totalSubjects = grades.length; // Count all subjects
-    // Calculate average from ALL subjects (including those with 0 or N/A grades)
-    const overallAverage = totalSubjects > 0 
-      ? Math.round((grades.reduce((sum, grade) => sum + (grade.final_grade || 0), 0) / totalSubjects) * 10) / 10
+    const gradedSubjects = validGrades.length; // Count subjects with actual grades
+    
+    // Calculate average from only subjects with valid grades (> 0)
+    const overallAverage = gradedSubjects > 0 
+      ? Math.round((validGrades.reduce((sum, grade) => sum + grade.final_grade, 0) / gradedSubjects) * 10) / 10
       : 0;
 
     // Format grades for frontend
@@ -184,6 +187,7 @@ export async function GET({ url, request }) {
         grades: formattedGrades,
         statistics: {
           totalSubjects,
+          gradedSubjects,
           overallAverage,
           quarter,
           schoolYear: gradesSchoolYear // Use the grades school year

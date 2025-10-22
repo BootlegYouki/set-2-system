@@ -2,6 +2,8 @@ import { json } from '@sveltejs/kit';
 import dotenv from 'dotenv';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
+import { GoogleGenAI } from '@google/genai'; // New import for Gemini
+import { AI_MODEL } from '$env/static/private';
 
 dotenv.config();
 
@@ -36,78 +38,36 @@ export async function POST({ request }) {
             return json({ error: 'No grades found for this student' }, { status: 404 });
         }
 
-        // Fetch grade configurations and subject/teacher details
+     
         const gradeAnalysisData = await prepareGradeDataFromDB(db, student, studentGrades);
 
-        // Create the prompt for AI analysis
+        
         const prompt = createAnalysisPrompt(gradeAnalysisData);
 
-        // Call OpenRouter API
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENROUTER_AI_KEY}`,
-                'HTTP-Referer': '',
-                'X-Title': '',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: process.env.AI_MODEL,
-                messages: [
-                    {
-                        role: 'user',
-                        content: prompt,
-                    },
-                ],
-                max_tokens: 2000,
+ 
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+      
+        const streamingResponse = await ai.models.generateContentStream({
+            model: AI_MODEL, 
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+                maxOutputTokens: 2000,
                 temperature: 0.7,
-                stream: true, // Enable streaming
-            }),
+            },
         });
 
-        if (!response.ok) {
-            throw new Error(`OpenRouter API error: ${response.status}`);
-        }
 
-        // Create a streaming response
         const stream = new ReadableStream({
             async start(controller) {
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-
                 try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        
-                        if (done) {
-                            controller.close();
-                            break;
-                        }
-
-                        const chunk = decoder.decode(value, { stream: true });
-                        const lines = chunk.split('\n').filter(line => line.trim() !== '');
-
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
-                                
-                                if (data === '[DONE]') {
-                                    continue;
-                                }
-
-                                try {
-                                    const parsed = JSON.parse(data);
-                                    const content = parsed.choices[0]?.delta?.content;
-                                    
-                                    if (content) {
-                                        controller.enqueue(new TextEncoder().encode(content));
-                                    }
-                                } catch (e) {
-                                    // Skip malformed JSON
-                                }
-                            }
+                    for await (const chunk of streamingResponse) {
+                        const content = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (content) {
+                            controller.enqueue(new TextEncoder().encode(content));
                         }
                     }
+                    controller.close();
                 } catch (error) {
                     controller.error(error);
                 }
