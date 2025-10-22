@@ -134,6 +134,8 @@
   justify-content: center;
 }
 
+/* Hover-to-expand: when the rail is collapsed, expand on hover (desktop) */
+
 .navigation-rail:not(.collapsed) {
   width: 230px;
 }
@@ -266,6 +268,38 @@
   .navigation-rail {
     display: block;
     background-color: var(--md-sys-color-primary-container);
+  }
+
+  /* Hover-to-expand: when the rail is collapsed, expand on hover (desktop) */
+  .navigation-rail.collapsed:hover {
+    width: 230px; /* match expanded width */
+  }
+
+  .navigation-rail.collapsed:hover .rail-label {
+    display: block;
+    font-size: 14px;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .navigation-rail.collapsed:hover .rail-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-md);
+    border-radius: var(--radius-full);
+  }
+
+  .navigation-rail.collapsed:hover .rail-icon-container{
+    justify-content: start;
+  }
+
+  .navigation-rail.collapsed:hover .menu-notification-badge{
+    position: absolute;
+    top: -2px;
+    right: -2px;
   }
 
   /* Hide bottom navigation on desktop */

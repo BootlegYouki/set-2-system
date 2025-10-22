@@ -401,6 +401,32 @@
    [data-theme="dark"] .admin-menu-navigation-rail {
      background-color: var(--md-sys-color-surface-container-low);
    }
+
+  /* Hover-to-expand: when the rail is collapsed, expand on hover (desktop) */
+  .admin-menu-navigation-rail.collapsed:hover {
+    width: 230px; /* match expanded width */
+  }
+
+  .admin-menu-navigation-rail.collapsed:hover .admin-menu-rail-label {
+    display: block;
+    font-size: 14px;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .admin-menu-navigation-rail.collapsed:hover .admin-menu-rail-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-md);
+    border-radius: var(--radius-full);
+  }
+
+  .admin-menu-navigation-rail.collapsed:hover .admin-menu-rail-icon-container{
+    justify-content: start;
+  }
 }
 
 @media (max-width: 767px) {

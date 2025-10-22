@@ -233,6 +233,32 @@
    [data-theme="dark"] .teacher-menu-navigation-rail {
      background-color: var(--md-sys-color-surface-container-low);
    }
+  
+  /* Hover-to-expand: when the rail is collapsed, expand on hover (desktop) */
+  .teacher-menu-navigation-rail.collapsed:hover {
+    width: 230px; /* match expanded width */
+  }
+
+  .teacher-menu-navigation-rail.collapsed:hover .teacher-menu-rail-label {
+    display: block;
+    font-size: 14px;
+    max-width: none;
+    white-space: nowrap;
+  }
+
+  .teacher-menu-navigation-rail.collapsed:hover .teacher-menu-rail-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-md);
+    border-radius: var(--radius-full);
+  }
+
+  .teacher-menu-navigation-rail.collapsed:hover .teacher-menu-rail-icon-container{
+    justify-content: start;
+  }
 }
 
 @media (max-width: 767px) {
