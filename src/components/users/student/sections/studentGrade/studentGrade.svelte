@@ -261,9 +261,7 @@
 			if (data.success && data.data) {
 				currentQuarterNum = data.data.currentQuarter;
 				currentQuarter = data.data.quarterName;
-				currentSchoolYear = data.data.currentSchoolYear; // Get school year from same endpoint
-				console.log(`Current quarter set to: ${currentQuarter} (Quarter ${currentQuarterNum})`);
-				console.log(`Current school year set to: ${currentSchoolYear}`);
+				currentSchoolYear = data.data.currentSchoolYear;
 			}
 		} catch (err) {
 			console.error('Error fetching current quarter/school year:', err);
@@ -401,6 +399,8 @@
 			</div>
 
 			<!-- AI Analysis Container -->
+
+		</div>
 			<div class="ai-analysis-container">
 				<div class="analysis-header">
 					<h3 class="analysis-title">AI Performance Analysis</h3>
@@ -432,15 +432,13 @@
 							</div>
 						{:else}
 							<div class="analysis-placeholder">
-								<span class="material-symbols-outlined">auto_awesome</span>
-								<p>Generating Grade Analysis...</p>
+								<div class="system-loader"></div>
+								Loading Analysis...
 							</div>
 						{/if}
 					</div>
 				{/if}
 			</div>
-		</div>
-
 		<!-- Subjects Grid -->
 		<div class="subjects-section">
 			<h2 class="section-title">Subject Performance</h2>

@@ -314,7 +314,7 @@
 	border: 1px solid var(--md-sys-color-outline-variant);
 	border-radius: var(--radius-lg);
 	padding: var(--spacing-xl);
-	margin-bottom: var(--spacing-xl);
+	margin-bottom: var(--spacing-md);
 	transition: all var(--transition-normal);
 	box-shadow: var(--elevation-1);
 	position: relative;
@@ -484,7 +484,7 @@
 
 /* AI Analysis Container */
 .ai-analysis-container {
-	margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
 	background-color: var(--md-sys-color-surface-container-low);
 	border-radius: var(--radius-lg);
 	border: 1px solid var(--md-sys-color-outline-variant);
@@ -497,8 +497,7 @@
 }
 
 .analysis-content{
-    min-height: 200px;
-    max-height: 300px;
+    max-height: fit-content;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -547,8 +546,9 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	text-align: center;
+  justify-content: center;
 	color: var(--md-sys-color-on-surface-variant);
+  padding: var(--spacing-xl);
 }
 
 .analysis-placeholder .material-symbols-outlined {

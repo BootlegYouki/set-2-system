@@ -242,7 +242,7 @@ function buildScoreDetails(scores, gradeItems, category) {
 function createAnalysisPrompt(gradeData) {
     const { studentInfo, academicPerformance, subjects } = gradeData;
 
-    let prompt = `As an educational AI assistant, analyze the academic performance of ${studentInfo.name} (Student ID: ${studentInfo.studentId}), a Grade ${studentInfo.gradeLevel} student in section ${studentInfo.section}.
+    let prompt = `As an educational AI assistant, analyze the academic performance of ${studentInfo.name} (Student ID: ${studentInfo.studentId}), a Grade ${studentInfo.gradeLevel}.
 
 ACADEMIC OVERVIEW:
 - Overall Average: ${academicPerformance.overallAverage}
@@ -324,8 +324,11 @@ Based on the comprehensive grade data above, provide a detailed analysis in the 
 - Suggest specific areas to review or practice
 - Recommend time allocation across subjects based on current performance
 
+KEEP THIS IN MIND:
 Keep the analysis professional, constructive, and data-driven. Focus on actionable insights based on the actual scores provided. Use a supportive tone while being honest about areas needing improvement. Reference specific scores and subjects when making observations.
 Make the response first-person perspective don't use "This student", use "You"
+Dont Use percentage when stating numbers as all data is a numeric value.
+Also please remain the decimal to nearest tenth.
 `;
     
     return prompt;
