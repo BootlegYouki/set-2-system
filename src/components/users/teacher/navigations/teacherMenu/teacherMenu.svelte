@@ -1,10 +1,11 @@
 <script>
 	import './teacherMenu.css';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	// Props
-	let { teacherActiveSection = $bindable('schedule'), teacherNavRailVisible = true, onnavigate } = $props();
+	let { teacherActiveSection = $bindable('schedule'), teacherNavRailVisible = true, onnavigate, teacherId } = $props();
 
 	// Navigation items
-	const navigationItems = [
+	const allNavigationItems = [
 		{
 			id: 'schedule',
 			label: 'Schedule',
@@ -22,6 +23,33 @@
 		}
 	];
 
+	// Check if teacher has advisory class
+	let hasAdvisory = $state(false);
+	let advisoryChecked = $state(false);
+
+	$effect(() => {
+		if (teacherId && !advisoryChecked) {
+			checkAdvisoryStatus();
+		}
+	});
+
+	async function checkAdvisoryStatus() {
+		try {
+			const response = await api.get(`/api/teacher-advisory?teacher_id=${teacherId}`);
+			hasAdvisory = response.success && response.data.advisoryData !== null;
+		} catch (error) {
+			console.error('Error checking advisory status:', error);
+			hasAdvisory = false;
+		} finally {
+			advisoryChecked = true;
+		}
+	}
+
+	// Filter navigation items based on advisory status
+	let navigationItems = $derived(
+		allNavigationItems.filter(item => item.id !== 'advisory' || hasAdvisory)
+	);
+
 	// Handle navigation
 	function handleNavigation(sectionId) {
 		teacherActiveSection = sectionId;
@@ -33,7 +61,7 @@
 </script>
 
 <!-- Navigation Rail (Desktop) -->
-<nav class="teacher-menu-navigation-rail" class:collapsed={!teacherNavRailVisible} role="navigation" aria-label="Teacher portal navigation">
+<nav class="teacher-menu-navigation-rail" class:collapsed={!teacherNavRailVisible} aria-label="Teacher portal navigation">
 	<div class="teacher-menu-rail-container">
 		{#each navigationItems as item (item.id)}
 			<button 
@@ -55,7 +83,7 @@
 </nav>
 
 <!-- Bottom Navigation (Mobile) -->
-<nav class="teacher-menu-bottom-navigation" role="navigation" aria-label="Teacher portal navigation">
+<nav class="teacher-menu-bottom-navigation" aria-label="Teacher portal navigation">
 	<div class="teacher-menu-nav-container">
 		<!-- Navigation items -->
 		{#each navigationItems as item (item.id)}

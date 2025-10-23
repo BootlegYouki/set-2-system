@@ -220,7 +220,7 @@
         {/if}
       </main>
 
-      <TeacherMenu {teacherActiveSection} {teacherNavRailVisible} onnavigate={handleTeacherNavigation} />
+      <TeacherMenu {teacherActiveSection} {teacherNavRailVisible} onnavigate={handleTeacherNavigation} teacherId={authState.userData?.id} />
     </div>
   {:else if authState.userType === 'admin'}
     <!-- Admin Portal -->
