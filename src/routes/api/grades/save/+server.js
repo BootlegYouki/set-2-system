@@ -91,7 +91,8 @@ export async function POST({ request }) {
             quarterly_assessment: 0,
             final_grade: 0
           },
-          verification: {
+          // Preserve existing verification status or set default for new records
+          verification: existingGrade?.verification || {
             verified: false,
             verified_by: null,
             verified_at: null

@@ -154,8 +154,10 @@
             </button>
             <button 
               class="modal-btn modal-btn-danger" 
+              disabled={modal.props.deleteDisabled}
+              title={modal.props.deleteDisabled ? modal.props.deleteDisabledReason : 'Delete this column'}
               onclick={() => {
-                if (modal.props.onDelete) modal.props.onDelete();
+                if (modal.props.onDelete && !modal.props.deleteDisabled) modal.props.onDelete();
                 handleModalClose(modal.id);
               }}
             >
@@ -313,10 +315,18 @@
     border: 1px solid var(--md-sys-color-error);
   }
 
-  .modal-btn-danger:hover {
+  .modal-btn-danger:hover:not(:disabled) {
     background-color: var(--md-sys-color-error-container);
     color: var(--md-sys-color-on-error-container);
     box-shadow: var(--shadow-sm);
+  }
+
+  .modal-btn-danger:disabled {
+    background-color: var(--md-sys-color-surface-variant);
+    color: var(--md-sys-color-on-surface-variant);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   .modal-btn:focus-visible {

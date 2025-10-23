@@ -683,11 +683,6 @@
         error = 'No subjects found for this section';
         loading = false;
       }
-      
-      // Start periodic verification status checking every 30 seconds
-      verificationCheckInterval = setInterval(() => {
-        checkVerificationStatus();
-      }, 30000); // 30 seconds
     }
   });
 

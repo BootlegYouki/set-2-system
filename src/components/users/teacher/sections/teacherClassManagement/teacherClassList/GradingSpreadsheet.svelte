@@ -37,7 +37,6 @@
   let isSavingFinalGrades = $state(false); // Separate state for final grades saving
   let saveMessage = $state('');
   let saveSuccess = $state(false);
-  let autoSaveInterval = null;
   let autoSaveTimeout = null; // For debounced auto-save on data changes
 
   // New state for tracking data changes and save status
@@ -728,6 +727,11 @@
     return gradingConfig[assessmentType].count > 1;
   }
 
+  // Check if any grades are verified (locked)
+  function hasVerifiedGrades() {
+    return students.some(student => student.isVerified || student.verified);
+  }
+
   // Helper function to get current total for a specific column
   function getTotalForColumn(assessmentType, columnIndex) {
     // Check if gradingConfig and assessmentType exist
@@ -956,8 +960,8 @@
     // Check for data changes after update
     checkForDataChanges();
 
-    // Trigger debounced auto-save on data change
-    triggerDebouncedAutoSave();
+    // Trigger debounced auto-save on data change - DISABLED to prevent unlocking verified grades
+    // triggerDebouncedAutoSave();
   }
 
   function handleKeyDown(event, rowIndex, colIndex) {
@@ -1253,16 +1257,10 @@
     });
   });
 
-  // Effect to set up auto-save when component mounts
+  // Effect to set up cleanup when component mounts
   $effect(() => {
-    // Set up auto-save interval (every 30 seconds)
-    autoSaveInterval = setInterval(autoSave, 30000);
-
-    // Cleanup function
+    // Cleanup function for debounced auto-save timeout only
     return () => {
-      if (autoSaveInterval) {
-        clearInterval(autoSaveInterval);
-      }
       if (autoSaveTimeout) {
         clearTimeout(autoSaveTimeout);
       }
@@ -1286,6 +1284,9 @@
       toastStore.error('Cannot edit column: Grade item ID not found');
       return;
     }
+
+    // Check if any grades are verified to determine if delete should be disabled
+    const gradesAreVerified = hasVerifiedGrades();
 
     // Use the new FormModal for two separate input fields
     modalStore.form(
@@ -1354,65 +1355,82 @@
       () => {
         // Do nothing on cancel
       },
-      async () => {
-        // Delete column handler
-        try {
-          const response = await authenticatedFetch('/api/grades/grade-items', {
-            method: 'DELETE',
-            body: JSON.stringify({
-              grade_item_id: gradeItemId
-            })
-          });
+      () => {
+        // Delete column handler - show confirmation modal first
+        modalStore.confirm(
+          'Delete Column',
+          `<p>Are you sure you want to permanently delete the column <strong>"${currentName}"</strong>?</p>
+          <p class="grading-warning">This action will:</p>
+          <ul class="grading-warning-list">
+            <li>Permanently delete the column and all its grades</li>
+            <li>Remove all student scores for this assessment</li>
+            <li>This action cannot be undone</li>
+          </ul>`,
+          async () => {
+            // Actual delete implementation
+            try {
+              const response = await authenticatedFetch('/api/grades/grade-items', {
+                method: 'DELETE',
+                body: JSON.stringify({
+                  grade_item_id: gradeItemId
+                })
+              });
 
-          // authenticatedFetch already handles response.ok and throws on error
-          // If we reach here, the request was successful
+              // authenticatedFetch already handles response.ok and throws on error
+              // If we reach here, the request was successful
 
-          // Remove from local gradingConfig - update all relevant properties
-          gradingConfig[assessmentType].count -= 1;
+              // Remove from local gradingConfig - update all relevant properties
+              gradingConfig[assessmentType].count -= 1;
 
-          if (gradingConfig[assessmentType].columnNames) {
-            gradingConfig[assessmentType].columnNames.splice(columnIndex, 1);
-          }
-          if (gradingConfig[assessmentType].totals) {
-            gradingConfig[assessmentType].totals.splice(columnIndex, 1);
-          }
-          if (gradingConfig[assessmentType].columnPositions) {
-            gradingConfig[assessmentType].columnPositions.splice(columnIndex, 1);
-          }
-          if (gradingConfig[assessmentType].gradeItemIds) {
-            gradingConfig[assessmentType].gradeItemIds.splice(columnIndex, 1);
-          }
+              if (gradingConfig[assessmentType].columnNames) {
+                gradingConfig[assessmentType].columnNames.splice(columnIndex, 1);
+              }
+              if (gradingConfig[assessmentType].totals) {
+                gradingConfig[assessmentType].totals.splice(columnIndex, 1);
+              }
+              if (gradingConfig[assessmentType].columnPositions) {
+                gradingConfig[assessmentType].columnPositions.splice(columnIndex, 1);
+              }
+              if (gradingConfig[assessmentType].gradeItemIds) {
+                gradingConfig[assessmentType].gradeItemIds.splice(columnIndex, 1);
+              }
 
-          // Trigger reactivity
-          gradingConfig = { ...gradingConfig };
+              // Trigger reactivity
+              gradingConfig = { ...gradingConfig };
 
-          // Adjust student data to match new column count
-          students = students.map(student => {
-            const newStudent = { ...student };
+              // Adjust student data to match new column count
+              students = students.map(student => {
+                const newStudent = { ...student };
 
-            // Remove the deleted column's data from each assessment type
-            if (assessmentType === 'writtenWork' && newStudent.writtenWork) {
-              newStudent.writtenWork.splice(columnIndex, 1);
-            } else if (assessmentType === 'performanceTasks' && newStudent.performanceTasks) {
-              newStudent.performanceTasks.splice(columnIndex, 1);
-            } else if (assessmentType === 'quarterlyAssessment' && newStudent.quarterlyAssessment) {
-              newStudent.quarterlyAssessment.splice(columnIndex, 1);
+                // Remove the deleted column's data from each assessment type
+                if (assessmentType === 'writtenWork' && newStudent.writtenWork) {
+                  newStudent.writtenWork.splice(columnIndex, 1);
+                } else if (assessmentType === 'performanceTasks' && newStudent.performanceTasks) {
+                  newStudent.performanceTasks.splice(columnIndex, 1);
+                } else if (assessmentType === 'quarterlyAssessment' && newStudent.quarterlyAssessment) {
+                  newStudent.quarterlyAssessment.splice(columnIndex, 1);
+                }
+
+                return newStudent;
+              });
+
+              // Reinitialize spreadsheet to reflect changes
+              initializeSpreadsheetData();
+
+              toastStore.success('Column deleted successfully');
+            } catch (error) {
+              console.error('Error deleting column:', error);
+              toastStore.error('Failed to delete column. Please try again.');
             }
-
-            return newStudent;
-          });
-
-          // Reinitialize spreadsheet to reflect changes
-          initializeSpreadsheetData();
-
-          toastStore.success('Column deleted successfully');
-        } catch (error) {
-          console.error('Error deleting column:', error);
-          toastStore.error('Failed to delete column. Please try again.');
-        }
+          },
+          null,
+          { size: 'medium' }
+        );
       },
       {
-        size: 'small'
+        size: 'small',
+        deleteDisabled: gradesAreVerified,
+        deleteDisabledReason: gradesAreVerified ? 'Cannot delete columns when grades are verified by adviser' : ''
       }
     );
   }

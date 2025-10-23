@@ -109,7 +109,9 @@ function createModalStore() {
         field2Max: field2Config.max,
         onSubmit,
         onCancel,
-        onDelete
+        onDelete,
+        deleteDisabled: options.deleteDisabled || false,
+        deleteDisabledReason: options.deleteDisabledReason || ''
       }, {
         size: options.size || 'medium',
         closable: options.closable !== false
