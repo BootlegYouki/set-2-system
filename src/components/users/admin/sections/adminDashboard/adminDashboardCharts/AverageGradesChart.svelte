@@ -141,7 +141,7 @@
 						callbacks: {
 							label: function(context) {
 								const value = context.parsed.y || 0;
-								return `Average: ${value.toFixed(2)}%`;
+								return `Average: ${value.toFixed(1)}%`;
 							}
 						}
 					}

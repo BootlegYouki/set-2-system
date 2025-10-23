@@ -73,7 +73,11 @@ export async function GET() {
         $match: {
           'averages.final_grade': { $exists: true, $ne: null, $gt: 0 },
           quarter: currentQuarter,
-          school_year: currentSchoolYear
+          school_year: currentSchoolYear,
+          $or: [
+            { verified: true },
+            { 'verification.verified': true }
+          ]
         }
       },
       {
@@ -108,7 +112,7 @@ export async function GET() {
         $project: {
           _id: 0,
           grade_level: '$_id',
-          average_grade: { $round: ['$average_grade', 2] },
+          average_grade: { $round: ['$average_grade', 1] },
           total_grades: 1
         }
       },
