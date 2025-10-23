@@ -1476,7 +1476,7 @@
           // Use account_number as id if available, otherwise use existing id
           id: student.account_number || student.id,
           name: student.full_name || `${student.first_name} ${student.last_name}`,
-          isVerified: student.grades?.verification?.verified || false
+          isVerified: (student.grades?.verified || student.grades?.verification?.verified) || false
         }));
         
         // Reinitialize spreadsheet data to reflect the refreshed grades
