@@ -152,16 +152,22 @@ export async function POST({ request }) {
         return json({ success: true });
 
       case 'delete_grade_item':
-        const { delete_item_id } = data;
-        
+      case 'remove':
+        // Accept either delete_item_id or grade_item_id from different frontend callers
+        const gradeItemId = data.delete_item_id || data.grade_item_id;
+
+        if (!gradeItemId) {
+          return json({ success: false, error: 'Missing grade item id' }, { status: 400 });
+        }
+
         // Remove grade item from all categories
         await db.collection('grade_configurations').updateMany(
           {},
           {
             $pull: {
-              'grade_items.writtenWork': { id: delete_item_id },
-              'grade_items.performanceTasks': { id: delete_item_id },
-              'grade_items.quarterlyAssessment': { id: delete_item_id }
+              'grade_items.writtenWork': { id: gradeItemId },
+              'grade_items.performanceTasks': { id: gradeItemId },
+              'grade_items.quarterlyAssessment': { id: gradeItemId }
             },
             $set: { updated_at: new Date() }
           }
@@ -226,8 +232,39 @@ export async function PUT({ request }) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function DELETE({ url }) {
+export async function DELETE({ url, request }) {
   try {
+    const db = await connectToDatabase();
+
+    // Try to read JSON body in case the client sent a grade_item_id in the body
+    let body = {};
+    try {
+      body = await request.json();
+    } catch (err) {
+      // Ignore if no JSON body provided
+      body = {};
+    }
+
+    // If a specific grade_item_id is provided in the body, remove that item from all configs
+    if (body && body.grade_item_id) {
+      const gradeItemId = body.grade_item_id;
+
+      await db.collection('grade_configurations').updateMany(
+        {},
+        {
+          $pull: {
+            'grade_items.writtenWork': { id: gradeItemId },
+            'grade_items.performanceTasks': { id: gradeItemId },
+            'grade_items.quarterlyAssessment': { id: gradeItemId }
+          },
+          $set: { updated_at: new Date() }
+        }
+      );
+
+      return json({ success: true, message: 'Grade item deleted successfully' });
+    }
+
+    // Fallback: delete whole grade configuration if query params are provided
     const sectionId = url.searchParams.get('section_id');
     const subjectId = url.searchParams.get('subject_id');
     const gradingPeriodId = url.searchParams.get('grading_period_id');
@@ -239,14 +276,12 @@ export async function DELETE({ url }) {
       }, { status: 400 });
     }
 
-    const db = await connectToDatabase();
-
-    // Delete grade configuration
+    // Convert to ObjectId where appropriate to match how configs are stored
     await db.collection('grade_configurations').deleteOne({
-      section_id: sectionId,
-      subject_id: subjectId,
+      section_id: new ObjectId(sectionId),
+      subject_id: new ObjectId(subjectId),
       grading_period_id: parseInt(gradingPeriodId),
-      teacher_id: teacherId
+      teacher_id: new ObjectId(teacherId)
     });
 
     return json({ success: true });
