@@ -75,6 +75,21 @@ export async function POST({ request }) {
           continue; // Skip this student
         }
 
+        // Check if grades are already verified before preparing data
+        const filter = {
+          student_id: new ObjectId(studentId),
+          section_id: new ObjectId(section_id),
+          subject_id: new ObjectId(subject_id),
+          school_year: currentSchoolYear,
+          quarter: grading_period_id
+        };
+
+        const existingGrade = await db.collection('grades').findOne(filter);
+        if (existingGrade && existingGrade.verification && existingGrade.verification.verified) {
+          console.log(`Skipping update for verified grades - student ${studentAccountNumber}`);
+          continue; // Skip this student and continue with the next one
+        }
+
         // Prepare grade data for MongoDB
         const gradeData = {
           student_id: new ObjectId(studentId),
@@ -136,21 +151,6 @@ export async function POST({ request }) {
           (gradeData.averages.quarterly_assessment * qaWeight);
 
         // Save or update the grade record in MongoDB
-        const filter = {
-          student_id: new ObjectId(studentId),
-          section_id: new ObjectId(section_id),
-          subject_id: new ObjectId(subject_id),
-          school_year: gradeData.school_year,
-          quarter: gradeData.quarter
-        };
-
-        // Check if grades are already verified
-        const existingGrade = await db.collection('grades').findOne(filter);
-        if (existingGrade && existingGrade.verification && existingGrade.verification.verified) {
-          console.log(`Skipping update for verified grades - student ${studentAccountNumber}`);
-          continue; // Skip this student and continue with the next one
-        }
-
         const result = await db.collection('grades').updateOne(
           filter,
           { $set: gradeData },

@@ -439,6 +439,11 @@
   // Dropdown toggle functions - no longer needed
   // Removed dropdown functions since we're using buttons now
 
+  // Check if any student has verified grades
+  function hasVerifiedGrades() {
+    return students.some(student => student.isVerified || student.verified);
+  }
+
   // Add column function with duplicate prevention
   async function addColumn(category) {
     if (gradingConfig[category].count < 10 && !addingColumn && !isDestroyed) {
@@ -754,8 +759,8 @@
               type="button"
               class="classlist-add-column-button"
               onclick={() => addColumn('writtenWork')}
-              disabled={gradingConfig.writtenWork.count >= 10 || addingColumn}
-              title="Add Column"
+              disabled={gradingConfig.writtenWork.count >= 10 || addingColumn || hasVerifiedGrades()}
+              title={hasVerifiedGrades() ? "Cannot add columns when grades are verified" : "Add Column"}
             >
               <span class="material-symbols-outlined">add</span>
             </button>
@@ -781,8 +786,8 @@
               type="button"
               class="classlist-add-column-button"
               onclick={() => addColumn('performanceTasks')}
-              disabled={gradingConfig.performanceTasks.count >= 10 || addingColumn}
-              title="Add Column"
+              disabled={gradingConfig.performanceTasks.count >= 10 || addingColumn || hasVerifiedGrades()}
+              title={hasVerifiedGrades() ? "Cannot add columns when grades are verified" : "Add Column"}
             >
               <span class="material-symbols-outlined">add</span>
             </button>
@@ -808,8 +813,8 @@
               type="button"
               class="classlist-add-column-button"
               onclick={() => addColumn('quarterlyAssessment')}
-              disabled={gradingConfig.quarterlyAssessment.count >= 10 || addingColumn}
-              title="Add Column"
+              disabled={gradingConfig.quarterlyAssessment.count >= 10 || addingColumn || hasVerifiedGrades()}
+              title={hasVerifiedGrades() ? "Cannot add columns when grades are verified" : "Add Column"}
             >
               <span class="material-symbols-outlined">add</span>
             </button>
