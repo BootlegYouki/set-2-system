@@ -1,28 +1,66 @@
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
-// Create a transporter for Brevo SMTP
-let transporter = null;
-
 /**
- * Initialize the email transporter with Brevo SMTP settings
+ * Send email using Brevo API (HTTPS-based, works on Render)
+ * @param {Object} emailData - Email configuration
+ * @param {Object} emailData.sender - Sender information
+ * @param {Array} emailData.to - Array of recipients
+ * @param {string} emailData.subject - Email subject
+ * @param {string} emailData.htmlContent - HTML content
+ * @param {string} emailData.textContent - Plain text content
+ * @returns {Promise<Object>} Result of the email sending operation
  */
-function getTransporter() {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD
-      }
+async function sendEmailViaBrevoAPI(emailData) {
+  try {
+    const { sender, to, subject, htmlContent, textContent } = emailData;
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: sender,
+        to: to,
+        subject: subject,
+        htmlContent: htmlContent,
+        textContent: textContent,
+        headers: {
+          'X-Mailer': 'SET-2 System v1.0',
+          'X-Priority': '3',
+          'X-MSMail-Priority': 'Normal',
+          'Importance': 'Normal'
+        }
+      })
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Brevo API Error: ${response.status} - ${errorData.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    console.log('Email sent successfully via Brevo API:', data.messageId);
+
+    return {
+      success: true,
+      messageId: data.messageId,
+      data: data
+    };
+
+  } catch (error) {
+    console.error('Error sending email via Brevo API:', error);
+    
+    return {
+      success: false,
+      error: error.message
+    };
   }
-  return transporter;
 }
 
 /**
@@ -56,8 +94,8 @@ export async function sendAccountCreationEmail(accountData) {
         <title>Account Created - SET-2 System</title>
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          /* Reset and Base Styles */
-          * {
+            /* Reset and Base Styles */
+            * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -472,37 +510,26 @@ For assistance, please contact your system administrator.
 © ${new Date().getFullYear()} SET-2 System. All rights reserved.
     `.trim();
 
-    // Email options with improved deliverability
-    const mailOptions = {
-      from: {
+    // Prepare email data for Brevo API
+    const emailData = {
+      sender: {
         name: 'SET-2 System',
-        address: process.env.SMTP_FROM_EMAIL
+        email: process.env.BREVO_FROM_EMAIL || process.env.SMTP_FROM_EMAIL
       },
-      to: email,
-      replyTo: process.env.SMTP_FROM_EMAIL,
-      subject: `Account Created Successfully - SET-2 System`,
-      text: textContent,
-      html: htmlContent,
-      headers: {
-        'X-Mailer': 'SET-2 System v1.0',
-        'X-Priority': '3',
-        'X-MSMail-Priority': 'Normal',
-        'Importance': 'Normal',
-        'List-Unsubscribe': '<mailto:unsubscribe@set2system.com>',
-        'Message-ID': `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@set2system.com>`
-      }
+      to: [{ email: email }],
+      subject: 'Account Created Successfully - SET-2 System',
+      htmlContent: htmlContent,
+      textContent: textContent
     };
 
-    // Send email
-    const transporter = getTransporter();
-    const info = await transporter.sendMail(mailOptions);
+    // Send email using Brevo API
+    const result = await sendEmailViaBrevoAPI(emailData);
 
-    console.log('Account creation email sent successfully:', info.messageId);
+    if (result.success) {
+      console.log('Account creation email sent successfully:', result.messageId);
+    }
 
-    return {
-      success: true,
-      messageId: info.messageId
-    };
+    return result;
 
   } catch (error) {
     console.error('Error sending account creation email:', error);
@@ -515,18 +542,31 @@ For assistance, please contact your system administrator.
 }
 
 /**
- * Verify SMTP connection
+ * Verify Brevo API connection
  * @returns {Promise<boolean>} True if connection is successful
  */
 export async function verifyEmailConnection() {
   try {
-    const transporter = getTransporter();
-    await transporter.verify();
-    console.log('SMTP connection verified successfully');
-    return true;
+    // Test the Brevo API by making a simple request to get account info
+    const response = await fetch('https://api.brevo.com/v3/account', {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Brevo API verification failed: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Brevo API connection verified successfully:', data.email);
+    return { success: true, data };
   } catch (error) {
-    console.error('SMTP connection verification failed:', error);
-    return false;
+    console.error('Brevo API connection verification failed:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -652,104 +692,73 @@ export async function sendPasswordResetEmail(resetData) {
             line-height: 1.6;
           }
           
-          .code-box {
-            background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%);
+          .reset-code-box {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f1f8e9 100%);
             border-radius: 12px;
             padding: 32px 24px;
             margin: 24px 0;
-            border: 1px solid #90caf9;
+            border: 2px solid #4caf50;
             text-align: center;
           }
           
-          .code-box h2 {
-            color: #0d47a1;
-            font-size: 16px;
+          .reset-code-box h2 {
+            color: #2e7d32;
+            font-size: 18px;
             font-weight: 600;
-            margin: 0 0 16px 0;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+            margin: 0 0 20px 0;
           }
           
           .reset-code {
             display: inline-block;
             background-color: #ffffff;
-            border-radius: 8px;
-            padding: 20px 40px;
-            margin: 8px 0;
-            border: 2px solid #1565c0;
+            border: 2px solid #4caf50;
+            border-radius: 12px;
+            padding: 20px 32px;
             font-size: 36px;
             font-weight: 700;
-            color: #1565c0;
+            color: #2e7d32;
             font-family: 'Courier New', 'Roboto Mono', monospace;
             letter-spacing: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin: 16px 0;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
           }
           
-          .code-info {
-            font-size: 14px;
-            color: #49454f;
-            margin-top: 12px;
-          }
-          
-          .warning-box {
+          .expiry-notice {
             background-color: #fff3e0;
             border: 1px solid #ff9800;
             border-radius: 8px;
-            padding: 20px;
-            margin: 24px 0;
-          }
-          
-          .warning-box h3 {
-            color: #f57c00;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          
-          .warning-box p {
-            color: #f57c00;
-            font-size: 14px;
-            margin: 8px 0;
-            line-height: 1.5;
-          }
-          
-          .info-box {
-            background-color: #e3f2fd;
-            border: 1px solid #1565c0;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 24px 0;
-          }
-          
-          .info-box h3 {
-            color: #0d47a1;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-          }
-          
-          .info-box p {
-            color: #1565c0;
-            font-size: 14px;
-            margin: 8px 0;
-            line-height: 1.5;
-          }
-          
-          .contact-box {
-            background-color: #f8f8f8;
-            border-radius: 8px;
             padding: 16px;
-            margin: 24px 0 0 0;
+            margin: 24px 0;
             text-align: center;
           }
           
-          .contact-box p {
-            color: #49454f;
+          .expiry-notice p {
+            color: #f57c00;
             font-size: 14px;
             margin: 0;
+            font-weight: 500;
+          }
+          
+          .security-notice {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+          }
+          
+          .security-notice h3 {
+            color: #c62828;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+          }
+          
+          .security-notice p {
+            color: #c62828;
+            font-size: 14px;
+            margin: 8px 0;
+            line-height: 1.5;
           }
           
           .footer {
@@ -785,76 +794,76 @@ export async function sendPasswordResetEmail(resetData) {
               padding: 24px;
             }
             
-            .code-box {
+            .reset-code-box {
               padding: 24px 16px;
             }
             
             .reset-code {
               font-size: 28px;
+              letter-spacing: 4px;
               padding: 16px 24px;
-              letter-spacing: 6px;
             }
             
             .footer {
               padding: 20px 24px;
+            }
+            
+            .header h1 {
+              font-size: 24px;
             }
           }
         </style>
       </head>
       <body>
         <div class="email-container">
+          <!-- Header -->
           <div class="header">
             <div class="header-content">
               <h1>Password Reset Request</h1>
-              <p>SET-2 System</p>
+              <p>SET-2 System Security</p>
             </div>
           </div>
           
+          <!-- Content -->
           <div class="content">
             <p class="greeting">Hello, <strong>${fullName}</strong></p>
             
             <p class="intro-text">
               We received a request to reset the password for your SET-2 System account 
-              (<strong>${accountNumber}</strong>). Use the verification code below to complete 
-              the password reset process.
+              (<strong>${accountNumber}</strong>). Use the verification code below to proceed with your password reset.
             </p>
             
-            <div class="code-box">
+            <!-- Reset Code Box -->
+            <div class="reset-code-box">
               <h2>Your Verification Code</h2>
               <div class="reset-code">${resetCode}</div>
-              <p class="code-info">This code will expire in <strong>15 minutes</strong></p>
-            </div>
-            
-            <div class="warning-box">
-              <h3>Security Notice</h3>
-              <p>
-                <strong>Do not share this code with anyone.</strong> SET-2 System staff will never 
-                ask for your verification code.
-              </p>
-              <p>
-                If you did not request a password reset, please ignore this email and your password 
-                will remain unchanged.
+              <p style="color: #2e7d32; font-size: 14px; margin: 0;">
+                Enter this code on the password reset page to continue.
               </p>
             </div>
             
-            <div class="info-box">
-              <h3>Next Steps</h3>
-              <p>1. Return to the password reset page</p>
-              <p>2. Enter the 6-digit verification code above</p>
-              <p>3. Create and confirm your new password</p>
-              <p>4. Login with your new credentials</p>
+            <!-- Expiry Notice -->
+            <div class="expiry-notice">
+              <p>⏰ This verification code will expire in <strong>15 minutes</strong> for security reasons.</p>
             </div>
             
-            <div class="contact-box">
+            <!-- Security Notice -->
+            <div class="security-notice">
+              <h3>⚠️ Security Alert</h3>
               <p>
-                If you're having trouble or didn't request this reset, 
-                please contact the system administrator immediately.
+                If you did not request this password reset, please ignore this email and 
+                contact your system administrator immediately.
+              </p>
+              <p>
+                Your account security is important to us. Never share your verification 
+                code with anyone.
               </p>
             </div>
           </div>
           
+          <!-- Footer -->
           <div class="footer">
-            <p>This is an automated message from the SET-2 System.</p>
+            <p>This is an automated security message from the SET-2 System.</p>
             <p>Please do not reply to this email.</p>
             <p>For assistance, please contact your system administrator.</p>
             <p class="footer-brand">© ${new Date().getFullYear()} SET-2 System • All rights reserved</p>
@@ -867,7 +876,7 @@ export async function sendPasswordResetEmail(resetData) {
     // Plain text version
     const textContent = `
 ╔══════════════════════════════════════════════════════════════╗
-║          PASSWORD RESET REQUEST - SET-2 SYSTEM              ║
+║            PASSWORD RESET REQUEST - SET-2 SYSTEM             ║
 ╚══════════════════════════════════════════════════════════════╝
 
 Hello ${fullName},
@@ -876,421 +885,66 @@ We received a request to reset the password for your SET-2 System
 account (${accountNumber}).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔒 YOUR VERIFICATION CODE
+🔐 YOUR VERIFICATION CODE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${resetCode}
+                        ${resetCode}
 
-This code will expire in 15 minutes.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️  SECURITY NOTICE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-DO NOT SHARE this code with anyone. SET-2 System staff will never 
-ask for your verification code.
-
-If you did not request a password reset, please ignore this email 
-and your password will remain unchanged.
+⏰ This code expires in 15 minutes for security reasons.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📝 NEXT STEPS
+📝 HOW TO RESET YOUR PASSWORD
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 1. Return to the password reset page
-2. Enter the 6-digit verification code above
-3. Create and confirm your new password
-4. Login with your new credentials
+2. Enter the 6-digit verification code shown above
+3. Create a new, secure password
+4. Confirm your new password
+5. Click "Reset Password" to complete the process
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  SECURITY ALERT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If you did not request this password reset, please ignore this 
+email and contact your system administrator immediately.
+
+Your account security is important to us. Never share your 
+verification code with anyone.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-If you're having trouble or didn't request this reset, please 
-contact the system administrator immediately.
-
-This is an automated message from the SET-2 System.
+This is an automated security message from the SET-2 System.
 Please do not reply to this email.
+
+For assistance, please contact your system administrator.
 
 © ${new Date().getFullYear()} SET-2 System. All rights reserved.
     `.trim();
 
-    // Email options with improved deliverability
-    const mailOptions = {
-      from: {
-        name: 'SET-2 System',
-        address: process.env.SMTP_FROM_EMAIL
+    // Prepare email data for Brevo API
+    const emailData = {
+      sender: {
+        name: 'SET-2 System Security',
+        email: process.env.BREVO_FROM_EMAIL || process.env.SMTP_FROM_EMAIL
       },
-      to: email,
-      replyTo: process.env.SMTP_FROM_EMAIL,
-      subject: `Password Reset Code - SET-2 System`,
-      text: textContent,
-      html: htmlContent,
-      headers: {
-        'X-Mailer': 'SET-2 System v1.0',
-        'X-Priority': '3',
-        'X-MSMail-Priority': 'Normal',
-        'Importance': 'Normal',
-        'List-Unsubscribe': '<mailto:unsubscribe@set2system.com>',
-        'Message-ID': `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@set2system.com>`
-      }
+      to: [{ email: email }],
+      subject: 'Password Reset Request - SET-2 System',
+      htmlContent: htmlContent,
+      textContent: textContent
     };
 
-    // Send email
-    const transporter = getTransporter();
-    const info = await transporter.sendMail(mailOptions);
+    // Send email using Brevo API
+    const result = await sendEmailViaBrevoAPI(emailData);
 
-    console.log('Password reset email sent successfully:', info.messageId);
+    if (result.success) {
+      console.log('Password reset email sent successfully:', result.messageId);
+    }
 
-    return {
-      success: true,
-      messageId: info.messageId
-    };
+    return result;
 
   } catch (error) {
     console.error('Error sending password reset email:', error);
-    
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-/**
- * Send password reset confirmation email
- * @param {Object} confirmData - Confirmation information
- * @param {string} confirmData.email - User's email address
- * @param {string} confirmData.fullName - User's full name
- * @param {string} confirmData.accountNumber - User's account number
- * @returns {Promise<Object>} Result of the email sending operation
- */
-export async function sendPasswordResetConfirmationEmail(confirmData) {
-  try {
-    const { email, fullName, accountNumber } = confirmData;
-
-    if (!email) {
-      throw new Error('Email address is required');
-    }
-
-    // Email HTML template
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Password Reset Successful - SET-2 System</title>
-        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        <style>
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          
-          body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #1c1b1f;
-            background-color: #f5f5f5;
-            padding: 24px 16px;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-          }
-          
-          .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-          }
-          
-          .header {
-            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
-            color: #ffffff;
-            padding: 40px 32px;
-            text-align: center;
-            position: relative;
-          }
-          
-          .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at top right, rgba(76, 175, 80, 0.3) 0%, transparent 50%);
-            pointer-events: none;
-          }
-          
-          .header-content {
-            position: relative;
-            z-index: 1;
-          }
-          
-          .header-icon {
-            width: 64px;
-            height: 64px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-            font-size: 32px;
-            backdrop-filter: blur(10px);
-          }
-          
-          .header h1 {
-            font-size: 28px;
-            font-weight: 500;
-            margin: 0 0 8px 0;
-            color: #ffffff;
-            letter-spacing: -0.5px;
-          }
-          
-          .header p {
-            font-size: 16px;
-            margin: 0;
-            opacity: 0.95;
-            font-weight: 400;
-          }
-          
-          .content {
-            padding: 32px;
-          }
-          
-          .greeting {
-            font-size: 18px;
-            font-weight: 500;
-            color: #1c1b1f;
-            margin-bottom: 16px;
-          }
-          
-          .intro-text {
-            font-size: 16px;
-            color: #49454f;
-            margin-bottom: 24px;
-            line-height: 1.6;
-          }
-          
-          .success-box {
-            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-            border: 1px solid #4caf50;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
-            text-align: center;
-          }
-          
-          .success-box h2 {
-            color: #1b5e20;
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-          }
-          
-          .success-box p {
-            color: #2e7d32;
-            font-size: 14px;
-            margin: 0;
-          }
-          
-          .info-box {
-            background-color: #e3f2fd;
-            border: 1px solid #1565c0;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 24px 0;
-          }
-          
-          .info-box h3 {
-            color: #0d47a1;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 0 0 12px 0;
-          }
-          
-          .info-box p {
-            color: #1565c0;
-            font-size: 14px;
-            margin: 8px 0;
-            line-height: 1.5;
-          }
-          
-          .contact-box {
-            background-color: #f8f8f8;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 24px 0 0 0;
-            text-align: center;
-          }
-          
-          .contact-box p {
-            color: #49454f;
-            font-size: 14px;
-            margin: 0;
-          }
-          
-          .footer {
-            background-color: #fafafa;
-            padding: 24px 32px;
-            text-align: center;
-            border-top: 1px solid #e0e0e0;
-          }
-          
-          .footer p {
-            color: #79747e;
-            font-size: 12px;
-            margin: 6px 0;
-            line-height: 1.5;
-          }
-          
-          .footer-brand {
-            font-weight: 600;
-            color: #1565c0;
-            margin-top: 16px;
-          }
-          
-          @media only screen and (max-width: 600px) {
-            body {
-              padding: 12px 8px;
-            }
-            
-            .header {
-              padding: 32px 24px;
-            }
-            
-            .content {
-              padding: 24px;
-            }
-            
-            .footer {
-              padding: 20px 24px;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="email-container">
-          <div class="header">
-            <div class="header-content">
-              <h1>Password Reset Successful</h1>
-              <p>SET-2 System</p>
-            </div>
-          </div>
-          
-          <div class="content">
-            <p class="greeting">Hello, <strong>${fullName}</strong></p>
-            
-            <p class="intro-text">
-              Your password for account <strong>${accountNumber}</strong> has been successfully 
-              reset. You can now login to the SET-2 System using your new password.
-            </p>
-            
-            <div class="success-box">
-              <h2>✓ Password Updated Successfully</h2>
-              <p>Your account is secure and ready to use.</p>
-            </div>
-            
-            <div class="info-box">
-              <h3>Security Recommendations</h3>
-              <p>• Use a strong, unique password for your account</p>
-              <p>• Never share your password with anyone</p>
-              <p>• Change your password regularly</p>
-              <p>• Log out when using shared computers</p>
-            </div>
-            
-            <div class="contact-box">
-              <p>
-                If you did not make this change or suspect unauthorized access, 
-                please contact the system administrator immediately.
-              </p>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <p>This is an automated message from the SET-2 System.</p>
-            <p>Please do not reply to this email.</p>
-            <p>For assistance, please contact your system administrator.</p>
-            <p class="footer-brand">© ${new Date().getFullYear()} SET-2 System • All rights reserved</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    // Plain text version
-    const textContent = `
-╔══════════════════════════════════════════════════════════════╗
-║       PASSWORD RESET SUCCESSFUL - SET-2 SYSTEM              ║
-╚══════════════════════════════════════════════════════════════╝
-
-Hello ${fullName},
-
-Your password for account ${accountNumber} has been successfully reset. 
-You can now login to the SET-2 System using your new password.
-
-✓ Password Updated Successfully
-
-Your account is secure and ready to use.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔐 SECURITY RECOMMENDATIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-• Use a strong, unique password for your account
-• Never share your password with anyone
-• Change your password regularly
-• Log out when using shared computers
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-If you did not make this change or suspect unauthorized access, 
-please contact the system administrator immediately.
-
-This is an automated message from the SET-2 System.
-Please do not reply to this email.
-
-© ${new Date().getFullYear()} SET-2 System. All rights reserved.
-    `.trim();
-
-    // Email options with improved deliverability
-    const mailOptions = {
-      from: {
-        name: 'SET-2 System',
-        address: process.env.SMTP_FROM_EMAIL
-      },
-      to: email,
-      replyTo: process.env.SMTP_FROM_EMAIL,
-      subject: `Password Reset Successful - SET-2 System`,
-      text: textContent,
-      html: htmlContent,
-      headers: {
-        'X-Mailer': 'SET-2 System v1.0',
-        'X-Priority': '3',
-        'X-MSMail-Priority': 'Normal',
-        'Importance': 'Normal',
-        'List-Unsubscribe': '<mailto:unsubscribe@set2system.com>',
-        'Message-ID': `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@set2system.com>`
-      }
-    };
-
-    // Send email
-    const transporter = getTransporter();
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log('Password reset confirmation email sent successfully:', info.messageId);
-
-    return {
-      success: true,
-      messageId: info.messageId
-    };
-
-  } catch (error) {
-    console.error('Error sending password reset confirmation email:', error);
     
     return {
       success: false,
