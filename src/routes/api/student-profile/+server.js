@@ -41,7 +41,19 @@ export async function GET({ url }) {
       status: 'active'
     });
 
+    // Get student's basic info to determine grade level
+    const student = await users.findOne({
+      _id: new ObjectId(studentId),
+      account_type: 'student'
+    });
+
+    if (!student) {
+      return json({ error: 'Student not found' }, { status: 404 });
+    }
+
     let sectionInfo = null;
+    let studentGradeLevel = null;
+
     if (sectionEnrollment) {
       // Get section details with adviser information
       const sectionData = await sections.findOne({
@@ -49,6 +61,7 @@ export async function GET({ url }) {
       });
 
       if (sectionData) {
+        studentGradeLevel = sectionData.grade_level;
         let adviserName = 'Not assigned';
         if (sectionData.adviser_id) {
           const adviser = await users.findOne({
@@ -67,18 +80,21 @@ export async function GET({ url }) {
           adviser_name: adviserName
         };
       }
+    } else {
+      // Student has no section, use grade level from user profile
+      studentGradeLevel = parseInt(student.grade_level);
     }
 
     // Get student's enrolled subjects with teacher information
     let subjects = [];
-    if (sectionInfo) {
+    if (studentGradeLevel) {
       const subjectsCollection = db.collection('subjects');
       const schedulesCollection = db.collection('schedules');
       const departmentsCollection = db.collection('departments');
 
       // Get all subjects for the student's grade level
       const subjectsList = await subjectsCollection.find({
-        grade_level: sectionInfo.grade_level
+        grade_level: studentGradeLevel
       }).sort({ name: 1 }).toArray();
 
       // For each subject, try to find teacher and department info
@@ -86,21 +102,24 @@ export async function GET({ url }) {
         let teacherName = 'No teacher';
         let departmentName = 'General';
 
-        // Find schedule for this subject and section to get teacher
-        // Use section's school year for schedules (historical data)
-        const schedule = await schedulesCollection.findOne({
-          subject_id: subject._id,
-          section_id: sectionInfo.section_id,
-          school_year: sectionInfo.school_year // Use section's school year for schedules
-        });
-
-        if (schedule && schedule.teacher_id) {
-          const teacher = await users.findOne({
-            _id: schedule.teacher_id,
-            account_type: 'teacher'
+        // Only try to find teacher if student has a section
+        if (sectionInfo) {
+          // Find schedule for this subject and section to get teacher
+          // Use section's school year for schedules (historical data)
+          const schedule = await schedulesCollection.findOne({
+            subject_id: subject._id,
+            section_id: sectionInfo.section_id,
+            school_year: sectionInfo.school_year // Use section's school year for schedules
           });
-          if (teacher) {
-            teacherName = teacher.full_name;
+
+          if (schedule && schedule.teacher_id) {
+            const teacher = await users.findOne({
+              _id: schedule.teacher_id,
+              account_type: 'teacher'
+            });
+            if (teacher) {
+              teacherName = teacher.full_name;
+            }
           }
         }
 
@@ -213,12 +232,17 @@ export async function GET({ url }) {
         name: sectionInfo.section_name,
         gradeLevel: sectionInfo.grade_level,
         adviser: sectionInfo.adviser_name || 'Not assigned'
-      } : null,
+      } : {
+        id: null,
+        name: 'No section assigned',
+        gradeLevel: studentGradeLevel,
+        adviser: 'No adviser'
+      },
       subjects: subjects,
       academicSummary: {
         generalAverage: generalAverage,
-        classRank: classRank,
-        totalStudentsInSection: totalStudentsInSection,
+        classRank: classRank || 'N/A',
+        totalStudentsInSection: totalStudentsInSection || 0,
         totalSubjectsEnrolled: subjects.length,
         totalSubjectsWithGrades: totalSubjectsWithGrades
       }

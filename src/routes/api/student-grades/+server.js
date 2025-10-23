@@ -41,50 +41,70 @@ export async function GET({ url, request }) {
       }, { status: 400 });
     }
 
-    // First, get the student's section and grade level
+    // First, get the student's basic info to determine grade level
+    const student = await db.collection('users').findOne({
+      _id: new ObjectId(student_id),
+      account_type: 'student'
+    });
+
+    if (!student) {
+      return json({
+        success: false,
+        error: 'Student not found'
+      }, { status: 404 });
+    }
+
+    // Try to get the student's section and grade level
     const studentEnrollment = await db.collection('section_students').findOne({
       student_id: new ObjectId(student_id),
       status: 'active'
     });
 
-    if (!studentEnrollment) {
-      return json({
-        success: false,
-        error: 'Student is not enrolled in any active section'
-      }, { status: 404 });
+    let section = null;
+    let studentGradeLevel = null;
+    let sectionSchoolYear = school_year;
+
+    if (studentEnrollment) {
+      // Student has a section - get section details
+      section = await db.collection('sections').findOne({
+        _id: studentEnrollment.section_id,
+        status: 'active'
+      });
+
+      if (section) {
+        studentGradeLevel = section.grade_level;
+        sectionSchoolYear = section.school_year || school_year;
+      }
     }
 
-    // Get the section details to find grade level and school year
-    const section = await db.collection('sections').findOne({
-      _id: studentEnrollment.section_id,
-      status: 'active'
-    });
-
-    if (!section) {
-      return json({
-        success: false,
-        error: 'Student section not found or inactive'
-      }, { status: 404 });
+    // If no section or section not found, use student's grade level from user profile
+    if (!studentGradeLevel) {
+      studentGradeLevel = parseInt(student.grade_level);
+      if (!studentGradeLevel) {
+        return json({
+          success: false,
+          error: 'Student grade level not found'
+        }, { status: 404 });
+      }
     }
 
-    // Use section's school year for schedules (historical data)
-    const sectionSchoolYear = section.school_year || '2025-2026';
-    
     // Use current school year for grades
     const gradesSchoolYear = school_year;
 
     // Get all subjects for the student's grade level
     const allSubjects = await db.collection('subjects').find({
-      grade_level: section.grade_level
+      grade_level: studentGradeLevel
     }).toArray();
 
-    // Get all schedules for the student's section to find assigned teachers
-    // Use section's school year since schedules are historical
-    const schedules = await db.collection('schedules').find({
-      section_id: section._id,
-      schedule_type: 'subject',
-      school_year: sectionSchoolYear
-    }).toArray();
+    // Get all schedules for the student's section to find assigned teachers (if they have a section)
+    let schedules = [];
+    if (section) {
+      schedules = await db.collection('schedules').find({
+        section_id: section._id,
+        schedule_type: 'subject',
+        school_year: sectionSchoolYear
+      }).toArray();
+    }
 
     // Create a map of subject_id to teacher_id from schedules
     const subjectTeacherMap = {};
