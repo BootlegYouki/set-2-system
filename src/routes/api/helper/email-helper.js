@@ -4,17 +4,16 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Create a transporter for Gmail SMTP
+// Create a transporter for Brevo SMTP
 let transporter = null;
 
 /**
- * Initialize the email transporter with Gmail SMTP settings
+ * Initialize the email transporter with Brevo SMTP settings
  */
 function getTransporter() {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
+      host: 'smtp-relay.brevo.com',
       port: 587,
       secure: false,
       auth: {
@@ -358,7 +357,7 @@ export async function sendAccountCreationEmail(accountData) {
             
             <!-- Credentials Box -->
             <div class="credentials-box">
-              <h2>🔐 Your Login Credentials</h2>
+              <h2>Your Login Credentials</h2>
               
               <div class="credential-item">
                 <span class="credential-label">Account Number</span>
@@ -378,7 +377,7 @@ export async function sendAccountCreationEmail(accountData) {
             
             <!-- Security Warning -->
             <div class="warning-box">
-              <h3>⚠️ Important Security Notice</h3>
+              <h3>Important Security Notice</h3>
               <p>
                 <strong>Your password is currently set to the same as your account number.</strong>
               </p>
@@ -389,7 +388,7 @@ export async function sendAccountCreationEmail(accountData) {
             
             <!-- Login Instructions -->
             <div class="instructions-box">
-              <h3>📝 How to Access Your Account</h3>
+              <h3>How to Access Your Account</h3>
               <ol>
                 <li>Navigate to the SET-2 System login page</li>
                 <li>Enter your <strong>Account Number</strong> in the username field</li>
@@ -473,16 +472,25 @@ For assistance, please contact your system administrator.
 © ${new Date().getFullYear()} SET-2 System. All rights reserved.
     `.trim();
 
-    // Email options
+    // Email options with improved deliverability
     const mailOptions = {
       from: {
         name: 'SET-2 System',
-        address: process.env.SMTP_USER
+        address: process.env.SMTP_FROM_EMAIL
       },
       to: email,
-      subject: `Your ${accountTypeLabel} Account Has Been Created - SET-2 System`,
+      replyTo: process.env.SMTP_FROM_EMAIL,
+      subject: `Account Created Successfully - SET-2 System`,
       text: textContent,
-      html: htmlContent
+      html: htmlContent,
+      headers: {
+        'X-Mailer': 'SET-2 System v1.0',
+        'X-Priority': '3',
+        'X-MSMail-Priority': 'Normal',
+        'Importance': 'Normal',
+        'List-Unsubscribe': '<mailto:unsubscribe@set2system.com>',
+        'Message-ID': `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@set2system.com>`
+      }
     };
 
     // Send email
@@ -818,7 +826,7 @@ export async function sendPasswordResetEmail(resetData) {
             </div>
             
             <div class="warning-box">
-              <h3>⚠️ Security Notice</h3>
+              <h3>Security Notice</h3>
               <p>
                 <strong>Do not share this code with anyone.</strong> SET-2 System staff will never 
                 ask for your verification code.
@@ -830,7 +838,7 @@ export async function sendPasswordResetEmail(resetData) {
             </div>
             
             <div class="info-box">
-              <h3>📝 Next Steps</h3>
+              <h3>Next Steps</h3>
               <p>1. Return to the password reset page</p>
               <p>2. Enter the 6-digit verification code above</p>
               <p>3. Create and confirm your new password</p>
@@ -905,16 +913,25 @@ Please do not reply to this email.
 © ${new Date().getFullYear()} SET-2 System. All rights reserved.
     `.trim();
 
-    // Email options
+    // Email options with improved deliverability
     const mailOptions = {
       from: {
         name: 'SET-2 System',
-        address: process.env.SMTP_USER
+        address: process.env.SMTP_FROM_EMAIL
       },
       to: email,
+      replyTo: process.env.SMTP_FROM_EMAIL,
       subject: `Password Reset Code - SET-2 System`,
       text: textContent,
-      html: htmlContent
+      html: htmlContent,
+      headers: {
+        'X-Mailer': 'SET-2 System v1.0',
+        'X-Priority': '3',
+        'X-MSMail-Priority': 'Normal',
+        'Importance': 'Normal',
+        'List-Unsubscribe': '<mailto:unsubscribe@set2system.com>',
+        'Message-ID': `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@set2system.com>`
+      }
     };
 
     // Send email
@@ -1240,16 +1257,25 @@ Please do not reply to this email.
 © ${new Date().getFullYear()} SET-2 System. All rights reserved.
     `.trim();
 
-    // Email options
+    // Email options with improved deliverability
     const mailOptions = {
       from: {
         name: 'SET-2 System',
-        address: process.env.SMTP_USER
+        address: process.env.SMTP_FROM_EMAIL
       },
       to: email,
+      replyTo: process.env.SMTP_FROM_EMAIL,
       subject: `Password Reset Successful - SET-2 System`,
       text: textContent,
-      html: htmlContent
+      html: htmlContent,
+      headers: {
+        'X-Mailer': 'SET-2 System v1.0',
+        'X-Priority': '3',
+        'X-MSMail-Priority': 'Normal',
+        'Importance': 'Normal',
+        'List-Unsubscribe': '<mailto:unsubscribe@set2system.com>',
+        'Message-ID': `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@set2system.com>`
+      }
     };
 
     // Send email
