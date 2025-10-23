@@ -197,6 +197,52 @@ export async function PUT({ request }) {
     const data = await request.json();
     const db = await connectToDatabase();
 
+    // Check if this is an individual grade item update (from frontend)
+    if (data.grade_item_id && (data.name !== undefined || data.total_score !== undefined)) {
+      const { grade_item_id, name, total_score } = data;
+
+      // Build the update object dynamically based on what fields are provided
+      const updateFields = {};
+      if (name !== undefined) {
+        updateFields['grade_items.writtenWork.$[elem].name'] = name;
+        updateFields['grade_items.performanceTasks.$[elem].name'] = name;
+        updateFields['grade_items.quarterlyAssessment.$[elem].name'] = name;
+      }
+      if (total_score !== undefined) {
+        updateFields['grade_items.writtenWork.$[elem].totalScore'] = total_score;
+        updateFields['grade_items.performanceTasks.$[elem].totalScore'] = total_score;
+        updateFields['grade_items.quarterlyAssessment.$[elem].totalScore'] = total_score;
+      }
+      updateFields['updated_at'] = new Date();
+
+      // Update the specific grade item across all categories
+      const result = await db.collection('grade_configurations').updateOne(
+        {
+          $or: [
+            { 'grade_items.writtenWork.id': grade_item_id },
+            { 'grade_items.performanceTasks.id': grade_item_id },
+            { 'grade_items.quarterlyAssessment.id': grade_item_id }
+          ]
+        },
+        {
+          $set: updateFields
+        },
+        {
+          arrayFilters: [{ 'elem.id': grade_item_id }]
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return json({ 
+          success: false, 
+          error: 'Grade item not found' 
+        }, { status: 404 });
+      }
+
+      return json({ success: true });
+    }
+
+    // Original bulk update functionality for backward compatibility
     const { section_id, subject_id, grading_period_id, teacher_id, grade_items } = data;
 
     // Update or create grade configuration
