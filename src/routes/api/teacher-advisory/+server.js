@@ -18,31 +18,41 @@ async function getCurrentSchoolYear(db) {
 
 export async function GET({ request, url }) {
     try {
+        console.log('Starting teacher-advisory GET request');
         const db = await connectToDatabase();
+        console.log('Database connected successfully');
         
         // Get query parameters
         const teacherId = url.searchParams.get('teacher_id');
+        console.log('Teacher ID:', teacherId);
         // Use current school year for grades (not section's school year)
         const schoolYear = url.searchParams.get('school_year') || await getCurrentSchoolYear(db);
+        console.log('School year:', schoolYear);
         const quarter = parseInt(url.searchParams.get('quarter')) || 1;
+        console.log('Quarter:', quarter);
 
         if (!teacherId) {
+            console.log('No teacher ID provided');
             return json({ error: 'Teacher ID is required' }, { status: 400 });
         }
 
         // Validate ObjectId format
         if (!ObjectId.isValid(teacherId)) {
+            console.log('Invalid teacher ID format:', teacherId);
             return json({ error: 'Invalid teacher ID format' }, { status: 400 });
         }
 
+        console.log('Querying for advisory section');
         // Get the section where this teacher is the adviser
         // Don't filter by school_year - sections are historical, but grades use current school year
         const section = await db.collection('sections').findOne({
             adviser_id: new ObjectId(teacherId),
             status: 'active'
         });
+        console.log('Section found:', section ? section._id : 'none');
 
         if (!section) {
+            console.log('No advisory section found');
             return json({
                 success: true,
                 data: {
@@ -53,20 +63,24 @@ export async function GET({ request, url }) {
             });
         }
 
+        console.log('Getting section students');
         // Get students in the advisory section
         const sectionStudents = await db.collection('section_students').find({
             section_id: section._id,
             status: 'active'
         }).toArray();
+        console.log('Section students count:', sectionStudents.length);
 
         const studentIds = sectionStudents.map(ss => ss.student_id);
 
+        console.log('Getting student details');
         // Get student details
         const students = await db.collection('users').find({
             _id: { $in: studentIds },
             account_type: 'student',
             status: 'active'
         }).sort({ full_name: 1 }).toArray();
+        console.log('Students found:', students.length);
 
         // Get all grades for these students in this section
         let gradesData = [];
@@ -94,7 +108,7 @@ export async function GET({ request, url }) {
         const schedules = await db.collection('schedules').find(scheduleQuery).toArray();
         
         // Handle case where no schedules are found
-        const subjectIds = schedules.length > 0 ? [...new Set(schedules.map(s => s.subject_id))] : [];
+        const subjectIds = schedules.length > 0 ? [...new Set(schedules.map(s => s.subject_id).filter(id => id))] : [];
         
         const subjects = subjectIds.length > 0 ? await db.collection('subjects').find({
             _id: { $in: subjectIds }
@@ -110,8 +124,8 @@ export async function GET({ request, url }) {
         // Create a map of subject to teacher
         const subjectTeacherMap = {};
         schedules.forEach(schedule => {
-            if (schedule.teacher_id) {
-                const teacher = teachers.find(t => t._id.toString() === schedule.teacher_id.toString());
+            if (schedule.teacher_id && schedule.subject_id) {
+                const teacher = teachers.find(t => t._id && t._id.toString() === schedule.teacher_id.toString());
                 if (teacher) {
                     subjectTeacherMap[schedule.subject_id.toString()] = teacher.full_name;
                 }
@@ -121,13 +135,13 @@ export async function GET({ request, url }) {
         // Process students with their grades
         const studentsWithGrades = students.map(student => {
             const studentGrades = gradesData.filter(g => 
-                g.student_id.toString() === student._id.toString()
+                g.student_id && student._id && g.student_id.toString() === student._id.toString()
             );
 
             // Group grades by subject
             const subjectGrades = subjects.map(subject => {
                 const subjectGrade = studentGrades.find(g => 
-                    g.subject_id.toString() === subject._id.toString()
+                    g.subject_id && subject._id && g.subject_id.toString() === subject._id.toString()
                 );
                 
                 // Check if grades have been submitted to adviser
@@ -241,7 +255,6 @@ export async function GET({ request, url }) {
         });
 
     } catch (error) {
-        console.error('Error in teacher-advisory GET:', error);
         return json({ 
             success: false, 
             error: 'Internal server error',
