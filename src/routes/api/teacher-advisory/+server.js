@@ -18,41 +18,29 @@ async function getCurrentSchoolYear(db) {
 
 export async function GET({ request, url }) {
     try {
-        console.log('Starting teacher-advisory GET request');
         const db = await connectToDatabase();
-        console.log('Database connected successfully');
         
         // Get query parameters
         const teacherId = url.searchParams.get('teacher_id');
-        console.log('Teacher ID:', teacherId);
-        // Use current school year for grades (not section's school year)
         const schoolYear = url.searchParams.get('school_year') || await getCurrentSchoolYear(db);
-        console.log('School year:', schoolYear);
         const quarter = parseInt(url.searchParams.get('quarter')) || 1;
-        console.log('Quarter:', quarter);
 
         if (!teacherId) {
-            console.log('No teacher ID provided');
             return json({ error: 'Teacher ID is required' }, { status: 400 });
         }
 
         // Validate ObjectId format
         if (!ObjectId.isValid(teacherId)) {
-            console.log('Invalid teacher ID format:', teacherId);
             return json({ error: 'Invalid teacher ID format' }, { status: 400 });
         }
 
-        console.log('Querying for advisory section');
         // Get the section where this teacher is the adviser
-        // Don't filter by school_year - sections are historical, but grades use current school year
         const section = await db.collection('sections').findOne({
             adviser_id: new ObjectId(teacherId),
             status: 'active'
         });
-        console.log('Section found:', section ? section._id : 'none');
 
         if (!section) {
-            console.log('No advisory section found');
             return json({
                 success: true,
                 data: {
@@ -63,24 +51,20 @@ export async function GET({ request, url }) {
             });
         }
 
-        console.log('Getting section students');
         // Get students in the advisory section
         const sectionStudents = await db.collection('section_students').find({
             section_id: section._id,
             status: 'active'
         }).toArray();
-        console.log('Section students count:', sectionStudents.length);
 
         const studentIds = sectionStudents.map(ss => ss.student_id);
 
-        console.log('Getting student details');
         // Get student details
         const students = await db.collection('users').find({
             _id: { $in: studentIds },
             account_type: 'student',
             status: 'active'
         }).sort({ full_name: 1 }).toArray();
-        console.log('Students found:', students.length);
 
         // Get all grades for these students in this section
         let gradesData = [];
