@@ -4,7 +4,7 @@
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { dashboardStore } from '../../../../../lib/stores/admin/dashboardStore.js';
 	import StudentsPerGradeLevelChart from './adminDashboardCharts/StudentsPerGradeLevelChart.svelte';
-	import AverageGradesChart from './adminDashboardCharts/AverageGradesChart.svelte';
+	import SectionsPerGradeLevelChart from './adminDashboardCharts/SectionsPerGradeLevelChart.svelte';
 
 	// Subscribe to dashboard store
 	$: ({ data: dashboardStats, isLoading: statsLoading, error: statsError } = $dashboardStore);
@@ -172,7 +172,7 @@
 			<StudentsPerGradeLevelChart />
 		</div>
 		<div class="average-grades-stats-container">
-			<AverageGradesChart />
+			<SectionsPerGradeLevelChart />
 		</div>
 	</div>
 	<!-- Recent Activities Section -->

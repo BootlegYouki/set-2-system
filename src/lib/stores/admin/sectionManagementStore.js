@@ -87,11 +87,17 @@ export const sectionManagementStore = (() => {
         isLoadingSections.set(false);
     };
 
-    const loadSections = async (silent = false) => {
+    const loadSections = async (silent = false, searchTerm = '') => {
         try {
             setLoadingSections(true, silent);
             
-            const response = await fetch('/api/sections');
+            // Build URL with search parameter if provided
+            let url = '/api/sections';
+            if (searchTerm && searchTerm.trim()) {
+                url += `?search=${encodeURIComponent(searchTerm.trim())}`;
+            }
+            
+            const response = await fetch(url);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);

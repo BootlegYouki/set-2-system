@@ -11,8 +11,6 @@
 	let loading = true;
 	let error = null;
 	let chartData = null;
-	let currentQuarter = 1;
-	let currentSchoolYear = '2025-2026';
 
 	const gradeLevels = ['7', '8', '9', '10'];
 
@@ -21,16 +19,11 @@
 			loading = true;
 			error = null;
 
-			// Fetch average grades data from API
-			const response = await api.get('/api/dashboard/average-grades-per-level');
+			// Fetch sections per grade level data from API
+			const response = await api.get('/api/dashboard/sections-per-grade');
 			
 			if (response.success) {
 				chartData = response.data;
-				// Update quarter and school year from metadata
-				if (response.metadata) {
-					currentQuarter = response.metadata.currentQuarter;
-					currentSchoolYear = response.metadata.currentSchoolYear;
-				}
 				loading = false;
 				// Create chart after loading is set to false, so canvas is rendered
 				setTimeout(() => {
@@ -39,10 +32,10 @@
 					}
 				}, 0);
 			} else {
-				throw new Error(response.error || 'Failed to fetch grades data');
+				throw new Error(response.error || 'Failed to fetch sections data');
 			}
 		} catch (err) {
-			console.error('Error fetching average grades:', err);
+			console.error('Error fetching sections data:', err);
 			error = err.message;
 			loading = false;
 		}
@@ -61,8 +54,8 @@
 
 		// Transform data into chart format
 		const transformedData = gradeLevels.map((level) => {
-			const gradeData = data.find(d => d.grade_level === level);
-			return gradeData ? parseFloat(gradeData.average_grade) : 0;
+			const sectionData = data.find(d => d.grade_level === level);
+			return sectionData ? sectionData.section_count : 0;
 		});
 
 		const ctx = chartCanvas.getContext('2d');
@@ -71,7 +64,7 @@
 			data: {
 				labels: gradeLevels.map(g => `Grade ${g}`),
 				datasets: [{
-					label: 'Average Grade',
+					label: 'Number of Sections',
 					data: transformedData,
 					backgroundColor: 'rgba(54, 162, 235, 0.6)',
 					borderColor: 'rgb(54, 162, 235)',
@@ -86,10 +79,11 @@
 				scales: {
 					y: {
 						beginAtZero: true,
-						max: 100,
+						suggestedMax: Math.max(...transformedData) + 2, // Add some padding above the highest value
 						ticks: {
+							stepSize: 1,
 							callback: function(value) {
-								return value;
+								return Math.floor(value);
 							},
 							color: getComputedStyle(document.documentElement)
 								.getPropertyValue('--md-sys-color-on-surface-variant').trim()
@@ -100,7 +94,7 @@
 						},
 						title: {
 							display: true,
-							text: 'Average Grade (%)',
+							text: 'Number of Sections',
 							color: getComputedStyle(document.documentElement)
 								.getPropertyValue('--md-sys-color-on-surface').trim(),
 							font: {
@@ -125,7 +119,7 @@
 					},
 					title: {
 						display: true,
-						text: `Average Grades - Quarter ${currentQuarter} (${currentSchoolYear})`,
+						text: 'Sections per Grade Level',
 						font: {
 							size: 16,
 							weight: 'bold'
@@ -141,7 +135,7 @@
 						callbacks: {
 							label: function(context) {
 								const value = context.parsed.y || 0;
-								return `Average: ${value.toFixed(1)}%`;
+								return `Sections: ${value}`;
 							}
 						}
 					}

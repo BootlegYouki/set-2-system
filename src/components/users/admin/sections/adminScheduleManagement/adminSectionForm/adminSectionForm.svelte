@@ -28,6 +28,7 @@
 	let adviserSearchTerm = '';
 	let studentSearchTerm = '';
 	let sectionsSearchTerm = '';
+	let searchTimeout;
 
 	// Filter state
 	let selectedFilter = 'all';
@@ -313,6 +314,25 @@
 		}
 	}
 
+	// Debounced search function
+	function handleSearchChange() {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(async () => {
+			await sectionManagementStore.loadSections(false, sectionsSearchTerm);
+		}, 500); // 500ms delay
+	}
+
+	// Watch for search term changes
+	$: if (sectionsSearchTerm !== undefined) {
+		handleSearchChange();
+	}
+
+	// Clear search function
+	function clearSearch() {
+		sectionsSearchTerm = '';
+		sectionManagementStore.loadSections(false, ''); // Load all sections
+	}
+
 	// Computed values
 	$: selectedGradeObj = gradeLevels.find((g) => g.id === gradeLevel);
 	$: selectedFilterObj = filterOptions.find((filter) => filter.id === selectedFilter);
@@ -341,16 +361,7 @@
 			// If both selected or both not selected, sort alphabetically by name
 			return a.name.localeCompare(b.name);
 		});
-	$: filteredSections = sectionsData.filter((section) => {
-		const matchesSearchTerm =
-			section.name.toLowerCase().includes(sectionsSearchTerm.toLowerCase()) ||
-			section.grade_level.toString().includes(sectionsSearchTerm.toLowerCase());
-
-		const matchesFilter =
-			selectedFilter === 'all' || section.grade_level.toString() === selectedFilter;
-
-		return matchesSearchTerm && matchesFilter;
-	});
+	$: filteredSections = sectionsData;
 
 	// Clear selections when grade level changes
 	$: if (gradeLevel) {
@@ -899,7 +910,7 @@
 							<span class="material-symbols-outlined adminform-search-icon">search</span>
 							<input
 								type="text"
-								placeholder="Search by section name or grade level..."
+								placeholder="Search by section name, grade level, student account number, or student name..."
 								class="adminform-search-input"
 								bind:value={sectionsSearchTerm}
 							/>
@@ -907,7 +918,7 @@
 								<button
 									type="button"
 									class="adminform-clear-search-button"
-									on:click={() => (sectionsSearchTerm = '')}
+									on:click={clearSearch}
 								>
 									<span class="material-symbols-outlined">close</span>
 								</button>

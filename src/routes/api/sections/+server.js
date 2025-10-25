@@ -269,8 +269,10 @@ export async function GET({ url }) {
                 return json({ success: true, data: sectionStudents });
 
             default:
-                // Default: Get all sections with details
-                const allSections = await db.collection('sections').aggregate([
+                // Default: Get all sections with details, with optional search functionality
+                const searchTerm = url.searchParams.get('search');
+                
+                let pipeline = [
                     {
                         $match: { 
                             school_year: schoolYear,
@@ -299,7 +301,18 @@ export async function GET({ url }) {
                             localField: '_id',
                             foreignField: 'section_id',
                             as: 'students',
-                            pipeline: [{ $match: { status: 'active' } }]
+                            pipeline: [
+                                { $match: { status: 'active' } },
+                                {
+                                    $lookup: {
+                                        from: 'users',
+                                        localField: 'student_id',
+                                        foreignField: '_id',
+                                        as: 'student_info'
+                                    }
+                                },
+                                { $unwind: '$student_info' }
+                            ]
                         }
                     },
                     {
@@ -312,11 +325,45 @@ export async function GET({ url }) {
                             room_floor: { $arrayElemAt: ['$room.floor', 0] },
                             student_count: { $size: '$students' }
                         }
-                    },
-                    {
-                        $sort: { grade_level: 1, name: 1 }
                     }
-                ]).toArray();
+                ];
+
+                // Add search functionality if search term is provided
+                if (searchTerm && searchTerm.trim()) {
+                    const searchRegex = { $regex: searchTerm.trim(), $options: 'i' };
+                    
+                    pipeline.push({
+                        $match: {
+                            $or: [
+                                // Search by section name
+                                { name: searchRegex },
+                                // Search by grade level (as string)
+                                { grade_level: { $regex: searchTerm.trim(), $options: 'i' } },
+                                // Search by adviser name
+                                { adviser_name: searchRegex },
+                                // Search by student account number or name
+                                {
+                                    'students.student_info.account_number': searchRegex
+                                },
+                                {
+                                    'students.student_info.full_name': searchRegex
+                                },
+                                {
+                                    'students.student_info.first_name': searchRegex
+                                },
+                                {
+                                    'students.student_info.last_name': searchRegex
+                                }
+                            ]
+                        }
+                    });
+                }
+
+                pipeline.push({
+                    $sort: { grade_level: 1, name: 1 }
+                });
+
+                const allSections = await db.collection('sections').aggregate(pipeline).toArray();
                 
                 return json({ success: true, data: allSections });
         }
