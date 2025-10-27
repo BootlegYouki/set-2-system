@@ -660,6 +660,10 @@
               <span>Reset Password</span>
             {/if}
           </button>
+
+          <button class="back-to-login-btn" onclick={toggleForgotPassword} aria-label="Back to login">
+            Back to Login
+          </button>
         </form>
       {/if}
     {/if}
