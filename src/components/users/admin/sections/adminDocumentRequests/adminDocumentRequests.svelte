@@ -1,8 +1,25 @@
 <script>
+	import { onMount } from 'svelte';
+	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import './adminDocumentRequests.css';
 
-	// Mock data for document requests (matching the image)
-	let documentRequests = [
+	// Data state
+	let documentRequests = [];
+	let loading = true;
+	let error = null;
+	let mounted = false;
+
+	// Stats state
+	let stats = {
+		on_hold: 0,
+		verifying: 0,
+		processing: 0,
+		for_pickup: 0,
+		released: 0
+	};
+
+	// Mock data for document requests (matching the image) - REMOVED, now fetched from backend
+	let documentRequestsOLD = [
 		{
 			id: 1,
 			studentId: 'STU-2024-001',
@@ -278,30 +295,125 @@
 		return `${m}/${d}/${y}`;
 	}
 
-	// Action handlers for modal buttons — currently mock (update local state)
-	function updateRequest() {
+	// Action handlers for modal buttons
+	async function updateRequest() {
 		if (!selectedRequest) return;
-		// locate in array and update (commit changes)
-		const idx = documentRequests.findIndex((r) => r.requestId === selectedRequest.requestId);
-		if (idx !== -1) {
-			documentRequests[idx] = { ...documentRequests[idx], ...selectedRequest };
+		
+		try {
+			const result = await api.post('/api/document-requests', {
+				action: 'update',
+				requestId: selectedRequest.requestId,
+				status: selectedRequest.status,
+				tentativeDate: selectedRequest.tentativeDate,
+				paymentStatus: selectedRequest.paymentStatus
+			});
+
+			if (result.success) {
+				// Refresh the list and stats
+				await fetchDocumentRequests();
+				await fetchStats();
+				closeModal();
+			} else {
+				error = result.error || 'Failed to update request';
+			}
+		} catch (err) {
+			console.error('Error updating request:', err);
+			error = 'Failed to update request. Please try again.';
 		}
-		closeModal();
 	}
 
-	function rejectRequest() {
+	async function rejectRequest() {
 		if (!selectedRequest) return;
-		const idx = documentRequests.findIndex((r) => r.requestId === selectedRequest.requestId);
-		if (idx !== -1) {
-			documentRequests[idx] = { ...documentRequests[idx], status: 'rejected', tentativeDate: null };
+		
+		try {
+			const result = await api.post('/api/document-requests', {
+				action: 'reject',
+				requestId: selectedRequest.requestId
+			});
+
+			if (result.success) {
+				// Refresh the list and stats
+				await fetchDocumentRequests();
+				await fetchStats();
+				closeModal();
+			} else {
+				error = result.error || 'Failed to reject request';
+			}
+		} catch (err) {
+			console.error('Error rejecting request:', err);
+			error = 'Failed to reject request. Please try again.';
 		}
-		closeModal();
 	}
 
 	// helper to get status name for selectedRequest in modal
 	$: modalCurrentStatusName = selectedRequest
 		? (requestStatuses.find((s) => s.id === selectedRequest.status) || {}).name || 'Select'
 		: 'Select';
+
+	// Fetch document requests and stats from API
+	async function fetchDocumentRequests() {
+		try {
+			loading = true;
+			error = null;
+
+			// Build query params
+			const params = new URLSearchParams({ action: 'all' });
+			
+			if (selectedStatusFilter) {
+				params.append('status', selectedStatusFilter);
+			}
+			if (selectedDocumentTypeFilter) {
+				params.append('documentType', selectedDocumentTypeFilter);
+			}
+			if (selectedGradeFilter) {
+				params.append('gradeLevel', selectedGradeFilter.toString());
+			}
+			if (searchTerm) {
+				params.append('search', searchTerm);
+			}
+
+			const result = await api.get(`/api/document-requests?${params.toString()}`);
+
+			if (result.success) {
+				documentRequests = result.data;
+			} else {
+				error = result.error || 'Failed to fetch document requests';
+			}
+		} catch (err) {
+			console.error('Error fetching document requests:', err);
+			error = 'Failed to load document requests. Please try again.';
+		} finally {
+			loading = false;
+		}
+	}
+
+	async function fetchStats() {
+		try {
+			const result = await api.get('/api/document-requests?action=stats');
+
+			if (result.success) {
+				stats = result.data;
+			}
+		} catch (err) {
+			console.error('Error fetching stats:', err);
+		}
+	}
+
+	// Load data when component mounts
+	onMount(() => {
+		fetchDocumentRequests();
+		fetchStats();
+		mounted = true;
+	});
+
+	// Debounced search - trigger when filters change (after initial mount)
+	let searchTimeout;
+	$: if (mounted && (selectedStatusFilter !== undefined || selectedDocumentTypeFilter !== undefined || selectedGradeFilter !== undefined || searchTerm !== undefined)) {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => {
+			fetchDocumentRequests();
+		}, 300);
+	}
 
 </script>
 
@@ -325,7 +437,7 @@
 				</div>
 				<div class="docreq-status-content">
 					<h3 class="docreq-status-value">
-						{documentRequests.filter(req => req.status === 'on_hold').length}
+						{stats.on_hold}
 					</h3>
 					<p class="docreq-status-label">On Hold</p>
 				</div>
@@ -337,7 +449,7 @@
 				</div>
 				<div class="docreq-status-content">
 					<h3 class="docreq-status-value">
-						{documentRequests.filter(req => req.status === 'verifying').length}
+						{stats.verifying}
 					</h3>
 					<p class="docreq-status-label">Verifying</p>
 				</div>
@@ -349,7 +461,7 @@
 				</div>
 				<div class="docreq-status-content">
 					<h3 class="docreq-status-value">
-						{documentRequests.filter(req => req.status === 'processing').length}
+						{stats.processing}
 					</h3>
 					<p class="docreq-status-label">Processing</p>
 				</div>
@@ -361,7 +473,7 @@
 				</div>
 				<div class="docreq-status-content">
 					<h3 class="docreq-status-value">
-						{documentRequests.filter(req => req.status === 'for_pickup').length}
+						{stats.for_pickup}
 					</h3>
 					<p class="docreq-status-label">For Pickup</p>
 				</div>
@@ -373,7 +485,7 @@
 				</div>
 				<div class="docreq-status-content">
 					<h3 class="docreq-status-value">
-						{documentRequests.filter(req => req.status === 'released').length}
+						{stats.released}
 					</h3>
 					<p class="docreq-status-label">Released</p>
 				</div>
@@ -569,9 +681,23 @@
 			</div>
 		</div>
 
-		<div class="docreq-requests-grid">
-			{#each documentRequests as request (request.id)}
-				<div class="docreq-request-card status-{request.status}-border" on:click={() => openModal(request)}>
+		{#if loading}
+			<div class="loading-message" style="text-align: center; padding: 2rem;">
+				<div class="system-loader"></div>
+				Loading document requests...
+			</div>
+		{:else if error}
+			<div class="error-message" style="text-align: center; padding: 2rem; color: #d32f2f;">
+				{error}
+			</div>
+		{:else if documentRequests.length === 0}
+			<div class="no-requests-message" style="text-align: center; padding: 2rem; color: #666;">
+				<p>No document requests found</p>
+			</div>
+		{:else}
+			<div class="docreq-requests-grid">
+				{#each documentRequests as request (request.id)}
+					<div class="docreq-request-card status-{request.status}-border" on:click={() => openModal(request)}>
 					<!-- Request Header -->
 					<div class="docreq-request-header">
 						<div class="docreq-request-info">
@@ -606,7 +732,7 @@
 						</div>
 						<div class="docreq-detail-item">
 							<span class="material-symbols-outlined">school</span>
-							<span>{request.gradeLevel}</span>
+							<span>{request.gradeLevel} - {request.section || 'N/A'}</span>
 						</div>
 						<div class="docreq-detail-item">
 							<span class="material-symbols-outlined">description</span>
@@ -641,6 +767,7 @@
 				</div>
 			{/each}
 		</div>
+		{/if}
 	</div>
 </div>
 
@@ -772,9 +899,9 @@
 
 						<div class="student-field">
 							<div class="field-label">Grade & Section</div>
-							<div class="field-value">{selectedRequest.gradeLevel}</div>
+							<div class="field-value">{selectedRequest.gradeLevel} - {selectedRequest.section || 'N/A'}</div>
 						</div>
-s
+
 						<div class="student-field">
 							<div class="field-label">Date of birth</div>
 							<div class="field-value">{selectedRequest.dateOfBirth ?? '—'}</div>
