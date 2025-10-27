@@ -295,40 +295,34 @@ Component Averages:
     prompt += `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Based on the comprehensive grade data above, provide a detailed analysis in the following format:
+Analyze the grade data above and provide a concise, data-driven response in this exact format:
 
 **STRENGTHS:**
-- Identify the student's strongest subjects and specific assessment types
-- Highlight exceptional individual scores and consistent high performance
-- Point out subjects where all assessment types show excellence
+- List your top-performing subjects with specific scores (e.g., "Mathematics WW: 48.5/50")
+- Identify which assessment types (WW/PT/QA) you excel in
+- Note any consistently high performance patterns
 
 **AREAS FOR IMPROVEMENT:**
-- Identify subjects or specific assessment types that need attention
-- Point out individual low scores and patterns of weakness
-- Note any subjects with inconsistent performance across assessment types
+- Pinpoint subjects and specific assessment types needing attention with actual scores
+- Highlight individual low scores and inconsistent performance
+- Identify patterns of weakness across subjects
 
-**RECOMMENDATIONS:**
-- Provide specific, actionable advice based on actual score patterns
-- Suggest which specific assessment types (WW/PT/QA) to focus on per subject
-- Recommend study strategies tailored to the identified weaknesses
-- Prioritize subjects that need immediate attention
+**ACTIONABLE RECOMMENDATIONS:**
+- Provide 4-6 specific, prioritized action steps you should take immediately
+- Suggest which assessment types to focus on per subject
+- Recommend concrete study strategies and time allocation based on score gaps
 
-**PERFORMANCE PATTERNS:**
-- Analyze consistency across different assessment types (Written Work vs Performance Tasks vs Quarterly Assessment)
-- Identify if the student performs better in certain types of assessments
-- Note any subjects showing improvement or decline trends
-- Comment on overall score distribution and variability
+**PERFORMANCE INSIGHTS:**
+- Compare your performance across WW, PT, and QA assessment types
+- Note any trends (improving/declining) and score distribution patterns
+- Identify if certain assessment types consistently challenge you
 
-**ACTIONABLE INSIGHTS:**
-- Provide 3-5 concrete next steps the student should take
-- Suggest specific areas to review or practice
-- Recommend time allocation across subjects based on current performance
-
-KEEP THIS IN MIND:
-Keep the analysis professional, constructive, and data-driven. Focus on actionable insights based on the actual scores provided. Use a supportive tone while being honest about areas needing improvement. Reference specific scores and subjects when making observations.
-Make the response first-person perspective don't use "This student", use "You"
-Dont Use percentage when stating numbers as all data is a numeric value.
-Also please remain the decimal to nearest tenth.
+CRITICAL REQUIREMENTS:
+• Use second-person perspective ("You" not "This student")
+• Reference actual numeric scores (e.g., "38.2/50"), never percentages
+• Round all decimals to nearest tenth
+• Be constructive yet honest about weaknesses
+• Base all observations on the specific data provided
 `;
     
     return prompt;
