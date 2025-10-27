@@ -1,73 +1,13 @@
 <script>
+	import { onMount } from 'svelte';
 	import './adminDocumentRequests.css';
+	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
+	import { modalStore } from '../../../../common/js/modalStore.js';
 
-	// Mock data for document requests (matching the image)
-	let documentRequests = [
-		{
-			id: 1,
-			studentId: 'STU-2024-001',
-			gradeLevel: 'Grade 10',
-			studentName: 'Tungpalan, Danel M.',
-			documentType: 'Transcript',
-			requestId: 'REQ-002',
-			submittedDate: '01/15/2024',
-			payment: '₱120',
-			status: 'on_hold',
-			tentativeDate: null,
-			isUrgent: false,
-			purpose: 'Official transcript for graduate school application',
-			dateOfBirth: 'November 1, 1992',
-			processedBy: 'Admin Sarah'
-		},
-		{
-			id: 2,
-			studentId: 'STU-2024-002',
-			gradeLevel: 'Grade 10',
-			studentName: 'Tungpalan, Danel M.',
-			documentType: 'TOR',
-			requestId: 'REQ-003',
-			submittedDate: '01/15/2024',
-			payment: '₱120',
-			status: 'verifying',
-			tentativeDate: null,
-			isUrgent: false,
-			purpose: 'Transfer',
-			dateOfBirth: 'November 1, 1992',
-			processedBy: 'Admin Sarah'
-		},
-		{
-			id: 3,
-			studentId: 'STU-2024-003',
-			gradeLevel: 'Grade 10',
-			studentName: 'Tungpalan, Danel M.',
-			documentType: 'Grade Slip',
-			requestId: 'REQ-004',
-			submittedDate: '01/15/2024',
-			payment: '₱120',
-			status: 'processing',
-			tentativeDate: null, // processing but not yet set -> show --/--/----
-			isUrgent: false,
-			purpose: 'School requirement',
-			dateOfBirth: 'November 1, 1992',
-			processedBy: 'Admin Sarah'
-		},
-		{
-			id: 4,
-			studentId: 'STU-2024-004',
-			gradeLevel: 'Grade 10',
-			studentName: 'Tungpalan, Danel M.',
-			documentType: 'Good Moral',
-			requestId: 'REQ-001',
-			submittedDate: '01/15/2024',
-			payment: '₱120',
-			status: 'for_pickup',
-			tentativeDate: null,
-			isUrgent: false,
-			purpose: 'Official transcript for graduate school application',
-			dateOfBirth: 'November 1, 1992',
-			processedBy: 'Admin Sarah'
-		}
-	];
+	// Dynamic data for document requests (fetched from API)
+	let documentRequests = [];
+	let isLoading = true;
+	let error = null;
 
 	// Static filter state (for UI only, no functionality yet)
 	let searchTerm = '';
@@ -79,9 +19,6 @@
 	let isStatusFilterDropdownOpen = false;
 	let isDocumentTypeFilterDropdownOpen = false;
 	let isGradeFilterDropdownOpen = false;
-
-	// Modal status dropdown state
-	let isModalStatusDropdownOpen = false;
 
 	// Static data for filter dropdowns
 	const gradeLevels = [
@@ -174,7 +111,7 @@
 		isGradeFilterDropdownOpen = false;
 	}
 
-	// Handle click outside to close dropdowns (added modal dropdown check)
+	// Handle click outside to close dropdowns
 	function handleClickOutside(event) {
 		if (!event.target.closest('.admindocreq-status-filter')) {
 			isStatusFilterDropdownOpen = false;
@@ -185,127 +122,170 @@
 		if (!event.target.closest('.admindocreq-grade-filter')) {
 			isGradeFilterDropdownOpen = false;
 		}
-		// modal status dropdown (close when click outside modal status dropdown)
-		if (!event.target.closest('.admindocreq-modal .admindocreq-status-dropdown')) {
-			isModalStatusDropdownOpen = false;
-		}
 	}
 
-	// --- Modal state and functions (added) ---
-	let showModal = false;
-	let selectedRequest = null;
-	let dateInputEl; // ref to hidden date input inside modal
-
+	// Open modal using modal store
 	function openModal(request) {
-		// set the selected request and open modal
-		selectedRequest = { ...request }; // shallow copy to allow local edits before commit
-		showModal = true;
-		isModalStatusDropdownOpen = false;
-		document.body.style.overflow = 'hidden';
+		modalStore.open('DocumentRequestModal', {
+			title: 'Request Details',
+			request: { ...request },
+			requestStatuses: requestStatuses,
+			modalStatuses: modalStatuses,
+			onUpdate: updateRequestAPI,
+			onReject: rejectRequestAPI
+		}, {
+			size: 'large',
+			closable: true,
+			backdrop: true
+		});
 	}
 
-	function closeModal() {
-		showModal = false;
-		selectedRequest = null;
-		isModalStatusDropdownOpen = false;
-		document.body.style.overflow = '';
-	}
+	// Fetch document requests from API
+	async function fetchDocumentRequests() {
+		try {
+			isLoading = true;
+			error = null;
 
-	// Close modal on ESC
-	function onKeydown(event) {
-		if (event.key === 'Escape') {
-			if (isModalStatusDropdownOpen) {
-				isModalStatusDropdownOpen = false;
-				return;
+			// Build query params
+			const params = new URLSearchParams({ action: 'all' });
+			
+			if (searchTerm) {
+				params.append('search', searchTerm);
 			}
-			if (showModal) {
-				closeModal();
+			if (selectedStatusFilter) {
+				params.append('status', selectedStatusFilter);
 			}
-		}
-	}
-
-	// Mock chat messages for the modal (per request we could map real messages)
-	function chatMessagesForRequest(requestId) {
-		// simple mock: latest message only
-		return [
-			{
-				id: 1,
-				author: 'Admin Sarah',
-				authorRole: 'admin',
-				text: 'Your request is ready for pick up',
-				time: '10/8/2025, 10:30:00 AM'
+			if (selectedDocumentTypeFilter) {
+				// Map document type ID to name
+				const docType = documentTypes.find(dt => dt.id === selectedDocumentTypeFilter);
+				if (docType) {
+					params.append('documentType', docType.name);
+				}
 			}
-		];
-	}
+			if (selectedGradeFilter) {
+				params.append('gradeLevel', selectedGradeFilter);
+			}
 
-	// Modal status dropdown functions
-	function toggleModalStatusDropdown() {
-		isModalStatusDropdownOpen = !isModalStatusDropdownOpen;
-	}
+			const response = await authenticatedFetch(`/api/document-requests?${params.toString()}`);
+			const result = await response.json();
 
-	function selectModalStatus(statusId) {
-		if (!selectedRequest) return;
-		selectedRequest.status = statusId;
-		// if status is not processing, clear tentativeDate; if processing, leave current tentativeDate (null means placeholder)
-		if (statusId !== 'processing') {
-			selectedRequest.tentativeDate = null;
+			if (result.success) {
+				documentRequests = result.data;
+			} else {
+				error = result.error || 'Failed to fetch document requests';
+			}
+		} catch (err) {
+			console.error('Error fetching document requests:', err);
+			error = 'Failed to load document requests';
+		} finally {
+			isLoading = false;
 		}
-		isModalStatusDropdownOpen = false;
 	}
 
-	// Date handling for tentativeDate
-	function openDatePicker() {
-		// only allow when status is processing
-		if (!selectedRequest || selectedRequest.status !== 'processing') return;
-		// trigger the hidden date input
-		dateInputEl && dateInputEl.click();
-	}
+	// Update a document request
+	async function updateRequestAPI(requestId, updateData) {
+		try {
+			const response = await authenticatedFetch('/api/document-requests', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					action: 'update',
+					requestId,
+					...updateData
+				})
+			});
 
-	function onTentativeDateChange(event) {
-		const val = event.target.value; // yyyy-mm-dd
-		if (!selectedRequest) return;
-		selectedRequest.tentativeDate = val ? val : null;
-	}
+			const result = await response.json();
 
-	function formatTentativeDateForDisplay(dateStr, status) {
-		// if not processing -> N/A
-		if (status !== 'processing') return 'N/A';
-		// if processing and no date -> placeholder
-		if (!dateStr) return '--/--/----';
-		// dateStr is 'YYYY-MM-DD' -> return MM/DD/YYYY
-		const [y, m, d] = dateStr.split('-');
-		if (!y || !m || !d) return '--/--/----';
-		return `${m}/${d}/${y}`;
-	}
-
-	// Action handlers for modal buttons — currently mock (update local state)
-	function updateRequest() {
-		if (!selectedRequest) return;
-		// locate in array and update (commit changes)
-		const idx = documentRequests.findIndex((r) => r.requestId === selectedRequest.requestId);
-		if (idx !== -1) {
-			documentRequests[idx] = { ...documentRequests[idx], ...selectedRequest };
+			if (result.success) {
+				// Refresh the list
+				await fetchDocumentRequests();
+				return true;
+			} else {
+				error = result.error || 'Failed to update request';
+				return false;
+			}
+		} catch (err) {
+			console.error('Error updating request:', err);
+			error = 'Failed to update request';
+			return false;
 		}
-		closeModal();
 	}
 
-	function rejectRequest() {
-		if (!selectedRequest) return;
-		const idx = documentRequests.findIndex((r) => r.requestId === selectedRequest.requestId);
-		if (idx !== -1) {
-			documentRequests[idx] = { ...documentRequests[idx], status: 'rejected', tentativeDate: null };
+	// Reject a document request
+	async function rejectRequestAPI(requestId) {
+		try {
+			const response = await authenticatedFetch('/api/document-requests', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					action: 'reject',
+					requestId
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				// Refresh the list
+				await fetchDocumentRequests();
+				return true;
+			} else {
+				error = result.error || 'Failed to reject request';
+				return false;
+			}
+		} catch (err) {
+			console.error('Error rejecting request:', err);
+			error = 'Failed to reject request';
+			return false;
 		}
-		closeModal();
 	}
 
-	// helper to get status name for selectedRequest in modal
-	$: modalCurrentStatusName = selectedRequest
-		? (requestStatuses.find((s) => s.id === selectedRequest.status) || {}).name || 'Select'
-		: 'Select';
+	// Track if component has mounted
+	let hasMounted = false;
+
+	// Load data on mount
+	onMount(() => {
+		fetchDocumentRequests();
+		hasMounted = true;
+	});
+
+	// Debounced search - only re-fetch when search term changes after mount
+	let searchTimeout;
+	let lastSearchTerm = '';
+	$: {
+		if (hasMounted && searchTerm !== lastSearchTerm) {
+			lastSearchTerm = searchTerm;
+			clearTimeout(searchTimeout);
+			searchTimeout = setTimeout(() => {
+				fetchDocumentRequests();
+			}, 300);
+		}
+	}
+
+	// Watch for filter changes - re-fetch when filters actually change after mount
+	let lastStatusFilter = '';
+	let lastDocTypeFilter = '';
+	let lastGradeFilter = '';
+	$: {
+		if (hasMounted && 
+		    (selectedStatusFilter !== lastStatusFilter || 
+		     selectedDocumentTypeFilter !== lastDocTypeFilter || 
+		     selectedGradeFilter !== lastGradeFilter)) {
+			lastStatusFilter = selectedStatusFilter;
+			lastDocTypeFilter = selectedDocumentTypeFilter;
+			lastGradeFilter = selectedGradeFilter;
+			fetchDocumentRequests();
+		}
+	}
 
 </script>
 
-<svelte:window on:click={handleClickOutside} on:keydown={onKeydown} />
+<svelte:window onclick={handleClickOutside} />
 
 <div class="admin-document-requests-container">
 	<!-- Header -->
@@ -409,7 +389,7 @@
 					type="button"
 					class="admindocreq-dropdown-trigger"
 					class:selected={selectedStatusFilter}
-					on:click={toggleStatusFilterDropdown}
+					onclick={toggleStatusFilterDropdown}
 				>
 					{#if selectedStatusFilterObj}
 						<div class="admindocreq-selected-option">
@@ -428,7 +408,7 @@
 						type="button"
 						class="admindocreq-dropdown-option"
 						class:selected={selectedStatusFilter === ''}
-						on:click={() => selectStatusFilter(null)}
+						onclick={() => selectStatusFilter(null)}
 					>
 						<span class="material-symbols-outlined admindocreq-option-icon">clear_all</span>
 						<div class="admindocreq-option-content">
@@ -440,7 +420,7 @@
 							type="button"
 							class="admindocreq-dropdown-option"
 							class:selected={selectedStatusFilter === status.id}
-							on:click={() => selectStatusFilter(status)}
+							onclick={() => selectStatusFilter(status)}
 						>
 							<span class="material-symbols-outlined admindocreq-option-icon">filter_list</span>
 							<div class="admindocreq-option-content">
@@ -461,7 +441,7 @@
 					type="button"
 					class="admindocreq-dropdown-trigger"
 					class:selected={selectedDocumentTypeFilter}
-					on:click={toggleDocumentTypeFilterDropdown}
+					onclick={toggleDocumentTypeFilterDropdown}
 				>
 					{#if selectedDocumentTypeFilterObj}
 						<div class="admindocreq-selected-option">
@@ -480,7 +460,7 @@
 						type="button"
 						class="admindocreq-dropdown-option"
 						class:selected={selectedDocumentTypeFilter === ''}
-						on:click={() => selectDocumentTypeFilter(null)}
+						onclick={() => selectDocumentTypeFilter(null)}
 					>
 						<span class="material-symbols-outlined admindocreq-option-icon">clear_all</span>
 						<div class="admindocreq-option-content">
@@ -492,7 +472,7 @@
 							type="button"
 							class="admindocreq-dropdown-option"
 							class:selected={selectedDocumentTypeFilter === docType.id}
-							on:click={() => selectDocumentTypeFilter(docType)}
+							onclick={() => selectDocumentTypeFilter(docType)}
 						>
 							<span class="material-symbols-outlined admindocreq-option-icon">description</span>
 							<div class="admindocreq-option-content">
@@ -513,7 +493,7 @@
 					type="button"
 					class="admindocreq-dropdown-trigger"
 					class:selected={selectedGradeFilter}
-					on:click={toggleGradeFilterDropdown}
+					onclick={toggleGradeFilterDropdown}
 				>
 					{#if selectedGradeFilterObj}
 						<div class="admindocreq-selected-option">
@@ -532,7 +512,7 @@
 						type="button"
 						class="admindocreq-dropdown-option"
 						class:selected={selectedGradeFilter === ''}
-						on:click={() => selectGradeFilter(null)}
+						onclick={() => selectGradeFilter(null)}
 					>
 						<span class="material-symbols-outlined admindocreq-option-icon">clear_all</span>
 						<div class="admindocreq-option-content">
@@ -544,7 +524,7 @@
 							type="button"
 							class="admindocreq-dropdown-option"
 							class:selected={selectedGradeFilter === grade.value}
-							on:click={() => selectGradeFilter(grade)}
+							onclick={() => selectGradeFilter(grade)}
 						>
 							<span class="material-symbols-outlined admindocreq-option-icon">school</span>
 							<div class="admindocreq-option-content">
@@ -569,225 +549,111 @@
 			</div>
 		</div>
 
-		<div class="docreq-requests-grid">
-			{#each documentRequests as request (request.id)}
-				<div class="docreq-request-card status-{request.status}-border" on:click={() => openModal(request)}>
-					<!-- Request Header -->
-					<div class="docreq-request-header">
-						<div class="docreq-request-info">
-							<div class="docreq-student-info">
-								<h3 class="docreq-student-name">{request.studentName}</h3>
+		{#if error}
+			<div style="padding: 20px; background: #fee; border-radius: 8px; color: #c33; margin: 20px 0;">
+				<strong>Error:</strong> {error}
+			</div>
+		{/if}
+
+		{#if isLoading}
+			<div style="padding: 40px; text-align: center; color: #666;">
+				<span class="material-symbols-outlined" style="font-size: 48px; animation: spin 1s linear infinite;">sync</span>
+				<p>Loading document requests...</p>
+			</div>
+		{:else if documentRequests.length === 0}
+			<div style="padding: 40px; text-align: center; color: #999;">
+				<span class="material-symbols-outlined" style="font-size: 48px;">description</span>
+				<p>No document requests found</p>
+			</div>
+		{:else}
+			<div class="docreq-requests-grid">
+				{#each documentRequests as request (request.id)}
+					<div 
+						class="docreq-request-card status-{request.status}-border" 
+						onclick={() => openModal(request)}
+						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') openModal(request); }}
+						role="button"
+						tabindex="0"
+					>
+						<!-- Request Header -->
+						<div class="docreq-request-header">
+							<div class="docreq-request-info">
+								<div class="docreq-student-info">
+									<h3 class="docreq-student-name">{request.studentName}</h3>
+								</div>
+							</div>
+							<div class="docreq-action-buttons">
+								<div class="docreq-status-badge docreq-status-{request.status}">
+									{#if request.status === 'on_hold'}
+										<span class="material-symbols-outlined">pause_circle</span>
+										<span>On Hold</span>
+									{:else if request.status === 'verifying'}
+										<span class="material-symbols-outlined">fact_check</span>
+										<span>Verifying</span>
+									{:else if request.status === 'processing'}
+										<span class="material-symbols-outlined">sync</span>
+										<span>For Processing</span>
+									{:else if request.status === 'for_pickup'}
+										<span class="material-symbols-outlined">hand_package</span>
+										<span>For Pick up</span>
+									{:else if request.status === 'released'}
+										<span class="material-symbols-outlined">check_circle</span>
+										<span>Released</span>
+									{/if}
+								</div>
 							</div>
 						</div>
-						<div class="docreq-action-buttons">
-							<div class="docreq-status-badge docreq-status-{request.status}">
-								{#if request.status === 'on_hold'}
-									<span class="material-symbols-outlined">pause_circle</span>
-									<span>On Hold</span>
-								{:else if request.status === 'verifying'}
-									<span class="material-symbols-outlined">fact_check</span>
-									<span>Verifying</span>
-								{:else if request.status === 'processing'}
-									<span class="material-symbols-outlined">sync</span>
-									<span>For Processing</span>
-								{:else if request.status === 'for_pickup'}
-									<span class="material-symbols-outlined">hand_package</span>
-									<span>For Pick up</span>
-								{/if}
+
+						<!-- Request Details -->
+						<div class="docreq-request-details">
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">badge</span>
+								<span>{request.studentId}</span>
+							</div>
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">school</span>
+								<span>{request.gradeLevel}</span>
+							</div>
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">description</span>
+								<span>{request.documentType}</span>
+							</div>
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">tag</span>
+								<span>ID: {request.requestId}</span>
+							</div>
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">calendar_today</span>
+								<span>Requested: {request.submittedDate}</span>
+							</div>
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">payments</span>
+								<span>{request.payment}</span>
+							</div>
+
+							<!-- Tentative date shown on request card -->
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">event</span>
+								<span>
+									Tentative Date:
+									{#if request.status === 'processing'}
+										{request.tentativeDate || '--/--/----'}
+									{:else}
+										N/A
+									{/if}
+								</span>
 							</div>
 						</div>
 					</div>
-
-					<!-- Request Details -->
-					<div class="docreq-request-details">
-						<div class="docreq-detail-item">
-							<span class="material-symbols-outlined">badge</span>
-							<span>{request.studentId}</span>
-						</div>
-						<div class="docreq-detail-item">
-							<span class="material-symbols-outlined">school</span>
-							<span>{request.gradeLevel}</span>
-						</div>
-						<div class="docreq-detail-item">
-							<span class="material-symbols-outlined">description</span>
-							<span>{request.documentType}</span>
-						</div>
-						<div class="docreq-detail-item">
-							<span class="material-symbols-outlined">tag</span>
-							<span>ID: {request.requestId}</span>
-						</div>
-						<div class="docreq-detail-item">
-							<span class="material-symbols-outlined">calendar_today</span>
-							<span>Requested: {request.submittedDate}</span>
-						</div>
-						<div class="docreq-detail-item">
-							<span class="material-symbols-outlined">payments</span>
-							<span>{request.payment}</span>
-						</div>
-
-						<!-- Tentative date shown on request card (reflects modal changes) -->
-						<div class="docreq-detail-item">
-							<span class="material-symbols-outlined">event</span>
-							<span>
-								Tentative Date:
-								{#if request.status === 'processing'}
-									{request.tentativeDate ? formatTentativeDateForDisplay(request.tentativeDate, request.status) : '--/--/----'}
-								{:else}
-									N/A
-								{/if}
-							</span>
-						</div>
-					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 </div>
 
-<!-- Modal (opens when clicking a request card) -->
-{#if showModal && selectedRequest}
-	<div class="admindocreq-modal" role="dialog" aria-modal="true" on:click|self={closeModal}>
-		<div class="admindocreq-modal-panel" on:click|stopPropagation>
-			<button class="admindocreq-modal-close" aria-label="Close" on:click={closeModal}>✕</button>
-
-			<div class="admindocreq-modal-grid">
-				<!-- Left column -->
-				<div class="admindocreq-modal-left">
-					<header class="admindocreq-modal-title">
-						<h2>Request Details</h2>
-						<div class="admindoc-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
-					</header>
-
-					<div class="admindocreq-cards">
-						<div class="admindocreq-card">
-							<div class="card-label"><span class="material-symbols-outlined">description</span> Document Type</div>
-							<div class="card-value">{selectedRequest.documentType}</div>
-						</div>
-
-						<!-- Status card with dropdown (new) -->
-						<div class="admindocreq-card">
-							<div class="card-label"><span class="material-symbols-outlined">info</span> Status</div>
-							<div class="card-value">
-								<div class="admindocreq-status-dropdown" class:open={isModalStatusDropdownOpen} aria-haspopup="listbox" aria-expanded={isModalStatusDropdownOpen}>
-									<button class="admindocreq-status-dropdown-trigger" on:click={toggleModalStatusDropdown} aria-label="Change status">
-										<span class="admindocreq-status-dropdown-label">{modalCurrentStatusName}</span>
-										<span class="material-symbols-outlined admindocreq-status-dropdown-caret">{isModalStatusDropdownOpen ? 'expand_less' : 'expand_more'}</span>
-									</button>
-
-									<div class="admindocreq-status-dropdown-menu" role="listbox" aria-label="Select status">
-										{#each modalStatuses as st (st.id)}
-											<button
-												type="button"
-												class="admindocreq-status-item"
-												on:click={() => selectModalStatus(st.id)}
-												role="option"
-												aria-selected={selectedRequest.status === st.id}
-											>
-												<span class="status-dot {st.id}"></span>
-												<span class="status-text">{st.name}</span>
-											</button>
-										{/each}
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Tentative Date card (clickable only if status === 'processing') -->
-						<div class="admindocreq-card">
-							<div class="card-label"><span class="material-symbols-outlined">event</span> Tentative Date</div>
-							<div class="card-value">
-								<!-- visible box; clicking triggers hidden date input only when processing -->
-								<div
-									class="date-box"
-									class:disabled={selectedRequest.status !== 'processing'}
-									on:click={() => { if (selectedRequest.status === 'processing') openDatePicker(); }}
-									role="button"
-									tabindex={selectedRequest.status === 'processing' ? 0 : -1}
-								>
-									{selectedRequest.status === 'processing'
-										? (selectedRequest.tentativeDate ? formatTentativeDateForDisplay(selectedRequest.tentativeDate, selectedRequest.status) : '--/--/----')
-										: 'N/A'}
-								</div>
-
-								<!-- native date input (hidden) -->
-								<input
-									type="date"
-									bind:this={dateInputEl}
-									on:change={onTentativeDateChange}
-									style="position:absolute; opacity:0; pointer-events:none; width:0; height:0;"
-								/>
-							</div>
-						</div>
-
-						<div class="admindocreq-card">
-							<div class="card-label"><span class="material-symbols-outlined">payments</span> Payment</div>
-							<div class="card-value">{selectedRequest.payment} <span class="badge orange">Pending</span></div>
-						</div>
-
-						<div class="admindocreq-card">
-							<div class="card-label"><span class="material-symbols-outlined">account_circle</span> Processed By</div>
-							<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
-						</div>
-					</div>
-
-					<div class="admindocreq-purpose" style="margin-top: 12px;">
-						<label>Purpose & Details</label>
-						<p class="purpose-text">{selectedRequest.purpose ?? '—'}</p>
-					</div>
-
-					<div class="admindocreq-chat" style="margin-top: 12px;">
-						<h3>Chat</h3>
-						<div class="chat-messages">
-							{#each chatMessagesForRequest(selectedRequest.requestId) as msg (msg.id)}
-								<div class="chat-message">
-									<div class="chat-author">{msg.author}</div>
-									<div class="chat-text">{msg.text}</div>
-									<div class="chat-time">{msg.time}</div>
-								</div>
-							{/each}
-						</div>
-
-						<div class="chat-input" style="margin-top:8px;">
-							<button class="attach-btn" title="Attach">📎</button>
-							<input placeholder="Type your message" />
-							<button class="send-btn" title="Send">➤</button>
-						</div>
-					</div>
-				</div>
-
-				<!-- Right column -->
-				<div class="admindocreq-modal-right">
-					<div class="student-info-card">
-						<h3><span class="material-symbols-outlined">school</span> Student Information</h3>
-
-						<div class="student-field">
-							<div class="field-label">Student ID</div>
-							<div class="field-value">{selectedRequest.studentId}</div>
-						</div>
-
-						<div class="student-field">
-							<div class="field-label">Full Name</div>
-							<div class="field-value">{selectedRequest.studentName}</div>
-						</div>
-
-						<div class="student-field">
-							<div class="field-label">Grade & Section</div>
-							<div class="field-value">{selectedRequest.gradeLevel}</div>
-						</div>
-s
-						<div class="student-field">
-							<div class="field-label">Date of birth</div>
-							<div class="field-value">{selectedRequest.dateOfBirth ?? '—'}</div>
-						</div>
-					</div>
-
-					<div class="action-buttons">
-						<button class="admindocreq-approve-button" on:click={updateRequest}>Update Request</button>
-						<button class="admindocreq-reject-button" on:click={rejectRequest}>Reject Request</button>
-						<button class="admindocreq-complete-button" on:click={closeModal}>Back</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-{/if}
+<style>
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
+</style>
