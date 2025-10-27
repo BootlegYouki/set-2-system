@@ -4,6 +4,8 @@
   import { api } from '../../../../../routes/api/helper/api-helper.js';
   import './studentGrade.css';
 	import CountUp from '../../../../common/CountUp.svelte';
+	import SubjectPerformanceChart from './studentGradeCharts/SubjectPerformanceChart.svelte';
+	import AssessmentTypeChart from './studentGradeCharts/AssessmentTypeChart.svelte';
 	
 	// State variables
 	let loading = true;
@@ -439,6 +441,22 @@
 					</div>
 				{/if}
 			</div>
+
+		<!-- Grade Analysis Charts - Only shown when AI analysis is available -->
+		{#if aiAnalysis && !aiAnalysisError}
+			<div class="charts-section">
+				<h2 class="section-title">Performance Analytics</h2>
+				<div class="charts-grid">
+					<div class="chart-wrapper">
+						<SubjectPerformanceChart {subjects} />
+					</div>
+					<div class="chart-wrapper">
+						<AssessmentTypeChart {subjects} />
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Subjects Grid -->
 		<div class="subjects-section">
 			<h2 class="section-title">Subject Performance</h2>
