@@ -67,22 +67,26 @@
 				return;
 			}
 
-			const result = await api.get(`/api/document-requests?student_id=${$authStore.userData.id}`);
+			const result = await api.get('/api/document-requests?action=student');
 
 			if (result.success) {
-				// Ensure each request has default fields used by the modal
+				// Map backend response to frontend format
 				requestHistory = result.data.map(r => ({
-					...r,
-					type: r.type || (documentTypes.find(d => d.id === r.document_type)?.name ?? 'Unknown'),
-					requestedDate: r.requestedDate ?? r.created_at ?? '',
-					tentativeDate: r.tentativeDate ?? r.tentative_date ?? null,
-					// default payment amount changed to 120 if not provided
-					paymentAmount: r.paymentAmount ?? r.amount ?? 120,
-					paymentStatus: r.paymentStatus ?? (r.payment ? 'paid' : 'pending'),
-					processedBy: r.completedByAdmin ?? r.adminName ?? null,
-					purpose: r.purpose ?? r.description ?? '',
-					messages: r.messages ?? r.chat ?? [],
-					...r
+					id: r.id,
+					requestId: r.requestId,
+					type: documentTypes.find(d => d.id === r.documentType)?.name ?? r.documentType,
+					document_type: r.documentType,
+					requestedDate: r.submittedDate,
+					submittedDate: r.submittedDate,
+					tentativeDate: r.tentativeDate,
+					payment: r.payment,
+					paymentAmount: parseFloat(r.payment?.replace('₱', '') || '120'),
+					paymentStatus: r.paymentStatus,
+					status: r.status,
+					processedBy: r.processedBy,
+					purpose: r.purpose,
+					messages: r.messages || [],
+					isUrgent: r.isUrgent || false
 				}));
 			} else {
 				error = result.error || 'Failed to fetch document requests';
@@ -108,28 +112,21 @@
 	async function handleCancelRequest(requestId) {
 		try {
 			// Call API to cancel the request
-			const response = await api.patch('/api/document-requests', {
-				id: requestId,
-				action: 'cancel'
+			const response = await api.post('/api/document-requests', {
+				action: 'cancel',
+				requestId: requestId
 			});
 
 			if (response.success) {
-				// Update the local state with the cancelled request
-				requestHistory = requestHistory.map(request => {
-					if (request.id === requestId) {
-						return {
-							...request,
-							status: 'cancelled',
-							cancelledDate: response.data.cancelledDate
-						};
-					}
-					return request;
-				});
+				// Refresh the list to get updated data
+				await fetchDocumentRequests();
 			} else {
+				error = response.error || 'Failed to cancel request';
 				console.error('Failed to cancel request:', response.error);
 			}
-		} catch (error) {
-			console.error('Error cancelling request:', error);
+		} catch (err) {
+			error = 'Failed to cancel request. Please try again.';
+			console.error('Error cancelling request:', err);
 		}
 	}
 
@@ -161,13 +158,16 @@
 		
 		try {
 			const result = await api.post('/api/document-requests', {
-				student_id: $authStore.userData.id,
-				document_type: selectedDocumentType,
-				purpose: requestPurpose
+				action: 'create',
+				documentType: selectedDocumentType,
+				purpose: requestPurpose,
+				paymentAmount: 120,
+				isUrgent: false
 			});
 
 			if (result.success) {
-				requestHistory = [result.data, ...requestHistory];
+				// Refresh the list to get the newly created request
+				await fetchDocumentRequests();
 				toggleRequestForm();
 			} else {
 				error = result.error || 'Failed to submit document request';
@@ -182,9 +182,11 @@
 
 	function getStatusIcon(status) {
 		switch (status) {
-			case 'completed': return 'check_circle';
+			case 'released': return 'check_circle';
+			case 'for_pickup': return 'inventory_2';
 			case 'processing': return 'sync';
-			case 'pending': return 'hourglass_empty';
+			case 'verifying': return 'fact_check';
+			case 'on_hold': return 'hourglass_empty';
 			case 'rejected': return 'cancel';
 			case 'cancelled': return 'block';
 			default: return 'help';
@@ -397,9 +399,11 @@
 										<p class="request-date">Requested on {request.requestedDate}</p>
 									</div>
 									<div class="student-status-badge status-{request.status}">
-										{request.status === 'completed' ? 'Completed' : 
+										{request.status === 'released' ? 'Released' : 
+										 request.status === 'for_pickup' ? 'For Pick Up' : 
 										 request.status === 'processing' ? 'Processing' : 
-										 request.status === 'pending' ? 'Pending' : 
+										 request.status === 'verifying' ? 'Verifying' : 
+										 request.status === 'on_hold' ? 'On Hold' : 
 										 request.status === 'rejected' ? 'Rejected' : 
 										 request.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
 									</div>
@@ -409,38 +413,49 @@
 						</div>
 						
 						<!-- Status Footer with colored background -->
-						{#if request.status === 'completed'}
+						{#if request.status === 'released'}
 							<div class="request-footer completed-footer">
 								<span class="footer-info">
-									Completed on {request.completedDate}{request.completedByAdmin ? ` by ${request.completedByAdmin}` : ''}
+									Released{request.processedBy ? ` by ${request.processedBy}` : ''}
+								</span>
+							</div>
+						{:else if request.status === 'for_pickup'}
+							<div class="request-footer processing-footer">
+								<span class="footer-info">
+									Ready for pickup{request.processedBy ? ` - Processed by ${request.processedBy}` : ''}
 								</span>
 							</div>
 						{:else if request.status === 'processing'}
 							<div class="request-footer processing-footer">
 								<span class="footer-info">
-									{#if request.adminNote}
-										Note{request.adminName ? ` by ${request.adminName}` : ''}: {request.adminNote}
-									{:else}
-										{request.adminName ? `Being processed by ${request.adminName}` : 'Processing your request'}
+									{request.processedBy ? `Being processed by ${request.processedBy}` : 'Processing your request'}
+									{#if request.tentativeDate}
+										- Tentative: {request.tentativeDate}
 									{/if}
 								</span>
 							</div>
-						{:else if request.status === 'pending'}
+						{:else if request.status === 'verifying'}
+							<div class="request-footer processing-footer">
+								<span class="footer-info">
+									{request.processedBy ? `Being verified by ${request.processedBy}` : 'Verifying your request'}
+								</span>
+							</div>
+						{:else if request.status === 'on_hold'}
 							<div class="request-footer pending-footer">
 								<span class="footer-info">Awaiting review</span>
-								<button class="cancel-request-button" on:click|stopPropagation={() => handleCancelRequest(request.id)}>
+								<button class="cancel-request-button" on:click|stopPropagation={() => handleCancelRequest(request.requestId)}>
 									<span class="material-symbols-outlined">close</span>
 									Cancel
 								</button>
 							</div>
 						{:else if request.status === 'cancelled'}
 							<div class="request-footer cancelled-footer">
-								<span class="footer-info">Cancelled on {request.cancelledDate}</span>
+								<span class="footer-info">Request cancelled</span>
 							</div>
 						{:else if request.status === 'rejected'}
 							<div class="request-footer rejected-footer">
 								<span class="footer-info">
-									Reason{request.adminName ? ` by ${request.adminName}` : ''}: {request.rejectionReason}
+									Request rejected{request.processedBy ? ` by ${request.processedBy}` : ''}
 								</span>
 							</div>
 						{/if}
@@ -478,11 +493,11 @@
 						</div>
 						<div class="info-value status-row">
 							<span class="status-badge status-{selectedRequest.status}">
-								{selectedRequest.status === 'completed' ? 'Released' : 
-								 selectedRequest.status === 'processing' ? 'Verifying' : 
-								 selectedRequest.status === 'pending' ? 'On Hold' : 
-								 selectedRequest.status === 'for_processing' ? 'For Processing' :
+								{selectedRequest.status === 'released' ? 'Released' : 
 								 selectedRequest.status === 'for_pickup' ? 'For Pick Up' :
+								 selectedRequest.status === 'processing' ? 'Processing' : 
+								 selectedRequest.status === 'verifying' ? 'Verifying' : 
+								 selectedRequest.status === 'on_hold' ? 'On Hold' : 
 								 selectedRequest.status === 'rejected' ? 'Rejected' : 
 								 selectedRequest.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
 							</span>
