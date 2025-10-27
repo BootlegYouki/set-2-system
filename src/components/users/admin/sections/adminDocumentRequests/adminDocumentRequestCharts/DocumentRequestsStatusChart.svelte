@@ -12,15 +12,37 @@
 	let error = null;
 	let chartData = null;
 
-	const gradeLevels = ['7', '8', '9', '10'];
+	const statusLabels = {
+		on_hold: 'On Hold',
+		verifying: 'Verifying',
+		processing: 'Processing',
+		for_pickup: 'For Pickup',
+		released: 'Released'
+	};
 
-	async function fetchGradesData() {
+	const statusColors = [
+		'rgba(255, 193, 7, 0.6)',    // On Hold - Amber/Yellow
+		'rgba(33, 150, 243, 0.6)',   // Verifying - Blue
+		'rgba(156, 39, 176, 0.6)',   // Processing - Purple
+		'rgba(255, 152, 0, 0.6)',    // For Pickup - Orange
+		'rgba(76, 175, 80, 0.6)'     // Released - Green
+	];
+
+	const statusBorderColors = [
+		'rgb(255, 193, 7)',    // On Hold - Amber/Yellow
+		'rgb(33, 150, 243)',   // Verifying - Blue
+		'rgb(156, 39, 176)',   // Processing - Purple
+		'rgb(255, 152, 0)',    // For Pickup - Orange
+		'rgb(76, 175, 80)'     // Released - Green
+	];
+
+	async function fetchDocumentRequestsData() {
 		try {
 			loading = true;
 			error = null;
 
-			// Fetch sections per grade level data from API
-			const response = await api.get('/api/dashboard/sections-per-grade');
+			// Fetch document requests stats from API
+			const response = await api.get('/api/document-requests?action=stats');
 			
 			if (response.success) {
 				chartData = response.data;
@@ -32,10 +54,10 @@
 					}
 				}, 0);
 			} else {
-				throw new Error(response.error || 'Failed to fetch sections data');
+				throw new Error(response.error || 'Failed to fetch document requests data');
 			}
 		} catch (err) {
-			console.error('Error fetching sections data:', err);
+			console.error('Error fetching document requests data:', err);
 			error = err.message;
 			loading = false;
 		}
@@ -53,31 +75,20 @@
 		}
 
 		// Transform data into chart format
-		const transformedData = gradeLevels.map((level) => {
-			const sectionData = data.find(d => d.grade_level === level);
-			return sectionData ? sectionData.section_count : 0;
+		const transformedData = Object.keys(statusLabels).map((status) => {
+			return data[status] || 0;
 		});
 
 		const ctx = chartCanvas.getContext('2d');
 		chartInstance = new Chart(ctx, {
 			type: 'bar',
 			data: {
-				labels: gradeLevels.map(g => `Grade ${g}`),
+				labels: Object.values(statusLabels),
 				datasets: [{
-					label: 'Number of Sections',
+					label: 'Number of Requests',
 					data: transformedData,
-					backgroundColor: [
-						'rgba(54, 162, 235, 0.6)',   // Grade 7 - Blue
-						'rgba(75, 192, 192, 0.6)',   // Grade 8 - Teal
-						'rgba(153, 102, 255, 0.6)',  // Grade 9 - Purple
-						'rgba(255, 159, 64, 0.6)'    // Grade 10 - Orange
-					],
-					borderColor: [
-						'rgb(54, 162, 235)',   // Grade 7 - Blue
-						'rgb(75, 192, 192)',   // Grade 8 - Teal
-						'rgb(153, 102, 255)',  // Grade 9 - Purple
-						'rgb(255, 159, 64)'    // Grade 10 - Orange
-					],
+					backgroundColor: statusColors,
+					borderColor: statusBorderColors,
 					borderWidth: 2,
 					borderRadius: 8,
 					borderSkipped: false
@@ -104,7 +115,7 @@
 						},
 						title: {
 							display: true,
-							text: 'Number of Sections',
+							text: 'Number of Requests',
 							color: getComputedStyle(document.documentElement)
 								.getPropertyValue('--md-sys-color-on-surface').trim(),
 							font: {
@@ -129,7 +140,7 @@
 					},
 					title: {
 						display: true,
-						text: 'Sections per Grade Level',
+						text: 'Document Requests by Status',
 						font: {
 							size: 16,
 							weight: 'bold'
@@ -145,7 +156,7 @@
 						callbacks: {
 							label: function(context) {
 								const value = context.parsed.y || 0;
-								return `Sections: ${value}`;
+								return `Requests: ${value}`;
 							}
 						}
 					}
@@ -162,11 +173,11 @@
 	}
 
 	onMount(() => {
-		fetchGradesData();
+		fetchDocumentRequestsData();
 
 		// Refresh every 60 seconds
 		const refreshInterval = setInterval(() => {
-			fetchGradesData();
+			fetchDocumentRequestsData();
 		}, 60000);
 
 		// Listen for theme changes
@@ -206,7 +217,7 @@
 		<div class="chart-error">
 			<span class="material-symbols-outlined">error</span>
 			<p>{error}</p>
-			<button class="retry-button" on:click={fetchGradesData}>
+			<button class="retry-button" on:click={fetchDocumentRequestsData}>
 				<span class="material-symbols-outlined">refresh</span>
 				Retry
 			</button>
@@ -302,3 +313,4 @@
 		font-size: 18px;
 	}
 </style>
+

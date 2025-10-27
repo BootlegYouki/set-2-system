@@ -272,6 +272,11 @@
 	background-color: var(--status-cancelled-bg-light);
 }
 
+/* Chart Section */
+.docreq-chart-section {
+	margin-bottom: var(--spacing-xl);
+}
+
 /* Filters Section */
 .admin-docreq-filters-section {
 	background-color: var(--md-sys-color-surface-container-low);

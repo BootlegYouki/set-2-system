@@ -3,6 +3,7 @@
 	import './adminDocumentRequests.css';
 	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
 	import { docReqModalStore } from './adminDocumentRequestModal/docReqModalStore.js';
+	import DocumentRequestsStatusChart from './adminDocumentRequestCharts/DocumentRequestsStatusChart.svelte';
 
 	// Dynamic data for document requests (fetched from API)
 	let documentRequests = [];
@@ -350,6 +351,11 @@
 				</div>
 			</div>
 		</div>
+	</div>
+
+	<!-- Chart Section -->
+	<div class="docreq-chart-section">
+		<DocumentRequestsStatusChart />
 	</div>
 
 	<!-- Filters and Search Section -->
