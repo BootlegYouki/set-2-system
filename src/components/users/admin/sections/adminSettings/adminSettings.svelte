@@ -720,22 +720,25 @@
 			</p>
 		</div>
 
-		<div class="admin-settings-card">
-			<div class="admin-settings-card-content">
-				<div class="admin-settings-item">
-					<div class="admin-settings-item-info">
-						<h3 class="admin-settings-item-label">Password</h3>
-						<p class="admin-settings-item-description">Change your account password for security</p>
+		<div class="admin-settings-security-row">
+			<div class="admin-settings-security-card">
+				<div class="admin-settings-security-content-container">
+					<div class="admin-settings-security-icon">
+						<span class="material-symbols-outlined">lock</span>
 					</div>
-					<div class="admin-settings-actions">
-						<button
-							class="admin-settings-action-button admin-settings-primary"
-							onclick={handlePasswordChangeModal}
-						>
-							<span class="material-symbols-outlined">lock</span>
-							Change Password
-						</button>
+					<div class="admin-settings-security-content">
+						<div class="admin-settings-security-label">Password</div>
+						<div class="admin-settings-security-value">Change your account password for security</div>
 					</div>
+				</div>
+				<div class="admin-settings-security-actions">
+					<button
+						class="admin-settings-security-action-button"
+						onclick={handlePasswordChangeModal}
+					>
+						<span class="material-symbols-outlined">lock</span>
+						Change Password
+					</button>
 				</div>
 			</div>
 		</div>

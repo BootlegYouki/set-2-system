@@ -526,3 +526,144 @@
 	0% { transform: rotate(0deg); }
 	100% { transform: rotate(360deg); }
 }
+
+/* Account Security Section - New Design */
+.admin-settings-security-row {
+	display: flex;
+	gap: 20px;
+	margin-bottom: 20px;
+	align-items: stretch;
+	flex-wrap: nowrap;
+}
+
+.admin-settings-security-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--spacing-md);
+	padding: var(--spacing-lg);
+	background-color: var(--md-sys-color-surface-container);
+	border-radius: var(--radius-md);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	transition: all var(--transition-normal);
+	box-shadow: var(--shadow-sm);
+	height: fit-content;
+	min-height: 80px;
+	flex: 1;
+}
+
+.admin-settings-security-card:hover {
+	background-color: var(--md-sys-color-surface-container-hover);
+	box-shadow: var(--shadow-md);
+}
+
+.admin-settings-security-content-container {
+	display: flex;
+	gap: var(--spacing-md);
+	align-items: flex-start;
+	flex: 1;
+}
+
+.admin-settings-security-icon {
+	width: 48px;
+	height: 48px;
+	border-radius: var(--radius-md);
+	background-color: var(--school-primary);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	margin-top: 2px;
+}
+
+.admin-settings-security-icon .material-symbols-outlined {
+	font-size: 24px;
+	color: white;
+}
+
+.admin-settings-security-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.admin-settings-security-label {
+	font-family: var(--md-sys-typescale-label-large-font);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface-variant);
+	margin-bottom: var(--spacing-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.admin-settings-security-value {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: var(--md-sys-typescale-body-large-size);
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface);
+	word-break: break-word;
+	line-height: 1.4;
+	overflow-wrap: break-word;
+	hyphens: auto;
+}
+
+.admin-settings-security-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	flex-shrink: 0;
+}
+
+.admin-settings-security-action-button {
+	background: var(--school-primary);
+	color: white;
+	border: none;
+	border-radius: var(--radius-sm);
+	padding: var(--spacing-sm) var(--spacing-md);
+	font-size: var(--md-sys-typescale-label-large-size);
+	font-weight: 500;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	transition: all var(--transition-normal);
+	white-space: nowrap;
+	min-height: 40px;
+}
+
+.admin-settings-security-action-button:hover {
+	background: var(--school-secondary);
+	box-shadow: var(--shadow-md);
+}
+
+.admin-settings-security-action-button:active {
+	transform: translateY(0);
+}
+
+.admin-settings-security-action-button .material-symbols-outlined {
+	font-size: 18px;
+}
+
+/* Responsive Design for Security Section */
+@media (max-width: 768px) {
+	.admin-settings-security-card {
+		flex-direction: column;
+		gap: var(--spacing-md);
+		align-items: stretch;
+	}
+
+	.admin-settings-security-content-container {
+		width: 100%;
+	}
+
+	.admin-settings-security-actions {
+		justify-content: center;
+		flex-direction: column;
+		align-items: center;
+		width: 100%;
+	}
+
+	.admin-settings-security-action-button {
+		justify-content: center;
+		width: 100%;
+	}
+}
