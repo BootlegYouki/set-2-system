@@ -1,7 +1,6 @@
 <script>
   import { modalStore } from './js/modalStore.js';
   import Modal from './Modal.svelte';
-  import DocumentRequestModal from '../users/admin/sections/adminDocumentRequests/adminDocumentRequestModal/DocumentRequestModal.svelte';
 
   // Subscribe to modal store
   let modals = $state([]);
@@ -27,8 +26,6 @@
         return null; // Would import AlertModal component
       case 'PromptModal':
         return null; // Would import PromptModal component
-      case 'DocumentRequestModal':
-        return DocumentRequestModal;
       default:
         return componentName; // Assume it's already a component
     }
@@ -177,11 +174,6 @@
             </button>
           </div>
         </div>
-      {:else if modal.component === 'DocumentRequestModal'}
-        <DocumentRequestModal 
-          {...modal.props}
-          onClose={() => handleModalClose(modal.id)}
-        />
       {:else if modal.component === 'CustomModal'}
         <div class="modal-custom-content">
           {@html modal.props.content}
@@ -194,8 +186,7 @@
       {/if}
     {:else}
       <!-- Handle Svelte component instances -->
-      {@const Component = modal.component}
-      <Component {...modal.props} onClose={() => handleModalClose(modal.id)} />
+      <svelte:component this={modal.component} {...modal.props} />
     {/if}
   </Modal>
 {/each}

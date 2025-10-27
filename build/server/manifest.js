@@ -10,11 +10,11 @@ return {
 	assets: new Set(["robots.txt"]),
 	mimeTypes: {".txt":"text/plain"},
 	_: {
-		client: {start:"_app/immutable/entry/start.C7qaMi6y.js",app:"_app/immutable/entry/app.D1ng0uqh.js",imports:["_app/immutable/entry/start.C7qaMi6y.js","_app/immutable/chunks/CkG31fIl.js","_app/immutable/chunks/DfuX6PLp.js","_app/immutable/entry/app.D1ng0uqh.js","_app/immutable/chunks/D9Z9MdNV.js","_app/immutable/chunks/DfuX6PLp.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/X9SYq9-G.js","_app/immutable/chunks/C_xhk7l3.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.CI4crB-H.js",app:"_app/immutable/entry/app.BOpAA8Or.js",imports:["_app/immutable/entry/start.CI4crB-H.js","_app/immutable/chunks/DFU329Mh.js","_app/immutable/chunks/BYO0ofv7.js","_app/immutable/entry/app.BOpAA8Or.js","_app/immutable/chunks/D9Z9MdNV.js","_app/immutable/chunks/BYO0ofv7.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/DpPKuoqJ.js","_app/immutable/chunks/C56shC0M.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
-			__memo(() => import('./chunks/0-BhW5JenR.js')),
-			__memo(() => import('./chunks/1-kB4Yf-xU.js')),
-			__memo(() => import('./chunks/2-CRmaK_pt.js'))
+			__memo(() => import('./chunks/0-DePXn4Lu.js')),
+			__memo(() => import('./chunks/1-BKuLF0TW.js')),
+			__memo(() => import('./chunks/2-CIjEq36Z.js'))
 		],
 		remotes: {
 			
@@ -32,7 +32,7 @@ return {
 				pattern: /^\/api\/accounts\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CJlexwuS.js'))
+				endpoint: __memo(() => import('./chunks/_server-D61YklSQ.js'))
 			},
 			{
 				id: "/api/accounts/check-email",
@@ -53,7 +53,7 @@ return {
 				pattern: /^\/api\/activity-logs\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CFu1SNHb.js'))
+				endpoint: __memo(() => import('./chunks/_server-B4MAsIVJ.js'))
 			},
 			{
 				id: "/api/activity-types",
@@ -74,7 +74,7 @@ return {
 				pattern: /^\/api\/ai-grade-analysis\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-Bq8IWpJG.js'))
+				endpoint: __memo(() => import('./chunks/_server-BXiflOMo.js'))
 			},
 			{
 				id: "/api/archived-students",
@@ -88,14 +88,7 @@ return {
 				pattern: /^\/api\/auth\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-uJLBJ3Qj.js'))
-			},
-			{
-				id: "/api/auth/heartbeat",
-				pattern: /^\/api\/auth\/heartbeat\/?$/,
-				params: [],
-				page: null,
-				endpoint: __memo(() => import('./chunks/_server-BW0IjTkd.js'))
+				endpoint: __memo(() => import('./chunks/_server-BM8YRjHD.js'))
 			},
 			{
 				id: "/api/change-password",
@@ -126,20 +119,6 @@ return {
 				endpoint: __memo(() => import('./chunks/_server-DNIIA2wm.js'))
 			},
 			{
-				id: "/api/dashboard/sections-per-grade",
-				pattern: /^\/api\/dashboard\/sections-per-grade\/?$/,
-				params: [],
-				page: null,
-				endpoint: __memo(() => import('./chunks/_server-BKgEj5EJ.js'))
-			},
-			{
-				id: "/api/dashboard/students-per-grade",
-				pattern: /^\/api\/dashboard\/students-per-grade\/?$/,
-				params: [],
-				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CVhxCABL.js'))
-			},
-			{
 				id: "/api/departments",
 				pattern: /^\/api\/departments\/?$/,
 				params: [],
@@ -151,21 +130,21 @@ return {
 				pattern: /^\/api\/document-requests\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CxssPff-.js'))
+				endpoint: __memo(() => import('./chunks/_server-DvhxGVIW.js'))
 			},
 			{
 				id: "/api/forgot-password",
 				pattern: /^\/api\/forgot-password\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-C-F3l6X3.js'))
+				endpoint: __memo(() => import('./chunks/_server-B7-_0BzL.js'))
 			},
 			{
 				id: "/api/forgot-password/reset-password",
 				pattern: /^\/api\/forgot-password\/reset-password\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-1osS2i2e.js'))
+				endpoint: __memo(() => import('./chunks/_server-j1P8JXDF.js'))
 			},
 			{
 				id: "/api/forgot-password/verify-code",
@@ -179,21 +158,21 @@ return {
 				pattern: /^\/api\/grades\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CnAlWwBO.js'))
+				endpoint: __memo(() => import('./chunks/_server-CtTAtOHV.js'))
 			},
 			{
 				id: "/api/grades/grade-items",
 				pattern: /^\/api\/grades\/grade-items\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-Dh7Nh8je.js'))
+				endpoint: __memo(() => import('./chunks/_server-D3kgXl2j.js'))
 			},
 			{
 				id: "/api/grades/save",
 				pattern: /^\/api\/grades\/save\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-fU_TVBWx.js'))
+				endpoint: __memo(() => import('./chunks/_server-Ce7uMkOQ.js'))
 			},
 			{
 				id: "/api/notifications",
@@ -221,21 +200,21 @@ return {
 				pattern: /^\/api\/sections\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-OHXGK05B.js'))
+				endpoint: __memo(() => import('./chunks/_server-6jBkGHhk.js'))
 			},
 			{
 				id: "/api/student-grades",
 				pattern: /^\/api\/student-grades\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CUuDSJtt.js'))
+				endpoint: __memo(() => import('./chunks/_server-M5UyPfJM.js'))
 			},
 			{
 				id: "/api/student-profile",
 				pattern: /^\/api\/student-profile\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-Cnw_T0qh.js'))
+				endpoint: __memo(() => import('./chunks/_server-DmsIf9y1.js'))
 			},
 			{
 				id: "/api/student-todos",
@@ -249,7 +228,7 @@ return {
 				pattern: /^\/api\/students-bulk\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-BJw1MOoj.js'))
+				endpoint: __memo(() => import('./chunks/_server-Ce92v-pC.js'))
 			},
 			{
 				id: "/api/subjects",
@@ -263,7 +242,7 @@ return {
 				pattern: /^\/api\/teacher-advisory\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CLfmeiwB.js'))
+				endpoint: __memo(() => import('./chunks/_server-Cn0v0hjx.js'))
 			},
 			{
 				id: "/api/teacher-profile",
