@@ -72,6 +72,8 @@
         return 'modal-small';
       case 'large':
         return 'modal-large';
+      case 'xlarge':
+        return 'modal-xlarge';
       case 'full':
         return 'modal-full';
       default:
@@ -186,6 +188,11 @@
     max-width: 900px;
   }
 
+  .modal-xlarge {
+    width: 100%;
+    max-width: 1400px;
+  }
+
   .modal-full {
     width: 95vw;
     height: 95vh;
@@ -253,7 +260,8 @@
 
     .modal-small,
     .modal-medium,
-    .modal-large {
+    .modal-large,
+    .modal-xlarge {
       width: 100%;
       max-width: none;
     }

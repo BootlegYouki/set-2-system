@@ -2,6 +2,9 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '../../../../login/js/auth.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { toastStore } from '../../../../common/js/toastStore.js';
+	import { studentDocReqModalStore } from './studentDocumentRequestModal/studentDocReqModalStore.js';
 	import './studentDocumentRequest.css';
 
 	// Document request state
@@ -17,17 +20,6 @@
 	let requestHistory = [];
 	let loading = true;
 	let error = null;
-
-	// Modal state
-	let isModalOpen = false;
-	let selectedRequest = null;
-	let payProcessing = false;
-
-	// Process Flow modal state
-	let isProcessFlowOpen = false;
-
-	// Chat input
-	let newMessage = '';
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
@@ -47,53 +39,17 @@
 		isDropdownOpen = false;
 	}
 
-	// Document types
+	// Document types - aligned with admin system
 	const documentTypes = [
-		{ id: 'transcript', name: 'Transcript', description: 'Official academic record' },
-		{ id: 'enrollment', name: 'Enrollment Certificate', description: 'Proof of enrollment' },
-		{ id: 'grade-report', name: 'Grade Report', description: 'Semester grade report' },
-		{ id: 'diploma', name: 'Diploma', description: 'Official graduation certificate' },
-		{ id: 'certificate', name: 'Certificate', description: 'Academic achievement certificate' }
+		{ id: 'Transcript', name: 'Transcript', description: 'Official academic record' },
+		{ id: 'Enrollment Certificate', name: 'Enrollment Certificate', description: 'Proof of enrollment' },
+		{ id: 'Grade Report', name: 'Grade Report', description: 'Semester grade report' },
+		{ id: 'Diploma', name: 'Diploma', description: 'Official graduation certificate' },
+		{ id: 'Certificate', name: 'Certificate', description: 'Academic achievement certificate' },
+		{ id: 'Good Moral', name: 'Good Moral', description: 'Certificate of good moral character' },
+		{ id: 'TOR', name: 'TOR', description: 'Transcript of Records' },
+		{ id: 'Grade Slip', name: 'Grade Slip', description: 'Grade slip for specific period' }
 	];
-
-	// Fetch document requests from API
-	async function fetchDocumentRequests() {
-		try {
-			loading = true;
-			error = null;
-
-			if (!$authStore.userData?.id) {
-				error = 'User not authenticated';
-				return;
-			}
-
-			const result = await api.get(`/api/document-requests?student_id=${$authStore.userData.id}`);
-
-			if (result.success) {
-				// Ensure each request has default fields used by the modal
-				requestHistory = result.data.map(r => ({
-					...r,
-					type: r.type || (documentTypes.find(d => d.id === r.document_type)?.name ?? 'Unknown'),
-					requestedDate: r.requestedDate ?? r.created_at ?? '',
-					tentativeDate: r.tentativeDate ?? r.tentative_date ?? null,
-					// default payment amount changed to 120 if not provided
-					paymentAmount: r.paymentAmount ?? r.amount ?? 120,
-					paymentStatus: r.paymentStatus ?? (r.payment ? 'paid' : 'pending'),
-					processedBy: r.completedByAdmin ?? r.adminName ?? null,
-					purpose: r.purpose ?? r.description ?? '',
-					messages: r.messages ?? r.chat ?? [],
-					...r
-				}));
-			} else {
-				error = result.error || 'Failed to fetch document requests';
-			}
-		} catch (err) {
-			console.error('Error fetching document requests:', err);
-			error = 'Failed to load document requests. Please try again.';
-		} finally {
-			loading = false;
-		}
-	}
 
 	// Load data when component mounts
 	onMount(() => {
@@ -105,32 +61,139 @@
 		}
 	});
 
-	async function handleCancelRequest(requestId) {
+	// Fetch student's document requests from API
+	async function fetchDocumentRequests() {
 		try {
-			// Call API to cancel the request
-			const response = await api.patch('/api/document-requests', {
-				id: requestId,
-				action: 'cancel'
+			loading = true;
+			error = null;
+
+			const response = await api.get('/api/document-requests?action=student');
+			
+			if (response.success) {
+				// Transform data to match UI expectations
+				requestHistory = response.data.map(req => ({
+					id: req.id,
+					requestId: req.requestId,
+					type: req.documentType,
+					purpose: req.purpose,
+					status: mapStatusToUI(req.status),
+					requestedDate: req.submittedDate,
+					completedDate: req.completedDate,
+					cancelledDate: req.cancelledDate,
+					tentativeDate: req.tentativeDate,
+					paymentAmount: req.payment?.replace('₱', '') || 120,
+					paymentStatus: req.paymentStatus || 'pending',
+					processedBy: req.processedBy,
+					adminName: req.processedBy,
+					adminNote: req.adminNote,
+					rejectionReason: req.rejectionReason,
+					messages: req.messages || []
+				}));
+			} else {
+				error = response.error || 'Failed to load document requests';
+			}
+		} catch (err) {
+			console.error('Error fetching document requests:', err);
+			error = 'Failed to load document requests';
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Keep backend status as-is (matching admin system)
+	function mapStatusToUI(backendStatus) {
+		return backendStatus;
+	}
+	
+	// Get status display name
+	function getStatusDisplayName(status) {
+		const statusNames = {
+			'on_hold': 'On Hold',
+			'verifying': 'Verifying',
+			'processing': 'For Processing',
+			'for_pickup': 'For Pick Up',
+			'released': 'Released',
+			'rejected': 'Rejected',
+			'cancelled': 'Cancelled'
+		};
+		return statusNames[status] || status;
+	}
+	
+	// Format date helper
+	function formatDate(dateString) {
+		if (!dateString) return 'N/A';
+		const date = new Date(dateString);
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		const year = date.getFullYear();
+		return `${month}/${day}/${year}`;
+	}
+
+	// Submit new document request
+	async function handleSubmitRequest() {
+		if (!selectedDocumentType || !requestPurpose.trim()) return;
+
+		try {
+			isSubmitting = true;
+			error = null;
+
+			const docTypeName = documentTypes.find(d => d.id === selectedDocumentType)?.name;
+
+			const response = await api.post('/api/document-requests', {
+				action: 'create',
+				documentType: docTypeName || selectedDocumentType,
+				purpose: requestPurpose.trim(),
+				paymentAmount: 120,
+				isUrgent: false
 			});
 
 			if (response.success) {
-				// Update the local state with the cancelled request
-				requestHistory = requestHistory.map(request => {
-					if (request.id === requestId) {
-						return {
-							...request,
-							status: 'cancelled',
-							cancelledDate: response.data.cancelledDate
-						};
-					}
-					return request;
-				});
+				// Close form and reset
+				toggleRequestForm();
+				
+				// Refresh the request history
+				await fetchDocumentRequests();
+				
+				// Show success toast notification
+				toastStore.success('Document request submitted successfully');
 			} else {
-				console.error('Failed to cancel request:', response.error);
+				toastStore.error(response.error || 'Failed to submit request');
 			}
-		} catch (error) {
-			console.error('Error cancelling request:', error);
+		} catch (err) {
+			console.error('Error submitting request:', err);
+			toastStore.error('Failed to submit document request');
+		} finally {
+			isSubmitting = false;
 		}
+	}
+
+	async function handleCancelRequest(request) {
+		// Show confirmation modal before cancelling
+		modalStore.confirm(
+			'Cancel Document Request',
+			`<p>Are you sure you want to cancel your request for <strong>"${request.type}"</strong>?</p>
+			<p style="margin-top: 8px; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem;">This action cannot be undone. The request will be marked as cancelled.</p>`,
+			async () => {
+				try {
+					const response = await api.post('/api/document-requests', {
+						action: 'cancel',
+						requestId: request.requestId
+					});
+
+					if (response.success) {
+						// Refresh the request list
+						await fetchDocumentRequests();
+						toastStore.success('Document request cancelled successfully');
+					} else {
+						console.error('Failed to cancel request:', response.error);
+						toastStore.error(response.error || 'Failed to cancel request');
+					}
+				} catch (err) {
+					console.error('Error cancelling request:', err);
+					toastStore.error('Failed to cancel request');
+				}
+			}
+		);
 	}
 
 	function toggleRequestForm() {
@@ -154,37 +217,14 @@
 		}
 	}
 
-	async function handleSubmitRequest() {
-		if (!selectedDocumentType || !requestPurpose.trim()) return;
-		
-		isSubmitting = true;
-		
-		try {
-			const result = await api.post('/api/document-requests', {
-				student_id: $authStore.userData.id,
-				document_type: selectedDocumentType,
-				purpose: requestPurpose
-			});
-
-			if (result.success) {
-				requestHistory = [result.data, ...requestHistory];
-				toggleRequestForm();
-			} else {
-				error = result.error || 'Failed to submit document request';
-			}
-		} catch (err) {
-			console.error('Error submitting document request:', err);
-			error = 'Failed to submit document request. Please try again.';
-		} finally {
-			isSubmitting = false;
-		}
-	}
 
 	function getStatusIcon(status) {
 		switch (status) {
-			case 'completed': return 'check_circle';
+			case 'on_hold': return 'pause_circle';
+			case 'verifying': return 'fact_check';
 			case 'processing': return 'sync';
-			case 'pending': return 'hourglass_empty';
+			case 'for_pickup': return 'hand_package';
+			case 'released': return 'check_circle';
 			case 'rejected': return 'cancel';
 			case 'cancelled': return 'block';
 			default: return 'help';
@@ -192,71 +232,60 @@
 	}
 
 	// Open the details modal for a particular request
-	function openRequestModal(request) {
-		// ensure payment amount default is P120 if missing
-		selectedRequest = {
-			...request,
-			paymentAmount: request.paymentAmount ?? 120,
-			paymentStatus: request.paymentStatus ?? 'pending'
-		};
-		isModalOpen = true;
-		newMessage = '';
-	}
-
-	function closeRequestModal() {
-		isModalOpen = false;
-		selectedRequest = null;
-	}
-
-	// Open process status flow modal
-	function openProcessFlowModal() {
-		isProcessFlowOpen = true;
-	}
-
-	function closeProcessFlowModal() {
-		isProcessFlowOpen = false;
-	}
-
-	// Mock payment handler - replace with actual integration
-	async function handlePay(event) {
-		event?.stopPropagation();
-		if (!selectedRequest) return;
-		payProcessing = true;
+	async function openRequestModal(request) {
 		try {
-			// Simulate network delay
-			await new Promise(r => setTimeout(r, 900));
-			// update local state
-			requestHistory = requestHistory.map(r => r.id === selectedRequest.id ? { ...r, paymentStatus: 'paid' } : r);
-			selectedRequest = { ...selectedRequest, paymentStatus: 'paid' };
-		} catch (err) {
-			console.error('Payment error', err);
-		} finally {
-			payProcessing = false;
+			// Fetch the full request details including latest messages
+			const response = await api.get(`/api/document-requests?action=single&requestId=${request.requestId}`);
+			
+			if (response.success) {
+				// ensure payment amount default is P120 if missing
+				const requestData = {
+					...response.data,
+					type: response.data.documentType,
+					requestedDate: response.data.submittedDate,
+					paymentAmount: response.data.paymentAmount ?? 120,
+					paymentStatus: response.data.paymentStatus ?? 'pending'
+				};
+				
+				studentDocReqModalStore.open(
+					requestData,
+					handleCancelRequestInModal,
+					fetchDocumentRequests
+				);
+			} else {
+				console.error('Failed to fetch request details:', response.error);
+				toastStore.error('Failed to load request details. Please try again.');
+			}
+		} catch (error) {
+			console.error('Error fetching request details:', error);
+			toastStore.error('An error occurred while loading the request details.');
 		}
 	}
 
-	// Simple chat message send (locally updates; integrate with API)
-	async function sendMessage() {
-		if (!newMessage.trim() || !selectedRequest) return;
-		const message = {
-			id: Date.now(),
-			author: $authStore.userData?.name ?? 'You',
-			text: newMessage.trim(),
-			created_at: new Date().toISOString()
-		};
-		// Append locally
-		selectedRequest = {
-			...selectedRequest,
-			messages: [...(selectedRequest.messages || []), message]
-		};
-		requestHistory = requestHistory.map(r => r.id === selectedRequest.id ? selectedRequest : r);
-		newMessage = '';
+	// Handle cancel request from modal
+	async function handleCancelRequestInModal(request) {
+		try {
+			const response = await api.post('/api/document-requests', {
+				action: 'cancel',
+				requestId: request.requestId
+			});
 
-		// Optionally POST to server: await api.post('/api/document-requests/messages', { requestId: selectedRequest.id, message });
+			if (response.success) {
+				await fetchDocumentRequests();
+				toastStore.success('Document request cancelled successfully');
+			} else {
+				console.error('Failed to cancel request:', response.error);
+				toastStore.error(response.error || 'Failed to cancel request');
+			}
+		} catch (err) {
+			console.error('Error cancelling request:', err);
+			toastStore.error('Failed to cancel request');
+		}
 	}
 </script>
 
-<div class="document-request-container" on:click={handleClickOutside} on:keydown={handleClickOutside} role="button" tabindex="0">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="document-request-container" on:click={handleClickOutside} on:keydown={handleClickOutside}>
 	<!-- Header Section -->
 	<div class="document-header">
 		<div class="header-content">
@@ -370,6 +399,12 @@
 	<div class="request-history-section">
 		<h2 class="section-title">Request History</h2>
 		
+		{#if error}
+			<div class="error-message" style="padding: 20px; background: #fee; border-radius: 8px; color: #c33; margin: 20px 0;">
+				<strong>Error:</strong> {error}
+			</div>
+		{/if}
+		
 		{#if loading}
 			<div class="loading-message">
 				<div class="system-loader"></div>
@@ -384,6 +419,8 @@
 		{:else}
 			<div class="request-history-grid">
 				{#each requestHistory as request, index (request.id)}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div class="request-card {request.status}" style="--card-index: {index + 1};" on:click={() => openRequestModal(request)}>
 						<div class="request-main-content">
 							<div class="request-status-icon">
@@ -397,11 +434,7 @@
 										<p class="request-date">Requested on {request.requestedDate}</p>
 									</div>
 									<div class="student-status-badge status-{request.status}">
-										{request.status === 'completed' ? 'Completed' : 
-										 request.status === 'processing' ? 'Processing' : 
-										 request.status === 'pending' ? 'Pending' : 
-										 request.status === 'rejected' ? 'Rejected' : 
-										 request.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
+										{getStatusDisplayName(request.status)}
 									</div>
 								</div>
 								<p class="request-description">{request.purpose}</p>
@@ -409,38 +442,41 @@
 						</div>
 						
 						<!-- Status Footer with colored background -->
-						{#if request.status === 'completed'}
+						{#if request.status === 'released' || request.status === 'for_pickup'}
 							<div class="request-footer completed-footer">
 								<span class="footer-info">
-									Completed on {request.completedDate}{request.completedByAdmin ? ` by ${request.completedByAdmin}` : ''}
+									{request.status === 'released' ? 'Released' : 'Ready for pick up'}{request.processedBy ? ` by ${request.processedBy}` : ''}
 								</span>
 							</div>
-						{:else if request.status === 'processing'}
+						{:else if request.status === 'processing' || request.status === 'verifying'}
 							<div class="request-footer processing-footer">
 								<span class="footer-info">
 									{#if request.adminNote}
-										Note{request.adminName ? ` by ${request.adminName}` : ''}: {request.adminNote}
+										Note{request.processedBy ? ` by ${request.processedBy}` : ''}: {request.adminNote}
 									{:else}
-										{request.adminName ? `Being processed by ${request.adminName}` : 'Processing your request'}
+										{request.processedBy ? `Being ${request.status === 'verifying' ? 'verified' : 'processed'} by ${request.processedBy}` : `${request.status === 'verifying' ? 'Verifying' : 'Processing'} your request`}
+									{/if}
+									{#if request.tentativeDate && request.status === 'processing'}
+										<span> • Tentative: {request.tentativeDate}</span>
 									{/if}
 								</span>
 							</div>
-						{:else if request.status === 'pending'}
+						{:else if request.status === 'on_hold'}
 							<div class="request-footer pending-footer">
 								<span class="footer-info">Awaiting review</span>
-								<button class="cancel-request-button" on:click|stopPropagation={() => handleCancelRequest(request.id)}>
+								<button class="cancel-request-button" on:click|stopPropagation={() => handleCancelRequest(request)}>
 									<span class="material-symbols-outlined">close</span>
 									Cancel
 								</button>
 							</div>
 						{:else if request.status === 'cancelled'}
 							<div class="request-footer cancelled-footer">
-								<span class="footer-info">Cancelled on {request.cancelledDate}</span>
+								<span class="footer-info">Cancelled on {request.cancelledDate || formatDate(request.submittedDate)}</span>
 							</div>
 						{:else if request.status === 'rejected'}
 							<div class="request-footer rejected-footer">
 								<span class="footer-info">
-									Reason{request.adminName ? ` by ${request.adminName}` : ''}: {request.rejectionReason}
+									Rejected{request.processedBy ? ` by ${request.processedBy}` : ''}{request.rejectionReason ? `: ${request.rejectionReason}` : ''}
 								</span>
 							</div>
 						{/if}
@@ -450,126 +486,3 @@
 		{/if}
 	</div>
 </div>
-
-<!-- Details Modal -->
-{#if isModalOpen && selectedRequest}
-	<div class="modal-overlay" on:click={closeRequestModal}>
-		<div class="details-modal" on:click|stopPropagation>
-			<header class="modal-header">
-				<h2>Request Details</h2>
-				<button class="modal-close" aria-label="Close" on:click={closeRequestModal}>✕</button>
-			</header>
-
-			<div class="modal-body">
-				<div class="request-id">ID: {selectedRequest.id ?? '—'}</div>
-
-				<div class="details-grid">
-					<!-- Document Type -->
-					<div class="info-box">
-						<div class="info-title"><span class="material-symbols-outlined">description</span> Document Type</div>
-						<div class="info-value">{selectedRequest.type}</div>
-					</div>
-
-					<!-- Status (clickable) -->
-					<div class="info-box status-clickable" on:click={openProcessFlowModal} role="button" tabindex="0">
-						<div class="info-title">
-							<span class="material-symbols-outlined">info</span>
-							Status
-						</div>
-						<div class="info-value status-row">
-							<span class="status-badge status-{selectedRequest.status}">
-								{selectedRequest.status === 'completed' ? 'Released' : 
-								 selectedRequest.status === 'processing' ? 'Verifying' : 
-								 selectedRequest.status === 'pending' ? 'On Hold' : 
-								 selectedRequest.status === 'for_processing' ? 'For Processing' :
-								 selectedRequest.status === 'for_pickup' ? 'For Pick Up' :
-								 selectedRequest.status === 'rejected' ? 'Rejected' : 
-								 selectedRequest.status === 'cancelled' ? 'Cancelled' : 'Unknown'}
-							</span>
-						</div>
-					</div>
-
-					<!-- Tentative Date -->
-					<div class="info-box">
-						<div class="info-title"><span class="material-symbols-outlined">calendar_today</span> Tentative Date</div>
-						<div class="info-value small-input">{selectedRequest.tentativeDate ?? 'N/A'}</div>
-					</div>
-
-					<!-- Payment -->
-					<div class="info-box">
-						<div class="info-title"><span class="material-symbols-outlined">payments</span> Payment</div>
-						<div class="payment-row">
-							<div class="payment-amount">₱{selectedRequest.paymentAmount ?? 120}</div>
-							<div class="payment-status">
-								<span class="pill payment-pill {selectedRequest.paymentStatus === 'paid' ? 'paid' : 'pending'}">
-									{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-								</span>
-								<button class="pay-button" on:click={handlePay} disabled={selectedRequest.paymentStatus === 'paid' || payProcessing}>
-									{#if payProcessing}Processing...{:else}Pay{/if}
-								</button>
-							</div>
-						</div>
-					</div>
-
-					<!-- Processed By -->
-					<div class="info-box wide">
-						<div class="info-title"><span class="material-symbols-outlined">person</span> Processed By</div>
-						<div class="info-value">{selectedRequest.processedBy ? selectedRequest.processedBy : '—'}</div>
-					</div>
-				</div>
-
-				<!-- Purpose & details (font aligned to system fonts) -->
-				<div class="purpose-section">
-					<label class="purpose-label">Purpose & Details</label>
-					<textarea readonly class="purpose-text purpose-text-aligned">{selectedRequest.purpose}</textarea>
-				</div>
-
-				<!-- Chat -->
-				<div class="chat-section">
-					<h3>Chat</h3>
-					<div class="messages">
-						{#if selectedRequest.messages && selectedRequest.messages.length}
-							{#each selectedRequest.messages as msg}
-								<div class="chat-message {msg.author === $authStore.userData?.name ? 'mine' : 'other'}">
-									<div class="msg-author">{msg.author}</div>
-									<div class="msg-text">{msg.text}</div>
-									<div class="msg-time">{new Date(msg.created_at).toLocaleString()}</div>
-								</div>
-							{/each}
-						{:else}
-							<div class="no-chat">No messages yet</div>
-						{/if}
-					</div>
-
-					<div class="chat-input-row">
-						<button class="attach" title="Attach">📎</button>
-						<input class="chat-input" placeholder="Type your message" bind:value={newMessage} on:keydown={(e) => e.key === 'Enter' && sendMessage()} />
-						<button class="send" on:click={sendMessage} aria-label="Send">➤</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Process Status Flow Modal -->
-{#if isProcessFlowOpen}
-	<div class="modal-overlay" on:click={closeProcessFlowModal}>
-		<div class="process-flow-modal" on:click|stopPropagation>
-			<header class="modal-header">
-				<h2>Process Status Flow</h2>
-				<button class="modal-close" aria-label="Close" on:click={closeProcessFlowModal}>✕</button>
-			</header>
-			<div class="modal-body">
-				<ul class="process-flow-list">
-					<li><span class="swatch yellow"></span><strong>On Hold</strong> - The document is on hold. Wait for the admin to take further action.</li>
-					<li><span class="swatch blue"></span><strong>Verifying</strong> - The document request is currently being verified.</li>
-					<li><span class="swatch orange"></span><strong>For Processing</strong> - The document is in the processing stage.</li>
-					<li><span class="swatch cyan"></span><strong>For Pick Up</strong> - The document is ready and available for pick up.</li>
-					<li><span class="swatch green"></span><strong>Released</strong> - The document has been released to the requester.</li>
-					<li><span class="swatch red"></span><strong>Rejected</strong> - The document request has been rejected. Please check for any issues or contact the admin for more information.</li>
-				</ul>
-			</div>
-		</div>
-	</div>
-{/if}

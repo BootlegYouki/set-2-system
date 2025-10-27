@@ -1,0 +1,1297 @@
+<script>
+	import { authStore } from '../../../../../login/js/auth.js';
+	import { api } from '../../../../../../routes/api/helper/api-helper.js';
+
+	// Props passed from modal store
+	let {
+		request = {},
+		onCancel = () => {},
+		onRefresh = () => {},
+		onClose = () => {}
+	} = $props();
+
+	// Local state for the modal
+	let selectedRequest = $state({ ...request });
+	let newMessage = $state('');
+	let isProcessFlowOpen = $state(false);
+	let isSendingMessage = $state(false);
+	let chatMessagesEl;
+	let pollingInterval;
+
+	// Get messages from the request
+	let messages = $derived(selectedRequest.messages || []);
+
+	// Scroll to bottom of chat
+	function scrollToBottom() {
+		if (chatMessagesEl) {
+			setTimeout(() => {
+				chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+			}, 100);
+		}
+	}
+
+	// Get status display name
+	function getStatusDisplayName(status) {
+		const statusNames = {
+			'on_hold': 'On Hold',
+			'verifying': 'Verifying',
+			'processing': 'For Processing',
+			'for_pickup': 'For Pick Up',
+			'released': 'Released',
+			'rejected': 'Rejected',
+			'cancelled': 'Cancelled'
+		};
+		return statusNames[status] || status;
+	}
+
+	// Format date helper
+	function formatDate(dateString) {
+		if (!dateString) return 'N/A';
+		const date = new Date(dateString);
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		const year = date.getFullYear();
+		return `${month}/${day}/${year}`;
+	}
+
+	// Open process status flow modal
+	function openProcessFlowModal() {
+		isProcessFlowOpen = true;
+	}
+
+	function closeProcessFlowModal() {
+		isProcessFlowOpen = false;
+	}
+
+	// Send a new message
+	async function sendMessage() {
+		if (!newMessage.trim() || isSendingMessage || !selectedRequest) return;
+
+		isSendingMessage = true;
+		try {
+			const result = await api.post('/api/document-requests', {
+				action: 'sendMessage',
+				requestId: selectedRequest.requestId,
+				message: newMessage.trim()
+			});
+
+			if (result.success) {
+				// Add the new message to the local state
+				selectedRequest.messages = [...(selectedRequest.messages || []), result.data];
+				newMessage = '';
+				scrollToBottom();
+			} else {
+				console.error('Failed to send message:', result.error);
+				alert('Failed to send message. Please try again.');
+			}
+		} catch (error) {
+			console.error('Error sending message:', error);
+			alert('An error occurred while sending the message.');
+		} finally {
+			isSendingMessage = false;
+		}
+	}
+
+	// Handle cancel request
+	async function handleCancelRequest() {
+		if (onCancel) {
+			await onCancel(selectedRequest);
+		}
+		onClose();
+	}
+
+	// Fetch latest messages from server
+	async function fetchLatestMessages() {
+		if (!selectedRequest || isSendingMessage) return;
+
+		try {
+			const result = await api.get(`/api/document-requests?action=single&requestId=${selectedRequest.requestId}`);
+			
+			if (result.success && result.data.messages) {
+				const currentMessageIds = new Set(messages.map(m => m.id));
+				const newMessages = result.data.messages.filter(m => !currentMessageIds.has(m.id));
+				
+				// Only update if there are new messages
+				if (newMessages.length > 0) {
+					selectedRequest.messages = result.data.messages;
+					scrollToBottom();
+				}
+			}
+		} catch (error) {
+			console.error('Error fetching latest messages:', error);
+		}
+	}
+
+	// Handle visibility change - pause polling when tab is not visible
+	function handleVisibilityChange() {
+		if (document.hidden) {
+			// Tab is hidden, clear the interval
+			if (pollingInterval) {
+				clearInterval(pollingInterval);
+				pollingInterval = null;
+			}
+		} else {
+			// Tab is visible again, restart polling if not already running
+			if (!pollingInterval) {
+				// Fetch immediately when tab becomes visible
+				fetchLatestMessages();
+				pollingInterval = setInterval(fetchLatestMessages, 8000);
+			}
+		}
+	}
+
+	// Start polling when component mounts
+	$effect(() => {
+		// Poll every 8 seconds for new messages (reduced from 3s to reduce server load)
+		pollingInterval = setInterval(fetchLatestMessages, 8000);
+		
+		// Listen for visibility changes to pause polling when tab is hidden
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		
+		// Scroll to bottom when messages change
+		scrollToBottom();
+
+		// Cleanup on unmount
+		return () => {
+			if (pollingInterval) {
+				clearInterval(pollingInterval);
+			}
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	});
+</script>
+
+<div class="student-docreq-modal-content">
+	<div class="student-docreq-modal-grid">
+		<!-- LEFT CONTAINER: Request Information -->
+		<div class="student-docreq-modal-left-container">
+			<header class="student-docreq-modal-title">
+				<h2>Request Details</h2>
+				<div class="student-docreq-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
+			</header>
+
+			{#if selectedRequest.status === 'cancelled'}
+			<div class="cancelled-notice">
+				<span class="material-symbols-outlined">info</span>
+				<div class="cancelled-notice-content">
+					<strong>Request Cancelled</strong>
+					<p>This request was cancelled{selectedRequest.cancelledDate ? ` on ${selectedRequest.cancelledDate}` : ''}. No further actions can be taken.</p>
+				</div>
+			</div>
+			{/if}
+
+			{#if selectedRequest.status === 'rejected'}
+			<div class="rejected-notice">
+				<span class="material-symbols-outlined">cancel</span>
+				<div class="rejected-notice-content">
+					<strong>Request Rejected</strong>
+					<p>{selectedRequest.rejectionReason || 'Your request was rejected. Please contact the admin for more information.'}</p>
+				</div>
+			</div>
+			{/if}
+
+			<!-- Request Info Cards -->
+			<div class="student-docreq-cards">
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">description</span> Document Type
+					</div>
+					<div class="card-value">{selectedRequest.type}</div>
+				</div>
+
+				<!-- Status card (read-only, clickable for info) -->
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">info</span> Status
+					</div>
+					<div class="card-value">
+						<div
+							class="status-display-wrapper"
+							onclick={openProcessFlowModal}
+							onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && openProcessFlowModal()}
+							role="button"
+							tabindex="0"
+							title="Click to view status flow information"
+						>
+							<span class="status-badge status-{selectedRequest.status}">
+								{getStatusDisplayName(selectedRequest.status)}
+							</span>
+							<span class="material-symbols-outlined doc-request-info-icon">help</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Tentative Date card (read-only) -->
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">event</span> Tentative Date
+					</div>
+					<div class="card-value">
+						<div class="date-display">
+							{selectedRequest.tentativeDate ? formatDate(selectedRequest.tentativeDate) : 'N/A'}
+						</div>
+					</div>
+				</div>
+
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">payments</span> Payment
+					</div>
+					<div class="card-value payment-value">
+						<span class="payment-amount">₱{selectedRequest.paymentAmount ?? 120}</span>
+						<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
+							{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+						</span>
+					</div>
+				</div>
+
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">account_circle</span> Processed By
+					</div>
+					<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
+				</div>
+
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">calendar_today</span> Requested Date
+					</div>
+					<div class="card-value">{selectedRequest.requestedDate ?? '—'}</div>
+				</div>
+
+				{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">event_busy</span> Cancelled Date
+					</div>
+					<div class="card-value">{selectedRequest.cancelledDate}</div>
+				</div>
+				{/if}
+
+				{#if selectedRequest.status === 'released' && selectedRequest.completedDate}
+				<div class="student-docreq-card">
+					<div class="card-label">
+						<span class="material-symbols-outlined">check_circle</span> Released Date
+					</div>
+					<div class="card-value">{selectedRequest.completedDate}</div>
+				</div>
+				{/if}
+			</div>
+
+			<!-- Purpose Section -->
+			<div class="student-docreq-purpose">
+				<div class="purpose-label">Purpose & Details</div>
+				<p class="purpose-text">{selectedRequest.purpose ?? '—'}</p>
+			</div>
+
+			{#if selectedRequest.adminNote}
+			<!-- Admin Note Section -->
+			<div class="admin-note-section">
+				<div class="note-label">
+					<span class="material-symbols-outlined">note</span> Admin Note
+				</div>
+				<p class="note-text">{selectedRequest.adminNote}</p>
+			</div>
+			{/if}
+		</div>
+
+		<!-- RIGHT CONTAINER: Chat and Actions -->
+		<div class="student-docreq-modal-right-container">
+			<div class="chat-container">
+				<div class="chat-header">
+					<h3><span class="material-symbols-outlined">forum</span> Communication</h3>
+					<span class="chat-count-badge">{messages.length}</span>
+				</div>
+
+				<div class="student-chat-messages" bind:this={chatMessagesEl}>
+					{#if messages.length > 0}
+						{#each messages as msg (msg.id)}
+							<div class="chat-message {msg.authorRole || 'student'}">
+								<div class="chat-message-header">
+									<div class="chat-author-info">
+										<span class="material-symbols-outlined chat-avatar-icon">
+											{msg.authorRole === 'admin' ? 'admin_panel_settings' : 'account_circle'}
+										</span>
+										<div class="chat-author-details">
+											<span class="chat-author">{msg.author}</span>
+											<span class="chat-role-badge">{msg.authorRole || 'student'}</span>
+										</div>
+									</div>
+									<div class="chat-time">
+										<span class="material-symbols-outlined time-icon">schedule</span>
+										{new Date(msg.created_at).toLocaleString()}
+									</div>
+								</div>
+								<div class="chat-text">{msg.text}</div>
+							</div>
+						{/each}
+					{:else}
+						<div class="no-chat">
+							<span class="material-symbols-outlined">chat_bubble_outline</span>
+							<p>No messages yet</p>
+							<p class="subtitle">Start a conversation with the admin</p>
+						</div>
+					{/if}
+				</div>
+
+				<div class="student-chat-input">
+					<button class="attach-btn" title="Attach file" aria-label="Attach file">
+						<span class="material-symbols-outlined">attach_file</span>
+					</button>
+					<input 
+						placeholder="Type your message..." 
+						aria-label="Message input" 
+						bind:value={newMessage}
+						onkeydown={(e) => e.key === 'Enter' && !isSendingMessage && sendMessage()}
+						disabled={isSendingMessage}
+					/>
+					<button 
+						class="send-btn" 
+						title="Send message" 
+						aria-label="Send message" 
+						onclick={sendMessage}
+						disabled={isSendingMessage || !newMessage.trim()}
+					>
+						<span class="material-symbols-outlined">send</span>
+					</button>
+				</div>
+			</div>
+
+		<!-- Action Buttons -->
+		<div class="action-buttons">
+			{#if selectedRequest.status === 'on_hold'}
+				<button 
+					class="student-cancel-button" 
+					onclick={handleCancelRequest}
+				>
+					<span class="material-symbols-outlined">cancel</span>
+					Cancel Request
+				</button>
+				{/if}
+
+				<button class="student-back-button" onclick={onClose}>
+					<span class="material-symbols-outlined">arrow_back</span>
+					Back
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Process Status Flow Modal -->
+{#if isProcessFlowOpen}
+	<div 
+		class="flow-backdrop" 
+		onclick={closeProcessFlowModal}
+		onkeydown={(e) => e.key === 'Enter' && closeProcessFlowModal()}
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+	>
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div 
+			class="flow-container" 
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+			role="document"
+		>
+			<div class="flow-header">
+				<h2>Process Status Flow</h2>
+				<button class="flow-close-btn" aria-label="Close" onclick={closeProcessFlowModal}>
+					<span class="material-symbols-outlined">close</span>
+				</button>
+			</div>
+
+			<div class="flow-body">
+				<div class="flow-list">
+					<!-- On Hold -->
+					<div class="flow-item">
+						<div class="flow-icon-wrapper on_hold">
+							<span class="material-symbols-outlined">pause_circle</span>
+						</div>
+						<div class="flow-content">
+							<h3>On Hold</h3>
+							<p>Your request is awaiting review by the admin.</p>
+						</div>
+					</div>
+
+					<!-- Verifying -->
+					<div class="flow-item">
+						<div class="flow-icon-wrapper verifying">
+							<span class="material-symbols-outlined">fact_check</span>
+						</div>
+						<div class="flow-content">
+							<h3>Verifying</h3>
+							<p>The document request is currently being verified.</p>
+						</div>
+					</div>
+
+					<!-- Processing -->
+					<div class="flow-item">
+						<div class="flow-icon-wrapper processing">
+							<span class="material-symbols-outlined">sync</span>
+						</div>
+						<div class="flow-content">
+							<h3>For Processing</h3>
+							<p>The document is in the processing stage.</p>
+						</div>
+					</div>
+
+					<!-- For Pick Up -->
+					<div class="flow-item">
+						<div class="flow-icon-wrapper for_pickup">
+							<span class="material-symbols-outlined">inventory</span>
+						</div>
+						<div class="flow-content">
+							<h3>For Pick Up</h3>
+							<p>The document is ready and available for pick up.</p>
+						</div>
+					</div>
+
+					<!-- Released -->
+					<div class="flow-item">
+						<div class="flow-icon-wrapper released">
+							<span class="material-symbols-outlined">check_circle</span>
+						</div>
+						<div class="flow-content">
+							<h3>Released</h3>
+							<p>The document has been released to you.</p>
+						</div>
+					</div>
+
+					<!-- Rejected -->
+					<div class="flow-item">
+						<div class="flow-icon-wrapper rejected">
+							<span class="material-symbols-outlined">cancel</span>
+						</div>
+						<div class="flow-content">
+							<h3>Rejected</h3>
+							<p>The request was rejected. Check the rejection reason or contact admin.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	.student-docreq-modal-content {
+		width: 100%;
+		max-width: 1400px;
+		background-color: var(--md-sys-color-surface-container-high);
+		border-radius: var(--radius-xl);
+		border: none;
+		box-shadow: var(--shadow-lg);
+		position: relative;
+		max-height: 90vh;
+		height: 90vh;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.student-docreq-modal-grid {
+		display: grid;
+		grid-template-columns: 1.2fr 1fr;
+		gap: var(--spacing-xl);
+		align-items: stretch;
+		padding: var(--spacing-xl);
+		overflow-y: auto;
+		flex: 1;
+	}
+
+	.student-docreq-modal-left-container {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+		background-color: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-lg);
+		padding: var(--spacing-lg);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		height: 100%;
+	}
+
+	.student-docreq-modal-right-container {
+		display: flex;
+		flex-direction: column;
+		background-color: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-lg);
+		padding: var(--spacing-lg);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		height: 100%;
+	}
+
+	.student-docreq-modal-title h2 {
+		margin: 0 0 6px 0;
+		font-size: 1.5rem;
+		font-weight: 600;
+	}
+
+	.student-docreq-modal-sub {
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.875rem;
+		margin-top: 6px;
+	}
+
+	.cancelled-notice, .rejected-notice {
+		display: flex;
+		gap: var(--spacing-md);
+		padding: var(--spacing-md);
+		border-radius: var(--radius-md);
+		margin: var(--spacing-md) 0;
+		align-items: flex-start;
+	}
+
+	.cancelled-notice {
+		background-color: var(--status-cancelled-bg-light);
+		border: 1px solid var(--status-cancelled-border);
+	}
+
+	.rejected-notice {
+		background-color: var(--status-rejected-bg-light);
+		border: 1px solid var(--status-rejected-border);
+	}
+
+	.cancelled-notice .material-symbols-outlined {
+		color: var(--status-cancelled-text);
+		font-size: 24px;
+		flex-shrink: 0;
+	}
+
+	.rejected-notice .material-symbols-outlined {
+		color: var(--status-rejected-text);
+		font-size: 24px;
+		flex-shrink: 0;
+	}
+
+	.cancelled-notice-content, .rejected-notice-content {
+		flex: 1;
+	}
+
+	.cancelled-notice-content strong {
+		display: block;
+		color: var(--status-cancelled-text);
+		font-size: 0.95rem;
+		margin-bottom: 4px;
+	}
+
+	.rejected-notice-content strong {
+		display: block;
+		color: var(--status-rejected-text);
+		font-size: 0.95rem;
+		margin-bottom: 4px;
+	}
+
+	.cancelled-notice-content p, .rejected-notice-content p {
+		margin: 0;
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.875rem;
+		line-height: 1.4;
+	}
+
+	.student-docreq-cards {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--spacing-md);
+	}
+
+	.student-docreq-card {
+		background-color: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.card-label {
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.875rem;
+		display: flex;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.card-value {
+		margin-top: 8px;
+		font-weight: 600;
+		font-size: 1rem;
+	}
+
+	.payment-value {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.payment-amount {
+		font-size: 1.1rem;
+	}
+
+	.status-display-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		cursor: pointer;
+		padding: 4px;
+		border-radius: var(--radius-sm);
+		transition: background-color var(--transition-fast);
+	}
+
+	.doc-request-info-icon {
+		font-size: 28px;
+		color: var(--md-sys-color-on-surface-variant);
+		opacity: 0.7;
+	}
+
+	.status-badge {
+		display: inline-block;
+		padding: 6px 12px;
+		border-radius: 16px;
+		font-size: 0.875rem;
+		font-weight: 600;
+		text-transform: capitalize;
+	}
+
+	.status-badge.on_hold {
+		background: var(--status-on-hold-bg);
+		color: var(--status-on-hold-text);
+	}
+
+	.status-badge.verifying {
+		background: var(--status-verifying-bg);
+		color: var(--status-verifying-text);
+	}
+
+	.status-badge.processing {
+		background: var(--status-processing-bg);
+		color: var(--status-processing-text);
+	}
+
+	.status-badge.for_pickup {
+		background: var(--status-for-pickup-bg);
+		color: var(--status-for-pickup-text);
+	}
+
+	.status-badge.released {
+		background: var(--status-released-bg);
+		color: var(--status-released-text);
+	}
+
+	.status-badge.rejected {
+		background: var(--status-rejected-bg);
+		color: var(--status-rejected-text);
+	}
+
+	.status-badge.cancelled {
+		background: var(--status-cancelled-bg);
+		color: var(--status-cancelled-text);
+	}
+
+	.date-display {
+		padding: 8px 12px;
+		border-radius: 8px;
+		background: var(--md-sys-color-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		display: inline-block;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.student-docreq-purpose {
+		margin-top: var(--spacing-sm);
+    height: 100%;
+	}
+
+	.purpose-label {
+		display: block;
+		color: var(--md-sys-color-on-surface-variant);
+		margin-bottom: 6px;
+		font-weight: 500;
+		font-size: 0.875rem;
+	}
+
+	.purpose-text {
+		background: var(--md-sys-color-surface);
+		padding: 12px;
+		border-radius: var(--radius-md);
+		border: 1px dashed var(--md-sys-color-outline-variant);
+		margin: 0;
+		line-height: 1.6;
+    height: 85%;
+	}
+
+	.admin-note-section {
+		margin-top: var(--spacing-sm);
+		padding: var(--spacing-md);
+		background-color: var(--md-sys-color-tertiary-container);
+		border-radius: var(--radius-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.note-label {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		color: var(--md-sys-color-on-tertiary-container);
+		font-weight: 600;
+		margin-bottom: 8px;
+		font-size: 0.875rem;
+	}
+
+	.note-text {
+		background: var(--md-sys-color-surface);
+		padding: 12px;
+		border-radius: var(--radius-md);
+		margin: 0;
+		line-height: 1.6;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	/* Chat Container */
+	.chat-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.chat-header {
+		padding-bottom: var(--spacing-md);
+		border-bottom: 1px solid var(--md-sys-color-outline-variant);
+		margin-bottom: var(--spacing-md);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.chat-header h3 {
+		margin: 0;
+		font-size: 1.125rem;
+		font-weight: 600;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.chat-header .material-symbols-outlined {
+		font-size: 24px;
+	}
+
+	.chat-count-badge {
+		background: var(--md-sys-color-primary-container);
+		color: var(--md-sys-color-on-primary-container);
+		padding: 4px 12px;
+		border-radius: 12px;
+		font-size: 0.875rem;
+		font-weight: 600;
+	}
+
+	.student-chat-messages {
+		flex: 1;
+		background: var(--md-sys-color-surface);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		overflow-y: auto;
+		margin-bottom: var(--spacing-sm);
+		max-height: 400px;
+	}
+
+	.chat-message {
+		background: var(--md-sys-color-surface-container);
+		margin-bottom: var(--spacing-md);
+		padding: var(--spacing-md);
+		border-radius: var(--radius-md);
+		border-left: 3px solid var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-surface);
+		transition: all var(--transition-fast);
+	}
+
+	.chat-message:hover {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		border-left-color: var(--md-sys-color-primary);
+	}
+
+	.chat-message.admin {
+		border-left-color: var(--md-sys-color-tertiary);
+	}
+
+	.chat-message.admin:hover {
+		border-left-color: var(--md-sys-color-tertiary);
+	}
+
+	.chat-message:last-child {
+		margin-bottom: 0;
+	}
+
+	.chat-message-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: var(--spacing-sm);
+		gap: var(--spacing-sm);
+	}
+
+	.chat-author-info {
+		display: flex;
+		gap: var(--spacing-sm);
+		align-items: center;
+		flex: 1;
+	}
+
+	.chat-avatar-icon {
+		color: var(--md-sys-color-primary);
+		font-size: 32px;
+		background: var(--md-sys-color-primary-container);
+		padding: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.chat-message.admin .chat-avatar-icon {
+		color: var(--md-sys-color-tertiary);
+		background: var(--md-sys-color-tertiary-container);
+	}
+
+	.chat-author-details {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.chat-author {
+		color: var(--md-sys-color-on-surface);
+		font-weight: 600;
+		font-size: 0.95rem;
+	}
+
+	.chat-role-badge {
+		display: inline-block;
+		background: var(--md-sys-color-secondary-container);
+		color: var(--md-sys-color-on-secondary-container);
+		padding: 2px 8px;
+		border-radius: 6px;
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		width: fit-content;
+	}
+
+	.chat-text {
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.6;
+		font-size: 0.95rem;
+		padding-left: 48px;
+	}
+
+	.chat-time {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.75rem;
+		white-space: nowrap;
+		opacity: 0.8;
+	}
+
+	.time-icon {
+		font-size: 16px;
+	}
+
+	.no-chat {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: var(--spacing-xl);
+		color: var(--md-sys-color-on-surface-variant);
+		text-align: center;
+		min-height: 200px;
+	}
+
+	.no-chat .material-symbols-outlined {
+		font-size: 48px;
+		opacity: 0.5;
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.no-chat p {
+		margin: 4px 0;
+	}
+
+	.no-chat .subtitle {
+		font-size: 0.875rem;
+		opacity: 0.7;
+	}
+
+	.student-chat-input {
+		display: flex;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-md);
+		background: var(--md-sys-color-surface);
+		border-radius: var(--radius-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		align-items: center;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	}
+
+	.student-chat-input input {
+		flex: 1;
+		padding: 12px var(--spacing-md);
+		border-radius: var(--radius-md);
+		background: var(--md-sys-color-surface-container);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.95rem;
+		transition: all var(--transition-fast);
+	}
+
+	.student-chat-input input:focus {
+		outline: none;
+		border-color: var(--md-sys-color-primary);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+		background: var(--md-sys-color-surface);
+	}
+
+	.student-chat-input input::placeholder {
+		color: var(--md-sys-color-on-surface-variant);
+		opacity: 0.7;
+	}
+
+	.attach-btn,
+	.send-btn {
+		background: var(--md-sys-color-surface-container);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		padding: 10px;
+		border-radius: var(--radius-md);
+		color: var(--md-sys-color-on-surface);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	.attach-btn .material-symbols-outlined,
+	.send-btn .material-symbols-outlined {
+		font-size: 22px;
+	}
+
+	.attach-btn:hover {
+		background: var(--md-sys-color-secondary-container);
+		border-color: var(--md-sys-color-secondary);
+		color: var(--md-sys-color-on-secondary-container);
+		transform: scale(1.05);
+	}
+
+	.send-btn {
+		background: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+		border-color: var(--md-sys-color-primary);
+	}
+
+	.send-btn:hover:not(:disabled) {
+		background: var(--md-sys-color-primary);
+		opacity: 0.9;
+		transform: scale(1.05);
+		box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+	}
+
+	.send-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.attach-btn:active,
+	.send-btn:active {
+		transform: scale(0.95);
+	}
+
+	.attach-btn:focus-visible,
+	.send-btn:focus-visible {
+		outline: 2px solid var(--md-sys-color-primary);
+		outline-offset: 2px;
+	}
+
+	.action-buttons {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		margin-top: var(--spacing-lg);
+		padding-top: var(--spacing-lg);
+		border-top: 2px solid var(--md-sys-color-outline-variant);
+	}
+
+	.student-cancel-button {
+		width: 100%;
+		padding: 14px var(--spacing-md);
+		border-radius: var(--radius-md);
+		background: var(--md-sys-color-error);
+		color: var(--md-sys-color-on-error);
+		border: none;
+		cursor: pointer;
+		font-weight: 600;
+		font-size: 1rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		transition: all var(--transition-normal);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.student-cancel-button .material-symbols-outlined {
+		font-size: 22px;
+	}
+
+	.student-cancel-button:hover {
+		background: var(--md-sys-color-error);
+		opacity: 0.9;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+		transform: translateY(-1px);
+	}
+
+	.student-cancel-button:active {
+		transform: translateY(0);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.student-back-button {
+		width: 100%;
+		padding: 14px var(--spacing-md);
+		border-radius: var(--radius-md);
+		background: var(--md-sys-color-surface-container-highest);
+		color: var(--md-sys-color-on-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		cursor: pointer;
+		font-weight: 600;
+		font-size: 1rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		transition: all var(--transition-normal);
+	}
+
+	.student-back-button .material-symbols-outlined {
+		font-size: 22px;
+	}
+
+	.student-back-button:hover {
+		background-color: var(--md-sys-color-surface-container-highest);
+		border-color: var(--md-sys-color-outline);
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+		transform: translateY(-1px);
+	}
+
+	.student-back-button:active {
+		transform: translateY(0);
+		box-shadow: none;
+	}
+
+	.badge {
+		background: var(--md-sys-color-surface-container);
+		padding: 6px 8px;
+		border-radius: 8px;
+		font-size: 0.875rem;
+		border: 1px solid var(--md-sys-color-outline-variant);
+		color: var(--md-sys-color-on-surface);
+		display: inline-block;
+	}
+
+	.badge.orange {
+		background: var(--status-pending-bg);
+		color: var(--status-pending-text);
+		border-color: var(--status-pending-border);
+	}
+
+	.badge.green {
+		background: var(--status-released-bg);
+		color: var(--status-released-text);
+		border-color: var(--status-released-border);
+	}
+
+	/* Process Flow Modal */
+	.flow-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 10002;
+		padding: var(--spacing-lg);
+	}
+
+	.flow-container {
+		width: 100%;
+		max-width: 600px;
+		max-height: 90vh;
+		background: var(--md-sys-color-surface-container-high);
+		border-radius: var(--radius-xl);
+		box-shadow: var(--shadow-xl);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.flow-header {
+		padding: var(--spacing-lg);
+		border-bottom: 1px solid var(--md-sys-color-outline-variant);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: var(--md-sys-color-surface-container);
+	}
+
+	.flow-header h2 {
+		margin: 0;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.flow-close-btn {
+		background: var(--md-sys-color-surface-container-highest);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		padding: 8px;
+		border-radius: 50%;
+		cursor: pointer;
+		color: var(--md-sys-color-on-surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all var(--transition-fast);
+		width: 36px;
+		height: 36px;
+	}
+
+	.flow-close-btn:hover {
+		background: var(--md-sys-color-surface-container-highest);
+		transform: scale(1.1);
+	}
+
+	.flow-close-btn:active {
+		transform: scale(0.95);
+	}
+
+	.flow-close-btn .material-symbols-outlined {
+		font-size: 20px;
+	}
+
+	.flow-body {
+		flex: 1;
+		overflow-y: auto;
+		padding: var(--spacing-lg);
+    background-color: var(--md-sys-color-surface-container);
+	}
+
+	.flow-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+	}
+
+	.flow-item {
+		display: flex;
+		gap: var(--spacing-md);
+		padding: var(--spacing-md);
+		background: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		align-items: flex-start;
+	}
+
+	.flow-icon-wrapper {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.flow-icon-wrapper .material-symbols-outlined {
+		font-size: 24px;
+	}
+
+	.flow-content {
+		flex: 1;
+	}
+
+	.flow-content h3 {
+		margin: 0 0 4px 0;
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.flow-content p {
+		margin: 0;
+		font-size: 0.875rem;
+		color: var(--md-sys-color-on-surface-variant);
+		line-height: 1.4;
+	}
+
+	/* Responsive */
+	@media (max-width: 1200px) {
+		.student-docreq-modal-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.student-docreq-modal-right-container {
+			min-height: 500px;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.student-docreq-modal-left-container,
+		.student-docreq-modal-right-container {
+			padding: var(--spacing-md);
+		}
+
+		.student-docreq-cards {
+			grid-template-columns: 1fr;
+		}
+
+		.student-docreq-modal-right-container {
+			min-height: 400px;
+		}
+
+		.chat-messages {
+			min-height: 200px;
+		}
+
+		.flow-backdrop {
+			padding: var(--spacing-md);
+		}
+
+		.flow-container {
+			max-width: 100%;
+		}
+
+		.flow-body {
+			padding: var(--spacing-md);
+		}
+
+		.flow-item {
+			padding: var(--spacing-sm) var(--spacing-md);
+		}
+
+		.flow-icon-wrapper {
+			width: 36px;
+			height: 36px;
+		}
+
+		.flow-icon-wrapper .material-symbols-outlined {
+			font-size: 20px;
+		}
+	}
+</style>
+

@@ -246,6 +246,11 @@
 	color: var(--status-completed-text);
 }
 
+.docreq-status-card.docreq-status-cancelled .docreq-status-icon {
+	background-color: var(--status-cancelled-bg);
+	color: var(--status-cancelled-text);
+}
+
 /* Status Card Border Designs */
 .docreq-status-card.docreq-status-onhold {
 	border: 1px solid var(--status-cancelled-border);
@@ -260,6 +265,11 @@
 .docreq-status-card.docreq-status-released {
 	border: 1px solid var(--status-completed-border);
 	background-color: var(--status-completed-bg-light);
+}
+
+.docreq-status-card.docreq-status-cancelled {
+	border: 1px solid var(--status-cancelled-border);
+	background-color: var(--status-cancelled-bg-light);
 }
 
 /* Filters Section */

@@ -6,8 +6,8 @@ import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/a
 // GET /api/document-requests - Fetch document requests
 export async function GET({ url, request }) {
 	try {
-		// Verify authentication (admin and teachers can view all requests)
-		const authResult = await verifyAuth(request, ['admin', 'teacher']);
+		// Verify authentication (students can view their own, admin/teachers can view all)
+		const authResult = await verifyAuth(request, ['admin', 'teacher', 'student']);
 		if (!authResult.success) {
 			return json({ error: authResult.error }, { status: 401 });
 		}
@@ -17,7 +17,11 @@ export async function GET({ url, request }) {
 
 		switch (action) {
 			case 'all':
-				// Get all document requests with optional filters
+				// Get all document requests with optional filters (admin/teacher only)
+				if (authResult.user.account_type !== 'admin' && authResult.user.account_type !== 'teacher') {
+					return json({ error: 'Access denied. Only admins and teachers can view all requests.' }, { status: 403 });
+				}
+
 				const status = url.searchParams.get('status');
 				const documentType = url.searchParams.get('documentType');
 				const gradeLevel = url.searchParams.get('gradeLevel');
@@ -63,6 +67,7 @@ export async function GET({ url, request }) {
 					documentType: req.document_type,
 					requestId: req.request_id,
 					submittedDate: formatDate(req.submitted_date),
+					cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
 					payment: `₱${req.payment_amount}`,
 					paymentStatus: req.payment_status,
 					status: req.status,
@@ -75,6 +80,31 @@ export async function GET({ url, request }) {
 				}));
 
 				return json({ success: true, data: formattedRequests });
+
+			case 'student':
+				// Get student's own document requests
+				const studentRequests = await db
+					.collection('document_requests')
+					.find({ student_id: authResult.user.id })
+					.sort({ submitted_date: -1 })
+					.toArray();
+
+				const formattedStudentRequests = studentRequests.map((req) => ({
+					id: req._id.toString(),
+					requestId: req.request_id,
+					documentType: req.document_type,
+					purpose: req.purpose,
+					status: req.status,
+					submittedDate: formatDate(req.submitted_date),
+					tentativeDate: req.tentative_date ? formatDate(req.tentative_date) : null,
+					payment: `₱${req.payment_amount}`,
+					paymentStatus: req.payment_status,
+					processedBy: req.processed_by,
+					isUrgent: req.is_urgent || false,
+					messages: req.messages || []
+				}));
+
+				return json({ success: true, data: formattedStudentRequests });
 
 			case 'stats':
 				// Get statistics for status cards
@@ -118,6 +148,15 @@ export async function GET({ url, request }) {
 					return json({ error: 'Request not found' }, { status: 404 });
 				}
 
+				// Ensure messages field exists (migration fix)
+				if (!request.messages) {
+					await db.collection('document_requests').updateOne(
+						{ request_id: requestId },
+						{ $set: { messages: [] } }
+					);
+					request.messages = [];
+				}
+
 				const formattedRequest = {
 					id: request._id.toString(),
 					studentId: request.account_number,
@@ -127,7 +166,9 @@ export async function GET({ url, request }) {
 					documentType: request.document_type,
 					requestId: request.request_id,
 					submittedDate: formatDate(request.submitted_date),
+					cancelledDate: request.cancelled_date ? formatDate(request.cancelled_date) : null,
 					payment: `₱${request.payment_amount}`,
+					paymentAmount: request.payment_amount,
 					paymentStatus: request.payment_status,
 					status: request.status,
 					tentativeDate: request.tentative_date ? formatDateForInput(request.tentative_date) : null,
@@ -135,7 +176,8 @@ export async function GET({ url, request }) {
 					purpose: request.purpose,
 					dateOfBirth: formatDateDisplay(request.birthdate),
 					processedBy: request.processed_by,
-					processedById: request.processed_by_id
+					processedById: request.processed_by_id,
+					messages: request.messages || []
 				};
 
 				return json({ success: true, data: formattedRequest });
@@ -228,6 +270,7 @@ export async function POST({ request }) {
 						purpose: data.purpose,
 						processed_by: null,
 						processed_by_id: null,
+						messages: [],
 						created_at: new Date(),
 						updated_at: new Date()
 					};
@@ -347,6 +390,119 @@ export async function POST({ request }) {
 				);
 
 				return json({ success: true, message: 'Request rejected successfully' });
+
+			case 'cancel':
+				// Students can cancel their own pending requests
+				const cancelRequestId = data.requestId;
+				if (!cancelRequestId) {
+					return json({ error: 'Request ID is required' }, { status: 400 });
+				}
+
+				// Find the request first to verify ownership
+				const requestToCancel = await db
+					.collection('document_requests')
+					.findOne({ request_id: cancelRequestId });
+
+				if (!requestToCancel) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
+				// Check if student owns this request
+				if (requestToCancel.student_id !== user.id) {
+					return json({ error: 'You can only cancel your own requests' }, { status: 403 });
+				}
+
+				// Check if request can be cancelled (only on_hold status)
+				if (requestToCancel.status !== 'on_hold') {
+					return json({ error: 'Only pending requests can be cancelled' }, { status: 400 });
+				}
+
+				const cancelResult = await db
+					.collection('document_requests')
+					.updateOne(
+						{ request_id: cancelRequestId },
+						{
+							$set: {
+								status: 'cancelled',
+								cancelled_date: new Date(),
+								updated_at: new Date()
+							}
+						}
+					);
+
+				if (cancelResult.matchedCount === 0) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
+				// Log activity
+				await logActivityWithUser(
+					'document_request_cancelled',
+					`Document request ${cancelRequestId} cancelled by student`,
+					user
+				);
+
+				return json({ success: true, message: 'Request cancelled successfully' });
+
+			case 'sendMessage':
+				// Both students and admins can send messages
+				const msgRequestId = data.requestId;
+				const messageText = data.message;
+
+				if (!msgRequestId || !messageText) {
+					return json({ error: 'Request ID and message are required' }, { status: 400 });
+				}
+
+				// Find the request
+				const targetRequest = await db
+					.collection('document_requests')
+					.findOne({ request_id: msgRequestId });
+
+				if (!targetRequest) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
+				// For students, verify they own the request
+				if (user.account_type === 'student' && targetRequest.student_id !== user.id) {
+					return json({ error: 'You can only send messages to your own requests' }, { status: 403 });
+				}
+
+				// Create the message object
+				const newMessage = {
+					id: new ObjectId().toString(),
+					author: user.name || user.full_name,
+					authorId: user.id,
+					authorRole: user.account_type,
+					text: messageText.trim(),
+					created_at: new Date()
+				};
+
+				// Add message to the document request
+				const messageResult = await db
+					.collection('document_requests')
+					.updateOne(
+						{ request_id: msgRequestId },
+						{
+							$push: { messages: newMessage },
+							$set: { updated_at: new Date() }
+						}
+					);
+
+				if (messageResult.matchedCount === 0) {
+					return json({ error: 'Failed to send message' }, { status: 500 });
+				}
+
+				// Log activity
+				await logActivityWithUser(
+					'document_request_message_sent',
+					`Message sent to document request ${msgRequestId}`,
+					user
+				);
+
+				return json({
+					success: true,
+					message: 'Message sent successfully',
+					data: newMessage
+				});
 
 			default:
 				return json({ error: 'Invalid action' }, { status: 400 });

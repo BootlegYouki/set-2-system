@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import './adminDocumentRequests.css';
 	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
-	import { modalStore } from '../../../../common/js/modalStore.js';
+	import { docReqModalStore } from './adminDocumentRequestModal/docReqModalStore.js';
 
 	// Dynamic data for document requests (fetched from API)
 	let documentRequests = [];
@@ -54,7 +54,8 @@
 		{ id: 'verifying', name: 'Verifying' },
 		{ id: 'processing', name: 'For Processing' },
 		{ id: 'for_pickup', name: 'For Pick Up' },
-		{ id: 'released', name: 'Released' }
+		{ id: 'released', name: 'Released' },
+		{ id: 'rejected', name: 'Rejected' }
 	];
 
 	// Computed properties for filtering (static for now)
@@ -124,20 +125,29 @@
 		}
 	}
 
-	// Open modal using modal store
-	function openModal(request) {
-		modalStore.open('DocumentRequestModal', {
-			title: 'Request Details',
-			request: { ...request },
-			requestStatuses: requestStatuses,
-			modalStatuses: modalStatuses,
-			onUpdate: updateRequestAPI,
-			onReject: rejectRequestAPI
-		}, {
-			size: 'large',
-			closable: true,
-			backdrop: true
-		});
+	// Open modal using document request modal store
+	async function openModal(request) {
+		try {
+			// Fetch the full request details including messages
+			const response = await authenticatedFetch(`/api/document-requests?action=single&requestId=${request.requestId}`);
+			const result = await response.json();
+
+			if (result.success) {
+				docReqModalStore.open(
+					result.data,
+					requestStatuses,
+					modalStatuses,
+					updateRequestAPI,
+					null
+				);
+			} else {
+				console.error('Failed to fetch request details:', result.error);
+				alert('Failed to load request details. Please try again.');
+			}
+		} catch (error) {
+			console.error('Error fetching request details:', error);
+			alert('An error occurred while loading the request details.');
+		}
 	}
 
 	// Fetch document requests from API
@@ -210,37 +220,6 @@
 		} catch (err) {
 			console.error('Error updating request:', err);
 			error = 'Failed to update request';
-			return false;
-		}
-	}
-
-	// Reject a document request
-	async function rejectRequestAPI(requestId) {
-		try {
-			const response = await authenticatedFetch('/api/document-requests', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					action: 'reject',
-					requestId
-				})
-			});
-
-			const result = await response.json();
-
-			if (result.success) {
-				// Refresh the list
-				await fetchDocumentRequests();
-				return true;
-			} else {
-				error = result.error || 'Failed to reject request';
-				return false;
-			}
-		} catch (err) {
-			console.error('Error rejecting request:', err);
-			error = 'Failed to reject request';
 			return false;
 		}
 	}
@@ -356,6 +335,18 @@
 						{documentRequests.filter(req => req.status === 'released').length}
 					</h3>
 					<p class="docreq-status-label">Released</p>
+				</div>
+			</div>
+			
+			<div class="docreq-status-card docreq-status-cancelled">
+				<div class="docreq-status-icon">
+					<span class="material-symbols-outlined">block</span>
+				</div>
+				<div class="docreq-status-content">
+					<h3 class="docreq-status-value">
+						{documentRequests.filter(req => req.status === 'cancelled').length}
+					</h3>
+					<p class="docreq-status-label">Cancelled</p>
 				</div>
 			</div>
 		</div>
@@ -599,6 +590,12 @@
 									{:else if request.status === 'released'}
 										<span class="material-symbols-outlined">check_circle</span>
 										<span>Released</span>
+									{:else if request.status === 'cancelled'}
+										<span class="material-symbols-outlined">block</span>
+										<span>Cancelled</span>
+									{:else if request.status === 'rejected'}
+										<span class="material-symbols-outlined">cancel</span>
+										<span>Rejected</span>
 									{/if}
 								</div>
 							</div>
