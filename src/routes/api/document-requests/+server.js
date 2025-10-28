@@ -300,7 +300,7 @@ export async function POST({ request }) {
 					return json({ error: 'Permission denied' }, { status: 403 });
 				}
 
-				const { requestId, status, tentativeDate, paymentStatus } = data;
+				const { requestId, status, tentativeDate, paymentStatus, paymentAmount } = data;
 
 				if (!requestId) {
 					return json({ error: 'Request ID is required' }, { status: 400 });
@@ -324,6 +324,10 @@ export async function POST({ request }) {
 
 				if (paymentStatus) {
 					updateData.payment_status = paymentStatus;
+				}
+
+				if (paymentAmount !== undefined && paymentAmount !== null) {
+					updateData.payment_amount = parseFloat(paymentAmount);
 				}
 
 				// Set processed by if not already set

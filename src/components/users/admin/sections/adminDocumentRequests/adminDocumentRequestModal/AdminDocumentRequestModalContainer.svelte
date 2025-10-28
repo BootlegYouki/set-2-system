@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
-	import { docReqModalStore } from './docReqModalStore.js';
-	import DocumentRequestModal from './DocumentRequestModal.svelte';
+	import { docReqModalStore } from './AdmindocReqModalStore.js';
+	import DocumentRequestModal from './AdminDocumentRequestModal.svelte';
 
 	// Subscribe to modal store
 	let modalState = $state({

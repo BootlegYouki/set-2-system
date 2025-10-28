@@ -200,17 +200,19 @@
 					</div>
 				</div>
 
-				<!-- Tentative Date card (read-only) -->
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">event</span> Tentative Date
-					</div>
-					<div class="card-value">
-						<div class="date-display">
-							{selectedRequest.tentativeDate ? formatDate(selectedRequest.tentativeDate) : 'N/A'}
-						</div>
+			<!-- Tentative Date card (read-only) -->
+			{#if selectedRequest.tentativeDate}
+			<div class="student-docreq-card">
+				<div class="card-label">
+					<span class="material-symbols-outlined">event</span> Tentative Date
+				</div>
+				<div class="card-value">
+					<div class="date-display">
+						{formatDate(selectedRequest.tentativeDate)}
 					</div>
 				</div>
+			</div>
+			{/if}
 
 				<div class="student-docreq-card">
 					<div class="card-label">
@@ -263,19 +265,37 @@
 				<p class="purpose-text">{selectedRequest.purpose ?? '—'}</p>
 			</div>
 
-			{#if selectedRequest.adminNote}
-			<!-- Admin Note Section -->
-			<div class="admin-note-section">
-				<div class="note-label">
-					<span class="material-symbols-outlined">note</span> Admin Note
-				</div>
-				<p class="note-text">{selectedRequest.adminNote}</p>
+		{#if selectedRequest.adminNote}
+		<!-- Admin Note Section -->
+		<div class="admin-note-section">
+			<div class="note-label">
+				<span class="material-symbols-outlined">note</span> Admin Note
 			</div>
-			{/if}
+			<p class="note-text">{selectedRequest.adminNote}</p>
 		</div>
+		{/if}
 
-		<!-- RIGHT CONTAINER: Chat and Actions -->
-		<div class="student-docreq-modal-right-container">
+		<!-- Action Buttons -->
+		<div class="student-modal-action-buttons">
+			{#if selectedRequest.status === 'on_hold'}
+				<button 
+					class="student-cancel-button" 
+					onclick={handleCancelRequest}
+				>
+					<span class="material-symbols-outlined">cancel</span>
+					Cancel Request
+				</button>
+			{/if}
+
+			<button class="student-back-button" onclick={onClose}>
+				<span class="material-symbols-outlined">arrow_back</span>
+				Back
+			</button>
+		</div>
+	</div>
+
+	<!-- RIGHT CONTAINER: Chat -->
+	<div class="student-docreq-modal-right-container">
 			<div class="chat-container">
 				<div class="chat-header">
 					<h3><span class="material-symbols-outlined">forum</span> Communication</h3>
@@ -334,24 +354,6 @@
 						<span class="material-symbols-outlined">send</span>
 					</button>
 				</div>
-			</div>
-
-		<!-- Action Buttons -->
-		<div class="action-buttons">
-			{#if selectedRequest.status === 'on_hold'}
-				<button 
-					class="student-cancel-button" 
-					onclick={handleCancelRequest}
-				>
-					<span class="material-symbols-outlined">cancel</span>
-					Cancel Request
-				</button>
-				{/if}
-
-				<button class="student-back-button" onclick={onClose}>
-					<span class="material-symbols-outlined">arrow_back</span>
-					Back
-				</button>
 			</div>
 		</div>
 	</div>
@@ -476,7 +478,6 @@
 		gap: var(--spacing-xl);
 		align-items: stretch;
 		padding: var(--spacing-xl);
-		overflow-y: auto;
 	}
 
 	.student-docreq-modal-left-container {
@@ -487,7 +488,6 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
-		height: 100%;
 	}
 
 	.student-docreq-modal-right-container {
@@ -497,7 +497,6 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
-		height: 100%;
 	}
 
 	.student-docreq-modal-title h2 {
@@ -610,10 +609,6 @@
 	}
 
 	.date-display {
-		padding: 8px 12px;
-		border-radius: 8px;
-		background: var(--md-sys-color-surface);
-		border: 1px solid var(--md-sys-color-outline-variant);
 		display: inline-block;
 		color: var(--md-sys-color-on-surface);
 	}
@@ -638,7 +633,6 @@
 		border: 1px dashed var(--md-sys-color-outline-variant);
 		margin: 0;
 		line-height: 1.6;
-    height: 85%;
 	}
 
 	.admin-note-section {
@@ -715,7 +709,8 @@
 		border: 1px solid var(--md-sys-color-outline-variant);
 		overflow-y: auto;
 		margin-bottom: var(--spacing-sm);
-		max-height: 400px;
+		max-height: 510px;
+		min-height: 330px;
 	}
 
 	.chat-message {
@@ -937,12 +932,11 @@
 		outline-offset: 2px;
 	}
 
-	.action-buttons {
+	.student-modal-action-buttons {
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-sm);
-		margin-top: var(--spacing-lg);
-		padding-top: var(--spacing-lg);
+		padding-top: var(--spacing-md);
 		border-top: 2px solid var(--md-sys-color-outline-variant);
 	}
 

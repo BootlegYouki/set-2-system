@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import './adminDocumentRequests.css';
 	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
-	import { docReqModalStore } from './adminDocumentRequestModal/docReqModalStore.js';
+	import { docReqModalStore } from './adminDocumentRequestModal/AdmindocReqModalStore.js';
 	import DocumentRequestsStatusChart from './adminDocumentRequestCharts/DocumentRequestsStatusChart.svelte';
 
 	// Dynamic data for document requests (fetched from API)

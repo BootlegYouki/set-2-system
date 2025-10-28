@@ -1,6 +1,7 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import { authenticatedFetch } from '../../../../../../routes/api/helper/api-helper.js';
+	import Modal from '../../../../../common/Modal.svelte';
 
 	// Props passed from modal store
 	let {
@@ -17,11 +18,13 @@
 	// Local state for the modal
 	let selectedRequest = $state({ ...request });
 	let isModalStatusDropdownOpen = $state(false);
-	let dateInputEl;
+	let dateInputEl = $state();
 	let newMessage = $state('');
 	let isSendingMessage = $state(false);
-	let chatMessagesEl;
+	let chatMessagesEl = $state();
 	let pollingInterval;
+	let showConfirmModal = $state(false);
+	let showRejectModal = $state(false);
 
 	// Get messages from the request
 	let messages = $derived(selectedRequest.messages || []);
@@ -78,26 +81,18 @@
 	function selectModalStatus(statusId) {
 		if (!selectedRequest) return;
 		selectedRequest.status = statusId;
-		if (statusId !== 'processing') {
-			selectedRequest.tentativeDate = null;
-		}
+		// Keep tentative date when status changes - don't clear it
 		isModalStatusDropdownOpen = false;
 	}
 
 	// Date handling
-	function openDatePicker() {
-		if (!selectedRequest || selectedRequest.status !== 'processing') return;
-		dateInputEl && dateInputEl.click();
-	}
-
 	function onTentativeDateChange(event) {
 		const val = event.target.value;
 		if (!selectedRequest) return;
 		selectedRequest.tentativeDate = val ? val : null;
 	}
 
-	function formatTentativeDateForDisplay(dateStr, status) {
-		if (status !== 'processing') return 'N/A';
+	function formatTentativeDateForDisplay(dateStr) {
 		if (!dateStr) return '--/--/----';
 		const [y, m, d] = dateStr.split('-');
 		if (!y || !m || !d) return '--/--/----';
@@ -105,18 +100,39 @@
 	}
 
 	// Action handlers
-	async function handleUpdate() {
+	function handleUpdate() {
+		// Show confirmation modal before updating
+		showConfirmModal = true;
+	}
+
+	async function confirmUpdate() {
 		const updateData = {
 			status: selectedRequest.status,
-			tentativeDate: selectedRequest.tentativeDate
+			tentativeDate: selectedRequest.tentativeDate,
+			paymentAmount: selectedRequest.paymentAmount
 		};
 		await onUpdate(selectedRequest.requestId, updateData);
+		showConfirmModal = false;
 		onClose();
 	}
 
-	async function handleReject() {
+	function cancelUpdate() {
+		showConfirmModal = false;
+	}
+
+	function handleReject() {
+		// Show confirmation modal before rejecting
+		showRejectModal = true;
+	}
+
+	async function confirmReject() {
 		await onReject(selectedRequest.requestId);
+		showRejectModal = false;
 		onClose();
+	}
+
+	function cancelReject() {
+		showRejectModal = false;
 	}
 
 	// Get current status name
@@ -216,26 +232,25 @@
 				<div class="docreq-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
 			</header>
 
-			{#if selectedRequest.status === 'cancelled'}
-			<div class="cancelled-notice">
-				<span class="material-symbols-outlined">info</span>
-				<div class="cancelled-notice-content">
-					<strong>Request Cancelled by Student</strong>
-					<p>This request was cancelled by the student{selectedRequest.cancelledDate ? ` on ${selectedRequest.cancelledDate}` : ''}. No further actions can be taken.</p>
+
+
+		<!-- Request Info Cards -->
+		<div class="docreq-cards">
+			<div class="docreq-card">
+				<div class="card-label">
+					<span class="material-symbols-outlined">description</span> Document Type
 				</div>
+				<div class="card-value">{selectedRequest.documentType}</div>
 			</div>
-			{/if}
 
-			<!-- Request Info Cards -->
-			<div class="docreq-cards">
-				<div class="docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">description</span> Document Type
-					</div>
-					<div class="card-value">{selectedRequest.documentType}</div>
+			<div class="docreq-card">
+				<div class="card-label">
+					<span class="material-symbols-outlined">account_circle</span> Processed By
 				</div>
+				<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
+			</div>
 
-				<!-- Status card with dropdown -->
+			<!-- Status card with dropdown -->
 				<div class="docreq-card">
 					<div class="card-label">
 						<span class="material-symbols-outlined">info</span> Status
@@ -277,61 +292,50 @@
 					</div>
 				</div>
 
-				<!-- Tentative Date card -->
-				<div class="docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">event</span> Tentative Date
-					</div>
-					<div class="card-value">
-						<div
-							class="date-box"
-							class:disabled={selectedRequest.status !== 'processing'}
-							onclick={() => {
-								if (selectedRequest.status === 'processing') openDatePicker();
-							}}
-							onkeydown={(e) => {
-								if ((e.key === 'Enter' || e.key === ' ') && selectedRequest.status === 'processing') openDatePicker();
-							}}
-							role="button"
-							tabindex={selectedRequest.status === 'processing' ? 0 : -1}
-						>
-							{selectedRequest.status === 'processing'
-								? selectedRequest.tentativeDate
-									? formatTentativeDateForDisplay(
-											selectedRequest.tentativeDate,
-											selectedRequest.status
-										)
-									: '--/--/----'
-								: 'N/A'}
-						</div>
-
+			<!-- Tentative Date card -->
+			{#if ['verifying', 'processing', 'for_pickup'].includes(selectedRequest.status) || selectedRequest.tentativeDate}
+			<div class="docreq-card">
+				<div class="card-label">
+					<span class="material-symbols-outlined">event</span> Tentative Date
+				</div>
+				<div class="card-value">
+					{#if ['verifying', 'processing', 'for_pickup'].includes(selectedRequest.status)}
 						<input
 							type="date"
+							class="date-input editable"
 							bind:this={dateInputEl}
+							value={selectedRequest.tentativeDate || ''}
 							onchange={onTentativeDateChange}
-							style="position:absolute; opacity:0; pointer-events:none; width:0; height:0;"
+						/>
+					{:else}
+						<div class="date-box readonly">
+							{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}
+						</div>
+					{/if}
+				</div>
+			</div>
+			{/if}
+
+			<div class="docreq-card">
+				<div class="card-label">
+					<span class="material-symbols-outlined">payments</span> Payment Amount
+				</div>
+				<div class="card-value">
+					<div class="payment-input-wrapper">
+						<span class="currency-symbol">₱</span>
+						<input
+							type="number"
+							class="payment-input"
+							bind:value={selectedRequest.paymentAmount}
+							min="0"
+							step="0.01"
+							placeholder="0.00"
 						/>
 					</div>
-				</div>
+			</div>
+		</div>
 
-				<div class="docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">payments</span> Payment
-					</div>
-					<div class="card-value">
-						{selectedRequest.payment}
-						<span class="badge orange">Pending</span>
-					</div>
-				</div>
-
-				<div class="docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">account_circle</span> Processed By
-					</div>
-					<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
-				</div>
-
-				{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
+			{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
 				<div class="docreq-card">
 					<div class="card-label">
 						<span class="material-symbols-outlined">event_busy</span> Cancelled Date
@@ -466,6 +470,94 @@
 	</div>
 </div>
 
+<!-- Confirmation Modal for Update -->
+{#if showConfirmModal}
+	<Modal 
+		title="Confirm Update" 
+		size="small" 
+		closable={true}
+		onClose={cancelUpdate}
+	>
+		<div class="modal-confirm-content">
+			<div class="modal-message">
+				<p>Are you sure you want to update this document request?</p>
+				<div class="confirm-details">
+					<div class="confirm-detail-row">
+						<span class="detail-label">Request ID:</span>
+						<span class="detail-value">{selectedRequest.requestId}</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">New Status:</span>
+						<span class="detail-value">{modalCurrentStatusName}</span>
+					</div>
+					{#if selectedRequest.tentativeDate}
+					<div class="confirm-detail-row">
+						<span class="detail-label">Tentative Date:</span>
+						<span class="detail-value">{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}</span>
+					</div>
+					{/if}
+					{#if selectedRequest.paymentAmount}
+					<div class="confirm-detail-row">
+						<span class="detail-label">Payment Amount:</span>
+						<span class="detail-value">₱{selectedRequest.paymentAmount}</span>
+					</div>
+					{/if}
+				</div>
+			</div>
+			<div class="modal-actions">
+				<button class="modal-btn modal-btn-secondary" onclick={cancelUpdate}>
+					Cancel
+				</button>
+				<button class="modal-btn modal-btn-primary" onclick={confirmUpdate}>
+					Confirm
+				</button>
+			</div>
+		</div>
+	</Modal>
+{/if}
+
+<!-- Confirmation Modal for Reject -->
+{#if showRejectModal}
+	<Modal 
+		title="Reject Request" 
+		size="small" 
+		closable={true}
+		onClose={cancelReject}
+	>
+		<div class="modal-confirm-content">
+			<div class="modal-message">
+				<p>Are you sure you want to reject this document request?</p>
+				<div class="confirm-details reject-warning">
+					<div class="confirm-detail-row">
+						<span class="detail-label">Request ID:</span>
+						<span class="detail-value">{selectedRequest.requestId}</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">Student:</span>
+						<span class="detail-value">{selectedRequest.studentName}</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">Document Type:</span>
+						<span class="detail-value">{selectedRequest.documentType}</span>
+					</div>
+					<div class="reject-notice">
+						<span class="material-symbols-outlined">warning</span>
+						<span>This action will mark the request as rejected and notify the student.</span>
+					</div>
+				</div>
+			</div>
+			<div class="modal-actions">
+				<button class="modal-btn modal-btn-secondary" onclick={cancelReject}>
+					Cancel
+				</button>
+				<button class="modal-btn modal-btn-danger" onclick={confirmReject}>
+					Reject Request
+				</button>
+			</div>
+		</div>
+	</Modal>
+{/if}
+
 <style>
 	.docreq-modal-content {
 		width: 100%;
@@ -500,7 +592,6 @@
 		gap: var(--spacing-xl);
 		align-items: start;
 		padding: var(--spacing-xl);
-		overflow-y: auto;
 		flex: 1;
 	}
 
@@ -512,7 +603,6 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
-		height: 100%;
 	}
 
 	.docreq-modal-right-container {
@@ -522,7 +612,6 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
-		height: 100%;
 	}
 
 	.docreq-modal-title h2 {
@@ -537,44 +626,9 @@
 		margin-top: 6px;
 	}
 
-	.cancelled-notice {
-		display: flex;
-		gap: var(--spacing-md);
-		padding: var(--spacing-md);
-		background-color: var(--status-cancelled-bg-light);
-		border: 1px solid var(--status-cancelled-border);
-		border-radius: var(--radius-md);
-		margin: var(--spacing-md) 0;
-		align-items: flex-start;
-	}
-
-	.cancelled-notice .material-symbols-outlined {
-		color: var(--status-cancelled-text);
-		font-size: 24px;
-		flex-shrink: 0;
-	}
-
-	.cancelled-notice-content {
-		flex: 1;
-	}
-
-	.cancelled-notice-content strong {
-		display: block;
-		color: var(--status-cancelled-text);
-		font-size: 0.95rem;
-		margin-bottom: 4px;
-	}
-
-	.cancelled-notice-content p {
-		margin: 0;
-		color: var(--md-sys-color-on-surface-variant);
-		font-size: 0.875rem;
-		line-height: 1.4;
-	}
-
 	.docreq-cards {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-wrap: wrap;
 		gap: var(--spacing-md);
 	}
 
@@ -583,6 +637,22 @@
 		border-radius: var(--radius-md);
 		padding: var(--spacing-md);
 		border: 1px solid var(--md-sys-color-outline-variant);
+		flex: 1 1 calc(50% - var(--spacing-md) / 2);
+		min-width: 250px;
+	}
+
+	/* First row: 2 cards (Document Type, Processed By) */
+	.docreq-card:nth-child(1),
+	.docreq-card:nth-child(2) {
+		flex: 1 1 calc(50% - var(--spacing-md) / 2);
+	}
+
+	/* Second row: 3 cards (Status, Tentative Date if shown, Payment Amount) */
+	.docreq-card:nth-child(3),
+	.docreq-card:nth-child(4),
+	.docreq-card:nth-child(5) {
+		flex: 1 1 calc(33.333% - var(--spacing-md) * 2 / 3);
+		min-width: 200px;
 	}
 
 	.card-label {
@@ -597,6 +667,7 @@
 		margin-top: 8px;
 		font-weight: 600;
 		font-size: 1rem;
+		width: 100%;
 	}
 
 	.docreq-purpose {
@@ -614,9 +685,9 @@
 		background: var(--md-sys-color-surface);
 		padding: 12px;
 		border-radius: var(--radius-md);
-		border: 1px solid var(--md-sys-color-outline-variant);
+		border: 1px dashed var(--md-sys-color-outline-variant);
 		margin: 0;
-	}
+	}	
 
 	/* Student Information Section */
 	.student-info-section {
@@ -690,8 +761,8 @@
 		border: 1px solid var(--md-sys-color-outline-variant);
 		overflow-y: auto;
 		margin-bottom: var(--spacing-sm);
-		min-height: 400px;
-		max-height: 310px;
+		min-height: 300px;
+		max-height: 300px;
 	}
 
 	.no-chat {
@@ -843,12 +914,12 @@
 		transition: border-color var(--transition-fast);
 	}
 
-	.chat-input input:focus {
+	.admin-chat-input input:focus {
 		outline: none;
 		border-color: var(--md-sys-color-primary);
 	}
 
-	.chat-input input::placeholder {
+	.admin-chat-input input::placeholder {
 		color: var(--md-sys-color-on-surface-variant);
 		opacity: 0.7;
 	}
@@ -1055,6 +1126,7 @@
 	.docreq-status-dropdown {
 		position: relative;
 		display: inline-block;
+		width: 100%;
 	}
 
 	.docreq-status-dropdown-trigger {
@@ -1072,6 +1144,7 @@
 		min-width: 120px;
 		justify-content: space-between;
 		box-sizing: border-box;
+		min-width: 100%;
 	}
 
 	.docreq-status-dropdown-trigger:focus {
@@ -1169,6 +1242,37 @@
 	}
 
 	/* Tentative date */
+	.date-input {
+		padding: 10px 12px;
+		border-radius: 8px;
+		background: var(--md-sys-color-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		min-width: 160px;
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.95rem;
+		font-family: inherit;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		width: 100%;
+	}
+
+	.date-input.editable {
+		background: var(--md-sys-color-surface);
+		border: 1px solid var(--md-sys-color-primary);
+		width: 100%;
+	}
+
+	.date-input.editable:hover {
+		background: var(--md-sys-color-surface-container);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.date-input:focus {
+		outline: none;
+		border-color: var(--md-sys-color-primary);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+	}
+
 	.date-box {
 		padding: 10px 12px;
 		border-radius: 8px;
@@ -1177,20 +1281,77 @@
 		min-width: 160px;
 		text-align: left;
 		color: var(--md-sys-color-on-surface);
-		cursor: pointer;
 		display: inline-block;
 		box-sizing: border-box;
 	}
 
-	.date-box.disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
+	.date-box.readonly {
 		background: var(--md-sys-color-surface-container);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		opacity: 0.8;
 	}
 
-	.date-box:focus {
-		outline: none;
+	/* Payment Input */
+	.payment-input-wrapper {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		background: var(--md-sys-color-surface);
+		border: 1px solid var(--md-sys-color-primary);
+		border-radius: var(--radius-md);
+		padding: 8px 12px;
+		width: 100%;
+		max-width: 200px;
+		transition: all var(--transition-fast);
+	}
+
+	.payment-input-wrapper:hover {
+		background: var(--md-sys-color-surface-container);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	.payment-input-wrapper:focus-within {
+		border-color: var(--md-sys-color-primary);
 		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+		background: var(--md-sys-color-surface);
+	}
+
+	.currency-symbol {
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+		font-size: 1rem;
+	}
+
+	.payment-input {
+		flex: 1;
+		border: none;
+		background: transparent;
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.95rem;
+		font-weight: 600;
+		font-family: inherit;
+		padding: 0;
+		outline: none;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.payment-input::placeholder {
+		color: var(--md-sys-color-on-surface-variant);
+		opacity: 0.5;
+	}
+
+	/* Remove number input arrows */
+	.payment-input::-webkit-outer-spin-button,
+	.payment-input::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		appearance: none;
+		margin: 0;
+	}
+
+	.payment-input[type=number] {
+		-moz-appearance: textfield;
+		appearance: textfield;
 	}
 
 	/* Responsive */
@@ -1211,7 +1372,7 @@
 		}
 
 		.docreq-cards {
-			grid-template-columns: 1fr;
+			flex-direction: column;
 		}
 
 		.student-info-grid {
@@ -1224,6 +1385,151 @@
 
 		.admin-chat-messages {
 			min-height: 200px;
+		}
+	}
+
+	/* Confirmation Modal Styles - Matching ModalContainer */
+	.modal-confirm-content {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.modal-message {
+		margin: 0;
+		font-family: var(--md-sys-typescale-body-large-font);
+		font-size: var(--md-sys-typescale-body-large-size);
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.6;
+		max-width: none;
+		word-wrap: break-word;
+	}
+
+	.modal-message p {
+		margin: 0 0 12px 0;
+	}
+
+	.confirm-details {
+		background: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		margin-top: var(--spacing-md);
+	}
+
+	.confirm-detail-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--spacing-xs) 0;
+	}
+
+	.detail-label {
+		font-weight: 500;
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.9rem;
+	}
+
+	.detail-value {
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.95rem;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: var(--spacing-md);
+		justify-content: flex-end;
+		margin-top: var(--spacing-md);
+		padding: var(--spacing-md);
+	}
+
+	.modal-btn {
+		padding: var(--spacing-sm) var(--spacing-lg);
+		border: none;
+		border-radius: var(--radius-md);
+		font-family: var(--md-sys-typescale-label-large-font);
+		font-size: var(--md-sys-typescale-label-large-size);
+		font-weight: var(--md-sys-typescale-label-large-weight);
+		cursor: pointer;
+		transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+		min-width: 80px;
+	}
+
+	.modal-btn-primary {
+		background-color: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+		border: 1px solid var(--md-sys-color-primary);
+	}
+
+	.modal-btn-primary:hover {
+		background-color: var(--md-sys-color-primary-container);
+		color: var(--md-sys-color-on-primary-container);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-btn-secondary {
+		background-color: var(--md-sys-color-surface-container-high);
+		color: var(--md-sys-color-on-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.modal-btn-secondary:hover {
+		background-color: var(--md-sys-color-surface-container-highest);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-btn-danger {
+		background-color: var(--md-sys-color-error);
+		color: var(--md-sys-color-on-error);
+		border: 1px solid var(--md-sys-color-error);
+	}
+
+	.modal-btn-danger:hover {
+		background-color: var(--md-sys-color-error-container);
+		color: var(--md-sys-color-on-error-container);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-btn:focus-visible {
+		outline: 2px solid var(--md-sys-color-primary);
+		outline-offset: 2px;
+	}
+
+	/* Reject Modal Specific Styles */
+	.reject-warning {
+		background: var(--md-sys-color-error-container);
+		border-color: var(--md-sys-color-error);
+	}
+
+	.reject-notice {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		background: var(--md-sys-color-surface);
+		border-radius: var(--radius-sm);
+		margin-top: var(--spacing-sm);
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.875rem;
+		line-height: 1.4;
+	}
+
+	.reject-notice .material-symbols-outlined {
+		color: var(--md-sys-color-error);
+		font-size: 20px;
+		flex-shrink: 0;
+	}
+
+	@media (max-width: 640px) {
+		.modal-actions {
+			flex-direction: column-reverse;
+		}
+
+		.modal-btn {
+			width: 100%;
 		}
 	}
 </style>
