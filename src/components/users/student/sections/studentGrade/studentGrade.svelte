@@ -31,6 +31,7 @@
 	let aiAnalysisLoading = false;
 	let aiAnalysisError = null;
 	let showAiAnalysis = false;
+	let isCachedAnalysis = false;
 
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -51,6 +52,7 @@
 		aiAnalysis = '';
 		showAiAnalysis = false;
 		aiAnalysisError = null;
+		isCachedAnalysis = false;
 		await fetchGrades();
 	}
 
@@ -170,13 +172,14 @@
 	}
 
 	// Function to get AI analysis
-	async function getAiAnalysis() {
+	async function getAiAnalysis(forceRefresh = false) {
 		if (aiAnalysisLoading || !subjects.length || !$authStore.userData?.id) return;
 		
 		aiAnalysisLoading = true;
 		aiAnalysisError = null;
 		aiAnalysis = ''; // Reset analysis
 		showAiAnalysis = true; // Show the container immediately
+		isCachedAnalysis = false;
 		
 		try {
 			const quarter = quarterToGradingPeriod[currentQuarter];
@@ -189,13 +192,18 @@
 				body: JSON.stringify({
 					studentId: $authStore.userData.id,
 					quarter: quarter,
-					schoolYear: currentSchoolYear
+					schoolYear: currentSchoolYear,
+					forceRefresh: forceRefresh
 				})
 			});
 
 			if (!response.ok) {
 				throw new Error('Failed to get AI analysis');
 			}
+
+			// Check if response is from cache
+			const cacheStatus = response.headers.get('X-Cache-Status');
+			isCachedAnalysis = cacheStatus === 'HIT';
 
 			aiAnalysisLoading = false; // Stop loading before streaming starts
 
@@ -221,6 +229,11 @@
 			aiAnalysisError = error.message;
 			aiAnalysisLoading = false;
 		}
+	}
+
+	// Function to refresh AI analysis (bypass cache)
+	async function refreshAiAnalysis() {
+		await getAiAnalysis(true);
 	}
 
 	// Function to toggle AI analysis visibility
@@ -405,17 +418,35 @@
 		</div>
 			<div class="ai-analysis-container">
 				<div class="analysis-header">
-					<h3 class="analysis-title">AI Performance Analysis</h3>
-					<button 
-						class="ai-analysis-toggle-btn" 
-						on:click={toggleAiAnalysis}
-						title={showAiAnalysis ? 'Hide AI Analysis' : 'Get AI Analysis'}>
-						{#if showAiAnalysis}
-							<span class="material-symbols-outlined">expand_less</span>
-						{:else}
-							<span class="material-symbols-outlined">expand_more</span>
+					<div class="analysis-title-group">
+						<h3 class="analysis-title">AI Performance Analysis</h3>
+						{#if isCachedAnalysis && aiAnalysis}
+							<span class="cache-badge" title="Analysis from cache (refreshed every 7 days)">
+								<span class="material-symbols-outlined">schedule</span>
+								Cached
+							</span>
 						{/if}
-					</button>
+					</div>
+					<div class="analysis-controls">
+						{#if aiAnalysis && !aiAnalysisLoading}
+							<button 
+								class="refresh-analysis-btn" 
+								on:click={refreshAiAnalysis}
+								title="Refresh analysis">
+								<span class="material-symbols-outlined">refresh</span>
+							</button>
+						{/if}
+						<button 
+							class="ai-analysis-toggle-btn" 
+							on:click={toggleAiAnalysis}
+							title={showAiAnalysis ? 'Hide AI Analysis' : 'Get AI Analysis'}>
+							{#if showAiAnalysis}
+								<span class="material-symbols-outlined">expand_less</span>
+							{:else}
+								<span class="material-symbols-outlined">expand_more</span>
+							{/if}
+						</button>
+					</div>
 				</div>
 				
 				{#if showAiAnalysis}
@@ -424,7 +455,7 @@
 							<div class="analysis-error">
 								<span class="material-symbols-outlined">error</span>
 								<p>Failed to generate AI analysis: {aiAnalysisError}</p>
-								<button class="retry-analysis-btn" on:click={getAiAnalysis}>
+								<button class="retry-analysis-btn" on:click={() => getAiAnalysis()}>
 									Try Again
 								</button>
 							</div>

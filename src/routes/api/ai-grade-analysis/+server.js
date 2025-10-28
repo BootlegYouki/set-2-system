@@ -7,7 +7,7 @@ dotenv.config();
 
 export async function POST({ request }) {
     try {
-        const { studentId, quarter, schoolYear } = await request.json();
+        const { studentId, quarter, schoolYear, forceRefresh = false } = await request.json();
 
         if (!studentId) {
             return json({ error: 'Missing student ID' }, { status: 400 });
@@ -20,6 +20,31 @@ export async function POST({ request }) {
         const student = await db.collection('users').findOne({ _id: new ObjectId(studentId) });
         if (!student) {
             return json({ error: 'Student not found' }, { status: 404 });
+        }
+
+        // Check for cached analysis (skip if forceRefresh is true)
+        const cacheKey = {
+            student_id: new ObjectId(studentId),
+            quarter: quarter,
+            school_year: schoolYear
+        };
+
+        if (!forceRefresh) {
+            const cachedAnalysis = await db.collection('ai_grade_analysis_cache').findOne(cacheKey);
+
+            // Check if cache is valid (less than 7 days old)
+            const CACHE_DURATION_DAYS = 7;
+            const now = new Date();
+            const cacheValid = cachedAnalysis && 
+                ((now - new Date(cachedAnalysis.created_at)) / (1000 * 60 * 60 * 24)) < CACHE_DURATION_DAYS;
+
+            if (cacheValid && cachedAnalysis.analysis) {
+                console.log('Serving cached AI analysis');
+                // Stream the cached analysis to maintain consistent UX
+                return streamCachedAnalysis(cachedAnalysis.analysis);
+            }
+        } else {
+            console.log('Force refresh requested - bypassing cache');
         }
 
         // Fetch all grades for the student (only verified ones)
@@ -69,7 +94,8 @@ export async function POST({ request }) {
             throw new Error(`OpenRouter API error: ${response.status}`);
         }
 
-        // Create a streaming response
+        // Create a streaming response and save to cache
+        let fullAnalysis = '';
         const stream = new ReadableStream({
             async start(controller) {
                 const reader = response.body.getReader();
@@ -80,6 +106,8 @@ export async function POST({ request }) {
                         const { done, value } = await reader.read();
                         
                         if (done) {
+                            // Save complete analysis to cache
+                            await saveAnalysisToCache(db, cacheKey, fullAnalysis);
                             controller.close();
                             break;
                         }
@@ -100,6 +128,7 @@ export async function POST({ request }) {
                                     const content = parsed.choices[0]?.delta?.content;
                                     
                                     if (content) {
+                                        fullAnalysis += content;
                                         controller.enqueue(new TextEncoder().encode(content));
                                     }
                                 } catch (e) {
@@ -129,6 +158,59 @@ export async function POST({ request }) {
             details: error.message
         }, { status: 500 });
     }
+}
+
+// Helper function to save analysis to cache
+async function saveAnalysisToCache(db, cacheKey, analysis) {
+    try {
+        await db.collection('ai_grade_analysis_cache').updateOne(
+            cacheKey,
+            {
+                $set: {
+                    ...cacheKey,
+                    analysis: analysis,
+                    created_at: new Date(),
+                    updated_at: new Date()
+                }
+            },
+            { upsert: true }
+        );
+        console.log('Analysis saved to cache');
+    } catch (error) {
+        console.error('Error saving analysis to cache:', error);
+    }
+}
+
+// Helper function to stream cached analysis
+function streamCachedAnalysis(analysis) {
+    const stream = new ReadableStream({
+        start(controller) {
+            // Stream cached content in chunks to simulate real streaming
+            const chunkSize = 20;
+            let position = 0;
+
+            const interval = setInterval(() => {
+                if (position >= analysis.length) {
+                    clearInterval(interval);
+                    controller.close();
+                    return;
+                }
+
+                const chunk = analysis.slice(position, position + chunkSize);
+                controller.enqueue(new TextEncoder().encode(chunk));
+                position += chunkSize;
+            }, 10); // Small delay between chunks for smooth streaming effect
+        }
+    });
+
+    return new Response(stream, {
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Cache-Status': 'HIT'
+        }
+    });
 }
 
 async function prepareGradeDataFromDB(db, student, studentGrades) {
