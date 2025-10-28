@@ -812,7 +812,7 @@
 
 .charts-grid {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: 1fr 1.2fr;
 	gap: var(--spacing-lg);
 	margin-top: var(--spacing-lg);
 }
@@ -983,6 +983,10 @@
   animation: progressSlideIn 1.5s ease-out;
 }
 
+.progress-fill-animated {
+  transition: width 1.5s ease-out, background-color 0.4s ease-in-out;
+}
+
 @keyframes progressSlideIn {
   from {
     transform: scaleX(0);
@@ -1124,6 +1128,150 @@
 .subject-card.orange .subject-icon {
   background-color: var(--subject-card-orange-icon-bg);
   color: var(--subject-card-orange-icon-text);
+}
+
+/* Red - Bold and energetic */
+.subject-card.red {
+  background-color: transparent;
+  border-color: var(--subject-card-red-border);
+  color: var(--subject-card-red-text);
+}
+
+.subject-card.red .subject-name,
+.subject-card.red .teacher-name,
+.subject-card.red .grade-large,
+.subject-card.red .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.red .subject-icon {
+  color: var(--subject-card-red-icon);
+}
+
+/* Teal - Modern and fresh */
+.subject-card.teal {
+  background-color: transparent;
+  border-color: var(--subject-card-teal-border);
+  color: var(--subject-card-teal-text);
+}
+
+.subject-card.teal .subject-name,
+.subject-card.teal .teacher-name,
+.subject-card.teal .grade-large,
+.subject-card.teal .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.teal .subject-icon {
+  color: var(--subject-card-teal-icon);
+}
+
+/* Indigo - Professional and trustworthy */
+.subject-card.indigo {
+  background-color: transparent;
+  border-color: var(--subject-card-indigo-border);
+  color: var(--subject-card-indigo-text);
+}
+
+.subject-card.indigo .subject-name,
+.subject-card.indigo .teacher-name,
+.subject-card.indigo .grade-large,
+.subject-card.indigo .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.indigo .subject-icon {
+  color: var(--subject-card-indigo-icon);
+}
+
+/* Pink - Vibrant and creative */
+.subject-card.pink {
+  background-color: transparent;
+  border-color: var(--subject-card-pink-border);
+  color: var(--subject-card-pink-text);
+}
+
+.subject-card.pink .subject-name,
+.subject-card.pink .teacher-name,
+.subject-card.pink .grade-large,
+.subject-card.pink .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.pink .subject-icon {
+  color: var(--subject-card-pink-icon);
+}
+
+/* Cyan - Cool and calming */
+.subject-card.cyan {
+  background-color: transparent;
+  border-color: var(--subject-card-cyan-border);
+  color: var(--subject-card-cyan-text);
+}
+
+.subject-card.cyan .subject-name,
+.subject-card.cyan .teacher-name,
+.subject-card.cyan .grade-large,
+.subject-card.cyan .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.cyan .subject-icon {
+  color: var(--subject-card-cyan-icon);
+}
+
+/* Lime - Fresh and lively */
+.subject-card.lime {
+  background-color: transparent;
+  border-color: var(--subject-card-lime-border);
+  color: var(--subject-card-lime-text);
+}
+
+.subject-card.lime .subject-name,
+.subject-card.lime .teacher-name,
+.subject-card.lime .grade-large,
+.subject-card.lime .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.lime .subject-icon {
+  color: var(--subject-card-lime-icon);
+}
+
+/* Amber - Warm and inviting */
+.subject-card.amber {
+  background-color: transparent;
+  border-color: var(--subject-card-amber-border);
+  color: var(--subject-card-amber-text);
+}
+
+.subject-card.amber .subject-name,
+.subject-card.amber .teacher-name,
+.subject-card.amber .grade-large,
+.subject-card.amber .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.amber .subject-icon {
+  color: var(--subject-card-amber-icon);
+}
+
+/* Deep Orange - Intense and bold */
+.subject-card.deeporange {
+  background-color: transparent;
+  border-color: var(--subject-card-deeporange-border);
+  color: var(--subject-card-deeporange-text);
+}
+
+.subject-card.deeporange .subject-name,
+.subject-card.deeporange .teacher-name,
+.subject-card.deeporange .grade-large,
+.subject-card.deeporange .no-grade-large {
+  color: inherit;
+}
+
+.subject-card.deeporange .subject-icon {
+  color: var(--subject-card-deeporange-icon);
 }
 
 /* Grade performance color classes - Higher specificity to override card colors */

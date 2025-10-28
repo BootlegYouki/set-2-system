@@ -32,6 +32,10 @@
 	let aiAnalysisError = null;
 	let showAiAnalysis = false;
 	let isCachedAnalysis = false;
+	
+	// Progress bar color animation state
+	let progressBarColors = {}; // Store current color for each subject
+	let progressBarAnimations = {}; // Store animation frame IDs
 
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -53,6 +57,16 @@
 		showAiAnalysis = false;
 		aiAnalysisError = null;
 		isCachedAnalysis = false;
+		
+		// Cancel and reset progress bar animations
+		Object.values(progressBarAnimations).forEach(animationId => {
+			if (animationId) {
+				cancelAnimationFrame(animationId);
+			}
+		});
+		progressBarAnimations = {};
+		progressBarColors = {};
+		
 		await fetchGrades();
 	}
 
@@ -86,9 +100,61 @@
 		if (grade >= 80) return 'var(--grade-good)';
 		if (grade >= 75) return 'var(--grade-satisfactory)';
 		if (grade >= 65) return 'var(--grade-needs-improvement)';
+		if (grade < 65) return 'var(--grade-needs-improvement)';
 		return 'var(--grade-needs-improvement)';
 	}
 
+	// Animate progress bar color transition
+	function animateProgressBarColor(subjectId, finalGrade, duration = 2500) {
+		// Cancel any existing animation for this subject
+		if (progressBarAnimations[subjectId]) {
+			cancelAnimationFrame(progressBarAnimations[subjectId]);
+		}
+		
+		// Initialize with starting color
+		progressBarColors[subjectId] = getGradeColor(65);
+		
+		const startTime = Date.now();
+		
+		function updateColor() {
+			const currentTime = Date.now();
+			const elapsed = currentTime - startTime;
+			const progress = Math.min(elapsed / duration, 1);
+			
+			// Determine target tier based on final grade
+			let targetTier = 0;
+			if (finalGrade >= 85) targetTier = 3;
+			else if (finalGrade >= 80) targetTier = 2;
+			else if (finalGrade >= 75) targetTier = 1;
+			else targetTier = 0;
+			
+			// Use faster progression (1.6x speed)
+			const colorProgress = Math.min(progress * 1.6, 1);
+			
+			// Calculate current tier based on time progress
+			const currentTier = Math.min(Math.floor(colorProgress * (targetTier + 1)), targetTier);
+			
+			// Map tier to grade value for color
+			const tierToGrade = [65, 75, 80, 85];
+			const displayGrade = tierToGrade[currentTier];
+			
+			// Update color
+			progressBarColors[subjectId] = getGradeColor(displayGrade);
+			progressBarColors = { ...progressBarColors }; // Trigger reactivity
+			
+			// Continue animation if not complete
+			if (progress < 1) {
+				progressBarAnimations[subjectId] = requestAnimationFrame(updateColor);
+			} else {
+				// Ensure final color is set
+				progressBarColors[subjectId] = getGradeColor(finalGrade);
+				progressBarColors = { ...progressBarColors };
+				delete progressBarAnimations[subjectId];
+			}
+		}
+		
+		updateColor();
+	}
 
 	// Function to format grade display
 	function formatGrade(grade, hasTeacher, hasGrade, verified) {
@@ -115,7 +181,11 @@
 
 	// Generate randomized card color based on subject index/slot
 	function getCardColor(index) {
-		const colors = ['blue', 'green', 'purple', 'yellow', 'orange'];
+		const colors = [
+			'blue', 'green', 'purple', 'yellow', 'orange', 
+			'red', 'teal', 'indigo', 'pink', 'cyan', 
+			'lime', 'amber', 'deeporange'
+		];
 		return colors[index % colors.length];
 	}
 
@@ -265,6 +335,16 @@
 			error = 'Please log in to view your grades';
 			loading = false;
 		}
+		
+		// Cleanup on component destroy
+		return () => {
+			// Cancel all progress bar animations
+			Object.values(progressBarAnimations).forEach(animationId => {
+				if (animationId) {
+					cancelAnimationFrame(animationId);
+				}
+			});
+		};
 	});
 
 	// Fetch current quarter and school year
@@ -308,6 +388,23 @@
 					name: $authStore.userData.full_name || 'Student',
 					id: $authStore.userData.id
 				};
+				
+				// Initialize progress bar colors with starting color BEFORE animation
+				grades.forEach(subject => {
+					if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
+						progressBarColors[subject.id] = getGradeColor(65); // Start with "needs improvement" color
+					}
+				});
+				progressBarColors = { ...progressBarColors }; // Trigger reactivity
+				
+				// Start progress bar color animations for each subject
+				setTimeout(() => {
+					grades.forEach(subject => {
+						if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
+							animateProgressBarColor(subject.id, subject.numericGrade);
+						}
+					});
+				}, 100); // Small delay to ensure DOM is ready
 			} else {
 				error = response.error || 'Failed to fetch grades';
 			}
@@ -537,7 +634,10 @@
 									<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher"}>{subject.teacher}</p>
 									<div class="progress-bar">
 										{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified) > 0}
-											<div class="progress-fill" style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}%; background-color: {getGradeColor(subject.numericGrade)}"></div>
+											<div 
+												class="progress-fill progress-fill-animated" 
+												style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}%; background-color: {progressBarColors[subject.id] || getGradeColor(subject.numericGrade)}">
+											</div>
 										{/if}
 									</div>
 								</div>

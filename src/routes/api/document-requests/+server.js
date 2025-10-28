@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/auth-helper.js';
+import { encryptMessage, decryptMessages } from '../helper/encryption-helper.js';
 
 // GET /api/document-requests - Fetch document requests
 export async function GET({ url, request }) {
@@ -101,7 +102,7 @@ export async function GET({ url, request }) {
 					paymentStatus: req.payment_status,
 					processedBy: req.processed_by,
 					isUrgent: req.is_urgent || false,
-					messages: req.messages || []
+					messages: decryptMessages(req.messages || [])
 				}));
 
 				return json({ success: true, data: formattedStudentRequests });
@@ -177,7 +178,7 @@ export async function GET({ url, request }) {
 					dateOfBirth: formatDateDisplay(request.birthdate),
 					processedBy: request.processed_by,
 					processedById: request.processed_by_id,
-					messages: request.messages || []
+					messages: decryptMessages(request.messages || [])
 				};
 
 				return json({ success: true, data: formattedRequest });
@@ -466,13 +467,16 @@ export async function POST({ request }) {
 					return json({ error: 'You can only send messages to your own requests' }, { status: 403 });
 				}
 
-				// Create the message object
+				// Encrypt the message text before storing
+				const encryptedText = encryptMessage(messageText.trim());
+
+				// Create the message object with encrypted text
 				const newMessage = {
 					id: new ObjectId().toString(),
 					author: user.name || user.full_name,
 					authorId: user.id,
 					authorRole: user.account_type,
-					text: messageText.trim(),
+					text: encryptedText,
 					created_at: new Date()
 				};
 
@@ -498,10 +502,14 @@ export async function POST({ request }) {
 					user
 				);
 
+				// Return the message with decrypted text for the response
 				return json({
 					success: true,
 					message: 'Message sent successfully',
-					data: newMessage
+					data: {
+						...newMessage,
+						text: messageText.trim() // Return plaintext in response
+					}
 				});
 
 			default:

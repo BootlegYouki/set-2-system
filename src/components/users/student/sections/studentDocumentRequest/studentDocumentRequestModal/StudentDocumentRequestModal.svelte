@@ -169,27 +169,6 @@
 				<h2>Request Details</h2>
 				<div class="student-docreq-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
 			</header>
-
-			{#if selectedRequest.status === 'cancelled'}
-			<div class="cancelled-notice">
-				<span class="material-symbols-outlined">info</span>
-				<div class="cancelled-notice-content">
-					<strong>Request Cancelled</strong>
-					<p>This request was cancelled{selectedRequest.cancelledDate ? ` on ${selectedRequest.cancelledDate}` : ''}. No further actions can be taken.</p>
-				</div>
-			</div>
-			{/if}
-
-			{#if selectedRequest.status === 'rejected'}
-			<div class="rejected-notice">
-				<span class="material-symbols-outlined">cancel</span>
-				<div class="rejected-notice-content">
-					<strong>Request Rejected</strong>
-					<p>{selectedRequest.rejectionReason || 'Your request was rejected. Please contact the admin for more information.'}</p>
-				</div>
-			</div>
-			{/if}
-
 			<!-- Request Info Cards -->
 			<div class="student-docreq-cards">
 				<div class="student-docreq-card">
@@ -498,7 +477,6 @@
 		align-items: stretch;
 		padding: var(--spacing-xl);
 		overflow-y: auto;
-		flex: 1;
 	}
 
 	.student-docreq-modal-left-container {
@@ -532,62 +510,6 @@
 		color: var(--md-sys-color-on-surface-variant);
 		font-size: 0.875rem;
 		margin-top: 6px;
-	}
-
-	.cancelled-notice, .rejected-notice {
-		display: flex;
-		gap: var(--spacing-md);
-		padding: var(--spacing-md);
-		border-radius: var(--radius-md);
-		margin: var(--spacing-md) 0;
-		align-items: flex-start;
-	}
-
-	.cancelled-notice {
-		background-color: var(--status-cancelled-bg-light);
-		border: 1px solid var(--status-cancelled-border);
-	}
-
-	.rejected-notice {
-		background-color: var(--status-rejected-bg-light);
-		border: 1px solid var(--status-rejected-border);
-	}
-
-	.cancelled-notice .material-symbols-outlined {
-		color: var(--status-cancelled-text);
-		font-size: 24px;
-		flex-shrink: 0;
-	}
-
-	.rejected-notice .material-symbols-outlined {
-		color: var(--status-rejected-text);
-		font-size: 24px;
-		flex-shrink: 0;
-	}
-
-	.cancelled-notice-content, .rejected-notice-content {
-		flex: 1;
-	}
-
-	.cancelled-notice-content strong {
-		display: block;
-		color: var(--status-cancelled-text);
-		font-size: 0.95rem;
-		margin-bottom: 4px;
-	}
-
-	.rejected-notice-content strong {
-		display: block;
-		color: var(--status-rejected-text);
-		font-size: 0.95rem;
-		margin-bottom: 4px;
-	}
-
-	.cancelled-notice-content p, .rejected-notice-content p {
-		margin: 0;
-		color: var(--md-sys-color-on-surface-variant);
-		font-size: 0.875rem;
-		line-height: 1.4;
 	}
 
 	.student-docreq-cards {

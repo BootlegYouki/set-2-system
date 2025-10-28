@@ -73,10 +73,42 @@
   --subject-card-yellow-text: #ff6f00;
   --subject-card-yellow-icon: #ffc107;
   
-  --subject-card-orange-border: #ff9800;
+  --subject-card-orange-border: #e95e0d;
   --subject-card-orange-text: #e65100;
   --subject-card-orange-icon-bg: #ff9800;
   --subject-card-orange-icon-text: #ffffff;
+  
+  --subject-card-red-border: #f44336;
+  --subject-card-red-text: #c62828;
+  --subject-card-red-icon: #f44336;
+  
+  --subject-card-teal-border: #009688;
+  --subject-card-teal-text: #004d40;
+  --subject-card-teal-icon: #009688;
+  
+  --subject-card-indigo-border: #3f51b5;
+  --subject-card-indigo-text: #1a237e;
+  --subject-card-indigo-icon: #3f51b5;
+  
+  --subject-card-pink-border: #e91e63;
+  --subject-card-pink-text: #880e4f;
+  --subject-card-pink-icon: #e91e63;
+  
+  --subject-card-cyan-border: #00bcd4;
+  --subject-card-cyan-text: #006064;
+  --subject-card-cyan-icon: #00bcd4;
+  
+  --subject-card-lime-border: #cddc39;
+  --subject-card-lime-text: #827717;
+  --subject-card-lime-icon: #cddc39;
+  
+  --subject-card-amber-border: #ffc107;
+  --subject-card-amber-text: #ff6f00;
+  --subject-card-amber-icon: #ffc107;
+  
+  --subject-card-deeporange-border: #ff5722;
+  --subject-card-deeporange-text: #bf360c;
+  --subject-card-deeporange-icon: #ff5722;
   
   /* Unverified indicator - Light Mode */
   --unverified-indicator: var(--md-sys-color-warning);
@@ -177,10 +209,42 @@
   --subject-card-yellow-text: #fff3c4;
   --subject-card-yellow-icon: #eed889;
   
-  --subject-card-orange-border: #ffb74d;
+  --subject-card-orange-border: #fa7000;
   --subject-card-orange-text: #ffe0b2;
   --subject-card-orange-icon-bg: #ffb74d;
   --subject-card-orange-icon-text: #e65100;
+  
+  --subject-card-red-border: #ef5350;
+  --subject-card-red-text: #ffcdd2;
+  --subject-card-red-icon: #ef5350;
+  
+  --subject-card-teal-border: #26a69a;
+  --subject-card-teal-text: #b2dfdb;
+  --subject-card-teal-icon: #26a69a;
+  
+  --subject-card-indigo-border: #5c6bc0;
+  --subject-card-indigo-text: #c5cae9;
+  --subject-card-indigo-icon: #5c6bc0;
+  
+  --subject-card-pink-border: #ec407a;
+  --subject-card-pink-text: #f8bbd0;
+  --subject-card-pink-icon: #ec407a;
+  
+  --subject-card-cyan-border: #26c6da;
+  --subject-card-cyan-text: #b2ebf2;
+  --subject-card-cyan-icon: #26c6da;
+  
+  --subject-card-lime-border: #d4e157;
+  --subject-card-lime-text: #f0f4c3;
+  --subject-card-lime-icon: #d4e157;
+  
+  --subject-card-amber-border: #ffca28;
+  --subject-card-amber-text: #ffecb3;
+  --subject-card-amber-icon: #ffca28;
+  
+  --subject-card-deeporange-border: #ff7043;
+  --subject-card-deeporange-text: #ffccbc;
+  --subject-card-deeporange-icon: #ff7043;
   
   /* Unverified indicator - Dark Mode */
   --unverified-indicator: #ff9800;
