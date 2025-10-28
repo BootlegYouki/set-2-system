@@ -381,8 +381,13 @@
 						<span class="material-symbols-outlined">star</span>
 					</div>
 					<div class="stat-content">
-						<div class="grade-stat-value" style="color: {getGradeColor(overallAverage)}">
-							<CountUp value={overallAverage} decimals={1} duration={2.5} />
+						<div class="grade-stat-value">
+							<CountUp 
+								value={overallAverage} 
+								decimals={1} 
+								duration={2.5} 
+								colorTransition={true}
+								getGradeColor={getGradeColor} />
 						</div>
 						<div class="stat-label">Overall Average</div>
 					</div>
@@ -539,11 +544,18 @@
 								
 								<!-- Column 3: Grade Display -->
 								<div class="grade-column">
-									<div class="grade-large" style="color: {getGradeColor(subject.numericGrade)}">
+									<div class="grade-large">
 										{#if subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified}
-											<CountUp value={subject.numericGrade} decimals={1} duration={2.5} />
+											<CountUp 
+												value={subject.numericGrade} 
+												decimals={1} 
+												duration={2.5}
+												colorTransition={true}
+												getGradeColor={getGradeColor} />
 										{:else}
-											{formatGrade(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}
+											<span style="color: {getGradeColor(subject.numericGrade)}">
+												{formatGrade(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}
+											</span>
 										{/if}
 										{#if subject.numericGrade > 0 && !subject.verified}
 											<span class="unverified-indicator" title="Grade not yet verified">*</span>
