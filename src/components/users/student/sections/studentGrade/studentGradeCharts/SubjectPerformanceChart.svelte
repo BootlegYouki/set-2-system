@@ -58,8 +58,10 @@
 						borderColor: borderColors,
 						borderWidth: 2,
 						borderRadius: 8,
-						barThickness: 35,
-						maxBarThickness: 45
+						barThickness: 25,
+						maxBarThickness: 45,
+						categoryPercentage: 0.7,
+						barPercentage: 0.8
 					}
 				]
 			},
