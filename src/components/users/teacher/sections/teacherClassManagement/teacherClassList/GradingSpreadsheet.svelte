@@ -1304,7 +1304,9 @@
         placeholder: 'Enter total score',
         value: currentTotal,
         min: 1,
-        max: 1000
+        max: 1000,
+        disabled: gradesAreVerified,
+        disabledReason: gradesAreVerified ? 'Cannot edit total score when grades are verified by adviser' : ''
       },
       async (newName, newTotal) => {
         // Validate inputs
