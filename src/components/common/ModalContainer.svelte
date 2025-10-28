@@ -126,10 +126,13 @@
                 type={modal.props.field1Type || 'text'}
                 id="formField1"
                 class="modal-input" 
+                class:modal-input-disabled={modal.props.field1Disabled}
                 placeholder={modal.props.field1Placeholder || "Enter value..."}
                 bind:value={modal.props.field1Value}
                 min={modal.props.field1Min}
                 max={modal.props.field1Max}
+                disabled={modal.props.field1Disabled}
+                title={modal.props.field1Disabled ? modal.props.field1DisabledReason : ''}
               />
             </div>
             <div class="modal-form-group">
@@ -138,10 +141,13 @@
                 type={modal.props.field2Type || 'text'}
                 id="formField2"
                 class="modal-input" 
+                class:modal-input-disabled={modal.props.field2Disabled}
                 placeholder={modal.props.field2Placeholder || "Enter value..."}
                 bind:value={modal.props.field2Value}
                 min={modal.props.field2Min}
                 max={modal.props.field2Max}
+                disabled={modal.props.field2Disabled}
+                title={modal.props.field2Disabled ? modal.props.field2DisabledReason : ''}
               />
             </div>
           </div>
@@ -273,6 +279,22 @@
   .modal-input:focus {
     outline: none;
     border-color: var(--md-sys-color-primary);
+  }
+
+  /* Disabled input styling */
+  .modal-input:disabled,
+  .modal-input-disabled {
+    background-color: var(--md-sys-color-surface-container-low);
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: not-allowed;
+    opacity: 0.6;
+    border: 2px solid var(--md-sys-color-outline-variant);
+  }
+
+  .modal-input:disabled::placeholder,
+  .modal-input-disabled::placeholder {
+    color: var(--md-sys-color-on-surface-variant);
+    opacity: 0.5;
   }
 
   .modal-actions {
