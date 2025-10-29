@@ -95,7 +95,7 @@
 </script>
 
 <!-- Navigation Rail (Desktop) -->
-<nav class="navigation-rail" class:collapsed={!isNavRailVisible} role="navigation" aria-label="Student portal navigation">
+<nav class="navigation-rail" class:collapsed={!isNavRailVisible} aria-label="Student portal navigation">
 	<div class="rail-container">
 		{#each navigationItems as item (item.id)}
 			<button 
@@ -122,7 +122,7 @@
 </nav>
 
 <!-- Bottom Navigation (Mobile) -->
-<nav class="bottom-navigation" role="	navigation" aria-label="Student portal navigation">
+<nav class="bottom-navigation" aria-label="Student portal navigation">
 	<div class="nav-container">
 		<!-- First half of navigation items -->
 		{#each navigationItems.slice(0, 2) as item (item.id)}

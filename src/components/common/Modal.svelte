@@ -7,13 +7,14 @@
     size = 'medium', 
     closable = true, 
     backdrop = true,
-    onClose 
+    onClose,
+    children
   } = $props();
 
   // State
   let visible = $state(false);
   let closing = $state(false);
-  let modalElement;
+  let modalElement = $state();
   
   const dispatch = createEventDispatcher();
 
@@ -90,13 +91,15 @@
     class:modal-visible={visible && !closing} 
     class:modal-closing={closing}
     onclick={handleBackdropClick}
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby={title ? 'modal-title' : undefined}
+    onkeydown={handleBackdropClick}
+    role="presentation"
   >
     <div 
       class="modal-content {getSizeClass(size)}"
       bind:this={modalElement}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={title ? 'modal-title' : undefined}
       tabindex="-1"
     >
       {#if title || closable}
@@ -117,7 +120,7 @@
       {/if}
       
       <div class="modal-body">
-        <slot></slot>
+        {@render children()}
       </div>
     </div>
   </div>

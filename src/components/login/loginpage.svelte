@@ -512,6 +512,7 @@
             <div class="custom-text-field">
               <span class="leading-icon material-symbols-outlined">email</span>
               <input
+                id="forgot-password-email"
                 type="email"
                 bind:value={email}
                 autocomplete="email"
@@ -519,7 +520,7 @@
                 placeholder=" "
                 required
               />
-              <label class="text-label">Email Address</label>
+              <label for="forgot-password-email" class="text-label">Email Address</label>
             </div>
           </div>
 
@@ -601,6 +602,7 @@
             <div class="custom-text-field">
               <span class="leading-icon material-symbols-outlined">lock</span>
               <input
+                id="reset-new-password"
                 type={showNewPassword ? 'text' : 'password'}
                 bind:value={newPassword}
                 autocomplete="new-password"
@@ -608,7 +610,7 @@
                 placeholder=" "
                 required
               />
-              <label class="text-label">New Password</label>
+              <label for="reset-new-password" class="text-label">New Password</label>
               <button
                 type="button"
                 class="trailing-icon-button"
@@ -627,6 +629,7 @@
             <div class="custom-text-field">
               <span class="leading-icon material-symbols-outlined">lock_reset</span>
               <input
+                id="reset-confirm-password"
                 type={showConfirmPassword ? 'text' : 'password'}
                 bind:value={confirmPassword}
                 autocomplete="new-password"
@@ -634,7 +637,7 @@
                 placeholder=" "
                 required
               />
-              <label class="text-label">Confirm Password</label>
+              <label for="reset-confirm-password" class="text-label">Confirm Password</label>
               <button
                 type="button"
                 class="trailing-icon-button"
