@@ -93,10 +93,19 @@
   color: var(--md-sys-color-on-surface);
 }
 
+.header-controls {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+}
+
 .advisory-class-info {
   display: flex;
   gap: var(--spacing-lg);
   flex-wrap: wrap;
+  flex: 1;
 }
 
 .class-detail {
@@ -114,6 +123,130 @@
 .class-detail .material-symbols-outlined {
   font-size: 20px;
   color: var(--school-primary);
+}
+
+/* Quarter Selector */
+.quarter-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 200px;
+}
+
+/* Custom Dropdown for Quarter Selection */
+.quarter-dropdown {
+  position: relative;
+  width: 100%;
+  min-width: 200px;
+}
+
+.quarter-select-button {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-sys-typescale-body-large-font);
+  font-size: var(--md-sys-typescale-body-large-size);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.quarter-select-button:hover {
+  border-color: var(--md-sys-color-outline);
+}
+
+.quarter-selected-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 1;
+}
+
+.quarter-option-icon {
+  font-size: 24px;
+  color: var(--school-primary);
+}
+
+.quarter-option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.quarter-option-name {
+  font-weight: var(--md-sys-typescale-body-medium-weight);
+  color: var(--md-sys-color-on-surface);
+}
+
+.quarter-placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.quarter-dropdown-arrow {
+  font-size: 24px;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: transform var(--transition-normal);
+}
+
+.quarter-dropdown.open .quarter-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.quarter-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--transition-normal);
+}
+
+.quarter-dropdown.open .quarter-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.quarter-dropdown-option {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--transition-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.quarter-dropdown-option:hover {
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.quarter-dropdown-option.selected {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.quarter-dropdown-option.selected .quarter-option-icon {
+  color: var(--md-sys-color-on-primary-container);
 }
 
 /* Teacher Submission Info */
@@ -420,6 +553,12 @@
   padding: var(--spacing-lg);
   cursor: pointer;
   transition: all var(--transition-normal);
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 }
 
 .student-header:hover {
@@ -809,10 +948,20 @@
     grid-template-columns: 1fr;
   }
 
+  .header-controls {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
   .advisory-class-info {
     /* flex-direction: column; */
     justify-content: stretch;
     gap: var(--spacing-sm);
+  }
+
+  .quarter-selector-container {
+    width: 100%;
+    min-width: 100%;
   }
 
   .student-average {
