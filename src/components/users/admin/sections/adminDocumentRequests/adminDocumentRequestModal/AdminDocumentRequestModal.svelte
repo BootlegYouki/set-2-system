@@ -446,23 +446,24 @@
 				<div class="admin-chat-messages" bind:this={chatMessagesEl}>
 					{#if messages.length > 0}
 						{#each messages as msg (msg.id)}
-							<div class="chat-message {msg.authorRole || 'student'}">
-								<div class="chat-message-header">
-									<div class="chat-author-info">
-										<span class="material-symbols-outlined chat-avatar-icon">
-											{msg.authorRole === 'admin' ? 'admin_panel_settings' : 'account_circle'}
-										</span>
-										<div class="chat-author-details">
-											<span class="chat-author">{msg.author}</span>
-											<span class="chat-role-badge">{msg.authorRole || 'student'}</span>
-										</div>
+							<div class="message-wrapper {msg.authorRole === 'admin' ? 'sent' : 'received'}">
+								{#if msg.authorRole !== 'admin'}
+									<div class="message-avatar">
+										<span class="material-symbols-outlined">account_circle</span>
 									</div>
-									<div class="chat-time">
-										<span class="material-symbols-outlined time-icon">schedule</span>
-										{new Date(msg.created_at).toLocaleString()}
+								{/if}
+								<div class="message-bubble">
+									<div class="message-header">
+										<span class="message-author">{msg.author}</span>
+										<span class="message-time">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
 									</div>
+									<div class="message-text">{msg.text}</div>
 								</div>
-								<div class="chat-text">{msg.text}</div>
+								{#if msg.authorRole === 'admin'}
+									<div class="message-avatar">
+										<span class="material-symbols-outlined">admin_panel_settings</span>
+									</div>
+								{/if}
 							</div>
 						{/each}
 					{:else}
@@ -614,10 +615,6 @@
 
 	.docreq-modal-close-button:active {
 		transform: scale(0.95);
-	}
-
-	.docreq-modal-close-button .material-symbols-outlined {
-		font-size: 24px;
 	}
 
 	.docreq-modal-grid {
@@ -809,6 +806,10 @@
 		margin-bottom: var(--spacing-sm);
 		min-height: 350px;
 		max-height: 350px;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		gap: var(--spacing-xs);
 	}
 
 	.no-chat {
@@ -837,106 +838,105 @@
 		opacity: 0.7;
 	}
 
-	.chat-message {
-		background: var(--md-sys-color-surface-container);
-		margin-bottom: var(--spacing-md);
-		padding: var(--spacing-md);
-		border-radius: var(--radius-md);
-		border-left: 3px solid var(--md-sys-color-primary);
+	/* Message Bubbles */
+	.message-wrapper {
+		display: flex;
+		align-items: flex-end;
+		gap: 8px;
+		margin-bottom: var(--spacing-xs);
+		animation: slideIn 0.2s ease-out;
+	}
+
+	@keyframes slideIn {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.message-wrapper.sent {
+		justify-content: flex-end;
+	}
+
+	.message-wrapper.received {
+		justify-content: flex-start;
+	}
+
+	.message-avatar {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--md-sys-color-surface-container-highest);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		margin-bottom: 2px;
+	}
+
+	.message-avatar .material-symbols-outlined {
+		font-size: 20px;
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.message-wrapper.sent .message-avatar .material-symbols-outlined {
+		color: var(--md-sys-color-primary);
+	}
+
+	.message-wrapper.received .message-avatar .material-symbols-outlined {
+		color: var(--md-sys-color-secondary);
+	}
+
+	.message-bubble {
+		max-width: 70%;
+		padding: 10px 14px;
+		border-radius: 16px;
+		position: relative;
+		word-wrap: break-word;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+	}
+
+	.message-wrapper.sent .message-bubble {
+		background: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+		border-bottom-right-radius: 4px;
+	}
+
+	.message-wrapper.received .message-bubble {
+		background: var(--md-sys-color-surface-container-highest);
 		color: var(--md-sys-color-on-surface);
-		transition: all var(--transition-fast);
+		border-bottom-left-radius: 4px;
 	}
 
-	.chat-message:hover {
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		border-left-color: var(--md-sys-color-primary);
-	}
-
-	.chat-message.admin {
-		border-left-color: var(--md-sys-color-tertiary);
-	}
-
-	.chat-message.admin:hover {
-		border-left-color: var(--md-sys-color-tertiary);
-	}
-
-	.chat-message:last-child {
-		margin-bottom: 0;
-	}
-
-	.chat-message-header {
+	.message-header {
 		display: flex;
 		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: var(--spacing-sm);
-		gap: var(--spacing-sm);
+		align-items: baseline;
+		margin-bottom: 4px;
+		gap: 12px;
 	}
 
-	.chat-author-info {
-		display: flex;
-		gap: var(--spacing-sm);
-		align-items: center;
-		flex: 1;
-	}
-
-	.chat-avatar-icon {
-		color: var(--md-sys-color-primary);
-		font-size: 32px;
-		background: var(--md-sys-color-primary-container);
-		padding: 8px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
-
-	.chat-message.admin .chat-avatar-icon {
-		color: var(--md-sys-color-tertiary);
-		background: var(--md-sys-color-tertiary-container);
-	}
-
-	.chat-author-details {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.chat-author {
-		color: var(--md-sys-color-on-surface);
-		font-weight: 600;
-		font-size: 0.95rem;
-	}
-
-	.chat-role-badge {
-		display: inline-block;
-		background: var(--md-sys-color-secondary-container);
-		color: var(--md-sys-color-on-secondary-container);
-		padding: 2px 8px;
-		border-radius: 6px;
-		font-size: 0.7rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		width: fit-content;
-	}
-
-	.chat-text {
-		color: var(--md-sys-color-on-surface);
-		line-height: 1.6;
-		font-size: 0.95rem;
-		padding-left: 48px;
-	}
-
-	.chat-time {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		color: var(--md-sys-color-on-surface-variant);
+	.message-author {
 		font-size: 0.75rem;
-		white-space: nowrap;
-		opacity: 0.8;
+		font-weight: 600;
+		opacity: 0.9;
 	}
 
-	.time-icon {
-		font-size: 16px;
+	.message-time {
+		font-size: 0.7rem;
+		opacity: 0.7;
+		white-space: nowrap;
+	}
+
+	.message-text {
+		font-size: 0.95rem;
+		line-height: 1.4;
+		word-break: break-word;
+		white-space: pre-wrap;
 	}
 
 	.admin-chat-input {
