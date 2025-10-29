@@ -8,8 +8,8 @@
 		request = {},
 		requestStatuses = [],
 		modalStatuses = [],
-		onUpdate = () => {},
-		onReject = () => {},
+		onUpdate = async () => {},
+		onReject = async () => {},
 		onClose = () => {}
 	} = $props();
 
@@ -1589,18 +1589,12 @@
 		outline-offset: 2px;
 	}
 
-	/* Reject Modal Specific Styles */
-	.reject-warning {
-		background: var(--md-sys-color-error-container);
-		border-color: var(--md-sys-color-error);
-	}
-
 	.reject-notice {
 		display: flex;
 		align-items: center;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-sm);
-		background: var(--md-sys-color-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
 		border-radius: var(--radius-sm);
 		margin-top: var(--spacing-sm);
 		color: var(--md-sys-color-on-surface);

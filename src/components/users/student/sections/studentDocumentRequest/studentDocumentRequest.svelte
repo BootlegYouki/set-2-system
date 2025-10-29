@@ -41,13 +41,12 @@
 
 	// Document types - aligned with admin system
 	const documentTypes = [
-		{ id: 'Transcript', name: 'Transcript', description: 'Official academic record' },
+		{ id: 'Transcript of Records (TOR)', name: 'Transcript of Records (TOR)', description: 'Official academic record' },
 		{ id: 'Enrollment Certificate', name: 'Enrollment Certificate', description: 'Proof of enrollment' },
 		{ id: 'Grade Report', name: 'Grade Report', description: 'Semester grade report' },
 		{ id: 'Diploma', name: 'Diploma', description: 'Official graduation certificate' },
 		{ id: 'Certificate', name: 'Certificate', description: 'Academic achievement certificate' },
 		{ id: 'Good Moral', name: 'Good Moral', description: 'Certificate of good moral character' },
-		{ id: 'TOR', name: 'TOR', description: 'Transcript of Records' },
 		{ id: 'Grade Slip', name: 'Grade Slip', description: 'Grade slip for specific period' }
 	];
 
@@ -95,7 +94,7 @@
 			}
 		} catch (err) {
 			console.error('Error fetching document requests:', err);
-			error = 'Failed to load document requests';
+			toastStore.error('Failed to load document requests');
 		} finally {
 			loading = false;
 		}
@@ -357,23 +356,25 @@
 						</div>
 					</div>
 					
-					<div class="form-group">
-						<label class="form-label" for="description">
-							<span class="material-symbols-outlined form-icon">edit_note</span>
-							Purpose & Details
-						</label>
-						<textarea 
-							id="description" 
-							class="form-textarea enhanced" 
-							bind:value={requestPurpose} 
-							placeholder="Please describe the purpose of your request and any specific requirements..."
-							rows="5"
-						></textarea>
-						<div class="form-help">
-							<span class="material-symbols-outlined help-icon">info</span>
-							Be specific about your needs to help us process your request efficiently
-						</div>
+				<div class="form-group">
+					<label class="form-label" for="description">
+						<span class="material-symbols-outlined form-icon">edit_note</span>
+						Purpose & Details
+					</label>
+					<textarea 
+						id="description" 
+						class="form-textarea enhanced" 
+						bind:value={requestPurpose} 
+						placeholder="Please describe the purpose of your request and any specific requirements..."
+						rows="5"
+						maxlength="200"
+					></textarea>
+					<div class="form-help">
+						<span class="material-symbols-outlined help-icon">info</span>
+						Be specific about your needs to help us process your request efficiently
+						<span class="char-counter">{requestPurpose.length}/200</span>
 					</div>
+				</div>
 					
 					<div class="document-form-actions">
 						<button class="document-cancel-button" on:click={toggleRequestForm} disabled={isSubmitting}>
@@ -438,7 +439,6 @@
 										{getStatusDisplayName(request.status)}
 									</div>
 								</div>
-								<p class="request-description">{request.purpose}</p>
 							</div>
 						</div>
 						
@@ -462,14 +462,10 @@
 									{/if}
 								</span>
 							</div>
-						{:else if request.status === 'on_hold'}
-							<div class="request-footer pending-footer">
-								<span class="footer-info">Awaiting review</span>
-								<button class="cancel-request-button" on:click|stopPropagation={() => handleCancelRequest(request)}>
-									<span class="material-symbols-outlined">close</span>
-									Cancel
-								</button>
-							</div>
+					{:else if request.status === 'on_hold'}
+						<div class="request-footer pending-footer">
+							<span class="footer-info">Awaiting review</span>
+						</div>
 						{:else if request.status === 'cancelled'}
 							<div class="request-footer cancelled-footer">
 								<span class="footer-info">Cancelled on {request.cancelledDate || formatDate(request.submittedDate)}</span>

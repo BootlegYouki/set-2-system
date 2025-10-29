@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { client } from '../../../database/db.js';
+import { connectToDatabase } from '../../../database/db.js';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -28,7 +28,7 @@ export async function POST({ request }) {
     const payload = await request.json().catch(() => ({}));
     const ts = payload && payload.timestamp ? new Date(payload.timestamp) : new Date();
 
-    const db = client.db(process.env.MONGODB_DB_NAME || 'set-2-system');
+    const db = await connectToDatabase();
     const usersCollection = db.collection('users');
 
     try {

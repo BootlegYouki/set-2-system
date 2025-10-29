@@ -30,13 +30,12 @@
 	];
 
 	const documentTypes = [
-		{ id: 'transcript', name: 'Transcript', description: 'Official academic record' },
+		{ id: 'tor', name: 'Transcript of Records (TOR)', description: 'Official academic record' },
 		{ id: 'enrollment', name: 'Enrollment Certificate', description: 'Proof of enrollment' },
 		{ id: 'grade-report', name: 'Grade Report', description: 'Semester grade report' },
 		{ id: 'diploma', name: 'Diploma', description: 'Official graduation certificate' },
 		{ id: 'certificate', name: 'Certificate', description: 'Academic achievement certificate' },
 		{ id: 'good-moral', name: 'Good Moral', description: 'Certificate of good moral character' },
-		{ id: 'tor', name: 'TOR', description: 'Transcript of Records' },
 		{ id: 'grade-slip', name: 'Grade Slip', description: 'Grade slip for specific period' }
 	];
 
@@ -142,7 +141,7 @@
 					requestStatuses,
 					modalStatuses,
 					updateRequestAPI,
-					null
+					rejectRequestAPI
 				);
 			} else {
 				console.error('Failed to fetch request details:', result.error);
@@ -224,6 +223,37 @@
 		} catch (err) {
 			console.error('Error updating request:', err);
 			error = 'Failed to update request';
+			return false;
+		}
+	}
+
+	// Reject a document request
+	async function rejectRequestAPI(requestId) {
+		try {
+			const response = await authenticatedFetch('/api/document-requests', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					action: 'reject',
+					requestId
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				// Refresh the list
+				await fetchDocumentRequests();
+				return true;
+			} else {
+				error = result.error || 'Failed to reject request';
+				return false;
+			}
+		} catch (err) {
+			console.error('Error rejecting request:', err);
+			error = 'Failed to reject request';
 			return false;
 		}
 	}
@@ -632,23 +662,22 @@
 								<span class="material-symbols-outlined">calendar_today</span>
 								<span>Requested: {request.submittedDate}</span>
 							</div>
-							<div class="docreq-detail-item">
-								<span class="material-symbols-outlined">payments</span>
-								<span>{request.payment}</span>
-							</div>
+							
+							<!-- Payment - hide if free -->
+							{#if request.payment !== 'Free'}
+								<div class="docreq-detail-item">
+									<span class="material-symbols-outlined">payments</span>
+									<span>{request.payment}</span>
+								</div>
+							{/if}
 
-							<!-- Tentative date shown on request card -->
-							<div class="docreq-detail-item">
-								<span class="material-symbols-outlined">event</span>
-								<span>
-									Tentative Date:
-									{#if request.status === 'processing'}
-										{request.tentativeDate || '--/--/----'}
-									{:else}
-										N/A
-									{/if}
-								</span>
-							</div>
+							<!-- Tentative date - only show if there is one -->
+							{#if request.tentativeDate}
+								<div class="docreq-detail-item">
+									<span class="material-symbols-outlined">event</span>
+									<span>Tentative Date: {request.tentativeDate}</span>
+								</div>
+							{/if}
 						</div>
 					</div>
 				{/each}

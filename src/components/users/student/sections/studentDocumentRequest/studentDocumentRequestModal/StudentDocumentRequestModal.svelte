@@ -171,78 +171,81 @@
 			</header>
 			<!-- Request Info Cards -->
 			<div class="student-docreq-cards">
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">description</span> Document Type
-					</div>
-					<div class="card-value">{selectedRequest.type}</div>
-				</div>
-
-				<!-- Status card (read-only, clickable for info) -->
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">info</span> Status
-					</div>
-					<div class="card-value">
-						<div
-							class="status-display-wrapper"
-							onclick={openProcessFlowModal}
-							onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && openProcessFlowModal()}
-							role="button"
-							tabindex="0"
-							title="Click to view status flow information"
-						>
-							<span class="status-badge status-{selectedRequest.status}">
-								{getStatusDisplayName(selectedRequest.status)}
-							</span>
-							<span class="material-symbols-outlined doc-request-info-icon">help</span>
+				<!-- First Row: Status card (read-only, clickable for info) -->
+				<div class="student-docreq-card full-width status-card-horizontal">
+					<div class="status-group">
+						<div class="card-label">
+							<span class="material-symbols-outlined">info</span> Status:
 						</div>
+						<span class="status-badge status-{selectedRequest.status}">
+							{getStatusDisplayName(selectedRequest.status)}
+						</span>
 					</div>
+					<button
+						class="status-info-button"
+						onclick={openProcessFlowModal}
+						title="Click to view status flow information"
+						aria-label="View status flow information"
+					>
+						<span class="material-symbols-outlined">help</span>
+					</button>
 				</div>
 
-			<!-- Tentative Date card (read-only) -->
-			{#if selectedRequest.tentativeDate}
-			<div class="student-docreq-card">
-				<div class="card-label">
-					<span class="material-symbols-outlined">event</span> Tentative Date
-				</div>
-				<div class="card-value">
-					<div class="date-display">
-						{formatDate(selectedRequest.tentativeDate)}
-					</div>
-				</div>
+		<!-- Second Row: Document Type and Processed By -->
+		<div class="student-docreq-card half-width">
+			<div class="card-label">
+				<span class="material-symbols-outlined">description</span> Document Type
 			</div>
+			<div class="card-value">{selectedRequest.type}</div>
+		</div>
+
+		<div class="student-docreq-card half-width">
+			<div class="card-label">
+				<span class="material-symbols-outlined">account_circle</span> Processed By
+			</div>
+			<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
+		</div>
+
+	<!-- Third Row: Payment, Requested Date, and Tentative Date -->
+	<div class="student-docreq-card">
+		<div class="card-label">
+			<span class="material-symbols-outlined">payments</span> Payment
+		</div>
+		<div class="card-value payment-value">
+			{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
+				{#if selectedRequest.paymentAmount === 0}
+					<span class="payment-amount free">Free</span>
+				{:else}
+					<span class="payment-amount">₱{selectedRequest.paymentAmount}</span>
+					<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
+						{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+					</span>
+				{/if}
+			{:else}
+				<span class="payment-amount tentative">Tentative</span>
 			{/if}
+		</div>
+	</div>
 
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">payments</span> Payment
-					</div>
-					<div class="card-value payment-value">
-						{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
-							<span class="payment-amount">₱{selectedRequest.paymentAmount}</span>
-							<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
-								{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-							</span>
-						{:else}
-							<span class="payment-amount tentative">Tentative</span>
-						{/if}
-					</div>
-				</div>
+	<div class="student-docreq-card">
+		<div class="card-label">
+			<span class="material-symbols-outlined">calendar_today</span> Requested Date
+		</div>
+		<div class="card-value">{selectedRequest.requestedDate ?? '—'}</div>
+	</div>
 
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">account_circle</span> Processed By
-					</div>
-					<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
-				</div>
-
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">calendar_today</span> Requested Date
-					</div>
-					<div class="card-value">{selectedRequest.requestedDate ?? '—'}</div>
-				</div>
+	{#if selectedRequest.tentativeDate}
+	<div class="student-docreq-card">
+		<div class="card-label">
+			<span class="material-symbols-outlined">event</span> Tentative Date
+		</div>
+		<div class="card-value">
+			<div class="date-display">
+				{formatDate(selectedRequest.tentativeDate)}
+			</div>
+		</div>
+	</div>
+	{/if}
 
 				{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
 				<div class="student-docreq-card">
@@ -263,11 +266,15 @@
 				{/if}
 			</div>
 
-			<!-- Purpose Section -->
-			<div class="student-docreq-purpose">
-				<div class="purpose-label">Purpose & Details</div>
-				<p class="purpose-text">{selectedRequest.purpose ?? '—'}</p>
+		<!-- Purpose Section -->
+		<div class="student-docreq-purpose">
+			<div class="purpose-label">
+				<span class="material-symbols-outlined">description</span> Purpose & Details
 			</div>
+			<div class="purpose-content">
+				{selectedRequest.purpose || 'No purpose provided'}
+			</div>
+		</div>
 
 		{#if selectedRequest.adminNote}
 		<!-- Admin Note Section -->
@@ -463,17 +470,16 @@
 <style>
 	.student-docreq-modal-content {
 		width: 100%;
-		max-width: 1400px;
 		background-color: var(--md-sys-color-surface-container-high);
 		border-radius: var(--radius-xl);
 		border: none;
 		box-shadow: var(--shadow-lg);
 		position: relative;
-		max-height: 90vh;
-		height: 90vh;
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
+		overflow-y: auto;
+		padding: var(--spacing-2xl);
 	}
 
 	.student-docreq-modal-grid {
@@ -481,7 +487,7 @@
 		grid-template-columns: 1.2fr 1fr;
 		gap: var(--spacing-xl);
 		align-items: stretch;
-		padding: var(--spacing-xl);
+		padding: var(--spacing-md);
 	}
 
 	.student-docreq-modal-left-container {
@@ -516,8 +522,8 @@
 	}
 
 	.student-docreq-cards {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-wrap: wrap;
 		gap: var(--spacing-md);
 	}
 
@@ -526,6 +532,53 @@
 		border-radius: var(--radius-md);
 		padding: var(--spacing-md);
 		border: 1px solid var(--md-sys-color-outline-variant);
+		flex: 1 1 calc(33.333% - var(--spacing-md));
+		min-width: 200px;
+	}
+
+	.student-docreq-card.full-width {
+		flex: 1 1 100%;
+	}
+
+	.student-docreq-card.half-width {
+		flex: 1 1 calc(50% - var(--spacing-md) / 2);
+	}
+
+	.student-docreq-card.status-card-horizontal {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--spacing-md);
+	}
+
+	.status-group {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-md);
+		flex: 1;
+	}
+
+	.student-docreq-card.status-card-horizontal .card-label {
+		margin: 0;
+	}
+	.status-info-button {
+		background: var(--md-sys-color-surface-container);
+		border: none;
+		padding: 8px;
+		border-radius: 50%;
+		cursor: pointer;
+		color: var(--md-sys-color-on-surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all var(--transition-fast);
+		min-width: 36px;
+		min-height: 36px;
+		flex-shrink: 0;
+	}
+
+	.status-info-button .material-symbols-outlined {
+		font-size: 20px;
 	}
 
 	.card-label {
@@ -558,20 +611,9 @@
 		opacity: 0.85;
 	}
 
-	.status-display-wrapper {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		cursor: pointer;
-		padding: 4px;
-		border-radius: var(--radius-sm);
-		transition: background-color var(--transition-fast);
-	}
-
-	.doc-request-info-icon {
-		font-size: 28px;
-		color: var(--md-sys-color-on-surface-variant);
-		opacity: 0.7;
+	.payment-amount.free {
+		color: var(--md-sys-color-tertiary);
+		font-weight: 700;
 	}
 
 	.status-badge {
@@ -626,23 +668,32 @@
 	.student-docreq-purpose {
 		margin-top: var(--spacing-sm);
     height: 100%;
+		width: 100%;
 	}
 
 	.purpose-label {
-		display: block;
+		display: flex;
+		gap: 8px;
+		align-items: center;
 		color: var(--md-sys-color-on-surface-variant);
-		margin-bottom: 6px;
-		font-weight: 500;
+		margin-bottom: 8px;
+		font-weight: 600;
 		font-size: 0.875rem;
 	}
 
-	.purpose-text {
+	.purpose-content {
 		background: var(--md-sys-color-surface);
 		padding: 12px;
 		border-radius: var(--radius-md);
-		border: 1px dashed var(--md-sys-color-outline-variant);
-		margin: 0;
+		border: 1px solid var(--md-sys-color-outline-variant);
 		line-height: 1.6;
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.95rem;
+		min-height: 60px;
+		word-wrap: break-word;
+		word-break: break-word;
+		overflow-wrap: break-word;
+		white-space: pre-wrap;
 	}
 
 	.admin-note-section {
@@ -1183,7 +1234,12 @@
 		}
 
 		.student-docreq-cards {
-			grid-template-columns: 1fr;
+			flex-direction: column;
+		}
+		
+		.student-docreq-card,
+		.student-docreq-card.half-width {
+			flex: 1 1 100%;
 		}
 
 		.student-docreq-modal-right-container {

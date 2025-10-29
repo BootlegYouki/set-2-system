@@ -3,19 +3,8 @@
 	import { docReqModalStore } from './AdmindocReqModalStore.js';
 	import DocumentRequestModal from './AdminDocumentRequestModal.svelte';
 
-	// Subscribe to modal store
-	let modalState = $state({
-		isOpen: false,
-		request: null,
-		requestStatuses: [],
-		modalStatuses: [],
-		onUpdate: null,
-		onReject: null
-	});
-
-	docReqModalStore.subscribe((value) => {
-		modalState = value;
-	});
+	// Subscribe to modal store using Svelte's reactive store subscription
+	let modalState = $derived($docReqModalStore);
 
 	// Animation states
 	let visible = $state(false);

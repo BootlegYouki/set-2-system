@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { client } from '../../database/db.js';
+import { connectToDatabase } from '../../database/db.js';
 import bcrypt from 'bcrypt';
 
 // POST /api/auth - Authenticate user with account number and password
@@ -29,7 +29,7 @@ export async function POST({ request, getClientAddress }) {
     }
     
     // Query user by account number from MongoDB
-    const db = client.db(process.env.MONGODB_DB_NAME || 'set-2-system');
+    const db = await connectToDatabase();
     const usersCollection = db.collection('users');
     
     // Optimized query: check account_number first (indexed), then filter status
