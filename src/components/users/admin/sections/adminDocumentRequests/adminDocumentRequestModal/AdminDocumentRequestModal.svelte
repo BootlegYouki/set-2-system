@@ -373,11 +373,13 @@
 				{/if}
 			</div>
 
-			<!-- Purpose Section -->
-			<div class="docreq-purpose">
-				<div class="purpose-label">Purpose & Details</div>
-				<p class="purpose-text">{selectedRequest.purpose ?? '—'}</p>
+		<!-- Purpose Section -->
+		<div class="docreq-purpose">
+			<div class="purpose-label">
+				<span class="material-symbols-outlined">description</span> Purpose & Details
 			</div>
+			<div class="purpose-content">{selectedRequest.purpose ?? 'No purpose provided'}</div>
+		</div>
 
 			<!-- Action Buttons -->
 			<div class="action-buttons">
@@ -478,7 +480,7 @@
 					</button>
 					<input 
 						placeholder="Type your message..." 
-						aria-label="Message input"
+						aria-label="Message input" 
 						bind:value={newMessage}
 						onkeydown={(e) => e.key === 'Enter' && !isSendingMessage && sendMessage()}
 						disabled={isSendingMessage}
@@ -486,7 +488,7 @@
 					<button 
 						class="send-btn" 
 						title="Send message" 
-						aria-label="Send message"
+						aria-label="Send message" 
 						onclick={sendMessage}
 						disabled={isSendingMessage || !newMessage.trim()}
 					>
@@ -622,7 +624,7 @@
 		display: grid;
 		grid-template-columns: 1.2fr 1fr;
 		gap: var(--spacing-xl);
-		align-items: start;
+		align-items: stretch;
 		padding: var(--spacing-xl);
 		flex: 1;
 	}
@@ -635,6 +637,7 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
+		height: 100%;
 	}
 
 	.docreq-modal-right-container {
@@ -644,6 +647,7 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
+		height: 100%;
 	}
 
 	.docreq-modal-title h2 {
@@ -707,18 +711,28 @@
 	}
 
 	.purpose-label {
-		display: block;
+		display: flex;
+		gap: 8px;
+		align-items: center;
 		color: var(--md-sys-color-on-surface-variant);
-		margin-bottom: 6px;
-		font-weight: 500;
+		margin-bottom: 8px;
+		font-weight: 600;
+		font-size: 0.875rem;
 	}
 
-	.purpose-text {
+	.purpose-content {
 		background: var(--md-sys-color-surface);
 		padding: 12px;
 		border-radius: var(--radius-md);
-		border: 1px dashed var(--md-sys-color-outline-variant);
-		margin: 0;
+		border: 1px solid var(--md-sys-color-outline-variant);
+		line-height: 1.6;
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.95rem;
+		min-height: 60px;
+		word-wrap: break-word;
+		word-break: break-word;
+		overflow-wrap: break-word;
+		white-space: pre-wrap;
 	}	
 
 	/* Student Information Section */
@@ -793,8 +807,8 @@
 		border: 1px solid var(--md-sys-color-outline-variant);
 		overflow-y: auto;
 		margin-bottom: var(--spacing-sm);
-		min-height: 300px;
-		max-height: 300px;
+		min-height: 350px;
+		max-height: 350px;
 	}
 
 	.no-chat {
@@ -933,22 +947,25 @@
 		border-radius: var(--radius-md);
 		border: 1px solid var(--md-sys-color-outline-variant);
 		align-items: center;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 	}
 
 	.admin-chat-input input {
 		flex: 1;
-		padding: var(--spacing-sm) var(--spacing-md);
-		border-radius: var(--radius-sm);
+		padding: 12px var(--spacing-md);
+		border-radius: var(--radius-md);
 		background: var(--md-sys-color-surface-container);
 		border: 1px solid var(--md-sys-color-outline-variant);
 		color: var(--md-sys-color-on-surface);
 		font-size: 0.95rem;
-		transition: border-color var(--transition-fast);
+		transition: all var(--transition-fast);
 	}
 
 	.admin-chat-input input:focus {
 		outline: none;
 		border-color: var(--md-sys-color-primary);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+		background: var(--md-sys-color-surface);
 	}
 
 	.admin-chat-input input::placeholder {
@@ -960,28 +977,57 @@
 	.send-btn {
 		background: var(--md-sys-color-surface-container);
 		border: 1px solid var(--md-sys-color-outline-variant);
-		padding: 8px 12px;
-		border-radius: var(--radius-sm);
+		padding: 10px;
+		border-radius: var(--radius-md);
 		color: var(--md-sys-color-on-surface);
 		cursor: pointer;
 		transition: all var(--transition-fast);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		min-width: 40px;
-		min-height: 40px;
+		min-width: 44px;
+		min-height: 44px;
 	}
 
-	.attach-btn:hover,
-	.send-btn:hover:not(:disabled) {
-		background: var(--md-sys-color-primary-container);
+	.attach-btn .material-symbols-outlined,
+	.send-btn .material-symbols-outlined {
+		font-size: 22px;
+	}
+
+	.attach-btn:hover {
+		background: var(--md-sys-color-secondary-container);
+		border-color: var(--md-sys-color-secondary);
+		color: var(--md-sys-color-on-secondary-container);
+		transform: scale(1.05);
+	}
+
+	.send-btn {
+		background: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
 		border-color: var(--md-sys-color-primary);
-		color: var(--md-sys-color-on-primary-container);
+	}
+
+	.send-btn:hover:not(:disabled) {
+		background: var(--md-sys-color-primary);
+		opacity: 0.9;
+		transform: scale(1.05);
+		box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 	}
 
 	.send-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.attach-btn:active,
+	.send-btn:active {
+		transform: scale(0.95);
+	}
+
+	.attach-btn:focus-visible,
+	.send-btn:focus-visible {
+		outline: 2px solid var(--md-sys-color-primary);
+		outline-offset: 2px;
 	}
 
 	.student-field {

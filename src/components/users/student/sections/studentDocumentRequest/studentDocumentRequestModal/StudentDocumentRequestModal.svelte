@@ -498,6 +498,7 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
+		height: 100%;
 	}
 
 	.student-docreq-modal-right-container {
@@ -507,6 +508,7 @@
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
 		border: 1px solid var(--md-sys-color-outline-variant);
+		height: 100%;
 	}
 
 	.student-docreq-modal-title h2 {
