@@ -597,7 +597,6 @@
 		border: none;
 		box-shadow: var(--shadow-lg);
 		position: relative;
-		max-height: 96vh;
 		overflow-y: hidden;
 		display: flex;
 		flex-direction: column;

@@ -466,6 +466,7 @@
 <style>
 	.student-docreq-modal-content {
 		width: 100%;
+		max-width: 1400px;
 		background-color: var(--md-sys-color-surface-container-high);
 		border-radius: var(--radius-xl);
 		border: none;
