@@ -45,7 +45,7 @@
   let activeSection = $state('grades');
   
   // Current active section for teacher portal
-  let teacherActiveSection = $state('schedule');
+  let teacherActiveSection = $state('students');
   
   // Current active section for admin portal
   let adminActiveSection = $state('dashboard');
@@ -130,7 +130,7 @@
   async function handleLogout() {
     await authStore.logout();
     activeSection = 'grades'; // Reset to default section
-    teacherActiveSection = 'schedule'; // Reset teacher section
+    teacherActiveSection = 'students'; // Reset teacher section
     adminActiveSection = 'dashboard'; // Reset admin section
   }
 

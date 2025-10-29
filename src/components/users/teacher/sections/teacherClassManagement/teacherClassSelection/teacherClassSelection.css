@@ -60,72 +60,93 @@
 }
 
 .class-mgmt-stats-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--spacing-lg);
-  justify-content: space-between;
-  align-items: stretch;
 }
 
 .class-mgmt-stat-card {
   background-color: var(--md-sys-color-surface-container);
+  border: 2px solid var(--md-sys-color-outline-variant);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  align-items: center;
+  gap: var(--spacing-md);
   transition: all var(--transition-normal);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
+  box-shadow: var(--elevation-1);
 }
 
-.stat-card:hover {
-  background-color: var(--md-sys-color-surface-container-hover);
-  box-shadow: var(--shadow-md);
+.class-mgmt-stat-card:hover {
+  box-shadow: var(--elevation-2);
   transform: translateY(-2px);
 }
 
+/* Border color variants for stat cards */
+.class-mgmt-stat-card.border-blue {
+  border-color: #2196F3;
+}
+
+.class-mgmt-stat-card.border-green {
+  border-color: #4CAF50;
+}
+
+.class-mgmt-stat-card.border-orange {
+  border-color: #FF9800;
+}
+
+.class-mgmt-stat-card.border-purple {
+  border-color: #9C27B0;
+}
+
+.stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .class-mgmt-stat-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  color: white;
 }
 
-.stat-icon .material-symbols-outlined {
-  font-size: 28px;
+/* Icon background colors matching border colors */
+.class-mgmt-stat-card.border-blue .class-mgmt-stat-icon {
+  background-color: #2196F3;
 }
 
-.stat-content {
-  flex-direction: column;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.class-mgmt-stat-card.border-green .class-mgmt-stat-icon {
+  background-color: #4CAF50;
+}
+
+.class-mgmt-stat-card.border-orange .class-mgmt-stat-icon {
+  background-color: #FF9800;
+}
+
+.class-mgmt-stat-card.border-purple .class-mgmt-stat-icon {
+  background-color: #9C27B0;
+}
+
+.class-mgmt-stat-icon .material-symbols-outlined {
+  font-size: 24px;
 }
 
 .class-mgmt-stat-value {
-  font-size: 40px !important;
-  font-weight: 600;
-  line-height: 1;
-  margin-bottom: var(--spacing-xs);
-}
-
-.stat-value .odometer-container,
-.stat-value .odometer,
-.stat-value .odometer .odometer-digit {
-  font-size: 40px !important;
-  font-weight: 600 !important;
+  font-family: var(--md-sys-typescale-headline-medium-font);
+  font-size: var(--md-sys-typescale-headline-large-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .class-mgmt-stat-label {
-  font-size: var(--md-sys-typescale-title-small-size);
-  font-weight: var(--md-sys-typescale-title-large-weight);
-  color: var(--md-sys-color-on-surface);
-  margin-bottom: var(--spacing-xs);
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
 }
 
 .stat-description {
@@ -206,8 +227,8 @@
 
 /* Sections Grid */
 .sections-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-md);
 }
 
@@ -221,7 +242,9 @@
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  width: 100%;
+  flex: 1 1 calc(33.333% - var(--spacing-md));
+  max-width: calc(33.333% - var(--spacing-md));
+  min-width: 280px;
   text-align: left;
   font-family: inherit;
 }
@@ -283,8 +306,9 @@
     gap: var(--spacing-md);
   }
   
-  .sections-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  .section-card {
+    flex: 1 1 calc(50% - var(--spacing-md));
+    max-width: calc(50% - var(--spacing-md));
   }
 }
 
@@ -293,8 +317,13 @@
     padding: var(--spacing-lg);
   }
   
-  .sections-grid {
+  .class-mgmt-stats-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .section-card {
+    flex: 1 1 100%;
+    max-width: 100%;
   }
   
   .year-level-header {
@@ -310,29 +339,11 @@
   .year-level-container {
     padding: var(--spacing-md);
   }
-  
-  .class-mgmt-stat-label {
-    display: none;
-  }
 }
 
 @media (max-width: 480px) {
   .class-mgmt-page-title {
     font-size: 24px;
-  }
-  
-  .class-mgmt-stat-value {
-    font-size: 24px;
-  }
-  
-  .class-mgmt-stat-card {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--spacing-sm);
-  }
-  
-  .stat-content {
-    text-align: center;
   }
 }
 

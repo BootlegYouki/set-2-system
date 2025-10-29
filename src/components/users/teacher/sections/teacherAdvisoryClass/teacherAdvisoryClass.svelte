@@ -360,6 +360,14 @@
 		);
 	}
 
+	// Array of border color classes for each stat card
+	const borderColors = ['border-blue', 'border-green', 'border-orange'];
+
+	// Function to get border color by index
+	function getBorderColorByIndex(index) {
+		return borderColors[index % borderColors.length];
+	}
+
 	// Stats configuration
 	let statsConfig = [
 		{
@@ -434,20 +442,18 @@
 	<!-- Stats Cards Section -->
 	<div class="advisory-stats-section">
 		<div class="advisory-stats-grid">
-			{#each statsConfig as stat (stat.id)}
-				<div class="advisory-stat-card">
-					<div
-						class="advisory-stat-icon"
-						style="background-color: {stat.color}20; color: {stat.color}"
-					>
-						<span class="material-symbols-outlined">{stat.icon}</span>
-					</div>
-					<div class="stat-content">
-						<div class="advisory-stat-value" style="color: {stat.color}">
-							<Odometer value={stat.getValue()} format="d" duration={2000} animation="ease-out" />
-							{#if stat.id === 'average'}{/if}
+			{#each statsConfig as stat, index (stat.id)}
+				<div class="advisory-stat-card {getBorderColorByIndex(index)}">
+					<div class="stat-card-header">
+						<p class="advisory-stat-label">{stat.label}</p>
+						<div class="advisory-stat-icon">
+							<span class="material-symbols-outlined">{stat.icon}</span>
 						</div>
-						<div class="advisory-stat-label">{stat.label}</div>
+					</div>
+					<div class="stat-card-content">
+						<h3 class="advisory-stat-value">
+							<Odometer value={stat.getValue()} format="d" duration={2000} animation="ease-out" />
+						</h3>
 					</div>
 				</div>
 			{/each}
@@ -555,8 +561,8 @@
 										<button
 											class="grade-item {finalGrade?.verified ? 'verified' : 'unverified'}"
 											class:loading={verifyingGrades.has(finalGrade?.id)}
-											disabled={verifyingGrades.has(finalGrade?.id)}
-											on:click={() => verifyFinalGrade(finalGrade.id)}
+											disabled={verifyingGrades.has(finalGrade?.id) || finalGrade?.verified}
+											on:click={() => !finalGrade?.verified && verifyFinalGrade(finalGrade.id)}
 										>
 											<div class="grade-overlay">
 												<div class="overlay-content">
