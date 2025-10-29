@@ -18,6 +18,7 @@
   let currentQuarter = $state(1); // Current quarter from database
   let currentQuarterName = $state('1st Quarter'); // Current quarter name
   let currentSchoolYear = $state('2025-2026'); // Current school year from database
+  let isQuarterDropdownOpen = $state(false); // Quarter dropdown state
   
   // Subject tab management
   let activeSubjectIndex = $state(0);
@@ -27,6 +28,17 @@
   let activeSubject = $derived(
     sectionData?.subjects?.[activeSubjectIndex] || null
   );
+
+  // Quarter dropdown options
+  const quarterOptions = [
+    { id: 1, name: '1st Quarter', icon: 'looks_one' },
+    { id: 2, name: '2nd Quarter', icon: 'looks_two' },
+    { id: 3, name: '3rd Quarter', icon: 'looks_3' },
+    { id: 4, name: '4th Quarter', icon: 'looks_4' }
+  ];
+
+  // Get selected quarter object
+  const selectedQuarterObj = $derived(quarterOptions.find((q) => q.id === currentQuarter));
   
   // Tab navigation function with auto-save
   async function setActiveSubject(index) {
@@ -147,6 +159,25 @@
       currentQuarter = 1;
       currentQuarterName = '1st Quarter';
       currentSchoolYear = '2025-2026';
+    }
+  }
+
+  // Toggle quarter dropdown
+  function toggleQuarterDropdown() {
+    isQuarterDropdownOpen = !isQuarterDropdownOpen;
+  }
+
+  // Select quarter and close dropdown
+  async function selectQuarter(quarter) {
+    if (quarter.id !== currentQuarter) {
+      currentQuarter = quarter.id;
+      currentQuarterName = quarter.name;
+      isQuarterDropdownOpen = false;
+      // Fetch new data for the selected quarter
+      await fetchGradingConfiguration();
+      await fetchClassStudents();
+    } else {
+      isQuarterDropdownOpen = false;
     }
   }
 
@@ -430,10 +461,12 @@
   // Column configuration options
   let columnOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-  // Close dropdowns when clicking outside - removed since no longer needed
+  // Close dropdowns when clicking outside
   function handleClickOutside(event) {
-    // This function is no longer needed since we removed dropdowns
-    // Keeping it empty to avoid breaking existing event listeners
+    // Close quarter dropdown when clicking outside
+    if (!event.target.closest('.classlist-quarter-dropdown')) {
+      isQuarterDropdownOpen = false;
+    }
   }
 
   // Dropdown toggle functions - no longer needed
@@ -739,7 +772,47 @@
 
   <!-- Grading Configuration Section -->
   <div class="grading-config-section">
-    <h2 class="config-title">Grading Configuration</h2>
+    <div class="config-header">
+      <h2 class="config-title">Grading Configuration</h2>
+      <div class="classlist-quarter-selector-container">
+        <div class="classlist-quarter-dropdown" class:open={isQuarterDropdownOpen}>
+          <button
+            type="button"
+            class="classlist-quarter-select-button"
+            class:selected={currentQuarter}
+            onclick={toggleQuarterDropdown}
+            id="classlist-quarter-select"
+          >
+            {#if selectedQuarterObj}
+              <div class="classlist-quarter-selected-option">
+                <span class="material-symbols-outlined classlist-quarter-option-icon">{selectedQuarterObj.icon}</span>
+                <div class="classlist-quarter-option-content">
+                  <span class="classlist-quarter-option-name">{selectedQuarterObj.name}</span>
+                </div>
+              </div>
+            {:else}
+              <span class="classlist-quarter-placeholder">Select quarter</span>
+            {/if}
+            <span class="material-symbols-outlined classlist-quarter-dropdown-arrow">expand_more</span>
+          </button>
+          <div class="classlist-quarter-dropdown-menu">
+            {#each quarterOptions as quarter (quarter.id)}
+              <button
+                type="button"
+                class="classlist-quarter-dropdown-option"
+                class:selected={currentQuarter === quarter.id}
+                onclick={() => selectQuarter(quarter)}
+              >
+                <span class="material-symbols-outlined classlist-quarter-option-icon">{quarter.icon}</span>
+                <div class="classlist-quarter-option-content">
+                  <span class="classlist-quarter-option-name">{quarter.name}</span>
+                </div>
+              </button>
+            {/each}
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="config-grid">
       <!-- Written Work Configuration -->
       <div class="config-item">
