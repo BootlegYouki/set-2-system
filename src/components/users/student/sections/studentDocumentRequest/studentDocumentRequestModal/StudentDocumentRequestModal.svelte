@@ -329,11 +329,6 @@
 									</div>
 									<div class="message-text">{msg.text}</div>
 								</div>
-								{#if msg.authorRole !== 'admin'}
-									<div class="message-avatar">
-										<span class="material-symbols-outlined">account_circle</span>
-									</div>
-								{/if}
 							</div>
 						{/each}
 					{:else}

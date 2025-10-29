@@ -459,11 +459,6 @@
 									</div>
 									<div class="message-text">{msg.text}</div>
 								</div>
-								{#if msg.authorRole === 'admin'}
-									<div class="message-avatar">
-										<span class="material-symbols-outlined">admin_panel_settings</span>
-									</div>
-								{/if}
 							</div>
 						{/each}
 					{:else}
