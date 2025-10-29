@@ -66,8 +66,18 @@
 				datasets: [{
 					label: 'Number of Sections',
 					data: transformedData,
-					backgroundColor: 'rgba(54, 162, 235, 0.6)',
-					borderColor: 'rgb(54, 162, 235)',
+					backgroundColor: [
+						'rgba(54, 162, 235, 0.6)',   // Grade 7 - Blue
+						'rgba(75, 192, 192, 0.6)',   // Grade 8 - Teal
+						'rgba(153, 102, 255, 0.6)',  // Grade 9 - Purple
+						'rgba(255, 159, 64, 0.6)'    // Grade 10 - Orange
+					],
+					borderColor: [
+						'rgb(54, 162, 235)',   // Grade 7 - Blue
+						'rgb(75, 192, 192)',   // Grade 8 - Teal
+						'rgb(153, 102, 255)',  // Grade 9 - Purple
+						'rgb(255, 159, 64)'    // Grade 10 - Orange
+					],
 					borderWidth: 2,
 					borderRadius: 8,
 					borderSkipped: false

@@ -175,6 +175,7 @@
 			<SectionsPerGradeLevelChart />
 		</div>
 	</div>
+
 	<!-- Recent Activities Section -->
 	<div class="activities-section">
 		<div class="section-header">
