@@ -315,6 +315,10 @@
   border-color: #FF9800;
 }
 
+.advisory-stat-card.border-purple {
+  border-color: #9C27B0;
+}
+
 .stat-card-header {
   display: flex;
   justify-content: space-between;
@@ -344,6 +348,10 @@
   background-color: #FF9800;
 }
 
+.advisory-stat-card.border-purple .advisory-stat-icon {
+  background-color: #9C27B0;
+}
+
 .advisory-stat-icon .material-symbols-outlined {
   font-size: 24px;
 }
@@ -358,6 +366,23 @@
   font-weight: 700;
   color: var(--md-sys-color-on-surface);
   margin: 0 0 var(--spacing-xs) 0;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.stat-suffix {
+  font-family: var(--md-sys-typescale-headline-medium-font);
+  font-size: var(--md-sys-typescale-headline-large-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+}
+
+.stat-na {
+  font-family: var(--md-sys-typescale-headline-medium-font);
+  font-size: var(--md-sys-typescale-headline-large-size);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .advisory-stat-label {

@@ -5,7 +5,7 @@
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import './teacherAdvisoryClass.css';
-	import Odometer from '../../../../common/Odometer.svelte';
+	import CountUp from '../../../../common/CountUp.svelte';
 
 	// Helper function to format date as MM-DD-YYYY
 	function formatDate(dateString) {
@@ -361,12 +361,20 @@
 	}
 
 	// Array of border color classes for each stat card
-	const borderColors = ['border-blue', 'border-green', 'border-orange'];
+	const borderColors = ['border-blue', 'border-green', 'border-orange', 'border-purple'];
 
 	// Function to get border color by index
 	function getBorderColorByIndex(index) {
 		return borderColors[index % borderColors.length];
 	}
+
+	// Calculate pass rate (students with average >= 75)
+	const passRate = $derived(() => {
+		const studentsWithGrades = studentsWithAverages.filter(s => s.average > 0);
+		if (studentsWithGrades.length === 0) return 0;
+		const passingStudents = studentsWithGrades.filter(s => s.average >= 75).length;
+		return Math.round((passingStudents / studentsWithGrades.length) * 100);
+	});
 
 	// Stats configuration
 	let statsConfig = [
@@ -375,22 +383,34 @@
 			label: 'Total Students',
 			getValue: () => advisoryData?.totalStudents || 0,
 			icon: 'people',
-			color: 'var(--school-primary)'
+			color: 'var(--school-primary)',
+			showAsNumber: true
 		},
 		{
 			id: 'subjects',
 			label: 'Subjects Tracked',
 			getValue: () => advisoryData?.subjectsCount || 0,
 			icon: 'book',
-			color: 'var(--school-secondary)'
+			color: 'var(--school-secondary)',
+			showAsNumber: true
 		},
 		{
 			id: 'average',
 			label: 'Class Average',
 			getValue: () =>
-				advisoryData && advisoryData.averageGrade !== null ? `${advisoryData.averageGrade}` : 'N/A',
+				advisoryData && advisoryData.averageGrade !== null ? advisoryData.averageGrade : 0,
 			icon: 'grade',
-			color: 'var(--school-accent)'
+			color: 'var(--school-accent)',
+			showAsNumber: true
+		},
+		{
+			id: 'passRate',
+			label: 'Pass Rate',
+			getValue: () => passRate(),
+			icon: 'trending_up',
+			color: 'var(--success)',
+			showAsNumber: true,
+			suffix: '%'
 		}
 	];
 
@@ -527,7 +547,14 @@
 					</div>
 					<div class="stat-card-content">
 						<h3 class="advisory-stat-value">
-							<Odometer value={stat.getValue()} format="d" duration={2000} animation="ease-out" />
+							<CountUp 
+								value={stat.getValue()} 
+								decimals={stat.id === 'average' ? 1 : 0} 
+								duration={2}
+							/>
+							{#if stat.suffix}
+								<span class="stat-suffix">{stat.suffix}</span>
+							{/if}
 						</h3>
 					</div>
 				</div>

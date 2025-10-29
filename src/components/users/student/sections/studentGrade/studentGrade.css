@@ -940,12 +940,6 @@
   min-width: 60px;
 }
 
-.grade-large :global(.odometer) {
-  font-size: inherit;
-  font-weight: inherit;
-  color: inherit;
-  text-align: inherit;
-}
 
 .no-grade-large {
   display: flex;

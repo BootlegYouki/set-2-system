@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { authStore } from '../../../../../login/js/auth.js';
   import './teacherClassSelection.css';
-  import Odometer from '../../../../../common/Odometer.svelte';
+  import CountUp from '../../../../../common/CountUp.svelte';
   
   // Props for navigation
   let { onNavigateToClassList } = $props();
@@ -150,7 +150,11 @@
           </div>
           <div class="stat-card-content">
             <h3 class="class-mgmt-stat-value">
-              <Odometer value={stat.getValue()} format="d" duration={2000} animation="ease-out" />
+              <CountUp 
+                value={stat.getValue()} 
+                decimals={0} 
+                duration={2}
+              />
             </h3>
           </div>
         </div>
