@@ -11,6 +11,9 @@ node_modules
 .DS_Store
 Thumbs.db
 
+# IDE
+.cursor
+
 # Env
 .env
 .env.*

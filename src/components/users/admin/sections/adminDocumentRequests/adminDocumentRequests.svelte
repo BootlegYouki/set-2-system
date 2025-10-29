@@ -34,7 +34,10 @@
 		{ id: 'enrollment', name: 'Enrollment Certificate', description: 'Proof of enrollment' },
 		{ id: 'grade-report', name: 'Grade Report', description: 'Semester grade report' },
 		{ id: 'diploma', name: 'Diploma', description: 'Official graduation certificate' },
-		{ id: 'certificate', name: 'Certificate', description: 'Academic achievement certificate' }
+		{ id: 'certificate', name: 'Certificate', description: 'Academic achievement certificate' },
+		{ id: 'good-moral', name: 'Good Moral', description: 'Certificate of good moral character' },
+		{ id: 'tor', name: 'TOR', description: 'Transcript of Records' },
+		{ id: 'grade-slip', name: 'Grade Slip', description: 'Grade slip for specific period' }
 	];
 
 	const requestStatuses = [
