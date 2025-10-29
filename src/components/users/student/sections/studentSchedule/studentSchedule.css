@@ -371,11 +371,27 @@
 	transition: all 0.2s;
 	cursor: pointer;
 	color: var(--md-sys-color-on-surface);
+	
+	/* Stagger animation */
+	animation: slideInUp 0.5s ease-out backwards;
+	animation-delay: calc(var(--card-index) * 0.1s);
 }
 
 .class-card:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Slide in animation */
+@keyframes slideInUp {
+	0% {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 /* Class Card Colors - Distinct variants that complement blue school brand */

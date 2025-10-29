@@ -90,6 +90,14 @@
 	// Reactive statements
 	$: currentClasses = scheduleData[selectedDay] || [];
 	$: fullDayName = dayNameMap[selectedDay] || 'Monday';
+	
+	// Add animation key to trigger re-render on day change
+	let animationKey = 0;
+	$: {
+		// Increment key whenever selectedDay changes to trigger animation
+		selectedDay;
+		animationKey++;
+	}
 
 	// Dropdown state
 	let isDropdownOpen = false;
@@ -188,42 +196,44 @@
 				</button>
 			</div>
 		{:else if currentClasses.length > 0}
-			<div class="schedule-classes-grid">
-				{#each currentClasses as classItem}
-					<div class="schedule-class-card {classItem.color}">
-						<div class="class-header">
-							<h3 class="schedule-class-name">{classItem.name}</h3>
-							<span class="schedule-class-time">{classItem.time}</span>
-						</div>
-						
-						<div class="class-details">
-							{#if classItem.scheduleType === 'vacant'}
-								<div class="schedule-class-location">
-									<span class="material-symbols-outlined">schedule</span>
-									<span>Available Time</span>
-								</div>
-							{:else}
-								<div class="schedule-class-location">
-									<span class="material-symbols-outlined"> location_on</span>
-									<span>{classItem.room}</span>
-								</div>
-								{#if classItem.subject}
-									<div class="schedule-class-teacher">
-										<span class="material-symbols-outlined"> book </span>
-										<span>{classItem.subject}</span>
+			{#key animationKey}
+				<div class="schedule-classes-grid">
+					{#each currentClasses as classItem, index}
+						<div class="schedule-class-card {classItem.color}" style="--card-index: {index};">
+							<div class="class-header">
+								<h3 class="schedule-class-name">{classItem.name}</h3>
+								<span class="schedule-class-time">{classItem.time}</span>
+							</div>
+							
+							<div class="class-details">
+								{#if classItem.scheduleType === 'vacant'}
+									<div class="schedule-class-location">
+										<span class="material-symbols-outlined">schedule</span>
+										<span>Available Time</span>
 									</div>
-								{/if}
-								{#if classItem.gradeLevel && classItem.scheduleType === 'subject'}
-									<div class="schedule-class-grade">
-										<span class="material-symbols-outlined"> school </span>
-										<span>Grade {classItem.gradeLevel}</span>
+								{:else}
+									<div class="schedule-class-location">
+										<span class="material-symbols-outlined"> location_on</span>
+										<span>{classItem.room}</span>
 									</div>
+									{#if classItem.subject}
+										<div class="schedule-class-teacher">
+											<span class="material-symbols-outlined"> book </span>
+											<span>{classItem.subject}</span>
+										</div>
+									{/if}
+									{#if classItem.gradeLevel && classItem.scheduleType === 'subject'}
+										<div class="schedule-class-grade">
+											<span class="material-symbols-outlined"> school </span>
+											<span>Grade {classItem.gradeLevel}</span>
+										</div>
+									{/if}
 								{/if}
-							{/if}
+							</div>
 						</div>
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{/key}
 		{:else}
 			<div class="no-classes-message">
 				<div class="no-classes-icon">
