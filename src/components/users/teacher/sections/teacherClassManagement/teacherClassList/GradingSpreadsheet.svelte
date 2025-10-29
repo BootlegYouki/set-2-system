@@ -1154,92 +1154,102 @@
       return;
     }
 
-    isSavingFinalGrades = true;
-    saveMessage = '';
-    saveSuccess = false;
+    // Show confirmation modal first
+    modalStore.confirm(
+      'Send Grades to Adviser',
+      `Are you sure you want to send final grades to the adviser?`,
+      async () => {
+        // User confirmed - now check if there are unverified students
+        // Filter out students whose grades are already verified
+        const unverifiedStudents = students.filter(student => !student.isVerified);
+        const verifiedCount = students.length - unverifiedStudents.length;
 
-    try {
-      // Filter out students whose grades are already verified
-      const unverifiedStudents = students.filter(student => !student.isVerified);
-      const verifiedCount = students.length - unverifiedStudents.length;
+        if (unverifiedStudents.length === 0) {
+          toastStore.warning('All student grades have already been verified by the adviser. No grades to send.');
+          return;
+        }
 
-
-      if (unverifiedStudents.length === 0) {
-        toastStore.warning('All student grades have already been verified by the adviser. No grades to send.');
-        isSavingFinalGrades = false;
-        return;
-      }
-
-      // Prepare final grades data for API (only for unverified students)
-      const finalGradesData = unverifiedStudents.map(student => {
-        const wwAvg = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork');
-        const ptAvg = calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks');
-        const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment');
-        const finalGrade = calculateFinalGrade(student);
-
-        const studentData = {
-          student_id: student.accountNumber || student.account_number || student.id,
-          written_work_average: wwAvg !== '' ? parseFloat(wwAvg) : null,
-          performance_tasks_average: ptAvg !== '' ? parseFloat(ptAvg) : null,
-          quarterly_assessment_average: qaAvg !== '' ? parseFloat(qaAvg) : null,
-          final_grade: finalGrade !== '' ? parseFloat(finalGrade) : null,
-          // Include individual grade items
-          written_work_items: student.writtenWork || [],
-          performance_tasks_items: student.performanceTasks || [],
-          quarterly_assessment_items: student.quarterlyAssessment || []
-        };
-
-        return studentData;
-      });
-
-      const response = await authenticatedFetch('/api/grades', {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'submit_final_grades',
-          section_id: sectionId,
-          subject_id: subjectId,
-          grading_period_id: gradingPeriodId,
-          teacher_id: $authStore.userData.id,
-          final_grades: finalGradesData
-        })
-      });
-
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API error response:', errorData);
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      saveSuccess = true;
-      
-      // Show appropriate success message based on whether some students were skipped
-      if (verifiedCount > 0) {
-        toastStore.success(`Final grades sent to adviser for ${unverifiedStudents.length} students. ${verifiedCount} verified students were skipped.`);
-      } else {
-        toastStore.success('Final grades have been sent to the adviser successfully!');
-      }
-
-      // Clear the message after 3 seconds
-      setTimeout(() => {
+        // Proceed with sending grades
+        isSavingFinalGrades = true;
         saveMessage = '';
-      }, 3000);
+        saveSuccess = false;
 
-    } catch (error) {
-      console.error('Error saving final grades:', error);
-      saveSuccess = false;
-      saveMessage = error.message || 'Failed to save final grades';
-      toastStore.error(saveMessage);
+        try {
+          // Prepare final grades data for API (only for unverified students)
+          const finalGradesData = unverifiedStudents.map(student => {
+            const wwAvg = calculateAverage(student.writtenWork, gradingConfig.writtenWork.totals, 'writtenWork');
+            const ptAvg = calculateAverage(student.performanceTasks, gradingConfig.performanceTasks.totals, 'performanceTasks');
+            const qaAvg = calculateAverage(student.quarterlyAssessment, gradingConfig.quarterlyAssessment.totals, 'quarterlyAssessment');
+            const finalGrade = calculateFinalGrade(student);
 
-      // Clear the message after 5 seconds for errors
-      setTimeout(() => {
-        saveMessage = '';
-      }, 5000);
-    } finally {
-      isSavingFinalGrades = false;
-    }
+            const studentData = {
+              student_id: student.accountNumber || student.account_number || student.id,
+              written_work_average: wwAvg !== '' ? parseFloat(wwAvg) : null,
+              performance_tasks_average: ptAvg !== '' ? parseFloat(ptAvg) : null,
+              quarterly_assessment_average: qaAvg !== '' ? parseFloat(qaAvg) : null,
+              final_grade: finalGrade !== '' ? parseFloat(finalGrade) : null,
+              // Include individual grade items
+              written_work_items: student.writtenWork || [],
+              performance_tasks_items: student.performanceTasks || [],
+              quarterly_assessment_items: student.quarterlyAssessment || []
+            };
+
+            return studentData;
+          });
+
+          const response = await authenticatedFetch('/api/grades', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'submit_final_grades',
+              section_id: sectionId,
+              subject_id: subjectId,
+              grading_period_id: gradingPeriodId,
+              teacher_id: $authStore.userData.id,
+              final_grades: finalGradesData
+            })
+          });
+
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('API error response:', errorData);
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+
+          saveSuccess = true;
+          
+          // Show appropriate success message based on whether some students were skipped
+          if (verifiedCount > 0) {
+            toastStore.success(`Final grades sent to adviser for ${unverifiedStudents.length} students. ${verifiedCount} verified students were skipped.`);
+          } else {
+            toastStore.success('Final grades have been sent to the adviser successfully!');
+          }
+
+          // Clear the message after 3 seconds
+          setTimeout(() => {
+            saveMessage = '';
+          }, 3000);
+
+        } catch (error) {
+          console.error('Error saving final grades:', error);
+          saveSuccess = false;
+          saveMessage = error.message || 'Failed to save final grades';
+          toastStore.error(saveMessage);
+
+          // Clear the message after 5 seconds for errors
+          setTimeout(() => {
+            saveMessage = '';
+          }, 5000);
+        } finally {
+          isSavingFinalGrades = false;
+        }
+      },
+      () => {
+        // User cancelled - do nothing
+      }
+    );
   }
 
   // Effect to reinitialize when students, gradingConfig, or subjectId changes
