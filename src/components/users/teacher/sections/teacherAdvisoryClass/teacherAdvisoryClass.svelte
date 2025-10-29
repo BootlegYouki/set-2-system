@@ -397,6 +397,7 @@
 	// Selected student for detailed view
 	// UI state
 	let selectedStudent = $state(null);
+	let isQuarterDropdownOpen = $state(false);
 
 	function selectStudent(student) {
 		selectedStudent = selectedStudent?.id === student.id ? null : student;
@@ -415,25 +416,99 @@
 		if (grade >= 75) return 'Satisfactory';
 		return 'Needs Improvement';
 	}
+
+	// Quarter dropdown options
+	const quarterOptions = [
+		{ id: 1, name: '1st Quarter', icon: 'looks_one' },
+		{ id: 2, name: '2nd Quarter', icon: 'looks_two' },
+		{ id: 3, name: '3rd Quarter', icon: 'looks_3' },
+		{ id: 4, name: '4th Quarter', icon: 'looks_4' }
+	];
+
+	// Toggle quarter dropdown
+	function toggleQuarterDropdown() {
+		isQuarterDropdownOpen = !isQuarterDropdownOpen;
+	}
+
+	// Select quarter and close dropdown
+	async function selectQuarter(quarter) {
+		if (quarter.id !== currentQuarter) {
+			currentQuarter = quarter.id;
+			currentQuarterName = quarter.name;
+			isQuarterDropdownOpen = false;
+			// Fetch new data for the selected quarter
+			await fetchAdvisoryData();
+		} else {
+			isQuarterDropdownOpen = false;
+		}
+	}
+
+	// Close dropdown when clicking outside
+	function handleClickOutside(event) {
+		if (!event.target.closest('.quarter-dropdown')) {
+			isQuarterDropdownOpen = false;
+		}
+	}
+
+	// Get selected quarter object
+	const selectedQuarterObj = $derived(quarterOptions.find((q) => q.id === currentQuarter));
 </script>
+
+<svelte:window on:click={handleClickOutside} />
 
 <div class="advisory-class-container">
 	<!-- Header Section -->
 	<div class="advisory-page-header">
 		<div class="header-content">
 			<h1 class="advisory-page-title">Advisory Class Dashboard</h1>
-			<div class="advisory-class-info">
-				<div class="class-detail">
-					<span class="material-symbols-outlined">school</span>
-					<span>{advisoryData?.sectionName || 'Loading...'}</span>
+			<div class="header-controls">
+				<div class="advisory-class-info">
+					<div class="class-detail">
+						<span class="material-symbols-outlined">school</span>
+						<span>{advisoryData?.sectionName || 'Loading...'}</span>
+					</div>
+					<div class="class-detail">
+						<span class="material-symbols-outlined">meeting_room</span>
+						<span>{advisoryData?.roomName || 'Loading...'}</span>
+					</div>
 				</div>
-				<div class="class-detail">
-					<span class="material-symbols-outlined">meeting_room</span>
-					<span>{advisoryData?.roomName || 'Loading...'}</span>
-				</div>
-				<div class="class-detail">
-					<span class="material-symbols-outlined">calendar_today</span>
-					<span>{currentQuarterName}</span>
+				<div class="quarter-selector-container">
+					<div class="quarter-dropdown" class:open={isQuarterDropdownOpen}>
+						<button
+							type="button"
+							class="quarter-select-button"
+							class:selected={currentQuarter}
+							onclick={toggleQuarterDropdown}
+							id="quarter-select"
+						>
+							{#if selectedQuarterObj}
+								<div class="quarter-selected-option">
+									<span class="material-symbols-outlined quarter-option-icon">{selectedQuarterObj.icon}</span>
+									<div class="quarter-option-content">
+										<span class="quarter-option-name">{selectedQuarterObj.name}</span>
+									</div>
+								</div>
+							{:else}
+								<span class="quarter-placeholder">Select quarter</span>
+							{/if}
+							<span class="material-symbols-outlined quarter-dropdown-arrow">expand_more</span>
+						</button>
+						<div class="quarter-dropdown-menu">
+							{#each quarterOptions as quarter (quarter.id)}
+								<button
+									type="button"
+									class="quarter-dropdown-option"
+									class:selected={currentQuarter === quarter.id}
+									onclick={() => selectQuarter(quarter)}
+								>
+									<span class="material-symbols-outlined quarter-option-icon">{quarter.icon}</span>
+									<div class="quarter-option-content">
+										<span class="quarter-option-name">{quarter.name}</span>
+									</div>
+								</button>
+							{/each}
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -463,13 +538,13 @@
 	<!-- Students Section -->
 	<div class="students-section">
 		<div class="section-header">
-			<button class="refresh-btn" on:click={fetchAdvisoryData}>
+			<button class="refresh-btn" onclick={fetchAdvisoryData}>
 				<span class="material-symbols-outlined">refresh</span>
 				Refresh
 			</button>
 			<!-- Bulk verification controls -->
 			<div class="bulk-controls">
-				<button class="verify-all-btn" on:click={verifyAllStudents}>
+				<button class="verify-all-btn" onclick={verifyAllStudents}>
 					<span class="material-symbols-outlined">verified</span>
 					Verify All Grades
 				</button>
@@ -497,7 +572,7 @@
 						class="advisory-student-card {student.gradesVerified ? 'verified' : 'pending'}"
 						class:selected={selectedStudent?.id === student.id}
 					>
-						<div class="student-header" on:click={() => selectStudent(student)}>
+						<button class="student-header" onclick={() => selectStudent(student)}>
 							<div class="student-header-content">
 								<div class="student-title-section">
 									<h3 class="student-title">{student.name} · Grade {student.gradeLevel || '7'}</h3>
@@ -536,7 +611,7 @@
 									{selectedStudent?.id === student.id ? 'expand_less' : 'expand_more'}
 								</span>
 							</div>
-						</div>
+						</button>
 
 						{#if selectedStudent?.id === student.id}
 							<div class="student-grades">
@@ -546,7 +621,7 @@
 									<div class="student-verification-controls">
 										<button
 											class="verify-btn"
-											on:click|stopPropagation={() => verifyStudentGrades(student.id)}
+											onclick={(e) => { e.stopPropagation(); verifyStudentGrades(student.id); }}
 										>
 											<span class="material-symbols-outlined">verified</span>
 											Verify All
@@ -562,7 +637,7 @@
 											class="grade-item {finalGrade?.verified ? 'verified' : 'unverified'}"
 											class:loading={verifyingGrades.has(finalGrade?.id)}
 											disabled={verifyingGrades.has(finalGrade?.id) || finalGrade?.verified}
-											on:click={() => !finalGrade?.verified && verifyFinalGrade(finalGrade.id)}
+											onclick={() => !finalGrade?.verified && verifyFinalGrade(finalGrade.id)}
 										>
 											<div class="grade-overlay">
 												<div class="overlay-content">

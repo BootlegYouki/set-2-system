@@ -36,10 +36,6 @@
   margin-bottom: var(--spacing-xl);
 }
 
-.header-content {
-  max-width: 800px;
-}
-
 .class-mgmt-page-title {
   font-size: var(--md-sys-typescale-headline-large-size);
   font-weight: var(--md-sys-typescale-headline-large-weight);
