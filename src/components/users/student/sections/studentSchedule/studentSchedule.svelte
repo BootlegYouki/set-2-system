@@ -83,6 +83,14 @@
 	// Reactive statements
 	$: currentClasses = scheduleData[selectedDay] || [];
 	$: fullDayName = dayNameMap[selectedDay] || 'Monday';
+	
+	// Add animation key to trigger re-render on day change
+	let animationKey = 0;
+	$: {
+		// Increment key whenever selectedDay changes to trigger animation
+		selectedDay;
+		animationKey++;
+	}
 
 	// Dropdown state
 	let isDropdownOpen = false;
@@ -185,29 +193,31 @@
 				</button>
 			</div>
 		{:else if currentClasses.length > 0}
-			<div class="classes-list">
-				{#each currentClasses as classItem}
-					<div class="class-card {classItem.color}">
-						<div class="class-header">
-							<h3 class="class-name">{classItem.name}</h3>
-							<span class="class-time">{classItem.time}</span>
-						</div>
-						
-						<div class="class-details">
-							<div class="class-location">
-								<span class="material-symbols-outlined"> location_on</span>
-								<span>{classItem.scheduleType === 'activity' ? 'No room' : classItem.room}</span>
+			{#key animationKey}
+				<div class="classes-list">
+					{#each currentClasses as classItem, index}
+						<div class="class-card {classItem.color}" style="--card-index: {index};">
+							<div class="class-header">
+								<h3 class="class-name">{classItem.name}</h3>
+								<span class="class-time">{classItem.time}</span>
 							</div>
-							{#if classItem.teacher}
-								<div class="class-teacher">
-									<span class="material-symbols-outlined"> person_book </span>
-									<span>{classItem.teacher}</span>
+							
+							<div class="class-details">
+								<div class="class-location">
+									<span class="material-symbols-outlined"> location_on</span>
+									<span>{classItem.scheduleType === 'activity' ? 'No room' : classItem.room}</span>
 								</div>
-							{/if}
+								{#if classItem.teacher}
+									<div class="class-teacher">
+										<span class="material-symbols-outlined"> person_book </span>
+										<span>{classItem.teacher}</span>
+									</div>
+								{/if}
+							</div>
 						</div>
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			{/key}
 		{:else}
 			<div class="no-classes-message">
 				<div class="no-classes-icon">
