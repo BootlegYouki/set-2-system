@@ -219,10 +219,14 @@
 						<span class="material-symbols-outlined">payments</span> Payment
 					</div>
 					<div class="card-value payment-value">
-						<span class="payment-amount">₱{selectedRequest.paymentAmount ?? 120}</span>
-						<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
-							{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-						</span>
+						{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
+							<span class="payment-amount">₱{selectedRequest.paymentAmount}</span>
+							<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
+								{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+							</span>
+						{:else}
+							<span class="payment-amount tentative">Tentative</span>
+						{/if}
 					</div>
 				</div>
 
@@ -546,6 +550,12 @@
 
 	.payment-amount {
 		font-size: 1.1rem;
+	}
+
+	.payment-amount.tentative {
+		color: var(--md-sys-color-on-surface-variant);
+		font-style: italic;
+		opacity: 0.85;
 	}
 
 	.status-display-wrapper {

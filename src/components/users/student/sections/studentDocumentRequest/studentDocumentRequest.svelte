@@ -81,7 +81,8 @@
 					completedDate: req.completedDate,
 					cancelledDate: req.cancelledDate,
 					tentativeDate: req.tentativeDate,
-					paymentAmount: req.payment?.replace('₱', '') || 120,
+					payment: req.payment, // Can be "Tentative" or "₱XXX"
+					paymentAmount: req.paymentAmount, // Can be null or number
 					paymentStatus: req.paymentStatus || 'pending',
 					processedBy: req.processedBy,
 					adminName: req.processedBy,
@@ -143,7 +144,7 @@
 				action: 'create',
 				documentType: docTypeName || selectedDocumentType,
 				purpose: requestPurpose.trim(),
-				paymentAmount: 120,
+				paymentAmount: null, // Tentative until admin sets the fee
 				isUrgent: false
 			});
 
@@ -238,12 +239,12 @@
 			const response = await api.get(`/api/document-requests?action=single&requestId=${request.requestId}`);
 			
 			if (response.success) {
-				// ensure payment amount default is P120 if missing
+				// Pass the request data as-is (paymentAmount can be null)
 				const requestData = {
 					...response.data,
 					type: response.data.documentType,
 					requestedDate: response.data.submittedDate,
-					paymentAmount: response.data.paymentAmount ?? 120,
+					paymentAmount: response.data.paymentAmount, // Can be null (tentative)
 					paymentStatus: response.data.paymentStatus ?? 'pending'
 				};
 				
