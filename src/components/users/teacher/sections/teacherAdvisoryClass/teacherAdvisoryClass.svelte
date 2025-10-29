@@ -373,7 +373,17 @@
 		const studentsWithGrades = studentsWithAverages.filter(s => s.average > 0);
 		if (studentsWithGrades.length === 0) return 0;
 		const passingStudents = studentsWithGrades.filter(s => s.average >= 75).length;
-		return Math.round((passingStudents / studentsWithGrades.length) * 100);
+		const rate = Math.round((passingStudents / studentsWithGrades.length) * 100);
+		
+		// Debug logging
+		console.log('Pass Rate Calculation:', {
+			totalStudents: studentsWithGrades.length,
+			passingStudents: passingStudents,
+			rate: rate,
+			studentAverages: studentsWithGrades.map(s => ({ name: s.name, average: s.average }))
+		});
+		
+		return rate;
 	});
 
 	// Stats configuration
@@ -547,11 +557,13 @@
 					</div>
 					<div class="stat-card-content">
 						<h3 class="advisory-stat-value">
-							<CountUp 
-								value={stat.getValue()} 
-								decimals={stat.id === 'average' ? 1 : 0} 
-								duration={2}
-							/>
+							{#key stat.getValue()}
+								<CountUp 
+									value={stat.getValue()} 
+									decimals={stat.id === 'average' ? 1 : 0} 
+									duration={2}
+								/>
+							{/key}
 							{#if stat.suffix}
 								<span class="stat-suffix">{stat.suffix}</span>
 							{/if}
