@@ -435,8 +435,16 @@
 										<h3 class="request-title">{request.type}</h3>
 										<p class="request-date">Requested on {request.requestedDate}</p>
 									</div>
-									<div class="student-status-badge status-{request.status}">
-										{getStatusDisplayName(request.status)}
+									<div class="request-header-actions">
+										<div class="student-status-badge status-{request.status}">
+											{getStatusDisplayName(request.status)}
+										</div>
+										{#if request.messages && request.messages.length > 0}
+											<button class="chat-indicator-btn" title="{request.messages.length} message{request.messages.length !== 1 ? 's' : ''}">
+												<span class="material-symbols-outlined">chat_bubble</span>
+												<span class="chat-badge">{request.messages.length}</span>
+											</button>
+										{/if}
 									</div>
 								</div>
 							</div>

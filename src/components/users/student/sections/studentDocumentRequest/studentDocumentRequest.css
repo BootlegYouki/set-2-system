@@ -1220,9 +1220,134 @@
 .swatch.green { background: #10b981; }
 .swatch.red { background: #ef4444; }
 
+/* Chat indicator button */
+.request-header-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-sm);
+}
+
+.chat-indicator-btn {
+	position: relative;
+	background: transparent;
+	border: 1px solid var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary-container);
+	border-radius: var(--radius-full);
+	padding: var(--spacing-sm) var(--spacing-sm);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-height: 32px;
+}
+
+/* Status-specific chat indicator button borders */
+.request-card.on_hold .chat-indicator-btn {
+	border-color: var(--status-cancelled-border);
+	color: var(--status-cancelled-text);
+}
+
+.request-card.verifying .chat-indicator-btn {
+	border-color: var(--md-sys-color-secondary);
+	color: var(--md-sys-color-on-secondary-container);
+}
+
+.request-card.processing .chat-indicator-btn {
+	border-color: var(--status-processing-border);
+	color: var(--status-processing-text);
+}
+
+.request-card.for_pickup .chat-indicator-btn {
+	border-color: var(--status-pending-border);
+	color: var(--status-pending-text);
+}
+
+.request-card.released .chat-indicator-btn {
+	border-color: var(--status-completed-border);
+	color: var(--status-completed-text);
+}
+
+.request-card.rejected .chat-indicator-btn {
+	border-color: var(--status-rejected-border);
+	color: var(--status-rejected-text);
+}
+
+.request-card.cancelled .chat-indicator-btn {
+	border-color: var(--status-cancelled-border);
+	color: var(--status-cancelled-text);
+}
+
+.chat-indicator-btn:hover {
+	background: transparent;
+	transform: scale(1.05);
+}
+
+.chat-indicator-btn:active {
+	transform: scale(0.95);
+}
+
+.chat-indicator-btn .material-symbols-outlined {
+	font-size: 18px;
+}
+
+.chat-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	line-height: 1;
+	padding: 2px 4px;
+	border-radius: 8px;
+	background: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	min-width: 16px;
+	text-align: center;
+}
+
+/* Status-specific chat badge colors */
+.request-card.on_hold .chat-badge {
+	background: var(--status-cancelled-border);
+	color: white;
+}
+
+.request-card.verifying .chat-badge {
+	background: var(--md-sys-color-secondary);
+	color: white;
+}
+
+.request-card.processing .chat-badge {
+	background: var(--status-processing-border);
+	color: white;
+}
+
+.request-card.for_pickup .chat-badge {
+	background: var(--status-pending-border);
+	color: white;
+}
+
+.request-card.released .chat-badge {
+	background: var(--status-completed-border);
+	color: white;
+}
+
+.request-card.rejected .chat-badge {
+	background: var(--status-rejected-border);
+	color: white;
+}
+
+.request-card.cancelled .chat-badge {
+	background: var(--status-cancelled-border);
+	color: white;
+}
 /* responsive */
 @media (max-width: 780px) {
 	.details-grid { grid-template-columns: 1fr; }
 	.details-modal { max-width: 760px; }
 	.process-flow-modal { max-width: 94%; }
+	
+	.request-header-actions {
+		flex-wrap: wrap;
+	}
 }

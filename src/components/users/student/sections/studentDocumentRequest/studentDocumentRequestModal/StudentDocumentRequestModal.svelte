@@ -15,9 +15,15 @@
 	let newMessage = $state('');
 	let isProcessFlowOpen = $state(false);
 	let isSendingMessage = $state(false);
-	let chatMessagesEl;
-	let chatInputEl;
+	let chatMessagesEl = $state();
+	let chatInputEl = $state();
 	let pollingInterval;
+	// Mobile pagination state
+	let currentPage = $state(1); // 1 = left container, 2 = right container
+	
+	// Swipe handling
+	let touchStartX = $state(0);
+	let touchEndX = $state(0);
 
 	// Get messages from the request
 	let messages = $derived(selectedRequest.messages || []);
@@ -110,6 +116,49 @@
 		onClose();
 	}
 
+	// Mobile pagination functions
+	function goToPage(page) {
+		currentPage = page;
+	}
+
+	function nextPage() {
+		if (currentPage < 2) currentPage++;
+	}
+
+	function prevPage() {
+		if (currentPage > 1) currentPage--;
+	}
+
+	// Swipe gesture handlers
+	function handleTouchStart(e) {
+		touchStartX = e.touches[0].clientX;
+	}
+
+	function handleTouchMove(e) {
+		touchEndX = e.touches[0].clientX;
+	}
+
+	function handleTouchEnd() {
+		if (!touchStartX || !touchEndX) return;
+		
+		const swipeDistance = touchStartX - touchEndX;
+		const minSwipeDistance = 50; // Minimum distance for a swipe
+		
+		if (Math.abs(swipeDistance) > minSwipeDistance) {
+			if (swipeDistance > 0) {
+				// Swiped left - go to next page
+				nextPage();
+			} else {
+				// Swiped right - go to previous page
+				prevPage();
+			}
+		}
+		
+		// Reset
+		touchStartX = 0;
+		touchEndX = 0;
+	}
+
 	// Fetch latest messages from server
 	async function fetchLatestMessages() {
 		if (!selectedRequest || isSendingMessage) return;
@@ -172,9 +221,14 @@
 </script>
 
 <div class="student-docreq-modal-content">
-	<div class="student-docreq-modal-grid">
+	<div 
+		class="student-docreq-modal-grid"
+		ontouchstart={handleTouchStart}
+		ontouchmove={handleTouchMove}
+		ontouchend={handleTouchEnd}
+	>
 		<!-- LEFT CONTAINER: Request Information -->
-		<div class="student-docreq-modal-left-container">
+		<div class="student-docreq-modal-left-container" class:mobile-hidden={currentPage !== 1}>
 			<header class="student-docreq-modal-title">
 				<h2>Request Details</h2>
 				<div class="student-docreq-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
@@ -314,7 +368,7 @@
 	</div>
 
 	<!-- RIGHT CONTAINER: Chat -->
-	<div class="student-docreq-modal-right-container">
+	<div class="student-docreq-modal-right-container" class:mobile-hidden={currentPage !== 2}>
 			<div class="chat-container">
 				<div class="chat-header">
 					<h3><span class="material-symbols-outlined">forum</span> Communication</h3>
@@ -378,6 +432,28 @@
 					{/if}
 				</div>
 			</div>
+		</div>
+	</div>
+
+	<!-- Mobile Pagination Controls -->
+	<div class="mobile-pagination-controls">
+		<div class="pagination-dots">
+			<button 
+				class="pagination-dot" 
+				class:active={currentPage === 1}
+				onclick={() => goToPage(1)}
+				aria-label="Go to request details"
+			>
+				<span class="material-symbols-outlined">description</span>
+			</button>
+			<button 
+				class="pagination-dot" 
+				class:active={currentPage === 2}
+				onclick={() => goToPage(2)}
+				aria-label="Go to chat"
+			>
+				<span class="material-symbols-outlined">forum</span>
+			</button>
 		</div>
 	</div>
 </div>
@@ -492,6 +568,7 @@
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
+		max-height: 90vh;
 	}
 
 	.student-docreq-modal-grid {
@@ -793,7 +870,6 @@
 		min-height: 330px;
 		display: flex;
 		flex-direction: column;
-		justify-content: flex-end;
 		gap: var(--spacing-xs);
 	}
 
@@ -934,6 +1010,7 @@
 		align-items: center;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 		margin-top: auto;
+		min-width: 0;
 	}
 
 	.student-chat-input input {
@@ -945,6 +1022,7 @@
 		color: var(--md-sys-color-on-surface);
 		font-size: 0.95rem;
 		transition: all var(--transition-fast);
+		min-width: 0;
 	}
 
 	.student-chat-input input:focus {
@@ -1274,30 +1352,119 @@
 		line-height: 1.4;
 	}
 
+	/* Mobile Pagination Controls */
+	.mobile-pagination-controls {
+		display: none;
+		align-items: center;
+		justify-content: center;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-sm);
+		background-color: none;
+		margin-top: var(--spacing-xs);
+		position: relative;
+		z-index: 10;
+		flex-shrink: 0;
+	}
+
+	.pagination-dots {
+		display: flex;
+		gap: var(--spacing-md);
+		align-items: center;
+	}
+
+	.pagination-dot {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background-color: var(--md-sys-color-surface-container-highest);
+		border: 1.5px solid var(--md-sys-color-outline-variant);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--md-sys-color-on-surface-variant);
+		pointer-events: auto;
+		user-select: none;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.pagination-dot .material-symbols-outlined {
+		font-size: 18px;
+	}
+
+	.pagination-dot.active {
+		background-color: var(--md-sys-color-primary);
+		border-color: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+		transform: scale(1.05);
+		box-shadow: 0 1px 4px rgba(99, 102, 241, 0.3);
+		pointer-events: none;
+	}
+
+	.pagination-dot:hover:not(.active) {
+		background-color: var(--md-sys-color-surface-container-highest);
+		border-color: var(--md-sys-color-outline);
+		transform: scale(1.02);
+	}
+
 	/* Responsive */
 	@media (max-width: 1200px) {
-		.student-docreq-modal-grid {
-			grid-template-columns: 1fr;
+		.student-docreq-modal-grid{
+			padding: 0;
 		}
-
-		.student-docreq-modal-right-container {
-			min-height: 500px;
+		
+		.student-docreq-card.third-row {
+			flex: 1 1 calc(33.333% - var(--spacing-md) * 2 / 3);
+			min-width: 120px;
 		}
 	}
 
 	@media (max-width: 768px) {
+		.student-docreq-modal-content {
+			overflow: visible;
+			max-height: none;
+			height: auto;
+		}
+
+		.student-chat-messages {
+			max-height: 58vh;
+		}
+
+		/* Show pagination controls on mobile */
+		.mobile-pagination-controls {
+			display: flex;
+			position: relative;
+			z-index: 100;
+			touch-action: manipulation;
+		}
+
+		.student-docreq-modal-grid{
+			grid-template-columns: 1fr;
+			overflow: visible;
+			position: relative;
+			padding: 0;
+		}
+
+		/* Hide containers based on pagination */
+		.mobile-hidden {
+			display: none !important;
+		}
+
 		.student-docreq-modal-left-container,
 		.student-docreq-modal-right-container {
 			padding: var(--spacing-md);
-		}
-
-		.student-docreq-cards {
-			flex-direction: column;
+			overflow-y: auto;
+			max-height: 80vh;
 		}
 		
-		.student-docreq-card,
-		.student-docreq-card.half-width {
+		.student-docreq-card {
 			flex: 1 1 100%;
+		}
+		
+		.student-docreq-card.half-width {
+			flex: 1 1 calc(50% - var(--spacing-md) / 2);
+			min-width: 140px;
 		}
 
 		.student-docreq-modal-right-container {
