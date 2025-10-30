@@ -121,24 +121,25 @@ export async function GET({ url, request }) {
 					.sort({ submitted_date: -1 })
 					.toArray();
 
-				const formattedStudentRequests = studentRequests.map((req) => ({
-					id: req._id.toString(),
-					requestId: req.request_id,
-					documentType: req.document_type,
-					purpose: req.purpose,
-					status: req.status,
-					submittedDate: formatDate(req.submitted_date),
-					tentativeDate: req.tentative_date ? formatDate(req.tentative_date) : null,
-					payment: req.payment_amount !== null && req.payment_amount !== undefined 
-						? (req.payment_amount === 0 ? 'Free' : `₱${req.payment_amount}`) 
-						: 'Tentative',
-					paymentAmount: req.payment_amount,
-					paymentStatus: req.payment_status,
-					processedBy: req.processed_by,
-					isUrgent: req.is_urgent || false,
-					messages: decryptMessages(req.messages || []),
-					lastReadAt: req.last_read_at || null
-				}));
+			const formattedStudentRequests = studentRequests.map((req) => ({
+				id: req._id.toString(),
+				requestId: req.request_id,
+				documentType: req.document_type,
+				purpose: req.purpose,
+				status: req.status,
+				submittedDate: formatDate(req.submitted_date),
+				cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
+				tentativeDate: req.tentative_date ? formatDate(req.tentative_date) : null,
+				payment: req.payment_amount !== null && req.payment_amount !== undefined 
+					? (req.payment_amount === 0 ? 'Free' : `₱${req.payment_amount}`) 
+					: 'Tentative',
+				paymentAmount: req.payment_amount,
+				paymentStatus: req.payment_status,
+				processedBy: req.processed_by,
+				isUrgent: req.is_urgent || false,
+				messages: decryptMessages(req.messages || []),
+				lastReadAt: req.last_read_at || null
+			}));
 
 				return json({ success: true, data: formattedStudentRequests });
 

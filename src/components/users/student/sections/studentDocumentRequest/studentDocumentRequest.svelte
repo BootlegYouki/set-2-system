@@ -5,6 +5,7 @@
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { studentDocReqModalStore } from './studentDocumentRequestModal/studentDocReqModalStore.js';
+	import { studentDocumentRequestStore } from '../../../../../lib/stores/student/studentDocumentRequestStore.js';
 	import './studentDocumentRequest.css';
 
 	// Document request state
@@ -15,14 +16,12 @@
 	
 	// Custom dropdown state
 	let isDropdownOpen = false;
-	
-	// Data state
-	let requestHistory = [];
-	let loading = true;
-	let error = null;
 
 	// Polling state
 	let pollingInterval;
+
+	// Subscribe to the store
+	$: ({ requestHistory, isLoading: loading, isRefreshing, error, lastUpdated } = $studentDocumentRequestStore);
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
@@ -53,17 +52,31 @@
 		{ id: 'Grade Slip', name: 'Grade Slip', description: 'Grade slip for specific period' }
 	];
 
+	// Handle refresh functionality
+	async function handleRefresh() {
+		const authState = $authStore;
+		if (authState.isAuthenticated && authState.userData?.id) {
+			await studentDocumentRequestStore.forceRefresh(authState.userData.id);
+		}
+	}
+
 	// Load data when component mounts
 	onMount(() => {
-		if ($authStore.userData?.id) {
-			fetchDocumentRequests();
-			// Start polling for updates every 10 seconds
+		const authState = $authStore;
+		if (authState.isAuthenticated && authState.userData?.id) {
+			// Initialize store with cached data if available
+			const hasCachedData = studentDocumentRequestStore.init(authState.userData.id);
+			
+			// Load fresh data if no cache or load silently if cached
+			studentDocumentRequestStore.loadDocumentRequests(hasCachedData);
+
+			// Start polling for updates every 30 seconds (changed from 10 to reduce server load)
 			pollingInterval = setInterval(() => {
-				fetchDocumentRequests(false); // Don't show loading indicator during polling
-			}, 10000);
-		} else {
-			error = 'Please log in to view your document requests';
-			loading = false;
+				const currentAuthState = $authStore;
+				if (currentAuthState.isAuthenticated && currentAuthState.userData?.id) {
+					studentDocumentRequestStore.loadDocumentRequests(true); // Silent refresh
+				}
+			}, 30 * 1000); // 30 seconds
 		}
 	});
 
@@ -74,59 +87,6 @@
 		}
 	});
 
-	// Fetch student's document requests from API
-	async function fetchDocumentRequests(showLoadingIndicator = true) {
-		try {
-			if (showLoadingIndicator) {
-				loading = true;
-			}
-			error = null;
-
-			const response = await api.get('/api/document-requests?action=student');
-			
-			if (response.success) {
-				// Transform data to match UI expectations
-				requestHistory = response.data.map(req => ({
-					id: req.id,
-					requestId: req.requestId,
-					type: req.documentType,
-					purpose: req.purpose,
-					status: mapStatusToUI(req.status),
-					requestedDate: req.submittedDate,
-					completedDate: req.completedDate,
-					cancelledDate: req.cancelledDate,
-					tentativeDate: req.tentativeDate,
-					payment: req.payment, // Can be "Tentative" or "₱XXX"
-					paymentAmount: req.paymentAmount, // Can be null or number
-					paymentStatus: req.paymentStatus || 'pending',
-					processedBy: req.processedBy,
-					adminName: req.processedBy,
-					adminNote: req.adminNote,
-					rejectionReason: req.rejectionReason,
-					messages: req.messages || [],
-					lastReadAt: req.lastReadAt || null
-				}));
-			} else {
-				error = response.error || 'Failed to load document requests';
-			}
-		} catch (err) {
-			console.error('Error fetching document requests:', err);
-			// Only show error toast on initial load, not during polling
-			if (showLoadingIndicator) {
-				toastStore.error('Failed to load document requests');
-			}
-		} finally {
-			if (showLoadingIndicator) {
-				loading = false;
-			}
-		}
-	}
-
-	// Keep backend status as-is (matching admin system)
-	function mapStatusToUI(backendStatus) {
-		return backendStatus;
-	}
-	
 	// Get status display name
 	function getStatusDisplayName(status) {
 		const statusNames = {
@@ -157,29 +117,22 @@
 
 		try {
 			isSubmitting = true;
-			error = null;
 
 			const docTypeName = documentTypes.find(d => d.id === selectedDocumentType)?.name;
 
-			const response = await api.post('/api/document-requests', {
-				action: 'create',
-				documentType: docTypeName || selectedDocumentType,
-				purpose: requestPurpose.trim(),
-				paymentAmount: null, // Tentative until admin sets the fee
-				isUrgent: false
-			});
+			const result = await studentDocumentRequestStore.submitRequest(
+				docTypeName || selectedDocumentType,
+				requestPurpose
+			);
 
-			if (response.success) {
+			if (result.success) {
 				// Close form and reset
 				toggleRequestForm();
-				
-				// Refresh the request history
-				await fetchDocumentRequests();
 				
 				// Show success toast notification
 				toastStore.success('Document request submitted successfully');
 			} else {
-				toastStore.error(response.error || 'Failed to submit request');
+				toastStore.error(result.error || 'Failed to submit request');
 			}
 		} catch (err) {
 			console.error('Error submitting request:', err);
@@ -197,18 +150,13 @@
 			<p style="margin-top: 8px; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem;">This action cannot be undone. The request will be marked as cancelled.</p>`,
 			async () => {
 				try {
-					const response = await api.post('/api/document-requests', {
-						action: 'cancel',
-						requestId: request.requestId
-					});
+					const result = await studentDocumentRequestStore.cancelRequest(request.requestId);
 
-					if (response.success) {
-						// Refresh the request list
-						await fetchDocumentRequests();
+					if (result.success) {
 						toastStore.success('Document request cancelled successfully');
 					} else {
-						console.error('Failed to cancel request:', response.error);
-						toastStore.error(response.error || 'Failed to cancel request');
+						console.error('Failed to cancel request:', result.error);
+						toastStore.error(result.error || 'Failed to cancel request');
 					}
 				} catch (err) {
 					console.error('Error cancelling request:', err);
@@ -276,28 +224,19 @@
 	async function openRequestModal(request) {
 		try {
 			// Fetch the full request details including latest messages
-			const response = await api.get(`/api/document-requests?action=single&requestId=${request.requestId}`);
+			const result = await studentDocumentRequestStore.getRequestDetails(request.requestId);
 			
-			if (response.success) {
-				// Pass the request data as-is (paymentAmount can be null)
-				const requestData = {
-					...response.data,
-					type: response.data.documentType,
-					requestedDate: response.data.submittedDate,
-					paymentAmount: response.data.paymentAmount, // Can be null (tentative)
-					paymentStatus: response.data.paymentStatus ?? 'pending'
-				};
-				
+			if (result.success) {
 				studentDocReqModalStore.open(
-					requestData,
+					result.data,
 					handleCancelRequestInModal,
-					fetchDocumentRequests
+					() => studentDocumentRequestStore.loadDocumentRequests(false)
 				);
 
 				// Mark messages as read when modal is opened
-				await markMessagesAsRead(request.requestId);
+				await studentDocumentRequestStore.markMessagesAsRead(request.requestId);
 			} else {
-				console.error('Failed to fetch request details:', response.error);
+				console.error('Failed to fetch request details:', result.error);
 				toastStore.error('Failed to load request details. Please try again.');
 			}
 		} catch (error) {
@@ -306,42 +245,16 @@
 		}
 	}
 
-	// Mark messages as read
-	async function markMessagesAsRead(requestId) {
-		try {
-			const response = await api.post('/api/document-requests', {
-				action: 'markAsRead',
-				requestId: requestId
-			});
-			
-			if (response.success) {
-				// Update only the specific request's lastReadAt in local state
-				requestHistory = requestHistory.map(req => 
-					req.requestId === requestId 
-						? { ...req, lastReadAt: response.data.lastReadAt }
-						: req
-				);
-			}
-		} catch (error) {
-			console.error('Error marking messages as read:', error);
-			// Don't show error to user as this is a background operation
-		}
-	}
-
 	// Handle cancel request from modal
 	async function handleCancelRequestInModal(request) {
 		try {
-			const response = await api.post('/api/document-requests', {
-				action: 'cancel',
-				requestId: request.requestId
-			});
+			const result = await studentDocumentRequestStore.cancelRequest(request.requestId);
 
-			if (response.success) {
-				await fetchDocumentRequests();
+			if (result.success) {
 				toastStore.success('Document request cancelled successfully');
 			} else {
-				console.error('Failed to cancel request:', response.error);
-				toastStore.error(response.error || 'Failed to cancel request');
+				console.error('Failed to cancel request:', result.error);
+				toastStore.error(result.error || 'Failed to cancel request');
 			}
 		} catch (err) {
 			console.error('Error cancelling request:', err);
@@ -364,10 +277,12 @@
 	<div class="quick-actions-section">
 		<div class="quick-actions-header">
 			<h2 class="quick-actions-title">Quick Actions</h2>
-			<button class="request-new-button" on:click={toggleRequestForm} disabled={loading}>
-				<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>
-				{isRequestFormOpen ? 'Cancel' : 'New Document'}
-			</button>
+			<div style="display: flex; gap: 8px;">
+				<button class="request-new-button" on:click={toggleRequestForm} disabled={loading}>
+					<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>
+					{isRequestFormOpen ? 'Cancel' : 'New Document'}
+				</button>
+			</div>
 		</div>
 	</div>
 
@@ -463,7 +378,12 @@
 
 	<!-- Request History Section -->
 	<div class="request-history-section">
-		<h2 class="section-title">Request History</h2>
+		<div class="request-history-header">
+			<h2 class="section-title">Request History</h2>
+			<button class="refresh-button" on:click={handleRefresh} disabled={loading} title="Refresh document requests">
+				<span class="material-symbols-outlined">refresh</span>
+			</button>
+		</div>
 		
 		{#if error}
 			<div class="error-message" style="padding: 20px; background: #fee; border-radius: 8px; color: #c33; margin: 20px 0;">
@@ -487,7 +407,7 @@
 				{#each requestHistory as request, index (request.id)}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="request-card {request.status}" on:click={() => openRequestModal(request)}>
+					<div class="request-card {request.status}" style="--card-index: {index};" on:click={() => openRequestModal(request)}>
 						<div class="request-main-content">
 							<div class="request-status-icon">
 								<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
@@ -538,10 +458,10 @@
 						<div class="request-footer pending-footer">
 							<span class="footer-info">Awaiting review</span>
 						</div>
-						{:else if request.status === 'cancelled'}
-							<div class="request-footer cancelled-footer">
-								<span class="footer-info">Cancelled on {request.cancelledDate || formatDate(request.submittedDate)}</span>
-							</div>
+					{:else if request.status === 'cancelled'}
+						<div class="request-footer cancelled-footer">
+							<span class="footer-info">Cancelled on {formatDate(request.cancelledDate || request.submittedDate)}</span>
+						</div>
 						{:else if request.status === 'rejected'}
 							<div class="request-footer rejected-footer">
 								<span class="footer-info">

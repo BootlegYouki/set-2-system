@@ -178,6 +178,46 @@
   font-size: clamp(1rem, 2vw, 1.5rem);
 }
 
+.request-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  gap: var(--spacing-md);
+}
+
+.refresh-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.refresh-button:hover {
+  background-color: var(--md-sys-color-surface-container);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.refresh-button:active {
+  transform: translateY(0);
+}
+
+.refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-button .material-symbols-outlined {
+  font-size: 20px;
+}
+
 .request-new-button {
   max-width: 400px;
   min-width: 100px;
@@ -223,6 +263,18 @@
     opacity: 1;
     transform: translateY(0);
     max-height: 1000px;
+  }
+}
+
+/* Slide in animation for request cards */
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -287,6 +339,9 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   color: var(--md-sys-color-on-surface);
+  /* Stagger animation */
+  animation: slideInUp 0.5s ease-out backwards;
+  animation-delay: calc(var(--card-index) * 0.1s);
 }
 
 /* Status-based card border and background colors */

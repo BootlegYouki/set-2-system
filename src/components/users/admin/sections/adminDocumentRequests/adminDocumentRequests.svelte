@@ -664,12 +664,20 @@
 								<span class="material-symbols-outlined">tag</span>
 								<span>ID: {request.requestId}</span>
 							</div>
+						<div class="docreq-detail-item">
+							<span class="material-symbols-outlined">calendar_today</span>
+							<span>Requested: {request.submittedDate}</span>
+						</div>
+						
+						<!-- Cancelled Date - only show if status is cancelled -->
+						{#if request.status === 'cancelled' && request.cancelledDate}
 							<div class="docreq-detail-item">
-								<span class="material-symbols-outlined">calendar_today</span>
-								<span>Requested: {request.submittedDate}</span>
+								<span class="material-symbols-outlined">event_busy</span>
+								<span>Cancelled: {request.cancelledDate}</span>
 							</div>
-							
-						<!-- Payment - hide if free or tentative -->
+						{/if}
+						
+					<!-- Payment - hide if free or tentative -->
 						{#if request.payment && request.payment !== 'Free' && !request.payment.toLowerCase().includes('tentative')}
 							<div class="docreq-detail-item">
 								<span class="material-symbols-outlined">payments</span>
