@@ -40,13 +40,11 @@
 	];
 
 	const requestStatuses = [
-		{ id: 'pending', name: 'Pending', description: 'Awaiting review' },
-		{ id: 'on_hold', name: 'On Hold', description: 'Temporarily suspended' },
+		{ id: 'on_hold', name: 'On Hold', description: 'Awaiting review' },
 		{ id: 'verifying', name: 'Verifying', description: 'Under verification' },
 		{ id: 'processing', name: 'For Processing', description: 'Currently being processed' },
 		{ id: 'for_pickup', name: 'For Pick Up', description: 'Ready for pickup' },
 		{ id: 'released', name: 'Released', description: 'Successfully released' },
-		{ id: 'completed', name: 'Completed', description: 'Ready for pickup/download' },
 		{ id: 'rejected', name: 'Rejected', description: 'Request denied' },
 		{ id: 'cancelled', name: 'Cancelled', description: 'Cancelled by student' }
 	];
@@ -57,8 +55,7 @@
 		{ id: 'verifying', name: 'Verifying' },
 		{ id: 'processing', name: 'For Processing' },
 		{ id: 'for_pickup', name: 'For Pick Up' },
-		{ id: 'released', name: 'Released' },
-		{ id: 'rejected', name: 'Rejected' }
+		{ id: 'released', name: 'Released' }
 	];
 
 	// Computed properties for filtering (static for now)

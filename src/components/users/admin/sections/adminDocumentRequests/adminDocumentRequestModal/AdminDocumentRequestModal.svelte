@@ -92,7 +92,8 @@
 	function selectModalStatus(statusId) {
 		if (!selectedRequest) return;
 		selectedRequest.status = statusId;
-		// Keep tentative date when status changes - don't clear it
+		// Reset tentative date when status changes
+		selectedRequest.tentativeDate = null;
 		isModalStatusDropdownOpen = false;
 	}
 
@@ -282,7 +283,7 @@
 								class="docreq-status-dropdown-trigger"
 								onclick={toggleModalStatusDropdown}
 								aria-label="Change status"
-								disabled={selectedRequest.status === 'cancelled' || selectedRequest.status === 'rejected'}
+								disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
 							>
 								<span class="docreq-status-dropdown-label">{modalCurrentStatusName}</span>
 								<span class="material-symbols-outlined docreq-status-dropdown-caret">
@@ -332,6 +333,7 @@
 			</div>
 			{/if}
 
+			<!-- Payment Amount card -->
 			<div class="docreq-card">
 				<div class="card-label">
 					<span class="material-symbols-outlined">payments</span> Payment Amount
@@ -370,8 +372,8 @@
 							</span>
 						</button>
 					</div>
+				</div>
 			</div>
-		</div>
 
 			{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
 				<div class="docreq-card">
@@ -396,7 +398,7 @@
 				<button 
 					class="docreq-approve-button" 
 					onclick={handleUpdate}
-					disabled={selectedRequest.status === 'cancelled' || selectedRequest.status === 'rejected'}
+					disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
 				>
 					<span class="material-symbols-outlined">check_circle</span>
 					Update Request
@@ -404,7 +406,7 @@
 				<button 
 					class="docreq-reject-button" 
 					onclick={handleReject}
-					disabled={selectedRequest.status === 'cancelled' || selectedRequest.status === 'rejected'}
+					disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
 				>
 					<span class="material-symbols-outlined">cancel</span>
 					Reject Request
@@ -1341,6 +1343,9 @@
 	}
 	.status-dot.released {
 		background: #22c55e;
+	}
+	.status-dot.rejected {
+		background: #ef4444;
 	}
 
 	.docreq-status-item[aria-selected='true'] {

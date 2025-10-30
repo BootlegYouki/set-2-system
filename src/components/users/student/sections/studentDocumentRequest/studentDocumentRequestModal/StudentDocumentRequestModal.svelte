@@ -492,7 +492,6 @@
 		display: flex;
 		flex-direction: column;
 		overflow-y: auto;
-		padding: var(--spacing-2xl);
 	}
 
 	.student-docreq-modal-grid {
