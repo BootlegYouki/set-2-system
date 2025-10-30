@@ -136,7 +136,8 @@ export async function GET({ url, request }) {
 					paymentStatus: req.payment_status,
 					processedBy: req.processed_by,
 					isUrgent: req.is_urgent || false,
-					messages: decryptMessages(req.messages || [])
+					messages: decryptMessages(req.messages || []),
+					lastReadAt: req.last_read_at || null
 				}));
 
 				return json({ success: true, data: formattedStudentRequests });
@@ -214,7 +215,8 @@ export async function GET({ url, request }) {
 					dateOfBirth: formatDateDisplay(request.birthdate),
 					processedBy: request.processed_by,
 					processedById: request.processed_by_id,
-					messages: decryptMessages(request.messages || [])
+					messages: decryptMessages(request.messages || []),
+					lastReadAt: request.last_read_at || null
 				};
 
 				return json({ success: true, data: formattedRequest });
@@ -566,6 +568,51 @@ export async function POST({ request }) {
 				);
 
 				return json({ success: true, message: 'Request cancelled successfully' });
+
+			case 'markAsRead':
+				// Students can mark messages as read for their own requests
+				const markReadRequestId = data.requestId;
+				
+				if (!markReadRequestId) {
+					return json({ error: 'Request ID is required' }, { status: 400 });
+				}
+
+				// Find the request
+				const requestToMarkRead = await db
+					.collection('document_requests')
+					.findOne({ request_id: markReadRequestId });
+
+				if (!requestToMarkRead) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
+				// For students, verify they own the request
+				if (user.account_type === 'student' && requestToMarkRead.student_id !== user.id) {
+					return json({ error: 'You can only mark your own requests as read' }, { status: 403 });
+				}
+
+				// Update last_read_at timestamp
+				const markReadResult = await db
+					.collection('document_requests')
+					.updateOne(
+						{ request_id: markReadRequestId },
+						{
+							$set: {
+								last_read_at: new Date(),
+								updated_at: new Date()
+							}
+						}
+					);
+
+				if (markReadResult.matchedCount === 0) {
+					return json({ error: 'Failed to mark as read' }, { status: 500 });
+				}
+
+				return json({ 
+					success: true, 
+					message: 'Messages marked as read',
+					data: { lastReadAt: new Date() }
+				});
 
 			case 'sendMessage':
 				// Both students and admins can send messages

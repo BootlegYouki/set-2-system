@@ -407,7 +407,6 @@
         {#each filteredNotifications as notification, index (notification.id)}
           <div 
             class="notification-card {notification.isRead ? 'read' : 'unread'}"
-            style="--card-index: {index}"
           >
             <!-- Notification Header -->
              <div class="notification-header-card">

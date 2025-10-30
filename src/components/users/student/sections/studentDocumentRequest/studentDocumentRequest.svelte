@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { authStore } from '../../../../login/js/auth.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { modalStore } from '../../../../common/js/modalStore.js';
@@ -20,6 +20,9 @@
 	let requestHistory = [];
 	let loading = true;
 	let error = null;
+
+	// Polling state
+	let pollingInterval;
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
@@ -54,16 +57,29 @@
 	onMount(() => {
 		if ($authStore.userData?.id) {
 			fetchDocumentRequests();
+			// Start polling for updates every 10 seconds
+			pollingInterval = setInterval(() => {
+				fetchDocumentRequests(false); // Don't show loading indicator during polling
+			}, 10000);
 		} else {
 			error = 'Please log in to view your document requests';
 			loading = false;
 		}
 	});
 
+	// Clean up polling on component destroy
+	onDestroy(() => {
+		if (pollingInterval) {
+			clearInterval(pollingInterval);
+		}
+	});
+
 	// Fetch student's document requests from API
-	async function fetchDocumentRequests() {
+	async function fetchDocumentRequests(showLoadingIndicator = true) {
 		try {
-			loading = true;
+			if (showLoadingIndicator) {
+				loading = true;
+			}
 			error = null;
 
 			const response = await api.get('/api/document-requests?action=student');
@@ -87,16 +103,22 @@
 					adminName: req.processedBy,
 					adminNote: req.adminNote,
 					rejectionReason: req.rejectionReason,
-					messages: req.messages || []
+					messages: req.messages || [],
+					lastReadAt: req.lastReadAt || null
 				}));
 			} else {
 				error = response.error || 'Failed to load document requests';
 			}
 		} catch (err) {
 			console.error('Error fetching document requests:', err);
-			toastStore.error('Failed to load document requests');
+			// Only show error toast on initial load, not during polling
+			if (showLoadingIndicator) {
+				toastStore.error('Failed to load document requests');
+			}
 		} finally {
-			loading = false;
+			if (showLoadingIndicator) {
+				loading = false;
+			}
 		}
 	}
 
@@ -231,6 +253,25 @@
 		}
 	}
 
+	// Get unread message count for a request
+	function getUnreadMessageCount(request) {
+		if (!request.messages || request.messages.length === 0) {
+			return 0;
+		}
+		
+		// If never read, all messages are unread
+		if (!request.lastReadAt) {
+			return request.messages.length;
+		}
+		
+		// Count messages created after last read
+		const lastReadTime = new Date(request.lastReadAt).getTime();
+		return request.messages.filter(msg => {
+			const messageTime = new Date(msg.created_at).getTime();
+			return messageTime > lastReadTime;
+		}).length;
+	}
+
 	// Open the details modal for a particular request
 	async function openRequestModal(request) {
 		try {
@@ -252,6 +293,9 @@
 					handleCancelRequestInModal,
 					fetchDocumentRequests
 				);
+
+				// Mark messages as read when modal is opened
+				await markMessagesAsRead(request.requestId);
 			} else {
 				console.error('Failed to fetch request details:', response.error);
 				toastStore.error('Failed to load request details. Please try again.');
@@ -259,6 +303,28 @@
 		} catch (error) {
 			console.error('Error fetching request details:', error);
 			toastStore.error('An error occurred while loading the request details.');
+		}
+	}
+
+	// Mark messages as read
+	async function markMessagesAsRead(requestId) {
+		try {
+			const response = await api.post('/api/document-requests', {
+				action: 'markAsRead',
+				requestId: requestId
+			});
+			
+			if (response.success) {
+				// Update only the specific request's lastReadAt in local state
+				requestHistory = requestHistory.map(req => 
+					req.requestId === requestId 
+						? { ...req, lastReadAt: response.data.lastReadAt }
+						: req
+				);
+			}
+		} catch (error) {
+			console.error('Error marking messages as read:', error);
+			// Don't show error to user as this is a background operation
 		}
 	}
 
@@ -421,7 +487,7 @@
 				{#each requestHistory as request, index (request.id)}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="request-card {request.status}" style="--card-index: {index + 1};" on:click={() => openRequestModal(request)}>
+					<div class="request-card {request.status}" on:click={() => openRequestModal(request)}>
 						<div class="request-main-content">
 							<div class="request-status-icon">
 								<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>
@@ -437,12 +503,12 @@
 										<div class="student-status-badge status-{request.status}">
 											{getStatusDisplayName(request.status)}
 										</div>
-										{#if request.messages && request.messages.length > 0}
-											<button class="chat-indicator-btn" title="{request.messages.length} message{request.messages.length !== 1 ? 's' : ''}">
-												<span class="material-symbols-outlined">chat_bubble</span>
-												<span class="chat-badge">{request.messages.length}</span>
-											</button>
-										{/if}
+										<button class="chat-indicator-btn" title="{getUnreadMessageCount(request) > 0 ? `${getUnreadMessageCount(request)} unread message${getUnreadMessageCount(request) !== 1 ? 's' : ''}` : 'View messages'}">
+											<span class="material-symbols-outlined">chat_bubble</span>
+											{#if getUnreadMessageCount(request) > 0}
+												<span class="chat-badge">{getUnreadMessageCount(request)}</span>
+											{/if}
+										</button>
 									</div>
 								</div>
 							</div>

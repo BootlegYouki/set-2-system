@@ -344,9 +344,6 @@
   color: var(--md-sys-color-on-surface);
   position: relative;
   overflow: hidden;
-  animation: notificationSlideIn 0.4s ease-out;
-  animation-fill-mode: both;
-  animation-delay: calc(var(--card-index, 0) * 0.1s);
 }
 
 .notification-card:hover {
@@ -589,18 +586,6 @@
   margin: 0;
   max-width: 400px;
   line-height: 1.5;
-}
-
-/* Animations */
-@keyframes notificationSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 /* Responsive Design */
