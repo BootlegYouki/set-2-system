@@ -911,6 +911,11 @@
     align-self: flex-start;
   }
 
+  /* Hide status badge on smaller screens */
+  .student-status-badge {
+    display: none;
+  }
+
   .request-footer {
     gap: var(--spacing-sm);
     flex-direction: row;
