@@ -360,7 +360,7 @@
 							/>
 						</div>
 					{:else}
-						<div class="payment-readonly {paymentStatus}">
+						<div class="payment-readonly {(request?.status !== 'cancelled' && request?.status !== 'rejected') ? paymentStatus : ''}">
 							{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
 								₱{selectedRequest.paymentAmount}
 							{:else}
@@ -374,6 +374,7 @@
 							onclick={togglePaymentStatus}
 							title={paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid'}
 							aria-label={paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid'}
+							disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
 						>
 							<span class="material-symbols-outlined">
 								{paymentStatus === 'paid' ? 'check_circle' : 'cancel'}
@@ -384,6 +385,7 @@
 							onclick={togglePaymentEdit}
 							title={isPaymentEditable ? 'Save' : 'Edit payment amount'}
 							aria-label={isPaymentEditable ? 'Save' : 'Edit payment amount'}
+							disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
 						>
 							<span class="material-symbols-outlined">
 								{isPaymentEditable ? 'check' : 'edit'}
@@ -1532,6 +1534,19 @@
 		font-size: 20px;
 	}
 
+	.payment-status-toggle:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		background: var(--md-sys-color-surface-variant);
+		border-color: var(--md-sys-color-outline-variant);
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.payment-status-toggle:disabled:hover {
+		transform: none;
+		box-shadow: none;
+	}
+
 	/* Payment Edit Button */
 	.payment-edit-btn {
 		background: var(--md-sys-color-surface);
@@ -1557,6 +1572,18 @@
 
 	.payment-edit-btn:active {
 		transform: scale(0.95);
+	}
+
+	.payment-edit-btn:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		background: var(--md-sys-color-surface-variant);
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.payment-edit-btn:disabled:hover {
+		transform: none;
+		box-shadow: none;
 	}
 
 	.payment-edit-btn .material-symbols-outlined {

@@ -21,19 +21,19 @@
 	};
 
 	const statusColors = [
-		'rgba(255, 193, 7, 0.6)',    // On Hold - Amber/Yellow
-		'rgba(33, 150, 243, 0.6)',   // Verifying - Blue
-		'rgba(156, 39, 176, 0.6)',   // Processing - Purple
-		'rgba(255, 152, 0, 0.6)',    // For Pickup - Orange
-		'rgba(76, 175, 80, 0.6)'     // Released - Green
+		'rgba(253, 216, 53, 0.6)',    // On Hold - #fdd835
+		'rgba(92, 107, 192, 0.6)',    // Verifying - #5c6bc0
+		'rgba(255, 152, 0, 0.6)',     // Processing - #ff9800
+		'rgba(0, 188, 212, 0.6)',     // For Pickup - #00bcd4
+		'rgba(76, 175, 80, 0.6)'      // Released - #4caf50
 	];
 
 	const statusBorderColors = [
-		'rgb(255, 193, 7)',    // On Hold - Amber/Yellow
-		'rgb(33, 150, 243)',   // Verifying - Blue
-		'rgb(156, 39, 176)',   // Processing - Purple
-		'rgb(255, 152, 0)',    // For Pickup - Orange
-		'rgb(76, 175, 80)'     // Released - Green
+		'rgb(253, 216, 53)',    // On Hold - #fdd835
+		'rgb(92, 107, 192)',    // Verifying - #5c6bc0
+		'rgb(255, 152, 0)',     // Processing - #ff9800
+		'rgb(0, 188, 212)',     // For Pickup - #00bcd4
+		'rgb(76, 175, 80)'      // Released - #4caf50
 	];
 
 	async function fetchDocumentRequestsData() {
