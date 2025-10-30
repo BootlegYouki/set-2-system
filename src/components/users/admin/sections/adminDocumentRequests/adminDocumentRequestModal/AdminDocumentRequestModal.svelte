@@ -46,11 +46,34 @@
 		}
 	}
 
-	// Send a new message
+	// Send a new message with optimistic UI update
 	async function sendMessage() {
 		if (!newMessage.trim() || isSendingMessage || isChatDisabled) return;
 
 		isSendingMessage = true;
+		const messageText = newMessage.trim();
+		
+		// Create optimistic message with "Sending" as temporary author
+		const optimisticMessage = {
+			id: `temp-${Date.now()}`, // Temporary ID
+			text: messageText,
+			author: 'Sending...',
+			authorRole: 'admin',
+			created_at: new Date().toISOString(),
+			isPending: true // Flag to track optimistic messages (internal only)
+		};
+
+		// Immediately add message to UI
+		selectedRequest.messages = [...(selectedRequest.messages || []), optimisticMessage];
+		newMessage = '';
+		scrollToBottom();
+		
+		// Refocus the input immediately
+		if (chatInputEl) {
+			setTimeout(() => chatInputEl.focus(), 50);
+		}
+
+		// Send to server in the background
 		try {
 			const response = await authenticatedFetch('/api/document-requests', {
 				method: 'POST',
@@ -58,28 +81,33 @@
 				body: JSON.stringify({
 					action: 'sendMessage',
 					requestId: selectedRequest.requestId,
-					message: newMessage.trim()
+					message: messageText
 				})
 			});
 
 			const result = await response.json();
 
 			if (result.success) {
-				// Add the new message to the local state
-				selectedRequest.messages = [...(selectedRequest.messages || []), result.data];
-				newMessage = '';
-				scrollToBottom();
-				// Refocus the input after sending
-				if (chatInputEl) {
-					setTimeout(() => chatInputEl.focus(), 100);
-				}
+				// Replace optimistic message with actual message from server
+				selectedRequest.messages = selectedRequest.messages.map(msg => 
+					msg.id === optimisticMessage.id ? { ...result.data, isPending: false } : msg
+				);
 			} else {
 				console.error('Failed to send message:', result.error);
+				// Remove the optimistic message on failure
+				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== optimisticMessage.id);
+				// Show error notification
 				alert('Failed to send message. Please try again.');
+				// Restore the message text so user can retry
+				newMessage = messageText;
 			}
 		} catch (error) {
 			console.error('Error sending message:', error);
+			// Remove the optimistic message on error
+			selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== optimisticMessage.id);
 			alert('An error occurred while sending the message.');
+			// Restore the message text so user can retry
+			newMessage = messageText;
 		} finally {
 			isSendingMessage = false;
 		}
@@ -192,12 +220,18 @@
 			const result = await response.json();
 			
 			if (result.success && result.data.messages) {
-				const currentMessageIds = new Set(messages.map(m => m.id));
-				const newMessages = result.data.messages.filter(m => !currentMessageIds.has(m.id));
+				// Keep pending messages and merge with server messages
+				const pendingMessages = messages.filter(m => m.isPending);
+				const serverMessages = result.data.messages;
+				
+				// Get IDs of existing non-pending messages
+				const currentMessageIds = new Set(messages.filter(m => !m.isPending).map(m => m.id));
+				const newMessages = serverMessages.filter(m => !currentMessageIds.has(m.id));
 				
 				// Only update if there are new messages
 				if (newMessages.length > 0) {
-					selectedRequest.messages = result.data.messages;
+					// Merge server messages with pending messages
+					selectedRequest.messages = [...serverMessages, ...pendingMessages];
 					scrollToBottom();
 				}
 			}
@@ -497,7 +531,9 @@
 								<div class="message-bubble">
 									<div class="message-header">
 										<span class="message-author">{msg.author}</span>
-										<span class="message-time">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+										<span class="message-time">
+											{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+										</span>
 									</div>
 									<div class="message-text">{msg.text}</div>
 								</div>

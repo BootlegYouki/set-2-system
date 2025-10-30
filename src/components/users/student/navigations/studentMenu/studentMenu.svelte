@@ -4,12 +4,21 @@
 	import { browser } from '$app/environment';
 	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
 	import { authStore } from '../../../../login/js/auth.js';
+	import { notificationStore } from '../../stores/notificationStore.js';
 
 	// Props
 	let { activeSection = $bindable('grades'), isNavRailVisible = true, onnavigate } = $props();
 
-	// Notification state
+	// Notification state from shared store
 	let unreadNotificationCount = $state(0);
+	
+	// Subscribe to notification store
+	$effect(() => {
+		const unsubscribe = notificationStore.subscribe(state => {
+			unreadNotificationCount = state.unreadCount;
+		});
+		return unsubscribe;
+	});
 
 	// Navigation items
 	const navigationItems = [
@@ -41,7 +50,7 @@
 		}
 	];
 
-	// Fetch notification count
+	// Fetch notification count and update store
 	async function fetchNotificationCount() {
 		if (!browser) return;
 		
@@ -51,7 +60,9 @@
 		try {
 			const result = await authenticatedFetch('/api/notifications?limit=1&offset=0');
 			if (result.success) {
-				unreadNotificationCount = result.data.unreadCount || 0;
+				const unreadCount = result.data.unreadCount || 0;
+				const totalCount = result.data.pagination?.total || 0;
+				notificationStore.setCounts(unreadCount, totalCount);
 			}
 		} catch (err) {
 			console.error('Error fetching notification count:', err);

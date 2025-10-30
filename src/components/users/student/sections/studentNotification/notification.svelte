@@ -4,6 +4,7 @@
   import { browser } from '$app/environment';
   import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
   import { authStore } from '../../../../login/js/auth.js';
+  import { notificationStore } from '../../stores/notificationStore.js';
 
   // State variables
   let notifications = [];
@@ -138,6 +139,9 @@
       unreadCount = responseData.unreadCount || 0;
       totalCount = responseData.pagination?.total || notifications.length;
       
+      // Update the shared notification store
+      notificationStore.setCounts(unreadCount, totalCount);
+      
     } catch (err) {
       console.error('Error fetching notifications:', err);
       error = err.message;
@@ -177,8 +181,10 @@
       // Update unread count
       if (isRead) {
         unreadCount = Math.max(0, unreadCount - 1);
+        notificationStore.decrementUnread();
       } else {
         unreadCount += 1;
+        notificationStore.incrementUnread();
       }
 
     } catch (err) {
@@ -213,8 +219,10 @@
       // Update counts
       if (deletedNotification && !deletedNotification.isRead) {
         unreadCount = Math.max(0, unreadCount - 1);
+        notificationStore.decrementUnread();
       }
       totalCount = Math.max(0, totalCount - 1);
+      notificationStore.setCounts(unreadCount, totalCount);
 
     } catch (err) {
       console.error('Error deleting notification:', err);
@@ -246,6 +254,9 @@
       // Update local state
       notifications = notifications.map(n => ({ ...n, isRead: true }));
       unreadCount = 0;
+      
+      // Update the shared notification store
+      notificationStore.markAllRead();
 
     } catch (err) {
       console.error('Error marking all as read:', err);
@@ -278,6 +289,9 @@
       const readCount = notifications.filter(n => n.isRead).length;
       notifications = notifications.filter(n => !n.isRead);
       totalCount = Math.max(0, totalCount - readCount);
+      
+      // Update the shared notification store
+      notificationStore.setCounts(unreadCount, totalCount);
 
     } catch (err) {
       console.error('Error clearing read notifications:', err);
