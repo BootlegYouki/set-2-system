@@ -161,7 +161,7 @@
 .quick-actions-section {
   background-color: var(--md-sys-color-surface-container);
   border-radius: var(--radius-xl);
-  padding: var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--md-sys-color-outline-variant);
@@ -169,13 +169,18 @@
 
 .quick-actions-header {
   text-align: center;
-  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.quick-actions-title {
+  font-size: clamp(1rem, 2vw, 1.5rem);
 }
 
 .request-new-button {
-  width: 100%;
   max-width: 400px;
-  margin: 0 auto;
+  min-width: 100px;
   display: flex;
   align-items: center;
   justify-content: center;

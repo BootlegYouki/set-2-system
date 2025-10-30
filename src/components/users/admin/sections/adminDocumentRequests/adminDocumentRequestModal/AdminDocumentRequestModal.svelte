@@ -264,14 +264,14 @@
 				<div class="card-label">
 					<span class="material-symbols-outlined">description</span> Document Type
 				</div>
-				<div class="card-value">{selectedRequest.documentType}</div>
+				<div class="admin-card-value">{selectedRequest.documentType}</div>
 			</div>
 
 			<div class="docreq-card">
 				<div class="card-label">
 					<span class="material-symbols-outlined">account_circle</span> Processed By
 				</div>
-				<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
+				<div class="admin-card-value">{selectedRequest.processedBy ?? '—'}</div>
 			</div>
 
 			<!-- Status card with dropdown -->
@@ -279,7 +279,7 @@
 					<div class="card-label">
 						<span class="material-symbols-outlined">info</span> Status
 					</div>
-					<div class="card-value">
+					<div class="admin-card-value">
 						<div
 							class="docreq-status-dropdown"
 							class:open={isModalStatusDropdownOpen}
@@ -322,7 +322,7 @@
 			<div class="card-label">
 				<span class="material-symbols-outlined">event</span> Tentative Date
 			</div>
-			<div class="card-value">
+			<div class="admin-card-value">
 				{#if ['verifying', 'processing'].includes(selectedRequest.status)}
 					<input
 						type="date"
@@ -345,7 +345,7 @@
 			<div class="card-label">
 				<span class="material-symbols-outlined">payments</span> Payment Amount
 			</div>
-			<div class="card-value">
+			<div class="admin-card-value">
 				<div class="payment-display-container">
 					{#if isPaymentEditable}
 						<div class="payment-input-wrapper">
@@ -360,7 +360,7 @@
 							/>
 						</div>
 					{:else}
-						<div class="payment-readonly {(request?.status !== 'cancelled' && request?.status !== 'rejected') ? paymentStatus : ''}">
+						<div class="payment-readonly {(request?.status !== 'cancelled' && request?.status !== 'rejected' && selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined) ? paymentStatus : ''}">
 							{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
 								₱{selectedRequest.paymentAmount}
 							{:else}
@@ -372,9 +372,18 @@
 						<button 
 							class="payment-status-toggle {paymentStatus}" 
 							onclick={togglePaymentStatus}
-							title={paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid'}
+							title={
+								(selectedRequest.paymentAmount === null || selectedRequest.paymentAmount === undefined) 
+									? 'Set payment amount first' 
+									: (paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid')
+							}
 							aria-label={paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid'}
-							disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
+							disabled={
+								request?.status === 'cancelled' || 
+								request?.status === 'rejected' || 
+								selectedRequest.paymentAmount === null || 
+								selectedRequest.paymentAmount === undefined
+							}
 						>
 							<span class="material-symbols-outlined">
 								{paymentStatus === 'paid' ? 'check_circle' : 'cancel'}
@@ -401,7 +410,7 @@
 					<div class="card-label">
 						<span class="material-symbols-outlined">event_busy</span> Cancelled Date
 					</div>
-					<div class="card-value">{selectedRequest.cancelledDate}</div>
+					<div class="admin-card-value">{selectedRequest.cancelledDate}</div>
 				</div>
 				{/if}
 			</div>
@@ -737,11 +746,14 @@
 		align-items: center;
 	}
 
-	.card-value {
+	.admin-card-value {
+		display: flex;
 		margin-top: 8px;
 		font-weight: 600;
 		font-size: 1rem;
 		width: 100%;
+		min-height: 40px;
+		align-items: center;
 	}
 
 	.docreq-purpose {
@@ -1514,7 +1526,7 @@
 		color: #22c55e;
 	}
 
-	.payment-status-toggle.paid:hover {
+	.payment-status-toggle.paid:hover:not(:disabled) {
 		background: rgba(34, 197, 94, 0.2);
 		border-color: #22c55e;
 	}
@@ -1525,7 +1537,7 @@
 		color: #f59e0b;
 	}
 
-	.payment-status-toggle.pending:hover {
+	.payment-status-toggle.pending:hover:not(:disabled) {
 		background: rgba(245, 158, 11, 0.2);
 		border-color: #f59e0b;
 	}

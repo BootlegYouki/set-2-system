@@ -4,6 +4,34 @@ import { ObjectId } from 'mongodb';
 import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/auth-helper.js';
 import { encryptMessage, decryptMessages } from '../helper/encryption-helper.js';
 
+// Helper function to create notifications for document request updates
+async function createDocumentRequestNotification(db, studentId, notificationData) {
+	try {
+		const notification = {
+			student_id: studentId,
+			title: notificationData.title,
+			message: notificationData.message,
+			type: 'document',
+			priority: notificationData.priority || 'normal',
+			is_read: false,
+			related_id: notificationData.requestId,
+			document_type: notificationData.documentType,
+			status: notificationData.status,
+			admin_name: notificationData.adminName,
+			admin_id: notificationData.adminId,
+			admin_note: notificationData.adminNote || null,
+			created_at: new Date(),
+			updated_at: new Date()
+		};
+
+		await db.collection('notifications').insertOne(notification);
+		console.log(`Notification created for student ${studentId}: ${notificationData.title}`);
+	} catch (error) {
+		console.error('Error creating notification:', error);
+		// Don't fail the main operation if notification fails
+	}
+}
+
 // GET /api/document-requests - Fetch document requests
 export async function GET({ url, request }) {
 	try {
@@ -318,8 +346,24 @@ export async function POST({ request }) {
 					updated_at: new Date()
 				};
 
+				// Get existing request first to track changes
+				const existingRequest = await db
+					.collection('document_requests')
+					.findOne({ request_id: requestId });
+
+				if (!existingRequest) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
+				// Track what changed for notifications
+				let statusChanged = false;
+				let paymentStatusChanged = false;
+				let oldStatus = existingRequest.status;
+				let oldPaymentStatus = existingRequest.payment_status;
+
 				if (status) {
 					updateData.status = status;
+					statusChanged = (status !== oldStatus);
 					// Clear tentative date if status is not processing
 					if (status !== 'processing') {
 						updateData.tentative_date = null;
@@ -332,6 +376,7 @@ export async function POST({ request }) {
 
 				if (paymentStatus) {
 					updateData.payment_status = paymentStatus;
+					paymentStatusChanged = (paymentStatus !== oldPaymentStatus && paymentStatus === 'paid');
 				}
 
 				if (paymentAmount !== undefined && paymentAmount !== null) {
@@ -339,11 +384,7 @@ export async function POST({ request }) {
 				}
 
 				// Set processed by if not already set
-				const existingRequest = await db
-					.collection('document_requests')
-					.findOne({ request_id: requestId });
-
-				if (existingRequest && !existingRequest.processed_by) {
+				if (!existingRequest.processed_by) {
 					updateData.processed_by = user.name;
 					updateData.processed_by_id = user.id;
 				}
@@ -354,6 +395,55 @@ export async function POST({ request }) {
 
 				if (updateResult.matchedCount === 0) {
 					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
+				// Send notifications for changes
+				// 1. Notify on status change
+				if (statusChanged) {
+					const statusNames = {
+						'on_hold': 'On Hold',
+						'verifying': 'Verifying',
+						'processing': 'Processing',
+						'for_pickup': 'Ready for Pickup',
+						'released': 'Released',
+						'rejected': 'Rejected',
+						'cancelled': 'Cancelled'
+					};
+					
+					const statusMessages = {
+						'on_hold': 'Your document request is currently on hold.',
+						'verifying': 'Your document request is now being verified.',
+						'processing': 'Your document request is being processed.',
+						'for_pickup': 'Your document is ready for pickup! Please visit the office.',
+						'released': 'Your document has been released. Thank you!',
+						'rejected': 'Your document request has been rejected.',
+						'cancelled': 'Your document request has been cancelled.'
+					};
+
+					await createDocumentRequestNotification(db, existingRequest.student_id, {
+						title: `Document Request Status Updated`,
+						message: `Your request for "${existingRequest.document_type}" (${requestId}) status changed to: ${statusNames[status]}. ${statusMessages[status] || ''}`,
+						priority: status === 'for_pickup' ? 'high' : 'normal',
+						requestId: requestId,
+						documentType: existingRequest.document_type,
+						status: status,
+						adminName: user.name,
+						adminId: user.id
+					});
+				}
+
+				// 2. Notify on payment status change to 'paid'
+				if (paymentStatusChanged) {
+					await createDocumentRequestNotification(db, existingRequest.student_id, {
+						title: `Payment Confirmed`,
+						message: `Your payment for "${existingRequest.document_type}" (${requestId}) has been confirmed as paid. Amount: ₱${updateData.payment_amount || existingRequest.payment_amount || 0}`,
+						priority: 'normal',
+						requestId: requestId,
+						documentType: existingRequest.document_type,
+						status: existingRequest.status,
+						adminName: user.name,
+						adminId: user.id
+					});
 				}
 
 				// Log activity
@@ -376,6 +466,15 @@ export async function POST({ request }) {
 					return json({ error: 'Request ID is required' }, { status: 400 });
 				}
 
+				// Get the request before rejecting to access student_id and document_type
+				const requestToReject = await db
+					.collection('document_requests')
+					.findOne({ request_id: rejectRequestId });
+
+				if (!requestToReject) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
 				const rejectResult = await db
 					.collection('document_requests')
 					.updateOne(
@@ -394,6 +493,18 @@ export async function POST({ request }) {
 				if (rejectResult.matchedCount === 0) {
 					return json({ error: 'Request not found' }, { status: 404 });
 				}
+
+				// Notify student about rejection
+				await createDocumentRequestNotification(db, requestToReject.student_id, {
+					title: `Document Request Rejected`,
+					message: `Your request for "${requestToReject.document_type}" (${rejectRequestId}) has been rejected by ${user.name}. Please contact the office for more information.`,
+					priority: 'high',
+					requestId: rejectRequestId,
+					documentType: requestToReject.document_type,
+					status: 'rejected',
+					adminName: user.name,
+					adminId: user.id
+				});
 
 				// Log activity
 				await logActivityWithUser(
@@ -505,6 +616,25 @@ export async function POST({ request }) {
 
 				if (messageResult.matchedCount === 0) {
 					return json({ error: 'Failed to send message' }, { status: 500 });
+				}
+
+				// 3. Notify student when admin/teacher sends a message
+				if (user.account_type === 'admin' || user.account_type === 'teacher') {
+					// Truncate long messages for notification
+					const notificationMessage = messageText.length > 100 
+						? messageText.substring(0, 100) + '...' 
+						: messageText;
+					
+					await createDocumentRequestNotification(db, targetRequest.student_id, {
+						title: `New Message from ${user.name}`,
+						message: `You have a new message regarding your "${targetRequest.document_type}" request (${msgRequestId}): "${notificationMessage}"`,
+						priority: 'normal',
+						requestId: msgRequestId,
+						documentType: targetRequest.document_type,
+						status: targetRequest.status,
+						adminName: user.name,
+						adminId: user.id
+					});
 				}
 
 				// Log activity

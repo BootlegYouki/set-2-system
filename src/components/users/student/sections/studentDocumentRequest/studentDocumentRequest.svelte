@@ -297,14 +297,12 @@
 	<!-- Quick Actions Section -->
 	<div class="quick-actions-section">
 		<div class="quick-actions-header">
-			<h2 class="section-title">Quick Actions</h2>
-			<p class="section-subtitle">Request new documents or check existing requests</p>
+			<h2 class="quick-actions-title">Quick Actions</h2>
+			<button class="request-new-button" on:click={toggleRequestForm} disabled={loading}>
+				<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>
+				{isRequestFormOpen ? 'Cancel' : 'New Document'}
+			</button>
 		</div>
-		
-		<button class="request-new-button" on:click={toggleRequestForm} disabled={loading}>
-			<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>
-			{isRequestFormOpen ? 'Cancel Request' : 'Request New Document'}
-		</button>
 	</div>
 
 	<!-- Inline Document Request Form -->
@@ -388,7 +386,7 @@
 							{#if isSubmitting}
 								Submitting...
 							{:else}
-								Submit Request
+								Submit
 							{/if}
 						</button>
 					</div>
