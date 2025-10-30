@@ -89,6 +89,10 @@ export const handleLogin = async ({ accountNumber, password }) => {
       throw new Error(data.error || 'Invalid credentials. Please try again.');
     }
   } catch (error) {
+    // Check if it's a network/fetch error
+    if (error.message === 'Failed to fetch' || error instanceof TypeError) {
+      throw new Error('Connection failed. Please check your internet connection and try again.');
+    }
     const errorMessage = error.message || 'Network error. Please try again.';
     throw new Error(errorMessage);
   }
