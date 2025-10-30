@@ -22,6 +22,7 @@
 	let newMessage = $state('');
 	let isSendingMessage = $state(false);
 	let chatMessagesEl = $state();
+	let chatInputEl = $state();
 	let pollingInterval;
 	let showConfirmModal = $state(false);
 	let showRejectModal = $state(false);
@@ -29,6 +30,11 @@
 
 	// Get messages from the request
 	let messages = $derived(selectedRequest.messages || []);
+
+	// Check if chat should be disabled based on status
+	let isChatDisabled = $derived(
+		selectedRequest.status === 'released' || selectedRequest.status === 'cancelled'
+	);
 
 	// Scroll to bottom of chat
 	function scrollToBottom() {
@@ -41,7 +47,7 @@
 
 	// Send a new message
 	async function sendMessage() {
-		if (!newMessage.trim() || isSendingMessage) return;
+		if (!newMessage.trim() || isSendingMessage || isChatDisabled) return;
 
 		isSendingMessage = true;
 		try {
@@ -62,6 +68,10 @@
 				selectedRequest.messages = [...(selectedRequest.messages || []), result.data];
 				newMessage = '';
 				scrollToBottom();
+				// Refocus the input after sending
+				if (chatInputEl) {
+					setTimeout(() => chatInputEl.focus(), 100);
+				}
 			} else {
 				console.error('Failed to send message:', result.error);
 				alert('Failed to send message. Please try again.');
@@ -470,26 +480,34 @@
 					{/if}
 				</div>
 
-				<div class="admin-chat-input">
-					<button class="attach-btn" title="Attach file" aria-label="Attach file">
-						<span class="material-symbols-outlined">attach_file</span>
-					</button>
-					<input 
-						placeholder="Type your message..." 
-						aria-label="Message input" 
-						bind:value={newMessage}
-						onkeydown={(e) => e.key === 'Enter' && !isSendingMessage && sendMessage()}
-						disabled={isSendingMessage}
-					/>
-					<button 
-						class="send-btn" 
-						title="Send message" 
-						aria-label="Send message" 
-						onclick={sendMessage}
-						disabled={isSendingMessage || !newMessage.trim()}
-					>
-						<span class="material-symbols-outlined">send</span>
-					</button>
+				<div class="admin-chat-input" class:disabled={isChatDisabled}>
+					{#if isChatDisabled}
+						<div class="chat-disabled-notice">
+							<span class="material-symbols-outlined">block</span>
+							<span>Chat is disabled for {selectedRequest.status === 'released' ? 'released' : 'cancelled'} requests</span>
+						</div>
+					{:else}
+						<button class="attach-btn" title="Attach file" aria-label="Attach file">
+							<span class="material-symbols-outlined">attach_file</span>
+						</button>
+						<input 
+							bind:this={chatInputEl}
+							placeholder="Type your message..." 
+							aria-label="Message input" 
+							bind:value={newMessage}
+							onkeydown={(e) => e.key === 'Enter' && !isSendingMessage && sendMessage()}
+							disabled={isSendingMessage}
+						/>
+						<button 
+							class="send-btn" 
+							title="Send message" 
+							aria-label="Send message" 
+							onclick={sendMessage}
+							disabled={isSendingMessage || !newMessage.trim()}
+						>
+							<span class="material-symbols-outlined">send</span>
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -967,6 +985,27 @@
 		opacity: 0.7;
 	}
 
+	.admin-chat-input.disabled {
+		background: var(--md-sys-color-surface-variant);
+		opacity: 0.7;
+		justify-content: center;
+	}
+
+	.chat-disabled-notice {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.9rem;
+		font-weight: 500;
+		padding: var(--spacing-sm);
+	}
+
+	.chat-disabled-notice .material-symbols-outlined {
+		font-size: 20px;
+		opacity: 0.8;
+	}
+
 	.attach-btn,
 	.send-btn {
 		background: var(--md-sys-color-surface-container);
@@ -1048,7 +1087,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-sm);
-		margin-top: var(--spacing-lg);
+		margin-top: auto;
 		padding-top: var(--spacing-lg);
 		border-top: 2px solid var(--md-sys-color-outline-variant);
 	}

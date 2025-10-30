@@ -16,10 +16,16 @@
 	let isProcessFlowOpen = $state(false);
 	let isSendingMessage = $state(false);
 	let chatMessagesEl;
+	let chatInputEl;
 	let pollingInterval;
 
 	// Get messages from the request
 	let messages = $derived(selectedRequest.messages || []);
+
+	// Check if chat should be disabled based on status
+	let isChatDisabled = $derived(
+		selectedRequest.status === 'released' || selectedRequest.status === 'cancelled'
+	);
 
 	// Scroll to bottom of chat
 	function scrollToBottom() {
@@ -65,7 +71,7 @@
 
 	// Send a new message
 	async function sendMessage() {
-		if (!newMessage.trim() || isSendingMessage || !selectedRequest) return;
+		if (!newMessage.trim() || isSendingMessage || !selectedRequest || isChatDisabled) return;
 
 		isSendingMessage = true;
 		try {
@@ -80,6 +86,10 @@
 				selectedRequest.messages = [...(selectedRequest.messages || []), result.data];
 				newMessage = '';
 				scrollToBottom();
+				// Refocus the input after sending
+				if (chatInputEl) {
+					setTimeout(() => chatInputEl.focus(), 100);
+				}
 			} else {
 				console.error('Failed to send message:', result.error);
 				alert('Failed to send message. Please try again.');
@@ -206,8 +216,8 @@
 			<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
 		</div>
 
-	<!-- Third Row: Payment, Requested Date, and Tentative Date -->
-	<div class="student-docreq-card">
+	<!-- Third Row: Payment, Requested Date, and Cancelled/Tentative Date -->
+	<div class="student-docreq-card third-row">
 		<div class="card-label">
 			<span class="material-symbols-outlined">payments</span> Payment
 		</div>
@@ -227,15 +237,22 @@
 		</div>
 	</div>
 
-	<div class="student-docreq-card">
+	<div class="student-docreq-card third-row">
 		<div class="card-label">
 			<span class="material-symbols-outlined">calendar_today</span> Requested Date
 		</div>
 		<div class="card-value">{selectedRequest.requestedDate ?? '—'}</div>
 	</div>
 
-	{#if selectedRequest.tentativeDate}
-	<div class="student-docreq-card">
+	{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
+	<div class="student-docreq-card third-row">
+		<div class="card-label">
+			<span class="material-symbols-outlined">event_busy</span> Cancelled Date
+		</div>
+		<div class="card-value">{selectedRequest.cancelledDate}</div>
+	</div>
+	{:else if selectedRequest.tentativeDate}
+	<div class="student-docreq-card third-row">
 		<div class="card-label">
 			<span class="material-symbols-outlined">event</span> Tentative Date
 		</div>
@@ -247,23 +264,14 @@
 	</div>
 	{/if}
 
-				{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">event_busy</span> Cancelled Date
-					</div>
-					<div class="card-value">{selectedRequest.cancelledDate}</div>
-				</div>
-				{/if}
-
-				{#if selectedRequest.status === 'released' && selectedRequest.completedDate}
-				<div class="student-docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">check_circle</span> Released Date
-					</div>
-					<div class="card-value">{selectedRequest.completedDate}</div>
-				</div>
-				{/if}
+	{#if selectedRequest.status === 'released' && selectedRequest.completedDate}
+	<div class="student-docreq-card">
+		<div class="card-label">
+			<span class="material-symbols-outlined">check_circle</span> Released Date
+		</div>
+		<div class="card-value">{selectedRequest.completedDate}</div>
+	</div>
+	{/if}
 			</div>
 
 		<!-- Purpose Section -->
@@ -288,15 +296,15 @@
 
 		<!-- Action Buttons -->
 		<div class="student-modal-action-buttons">
-			{#if selectedRequest.status === 'on_hold'}
-				<button 
-					class="student-cancel-button" 
-					onclick={handleCancelRequest}
-				>
-					<span class="material-symbols-outlined">cancel</span>
-					Cancel Request
-				</button>
-			{/if}
+			<button 
+				class="student-cancel-button" 
+				onclick={handleCancelRequest}
+				disabled={selectedRequest.status !== 'on_hold'}
+				title={selectedRequest.status !== 'on_hold' ? 'Can only cancel requests that are on hold' : 'Cancel this request'}
+			>
+				<span class="material-symbols-outlined">cancel</span>
+				Cancel Request
+			</button>
 
 			<button class="student-back-button" onclick={onClose}>
 				<span class="material-symbols-outlined">arrow_back</span>
@@ -340,26 +348,34 @@
 					{/if}
 				</div>
 
-				<div class="student-chat-input">
-					<button class="attach-btn" title="Attach file" aria-label="Attach file">
-						<span class="material-symbols-outlined">attach_file</span>
-					</button>
-					<input 
-						placeholder="Type your message..." 
-						aria-label="Message input" 
-						bind:value={newMessage}
-						onkeydown={(e) => e.key === 'Enter' && !isSendingMessage && sendMessage()}
-						disabled={isSendingMessage}
-					/>
-					<button 
-						class="send-btn" 
-						title="Send message" 
-						aria-label="Send message" 
-						onclick={sendMessage}
-						disabled={isSendingMessage || !newMessage.trim()}
-					>
-						<span class="material-symbols-outlined">send</span>
-					</button>
+				<div class="student-chat-input" class:disabled={isChatDisabled}>
+					{#if isChatDisabled}
+						<div class="chat-disabled-notice">
+							<span class="material-symbols-outlined">block</span>
+							<span>Chat is disabled for {selectedRequest.status === 'released' ? 'released' : 'cancelled'} requests</span>
+						</div>
+					{:else}
+						<button class="attach-btn" title="Attach file" aria-label="Attach file">
+							<span class="material-symbols-outlined">attach_file</span>
+						</button>
+						<input 
+							bind:this={chatInputEl}
+							placeholder="Type your message..." 
+							aria-label="Message input" 
+							bind:value={newMessage}
+							onkeydown={(e) => e.key === 'Enter' && !isSendingMessage && sendMessage()}
+							disabled={isSendingMessage}
+						/>
+						<button 
+							class="send-btn" 
+							title="Send message" 
+							aria-label="Send message" 
+							onclick={sendMessage}
+							disabled={isSendingMessage || !newMessage.trim()}
+						>
+							<span class="material-symbols-outlined">send</span>
+						</button>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -541,6 +557,11 @@
 
 	.student-docreq-card.half-width {
 		flex: 1 1 calc(50% - var(--spacing-md) / 2);
+	}
+
+	.student-docreq-card.third-row {
+		flex: 1 1 calc(33.333% - var(--spacing-md) * 2 / 3);
+		min-width: 180px;
 	}
 
 	.student-docreq-card.status-card-horizontal {
@@ -913,6 +934,7 @@
 		border: 1px solid var(--md-sys-color-outline-variant);
 		align-items: center;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+		margin-top: auto;
 	}
 
 	.student-chat-input input {
@@ -936,6 +958,27 @@
 	.student-chat-input input::placeholder {
 		color: var(--md-sys-color-on-surface-variant);
 		opacity: 0.7;
+	}
+
+	.student-chat-input.disabled {
+		background: var(--md-sys-color-surface-variant);
+		opacity: 0.7;
+		justify-content: center;
+	}
+
+	.chat-disabled-notice {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.9rem;
+		font-weight: 500;
+		padding: var(--spacing-sm);
+	}
+
+	.chat-disabled-notice .material-symbols-outlined {
+		font-size: 20px;
+		opacity: 0.8;
 	}
 
 	.attach-btn,
@@ -999,6 +1042,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-sm);
+		margin-top: auto;
 		padding-top: var(--spacing-md);
 		border-top: 2px solid var(--md-sys-color-outline-variant);
 	}
@@ -1035,6 +1079,19 @@
 	.student-cancel-button:active {
 		transform: translateY(0);
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.student-cancel-button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		background: var(--md-sys-color-surface-variant);
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.student-cancel-button:disabled:hover {
+		transform: none;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		opacity: 0.5;
 	}
 
 	.student-back-button {
