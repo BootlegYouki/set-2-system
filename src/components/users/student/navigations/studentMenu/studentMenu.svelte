@@ -9,16 +9,8 @@
 	// Props
 	let { activeSection = $bindable('grades'), isNavRailVisible = true, onnavigate } = $props();
 
-	// Notification state from shared store
-	let unreadNotificationCount = $state(0);
-	
-	// Subscribe to notification store
-	$effect(() => {
-		const unsubscribe = notificationStore.subscribe(state => {
-			unreadNotificationCount = state.unreadCount;
-		});
-		return unsubscribe;
-	});
+	// Notification state from shared store - use $ prefix to auto-subscribe
+	let unreadNotificationCount = $derived($notificationStore.unreadCount);
 
 	// Navigation items
 	const navigationItems = [
@@ -58,7 +50,12 @@
 		if (!authState.isAuthenticated) return;
 		
 		try {
-			const result = await authenticatedFetch('/api/notifications?limit=1&offset=0');
+			const response = await authenticatedFetch('/api/notifications?limit=1&offset=0');
+			if (!response.ok) {
+				throw new Error(`Failed to fetch notifications: ${response.status}`);
+			}
+			
+			const result = await response.json();
 			if (result.success) {
 				const unreadCount = result.data.unreadCount || 0;
 				const totalCount = result.data.pagination?.total || 0;
@@ -91,12 +88,12 @@
 			}
 		});
 
-		// Refresh notification count every 15 seconds
+		// Refresh notification count every 10 seconds
 		const interval = setInterval(() => {
 			if ($authStore.isAuthenticated) {
 				fetchNotificationCount();
 			}
-		}, 15000);
+		}, 10000);
 
 		return () => {
 			clearInterval(interval);
