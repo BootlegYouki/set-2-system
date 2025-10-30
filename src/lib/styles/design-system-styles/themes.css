@@ -271,7 +271,7 @@
   
   /* Status Colors - Dark Mode */
   /* On Hold - Yellow */
-  --status-on-hold-bg: #f57f17;
+  --status-on-hold-bg: #f57f178e;
   --status-on-hold-border: #fdd835;
   --status-on-hold-text: #fff9c4;
   
