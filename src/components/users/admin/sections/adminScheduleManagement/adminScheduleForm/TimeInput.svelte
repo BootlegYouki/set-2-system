@@ -8,6 +8,9 @@
 	export let isOpen = false; // Changed from internal state to exported prop
 
 	const dispatch = createEventDispatcher();
+	
+	// Generate unique ID for accessibility
+	const uniqueId = `time-input-${Math.random().toString(36).substr(2, 9)}`;
 
 	let hours = '';
 	let minutes = '';
@@ -127,11 +130,12 @@
 
 <div class="time-input-container">
 	{#if label}
-		<label class="time-input-label">{label}</label>
+		<label class="time-input-label" for={uniqueId}>{label}</label>
 	{/if}
 
 	<button
 		type="button"
+		id={uniqueId}
 		class="time-input-trigger"
 		class:open={isOpen}
 		class:selected={displayValue}

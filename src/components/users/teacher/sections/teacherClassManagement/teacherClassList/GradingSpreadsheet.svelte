@@ -43,6 +43,7 @@
   let hasUnsavedChanges = $state(false);
   let isDataSaved = $state(true); // Start as saved since no changes initially
   let originalData = $state(null); // Store original data for comparison
+  // svelte-ignore non_reactive_update (DOM reference, not reactive state)
   let spreadsheetContainer;
   let selectedCell = $state(null);
   let isEditing = $state(false);
@@ -1028,10 +1029,6 @@
     }
   }
 
-  onMount(() => {
-    initializeSpreadsheetData();
-  });
-
   // Auto-save function (silent save without UI feedback)
   async function autoSave() {
     if (isSaving || !students.length || !sectionId || !subjectId) {
@@ -1081,6 +1078,7 @@
   }
 
   // Manual save function (with UI feedback)
+  // svelte-ignore non_reactive_update (Function declaration, not reactive state)
   async function saveGrades() {
     if (!sectionId || !subjectId) {
       toastStore.error('Missing section or subject information');
@@ -1509,7 +1507,8 @@
     }
   }
 
-  // Expose saveGrades function to parent component
+  // Expose saveGrades function to parent component  
+  // svelte-ignore non_reactive_update (Function export for parent component access)
   export { saveGrades };
 </script>
 
@@ -1609,6 +1608,7 @@
                 onclick={(e) => handleCellClick(rowIndex + 1, colIndex, e)}
               >
                 {#if isEditing && selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex && !students[rowIndex]?.isVerified}
+                  <!-- svelte-ignore a11y_autofocus (Intentional UX: auto-focus for spreadsheet cell editing) -->
                   <input
                     type="text"
                     class="cell-input"

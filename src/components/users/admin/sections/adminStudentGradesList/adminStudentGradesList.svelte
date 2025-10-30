@@ -260,10 +260,11 @@
 			<div class="sgl-filter-container">
 				<!-- Quarter Filter -->
 				<div class="sgl-filter-group">
-					<label class="sgl-filter-label">Quarter</label>
+					<label class="sgl-filter-label" for="quarter-dropdown">Quarter</label>
 					<div class="sgl-custom-dropdown" class:open={isQuarterDropdownOpen}>
 						<button
 							type="button"
+							id="quarter-dropdown"
 							class="sgl-dropdown-trigger sgl-filter-trigger"
 							on:click={toggleQuarterDropdown}
 						>
@@ -299,10 +300,11 @@
 
 				<!-- Grade Level Filter -->
 				<div class="sgl-filter-group">
-					<label class="sgl-filter-label">Grade Level</label>
+					<label class="sgl-filter-label" for="grades-grade-level-dropdown">Grade Level</label>
 					<div class="sgl-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
 						<button
 							type="button"
+							id="grades-grade-level-dropdown"
 							class="sgl-dropdown-trigger sgl-filter-trigger"
 							on:click={toggleGradeLevelDropdown}
 						>
@@ -338,10 +340,11 @@
 
 				<!-- Section Filter -->
 				<div class="sgl-filter-group">
-					<label class="sgl-filter-label">Section</label>
+					<label class="sgl-filter-label" for="grades-section-dropdown">Section</label>
 					<div class="sgl-custom-dropdown" class:open={isSectionDropdownOpen}>
 						<button
 							type="button"
+							id="grades-section-dropdown"
 							class="sgl-dropdown-trigger sgl-filter-trigger"
 							on:click={toggleSectionDropdown}
 						>

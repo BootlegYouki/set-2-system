@@ -254,10 +254,11 @@
 			<div class="studmaster-filter-container">
 				<!-- Grade Level Filter -->
 				<div class="filter-group">
-					<label class="filter-label">Grade Level</label>
+					<label class="filter-label" for="archived-grade-level-dropdown">Grade Level</label>
 					<div class="aas-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
 						<button
 							type="button"
+							id="archived-grade-level-dropdown"
 							class="aas-dropdown-trigger aas-filter-trigger"
 							on:click={toggleGradeLevelDropdown}
 						>
@@ -293,10 +294,11 @@
 
 				<!-- Section Filter -->
 				<div class="filter-group">
-					<label class="filter-label">Section</label>
+					<label class="filter-label" for="archived-section-dropdown">Section</label>
 					<div class="aas-custom-dropdown" class:open={isSectionDropdownOpen}>
 						<button
 							type="button"
+							id="archived-section-dropdown"
 							class="aas-dropdown-trigger aas-filter-trigger"
 							on:click={toggleSectionDropdown}
 						>

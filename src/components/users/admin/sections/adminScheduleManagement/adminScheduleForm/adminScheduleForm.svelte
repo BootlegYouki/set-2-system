@@ -1002,7 +1002,7 @@
 								<div class="scheduleassign-type-subject-row">
 									<!-- Schedule Type Selection -->
 									<div class="scheduleassign-input-group">
-										<label class="scheduleassign-input-label">Schedule Type</label>
+										<label class="scheduleassign-input-label" for="scheduleassign-schedule-type-dropdown">Schedule Type</label>
 										<div class="scheduleassign-custom-dropdown">
 											<button
 												type="button"
@@ -1067,10 +1067,11 @@
 									<!-- Subject/Activity Selection -->
 									{#if formData.scheduleType === 'subject'}
 										<div class="scheduleassign-input-group">
-											<label class="scheduleassign-input-label">Subject</label>
+											<label class="scheduleassign-input-label" for="scheduleassign-subject-dropdown">Subject</label>
 											<div class="scheduleassign-custom-dropdown">
 												<button
 													type="button"
+													id="scheduleassign-subject-dropdown"
 													class="scheduleassign-dropdown-trigger"
 													class:open={isSubjectDropdownOpen}
 													class:selected={formData.subjectId}
@@ -1136,10 +1137,11 @@
 										</div>
 									{:else}
 										<div class="scheduleassign-input-group">
-											<label class="scheduleassign-input-label">Activity Type</label>
+											<label class="scheduleassign-input-label" for="scheduleassign-activity-dropdown">Activity Type</label>
 											<div class="scheduleassign-custom-dropdown">
 												<button
 													type="button"
+													id="scheduleassign-activity-dropdown"
 													class="scheduleassign-dropdown-trigger"
 													class:open={isActivityTypeDropdownOpen}
 													class:selected={formData.activityTypeId}
@@ -1210,10 +1212,11 @@
 									<!-- Teacher Selection (Only for Subject type) -->
 									{#if formData.scheduleType === 'subject'}
 										<div class="scheduleassign-input-group">
-											<label class="scheduleassign-input-label">Teacher</label>
+											<label class="scheduleassign-input-label" for="scheduleassign-teacher-dropdown">Teacher</label>
 											<div class="scheduleassign-custom-dropdown">
 												<button
 													type="button"
+													id="scheduleassign-teacher-dropdown"
 													class="scheduleassign-dropdown-trigger"
 													class:open={isTeacherDropdownOpen}
 													class:selected={formData.teacherId}

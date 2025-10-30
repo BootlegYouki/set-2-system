@@ -84,7 +84,7 @@
 	}
 </script>
 
-<nav class="teacher-navbar" role="navigation" aria-label="Teacher navigation">
+<nav class="teacher-navbar" aria-label="Teacher navigation">
 	<div class="teacher-navbar-container">
 		<!-- Left section - Hamburger menu and Logo/Title -->
 		<div class="teacher-navbar-left">

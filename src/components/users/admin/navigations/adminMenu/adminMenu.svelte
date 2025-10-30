@@ -23,7 +23,6 @@
 			label: 'Management',
 			icon: 'folder',
 			type: 'folder',
-			expanded: managementFolderExpanded,
 			items: [
 				{
 					id: 'schedule-management',
@@ -100,7 +99,6 @@
 <nav
 	class="admin-menu-navigation-rail"
 	class:collapsed={!adminNavRailVisible}
-	role="navigation"
 	aria-label="Admin portal navigation"
 >
 	<div class="admin-menu-rail-container">
@@ -166,7 +164,7 @@
 </nav>
 
 <!-- Bottom Navigation (Mobile) -->
-<nav class="admin-menu-bottom-navigation" role="navigation" aria-label="Admin portal navigation">
+<nav class="admin-menu-bottom-navigation" aria-label="Admin portal navigation">
 	<div class="admin-menu-nav-container">
 		<!-- Navigation items -->
 		{#each navigationItems as item (item.id)}
@@ -208,8 +206,19 @@
 			<div
 				class="admin-menu-mobile-folder-overlay"
 				onclick={() => toggleFolder('management-folder')}
+				onkeydown={(e) => e.key === 'Enter' || e.key === ' ' ? toggleFolder('management-folder') : null}
+				role="button"
+				tabindex="0"
+				aria-label="Close management folder"
 			>
-				<div class="admin-menu-mobile-folder-content" onclick={(e) => e.stopPropagation()}>
+				<div 
+					class="admin-menu-mobile-folder-content" 
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={(e) => e.stopPropagation()}
+					role="dialog"
+					aria-label="Management folder menu"
+					tabindex="-1"
+				>
 					<div class="admin-menu-mobile-folder-header">
 						<h3>Management</h3>
 						<button

@@ -252,7 +252,6 @@
     if (isDestroyed) return;
     
     try {
-      loading = true;
       error = null;
 
       if (!selectedClass?.sectionId) {
@@ -286,8 +285,6 @@
     } catch (err) {
       console.error('Error fetching section data:', err);
       error = err.message;
-    } finally {
-      loading = false;
     }
   }
 
@@ -816,7 +813,7 @@
     <div class="config-grid">
       <!-- Written Work Configuration -->
       <div class="config-item">
-        <label class="config-label">Written Work ({Math.round(gradingConfig.writtenWork.weight * 100)}%)</label>
+        <div class="config-label">Written Work ({Math.round(gradingConfig.writtenWork.weight * 100)}%)</div>
         <div class="classlist-column-controls">
           <div class="classlist-column-count">
             <span class="classlist-column-text">
@@ -843,7 +840,7 @@
 
       <!-- Performance Tasks Configuration -->
       <div class="config-item">
-        <label class="config-label">Performance Tasks ({Math.round(gradingConfig.performanceTasks.weight * 100)}%)</label>
+        <div class="config-label">Performance Tasks ({Math.round(gradingConfig.performanceTasks.weight * 100)}%)</div>
         <div class="classlist-column-controls">
           <div class="classlist-column-count">
             <span class="classlist-column-text">
@@ -870,7 +867,7 @@
 
       <!-- Quarterly Assessment Configuration -->
       <div class="config-item">
-        <label class="config-label">Quarterly Assessment ({Math.round(gradingConfig.quarterlyAssessment.weight * 100)}%)</label>
+        <div class="config-label">Quarterly Assessment ({Math.round(gradingConfig.quarterlyAssessment.weight * 100)}%)</div>
         <div class="classlist-column-controls">
           <div class="classlist-column-count">
             <span class="classlist-column-text">
