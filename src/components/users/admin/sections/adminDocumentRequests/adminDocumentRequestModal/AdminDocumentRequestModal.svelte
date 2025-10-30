@@ -744,6 +744,7 @@
 		word-break: break-word;
 		overflow-wrap: break-word;
 		white-space: pre-wrap;
+		height: 15vh;
 	}	
 
 	/* Student Information Section */

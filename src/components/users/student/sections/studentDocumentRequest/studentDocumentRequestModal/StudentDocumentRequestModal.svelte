@@ -271,25 +271,23 @@
 		</div>
 
 	<!-- Third Row: Payment, Requested Date, and Cancelled/Tentative Date -->
+	{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
 	<div class="student-docreq-card third-row">
 		<div class="card-label">
 			<span class="material-symbols-outlined">payments</span> Payment
 		</div>
 		<div class="card-value payment-value">
-			{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
-				{#if selectedRequest.paymentAmount === 0}
-					<span class="payment-amount free">Free</span>
-				{:else}
-					<span class="payment-amount">₱{selectedRequest.paymentAmount}</span>
-					<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
-						{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-					</span>
-				{/if}
+			{#if selectedRequest.paymentAmount === 0}
+				<span class="payment-amount free">Free</span>
 			{:else}
-				<span class="payment-amount tentative">Tentative</span>
+				<span class="payment-amount">₱{selectedRequest.paymentAmount}</span>
+				<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
+					{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+				</span>
 			{/if}
 		</div>
 	</div>
+	{/if}
 
 	<div class="student-docreq-card third-row">
 		<div class="card-label">
@@ -683,6 +681,12 @@
 		display: flex;
 		gap: 8px;
 		align-items: center;
+	}
+
+	.student-docreq-card:not(.status-card-horizontal) .card-label .material-symbols-outlined,
+	.purpose-label .material-symbols-outlined,
+	.note-label .material-symbols-outlined {
+		display: none;
 	}
 
 	.card-value {
@@ -1427,8 +1431,29 @@
 			height: auto;
 		}
 
+		.student-docreq-modal-title{
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.student-docreq-modal-title h2 {
+			font-size: 1.15rem;
+			font-weight: 600;
+			margin: 0;
+		}
+
+		.student-docreq-modal-sub {
+			margin: 0;
+		}
+
 		.student-chat-messages {
 			max-height: 58vh;
+		}
+
+		.student-modal-action-buttons{
+			flex-direction: row-reverse;
+			gap: var(--spacing-sm);
 		}
 
 		/* Show pagination controls on mobile */
