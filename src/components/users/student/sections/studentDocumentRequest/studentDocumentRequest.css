@@ -303,13 +303,13 @@
 /* Status-based card border and background colors */
 /* Request card status borders - matching admin system */
 .request-card.on_hold {
-  border: 2px solid var(--status-cancelled-border);
-  background-color: var(--status-cancelled-bg);
+  border: 2px solid var(--status-on-hold-border);
+  background-color: var(--status-on-hold-bg);
 }
 
 .request-card.verifying {
-  border: 2px solid var(--md-sys-color-secondary);
-  background-color: var(--md-sys-color-secondary-container);
+  border: 2px solid var(--status-verifying-border);
+  background-color: var(--status-verifying-bg);
 }
 
 .request-card.processing {
@@ -318,13 +318,13 @@
 }
 
 .request-card.for_pickup {
-  border: 2px solid var(--status-pending-border);
-  background-color: var(--status-pending-bg);
+  border: 2px solid var(--status-for-pickup-border);
+  background-color: var(--status-for-pickup-bg);
 }
 
 .request-card.released {
-  border: 2px solid var(--status-completed-border);
-  background-color: var(--status-completed-bg);
+  border: 2px solid var(--status-released-border);
+  background-color: var(--status-released-bg);
 }
 
 .request-card.rejected {
@@ -458,15 +458,15 @@
 /* Status-specific badge styling */
 /* Student status badge colors - matching admin system */
 .student-status-badge.status-on_hold {
-  background-color: var(--status-cancelled-bg);
-  color: var(--status-cancelled-text);
-  border: 1px solid var(--status-cancelled-border);
+  background-color: var(--status-on-hold-bg);
+  color: var(--status-on-hold-text);
+  border: 1px solid var(--status-on-hold-border);
 }
 
 .student-status-badge.status-verifying {
-  background-color: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
-  border: 1px solid var(--md-sys-color-secondary);
+  background-color: var(--status-verifying-bg);
+  color: var(--status-verifying-text);
+  border: 1px solid var(--status-verifying-border);
 }
 
 .student-status-badge.status-processing {
@@ -476,15 +476,15 @@
 }
 
 .student-status-badge.status-for_pickup {
-  background-color: var(--status-pending-bg);
-  color: var(--status-pending-text);
-  border: 1px solid var(--status-pending-border);
+  background-color: var(--status-for-pickup-bg);
+  color: var(--status-for-pickup-text);
+  border: 1px solid var(--status-for-pickup-border);
 }
 
 .student-status-badge.status-released {
-  background-color: var(--status-completed-bg);
-  color: var(--status-completed-text);
-  border: 1px solid var(--status-completed-border);
+  background-color: var(--status-released-bg);
+  color: var(--status-released-text);
+  border: 1px solid var(--status-released-border);
 }
 
 .student-status-badge.status-rejected {
@@ -1157,14 +1157,14 @@
 
 /* Modal status badge colors matching admin system */
 .status-on_hold { 
-	background: var(--status-cancelled-bg); 
-	color: var(--status-cancelled-text); 
-	border: 1px solid var(--status-cancelled-border); 
+	background: var(--status-on-hold-bg); 
+	color: var(--status-on-hold-text); 
+	border: 1px solid var(--status-on-hold-border); 
 }
 .status-verifying { 
-	background: var(--md-sys-color-secondary-container); 
-	color: var(--md-sys-color-on-secondary-container); 
-	border: 1px solid var(--md-sys-color-secondary); 
+	background: var(--status-verifying-bg); 
+	color: var(--status-verifying-text); 
+	border: 1px solid var(--status-verifying-border); 
 }
 .status-processing { 
 	background: var(--status-processing-bg); 
@@ -1172,14 +1172,14 @@
 	border: 1px solid var(--status-processing-border); 
 }
 .status-for_pickup { 
-	background: var(--status-pending-bg); 
-	color: var(--status-pending-text); 
-	border: 1px solid var(--status-pending-border); 
+	background: var(--status-for-pickup-bg); 
+	color: var(--status-for-pickup-text); 
+	border: 1px solid var(--status-for-pickup-border); 
 }
 .status-released { 
-	background: var(--status-completed-bg); 
-	color: var(--status-completed-text); 
-	border: 1px solid var(--status-completed-border); 
+	background: var(--status-released-bg); 
+	color: var(--status-released-text); 
+	border: 1px solid var(--status-released-border); 
 }
 .status-rejected { 
 	background: var(--status-rejected-bg); 
@@ -1244,13 +1244,13 @@
 
 /* Status-specific chat indicator button borders */
 .request-card.on_hold .chat-indicator-btn {
-	border-color: var(--status-cancelled-border);
-	color: var(--status-cancelled-text);
+	border-color: var(--status-on-hold-border);
+	color: var(--status-on-hold-text);
 }
 
 .request-card.verifying .chat-indicator-btn {
-	border-color: var(--md-sys-color-secondary);
-	color: var(--md-sys-color-on-secondary-container);
+	border-color: var(--status-verifying-border);
+	color: var(--status-verifying-text);
 }
 
 .request-card.processing .chat-indicator-btn {
@@ -1259,13 +1259,13 @@
 }
 
 .request-card.for_pickup .chat-indicator-btn {
-	border-color: var(--status-pending-border);
-	color: var(--status-pending-text);
+	border-color: var(--status-for-pickup-border);
+	color: var(--status-for-pickup-text);
 }
 
 .request-card.released .chat-indicator-btn {
-	border-color: var(--status-completed-border);
-	color: var(--status-completed-text);
+	border-color: var(--status-released-border);
+	color: var(--status-released-text);
 }
 
 .request-card.rejected .chat-indicator-btn {
@@ -1308,12 +1308,12 @@
 
 /* Status-specific chat badge colors */
 .request-card.on_hold .chat-badge {
-	background: var(--status-cancelled-border);
+	background: var(--status-on-hold-border);
 	color: white;
 }
 
 .request-card.verifying .chat-badge {
-	background: var(--md-sys-color-secondary);
+	background: var(--status-verifying-border);
 	color: white;
 }
 
@@ -1323,12 +1323,12 @@
 }
 
 .request-card.for_pickup .chat-badge {
-	background: var(--status-pending-border);
+	background: var(--status-for-pickup-border);
 	color: white;
 }
 
 .request-card.released .chat-badge {
-	background: var(--status-completed-border);
+	background: var(--status-released-border);
 	color: white;
 }
 

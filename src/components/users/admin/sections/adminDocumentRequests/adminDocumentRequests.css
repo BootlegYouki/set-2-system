@@ -222,13 +222,13 @@
 
 /* Status-specific colors */
 .docreq-status-card.docreq-status-onhold .docreq-status-icon {
-	background-color: var(--status-cancelled-bg);
-	color: var(--status-cancelled-text);
+	background-color: var(--status-on-hold-bg);
+	color: var(--status-on-hold-text);
 }
 
 .docreq-status-card.docreq-status-verifying .docreq-status-icon {
-	background-color: var(--md-sys-color-secondary-container);
-	color: var(--md-sys-color-on-secondary-container);
+	background-color: var(--status-verifying-bg);
+	color: var(--status-verifying-text);
 }
 
 .docreq-status-card.docreq-status-processing .docreq-status-icon {
@@ -237,13 +237,13 @@
 }
 
 .docreq-status-card.docreq-status-pickup .docreq-status-icon {
-	background-color: var(--status-pending-bg);
-	color: var(--status-pending-text);
+	background-color: var(--status-for-pickup-bg);
+	color: var(--status-for-pickup-text);
 }
 
 .docreq-status-card.docreq-status-released .docreq-status-icon {
-	background-color: var(--status-completed-bg);
-	color: var(--status-completed-text);
+	background-color: var(--status-released-bg);
+	color: var(--status-released-text);
 }
 
 .docreq-status-card.docreq-status-cancelled .docreq-status-icon {
@@ -253,23 +253,27 @@
 
 /* Status Card Border Designs */
 .docreq-status-card.docreq-status-onhold {
-	border: 1px solid var(--status-cancelled-border);
-	background-color: var(--status-cancelled-bg-light);
+	border: 1px solid var(--status-on-hold-border);
+}
+
+.docreq-status-card.docreq-status-verifying {
+	border: 1px solid var(--status-verifying-border);
+}
+
+.docreq-status-card.docreq-status-processing {
+	border: 1px solid var(--status-processing-border);
 }
 
 .docreq-status-card.docreq-status-pickup {
-	border: 1px solid var(--status-pending-border);
-	background-color: var(--status-pending-bg-light);
+	border: 1px solid var(--status-for-pickup-border);
 }
 
 .docreq-status-card.docreq-status-released {
-	border: 1px solid var(--status-completed-border);
-	background-color: var(--status-completed-bg-light);
+	border: 1px solid var(--status-released-border);
 }
 
 .docreq-status-card.docreq-status-cancelled {
 	border: 1px solid var(--status-cancelled-border);
-	background-color: var(--status-cancelled-bg-light);
 }
 
 /* Chart Section */
@@ -568,29 +572,6 @@
 	font-size: 16px;
 }
 
-/* Status Badge Colors */
-.docreq-status-on_hold {
-	background-color: var(--status-cancelled-bg);
-	color: var(--status-cancelled-text);
-	border: 1px solid var(--status-cancelled-border);
-}
-
-.docreq-status-verifying {
-	color: var(--md-sys-color-on-secondary-container);
-	border: 1px solid var(--md-sys-color-secondary);
-}
-
-.docreq-status-processing {
-	color: var(--status-processing-text);
-	border: 1px solid var(--status-processing-border);
-}
-
-.docreq-status-for_pickup {
-	background-color: var(--status-pending-bg);
-	color: var(--status-pending-text);
-	border: 1px solid var(--status-pending-border);
-}
-
 /* Action Buttons Container */
 .admindocreq-action-buttons {
 	display: flex;
@@ -623,11 +604,11 @@
 }
 
 .status-on_hold-border {
-	border: 1px solid var(--status-cancelled-border);
+	border: 1px solid var(--status-on-hold-border);
 }
 
 .status-verifying-border {
-	border: 1px solid var(--md-sys-color-secondary);
+	border: 1px solid var(--status-verifying-border);
 }
 
 .status-processing-border {
@@ -635,11 +616,11 @@
 }
 
 .status-for_pickup-border {
-	border: 1px solid var(--status-pending-border);
+	border: 1px solid var(--status-for-pickup-border);
 }
 
 .status-released-border {
-	border: 1px solid var(--status-completed-border);
+	border: 1px solid var(--status-released-border);
 }
 
 .status-completed-border {
@@ -655,46 +636,55 @@
 }
 
 .admindocreq-status-pending {
+	background-color: var(--status-pending-bg);
 	color: var(--status-pending-text);
 	border: 1px solid var(--status-pending-border);
 }
 
 .admindocreq-status-on_hold {
-	color: var(--status-cancelled-text);
-	border: 1px solid var(--status-cancelled-border);
+	background-color: var(--status-on-hold-bg);
+	color: var(--status-on-hold-text);
+	border: 1px solid var(--status-on-hold-border);
 }
 
 .admindocreq-status-verifying {
-	color: var(--md-sys-color-on-secondary-container);
-	border: 1px solid var(--md-sys-color-secondary);
+	background-color: var(--status-verifying-bg);
+	color: var(--status-verifying-text);
+	border: 1px solid var(--status-verifying-border);
 }
 
 .admindocreq-status-processing {
+	background-color: var(--status-processing-bg);
 	color: var(--status-processing-text);
 	border: 1px solid var(--status-processing-border);
 }
 
 .admindocreq-status-for_pickup {
-	color: var(--status-pending-text);
-	border: 1px solid var(--status-pending-border);
+	background-color: var(--status-for-pickup-bg);
+	color: var(--status-for-pickup-text);
+	border: 1px solid var(--status-for-pickup-border);
 }
 
 .admindocreq-status-released {
-	color: var(--status-completed-text);
-	border: 1px solid var(--status-completed-border);
+	background-color: var(--status-released-bg);
+	color: var(--status-released-text);
+	border: 1px solid var(--status-released-border);
 }
 
 .admindocreq-status-completed {
+	background-color: var(--status-completed-bg);
 	color: var(--status-completed-text);
 	border: 1px solid var(--status-completed-border);
 }
 
 .admindocreq-status-rejected {
+	background-color: var(--status-rejected-bg);
 	color: var(--status-rejected-text);
 	border: 1px solid var(--status-rejected-border);
 }
 
 .admindocreq-status-cancelled {
+	background-color: var(--status-cancelled-bg);
 	color: var(--status-cancelled-text);
 	border: 1px solid var(--status-cancelled-border);
 }

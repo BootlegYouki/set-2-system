@@ -114,15 +114,35 @@
   --unverified-indicator: var(--md-sys-color-warning);
   
   /* Status Colors - Light Mode */
-  /* Completed - Green */
+  /* On Hold - Yellow */
+  --status-on-hold-bg: #fffde7;
+  --status-on-hold-border: #fdd835;
+  --status-on-hold-text: #f57f17;
+  
+  /* Verifying - Indigo */
+  --status-verifying-bg: #e8eaf6;
+  --status-verifying-border: #5c6bc0;
+  --status-verifying-text: #3949ab;
+  
+  /* Processing - Orange */
+  --status-processing-bg: #fff3e0;
+  --status-processing-border: #ff9800;
+  --status-processing-text: #f57c00;
+  
+  /* For Pickup - Cyan */
+  --status-for-pickup-bg: #e0f7fa;
+  --status-for-pickup-border: #00bcd4;
+  --status-for-pickup-text: #00838f;
+  
+  /* Released - Green */
+  --status-released-bg: #e8f5e8;
+  --status-released-border: #4caf50;
+  --status-released-text: #2e7d32;
+  
+  /* Completed - Green (alias for released) */
   --status-completed-bg: #e8f5e8;
   --status-completed-border: #4caf50;
   --status-completed-text: #2e7d32;
-  
-  /* Processing - Blue */
-  --status-processing-bg: #e3f2fd;
-  --status-processing-border: #2196f3;
-  --status-processing-text: #1976d2;
   
   /* Rejected - Red */
   --status-rejected-bg: #ffebee;
@@ -250,15 +270,35 @@
   --unverified-indicator: #ff9800;
   
   /* Status Colors - Dark Mode */
-  /* Completed - Green */
+  /* On Hold - Yellow */
+  --status-on-hold-bg: #f57f17;
+  --status-on-hold-border: #fdd835;
+  --status-on-hold-text: #fff9c4;
+  
+  /* Verifying - Indigo */
+  --status-verifying-bg: #283593;
+  --status-verifying-border: #5c6bc0;
+  --status-verifying-text: #c5cae9;
+  
+  /* Processing - Orange */
+  --status-processing-bg: #e651007c;
+  --status-processing-border: #ff9900c9;
+  --status-processing-text: #ffcc80;
+  
+  /* For Pickup - Cyan */
+  --status-for-pickup-bg: #006064;
+  --status-for-pickup-border: #26c6da;
+  --status-for-pickup-text: #80deea;
+  
+  /* Released - Green */
+  --status-released-bg: #1b5e20;
+  --status-released-border: #4caf50;
+  --status-released-text: #a5d6a7;
+  
+  /* Completed - Green (alias for released) */
   --status-completed-bg: #1b5e20;
   --status-completed-border: #4caf50;
   --status-completed-text: #a5d6a7;
-  
-  /* Processing - Blue */
-  --status-processing-bg: #0d47a1;
-  --status-processing-border: #2196f3;
-  --status-processing-text: #90caf9;
   
   /* Rejected - Red */
   --status-rejected-bg: #b71c1c65;

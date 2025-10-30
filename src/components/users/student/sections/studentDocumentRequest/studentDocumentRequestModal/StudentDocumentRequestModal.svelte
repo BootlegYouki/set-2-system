@@ -236,7 +236,7 @@
 			<!-- Request Info Cards -->
 			<div class="student-docreq-cards">
 				<!-- First Row: Status card (read-only, clickable for info) -->
-				<div class="student-docreq-card full-width status-card-horizontal">
+				<div class="student-docreq-card full-width status-card-horizontal status-card-{selectedRequest.status}">
 					<div class="status-group">
 						<div class="card-label">
 							<span class="material-symbols-outlined">info</span> Status:
@@ -280,9 +280,8 @@
 			{#if selectedRequest.paymentAmount === 0}
 				<span class="payment-amount free">Free</span>
 			{:else}
-				<span class="payment-amount">₱{selectedRequest.paymentAmount}</span>
-				<span class="badge {selectedRequest.paymentStatus === 'paid' ? 'green' : 'orange'}">
-					{selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+				<span class="payment-amount {selectedRequest.paymentStatus === 'paid' ? 'paid' : 'pending'}">
+					₱{selectedRequest.paymentAmount} ({selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'})
 				</span>
 			{/if}
 		</div>
@@ -699,21 +698,24 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
+		justify-content: space-between;
 	}
 
 	.payment-amount {
-		font-size: 1.1rem;
-	}
-
-	.payment-amount.tentative {
-		color: var(--md-sys-color-on-surface-variant);
-		font-style: italic;
-		opacity: 0.85;
+		font-size: 1rem;
 	}
 
 	.payment-amount.free {
 		color: var(--md-sys-color-tertiary);
 		font-weight: 700;
+	}
+
+	.payment-amount.paid {
+		color: var(--status-released-text);
+	}
+
+	.payment-amount.pending {
+		color: var(--status-pending-text);
 	}
 
 	.status-badge {
@@ -743,6 +745,7 @@
 	.status-badge.for_pickup {
 		background: var(--status-for-pickup-bg);
 		color: var(--status-for-pickup-text);
+		border-color: var(--status-for-pickup-border);
 	}
 
 	.status-badge.released {
@@ -758,6 +761,35 @@
 	.status-badge.cancelled {
 		background: var(--status-cancelled-bg);
 		color: var(--status-cancelled-text);
+	}
+
+	/* Status Card Border Colors - Match Badge Colors */
+	.status-card-horizontal.status-card-on_hold {
+		border-color: var(--status-on-hold-bg);
+	}
+
+	.status-card-horizontal.status-card-verifying {
+		border-color: var(--status-verifying-bg);
+	}
+
+	.status-card-horizontal.status-card-processing {
+		border-color: var(--status-processing-bg);
+	}
+
+	.status-card-horizontal.status-card-for_pickup {
+		border-color: var(--status-for-pickup-bg);
+	}
+
+	.status-card-horizontal.status-card-released {
+		border-color: var(--status-released-bg);
+	}
+
+	.status-card-horizontal.status-card-rejected {
+		border-color: var(--status-rejected-bg);
+	}
+
+	.status-card-horizontal.status-card-cancelled {
+		border-color: var(--status-cancelled-bg);
 	}
 
 	.date-display {
@@ -1208,28 +1240,6 @@
 		box-shadow: none;
 	}
 
-	.badge {
-		background: var(--md-sys-color-surface-container);
-		padding: 6px 8px;
-		border-radius: 8px;
-		font-size: 0.875rem;
-		border: 1px solid var(--md-sys-color-outline-variant);
-		color: var(--md-sys-color-on-surface);
-		display: inline-block;
-	}
-
-	.badge.orange {
-		background: var(--status-pending-bg);
-		color: var(--status-pending-text);
-		border-color: var(--status-pending-border);
-	}
-
-	.badge.green {
-		background: var(--status-released-bg);
-		color: var(--status-released-text);
-		border-color: var(--status-released-border);
-	}
-
 	/* Process Flow Modal */
 	.flow-backdrop {
 		position: fixed;
@@ -1336,6 +1346,36 @@
 
 	.flow-icon-wrapper .material-symbols-outlined {
 		font-size: 24px;
+	}
+
+	.flow-icon-wrapper.on_hold {
+		background: var(--status-on-hold-bg);
+		color: var(--status-on-hold-text);
+	}
+
+	.flow-icon-wrapper.verifying {
+		background: var(--status-verifying-bg);
+		color: var(--status-verifying-text);
+	}
+
+	.flow-icon-wrapper.processing {
+		background: var(--status-processing-bg);
+		color: var(--status-processing-text);
+	}
+
+	.flow-icon-wrapper.for_pickup {
+		background: var(--status-for-pickup-bg);
+		color: var(--status-for-pickup-text);
+	}
+
+	.flow-icon-wrapper.released {
+		background: var(--status-released-bg);
+		color: var(--status-released-text);
+	}
+
+	.flow-icon-wrapper.rejected {
+		background: var(--status-rejected-bg);
+		color: var(--status-rejected-text);
 	}
 
 	.flow-content {

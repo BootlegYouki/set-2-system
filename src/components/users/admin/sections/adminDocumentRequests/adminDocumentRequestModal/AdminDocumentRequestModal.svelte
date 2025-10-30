@@ -27,6 +27,7 @@
 	let showConfirmModal = $state(false);
 	let showRejectModal = $state(false);
 	let isPaymentEditable = $state(false);
+	let paymentStatus = $state('pending'); // 'paid' or 'pending'
 
 	// Get messages from the request
 	let messages = $derived(selectedRequest.messages || []);
@@ -121,7 +122,8 @@
 		const updateData = {
 			status: selectedRequest.status,
 			tentativeDate: selectedRequest.tentativeDate,
-			paymentAmount: selectedRequest.paymentAmount
+			paymentAmount: selectedRequest.paymentAmount,
+			paymentStatus: paymentStatus
 		};
 		await onUpdate(selectedRequest.requestId, updateData);
 		showConfirmModal = false;
@@ -171,6 +173,11 @@
 	// Toggle payment edit mode
 	function togglePaymentEdit() {
 		isPaymentEditable = !isPaymentEditable;
+	}
+
+	// Toggle payment status
+	function togglePaymentStatus() {
+		paymentStatus = paymentStatus === 'paid' ? 'pending' : 'paid';
 	}
 
 	// Fetch latest messages from server
@@ -309,58 +316,69 @@
 					</div>
 				</div>
 
-			<!-- Tentative Date card -->
-			{#if ['verifying', 'processing', 'for_pickup'].includes(selectedRequest.status) || selectedRequest.tentativeDate}
-			<div class="docreq-card">
-				<div class="card-label">
-					<span class="material-symbols-outlined">event</span> Tentative Date
-				</div>
-				<div class="card-value">
-					{#if ['verifying', 'processing', 'for_pickup'].includes(selectedRequest.status)}
-						<input
-							type="date"
-							class="date-input editable"
-							bind:this={dateInputEl}
-							value={selectedRequest.tentativeDate || ''}
-							onchange={onTentativeDateChange}
-						/>
+		<!-- Tentative Date card -->
+		{#if ['verifying', 'processing'].includes(selectedRequest.status) || selectedRequest.tentativeDate}
+		<div class="docreq-card">
+			<div class="card-label">
+				<span class="material-symbols-outlined">event</span> Tentative Date
+			</div>
+			<div class="card-value">
+				{#if ['verifying', 'processing'].includes(selectedRequest.status)}
+					<input
+						type="date"
+						class="date-input editable"
+						bind:this={dateInputEl}
+						value={selectedRequest.tentativeDate || ''}
+						onchange={onTentativeDateChange}
+					/>
+				{:else}
+					<div class="date-box readonly">
+						{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}
+					</div>
+				{/if}
+			</div>
+		</div>
+		{/if}
+
+		<!-- Payment Amount card -->
+		<div class="docreq-card">
+			<div class="card-label">
+				<span class="material-symbols-outlined">payments</span> Payment Amount
+			</div>
+			<div class="card-value">
+				<div class="payment-display-container">
+					{#if isPaymentEditable}
+						<div class="payment-input-wrapper">
+							<span class="currency-symbol">₱</span>
+							<input
+								type="number"
+								class="payment-input"
+								bind:value={selectedRequest.paymentAmount}
+								min="0"
+								step="0.01"
+								placeholder="Set fee amount..."
+							/>
+						</div>
 					{:else}
-						<div class="date-box readonly">
-							{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}
+						<div class="payment-readonly {paymentStatus}">
+							{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
+								₱{selectedRequest.paymentAmount}
+							{:else}
+								<span class="not-set">Not set</span>
+							{/if}
 						</div>
 					{/if}
-				</div>
-			</div>
-			{/if}
-
-			<!-- Payment Amount card -->
-			<div class="docreq-card">
-				<div class="card-label">
-					<span class="material-symbols-outlined">payments</span> Payment Amount
-				</div>
-				<div class="card-value">
-					<div class="payment-display-container">
-						{#if isPaymentEditable}
-							<div class="payment-input-wrapper">
-								<span class="currency-symbol">₱</span>
-								<input
-									type="number"
-									class="payment-input"
-									bind:value={selectedRequest.paymentAmount}
-									min="0"
-									step="0.01"
-									placeholder="Set fee amount..."
-								/>
-							</div>
-						{:else}
-							<div class="payment-readonly">
-								{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
-									₱{selectedRequest.paymentAmount}
-								{:else}
-									<span class="not-set">Not set</span>
-								{/if}
-							</div>
-						{/if}
+					<div class="payment-actions">
+						<button 
+							class="payment-status-toggle {paymentStatus}" 
+							onclick={togglePaymentStatus}
+							title={paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid'}
+							aria-label={paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid'}
+						>
+							<span class="material-symbols-outlined">
+								{paymentStatus === 'paid' ? 'check_circle' : 'cancel'}
+							</span>
+						</button>
 						<button 
 							class="payment-edit-btn" 
 							onclick={togglePaymentEdit}
@@ -374,6 +392,7 @@
 					</div>
 				</div>
 			</div>
+		</div>
 
 			{#if selectedRequest.status === 'cancelled' && selectedRequest.cancelledDate}
 				<div class="docreq-card">
@@ -550,6 +569,12 @@
 							{:else}
 								Tentative (not set)
 							{/if}
+						</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">Payment Status:</span>
+						<span class="detail-value payment-status-{paymentStatus}">
+							{paymentStatus === 'paid' ? 'Paid' : 'Pending'}
 						</span>
 					</div>
 				</div>
@@ -1428,13 +1453,83 @@
 		min-height: 40px;
 		display: flex;
 		align-items: center;
+		gap: var(--spacing-sm);
 		font-size: 0.95rem;
+		transition: all var(--transition-fast);
 	}
 
 	.payment-readonly .not-set {
 		color: var(--md-sys-color-on-surface-variant);
 		font-style: italic;
 		opacity: 0.7;
+	}
+
+	.payment-readonly.paid {
+		border-color: #22c55e;
+		background: rgba(34, 197, 94, 0.08);
+	}
+
+	.payment-readonly.pending {
+		border-color: #f59e0b;
+		background: rgba(245, 158, 11, 0.08);
+	}
+
+	/* Payment Actions Container */
+	.payment-actions {
+		display: flex;
+		gap: var(--spacing-xs);
+		align-items: center;
+	}
+
+	/* Payment Status Toggle Button */
+	.payment-status-toggle {
+		background: var(--md-sys-color-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		padding: 8px;
+		border-radius: var(--radius-md);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 40px;
+		min-height: 40px;
+		flex-shrink: 0;
+	}
+
+	.payment-status-toggle:hover {
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+		transform: scale(1.05);
+	}
+
+	.payment-status-toggle:active {
+		transform: scale(0.95);
+	}
+
+	.payment-status-toggle.paid {
+		background: rgba(34, 197, 94, 0.15);
+		border-color: #22c55e;
+		color: #22c55e;
+	}
+
+	.payment-status-toggle.paid:hover {
+		background: rgba(34, 197, 94, 0.2);
+		border-color: #22c55e;
+	}
+
+	.payment-status-toggle.pending {
+		background: rgba(245, 158, 11, 0.15);
+		border-color: #f59e0b;
+		color: #f59e0b;
+	}
+
+	.payment-status-toggle.pending:hover {
+		background: rgba(245, 158, 11, 0.2);
+		border-color: #f59e0b;
+	}
+
+	.payment-status-toggle .material-symbols-outlined {
+		font-size: 20px;
 	}
 
 	/* Payment Edit Button */
@@ -1495,6 +1590,10 @@
 		font-weight: 600;
 		color: var(--md-sys-color-on-surface);
 		font-size: 0.95rem;
+		line-height: 1.5;
+		margin-right: 0;
+		display: flex;
+		align-items: center;
 	}
 
 	.payment-input {
@@ -1504,12 +1603,15 @@
 		color: var(--md-sys-color-on-surface);
 		font-weight: 600;
 		font-family: inherit;
-		padding: 2px 0;
+		padding: 0;
+		margin: 0;
 		outline: none;
 		width: 100%;
 		min-width: 0;
 		height: auto;
 		font-size: 0.95rem;
+		line-height: 1.5;
+		vertical-align: baseline;
 	}
 
 	.payment-input::placeholder {
@@ -1614,6 +1716,18 @@
 		font-size: 0.95rem;
 	}
 
+	.detail-value.payment-status-paid {
+		color: #22c55e;
+		text-transform: uppercase;
+		font-weight: 700;
+	}
+
+	.detail-value.payment-status-pending {
+		color: #f59e0b;
+		text-transform: uppercase;
+		font-weight: 700;
+	}
+
 	.modal-actions {
 		display: flex;
 		gap: var(--spacing-md);
@@ -1703,4 +1817,5 @@
 		}
 	}
 </style>
+
 

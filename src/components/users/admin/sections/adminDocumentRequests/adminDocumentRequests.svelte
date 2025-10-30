@@ -255,6 +255,15 @@
 		}
 	}
 
+	// Format date helper function to match requested date format
+	function formatDate(dateString) {
+		if (!dateString) return 'N/A';
+		// Handle YYYY-MM-DD format
+		const [year, month, day] = dateString.split('-');
+		if (!year || !month || !day) return dateString; // Return original if not in expected format
+		return `${month}/${day}/${year}`;
+	}
+
 	// Track if component has mounted
 	let hasMounted = false;
 
@@ -660,21 +669,21 @@
 								<span>Requested: {request.submittedDate}</span>
 							</div>
 							
-							<!-- Payment - hide if free -->
-							{#if request.payment !== 'Free'}
-								<div class="docreq-detail-item">
-									<span class="material-symbols-outlined">payments</span>
-									<span>{request.payment}</span>
-								</div>
-							{/if}
+						<!-- Payment - hide if free or tentative -->
+						{#if request.payment && request.payment !== 'Free' && !request.payment.toLowerCase().includes('tentative')}
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">payments</span>
+								<span>{request.payment}</span>
+							</div>
+						{/if}
 
-							<!-- Tentative date - only show if there is one -->
-							{#if request.tentativeDate}
-								<div class="docreq-detail-item">
-									<span class="material-symbols-outlined">event</span>
-									<span>Tentative Date: {request.tentativeDate}</span>
-								</div>
-							{/if}
+						<!-- Tentative date - only show if there is one -->
+						{#if request.tentativeDate}
+							<div class="docreq-detail-item">
+								<span class="material-symbols-outlined">event</span>
+								<span>Tentative: {formatDate(request.tentativeDate)}</span>
+							</div>
+						{/if}
 						</div>
 					</div>
 				{/each}
