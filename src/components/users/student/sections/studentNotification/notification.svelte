@@ -5,6 +5,8 @@
   import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
   import { authStore } from '../../../../login/js/auth.js';
   import { notificationStore } from '../../stores/notificationStore.js';
+  import { modalStore } from '../../../../common/js/modalStore.js';
+  import { toastStore } from '../../../../common/js/toastStore.js';
 
   // State variables
   let notifications = [];
@@ -54,7 +56,22 @@
   }
 
   function deleteNotification(id) {
-    deleteNotificationAPI(id);
+    const notification = notifications.find(n => n.id === id);
+    const notificationTitle = notification ? notification.title : 'this notification';
+    
+    modalStore.confirm(
+      'Delete Notification',
+      `<p>Are you sure you want to delete <strong>"${notificationTitle}"</strong>?</p>
+       <p style="margin-top: 8px; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem;">This action cannot be undone.</p>`,
+      async () => {
+        await deleteNotificationAPI(id);
+        toastStore.success('Notification deleted successfully');
+      },
+      () => {
+        // Do nothing on cancel
+      },
+      { size: 'small' }
+    );
   }
 
   function markAllAsRead() {
@@ -62,7 +79,21 @@
   }
 
   function clearAllRead() {
-    clearAllReadAPI();
+    const readCount = notifications.filter(n => n.isRead).length;
+    
+    modalStore.confirm(
+      'Clear All Read Notifications',
+      `<p>Are you sure you want to delete all <strong>${readCount}</strong> read notification${readCount !== 1 ? 's' : ''}?</p>
+       <p style="margin-top: 8px; color: var(--md-sys-color-on-surface-variant); font-size: 0.9rem;">This action cannot be undone.</p>`,
+      async () => {
+        await clearAllReadAPI();
+        toastStore.success(`${readCount} read notification${readCount !== 1 ? 's' : ''} cleared successfully`);
+      },
+      () => {
+        // Do nothing on cancel
+      },
+      { size: 'small' }
+    );
   }
 
   // Helper functions
