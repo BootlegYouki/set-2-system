@@ -1,10 +1,17 @@
 <script>
 	import './studentNavbar.css';
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { showSuccess } from '../../../../common/js/toastStore.js';
+	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
+	import { authStore } from '../../../../login/js/auth.js';
+	import { notificationStore } from '../../stores/notificationStore.js';
 
 	// Props
 	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
+
+	// Notification state from shared store
+	let unreadNotificationCount = $derived($notificationStore.unreadCount);
 
 	// Function to get title based on gender
 	function getTitle(gender) {
@@ -39,6 +46,30 @@
 		}
 	}
 
+	// Fetch notification count and update store
+	async function fetchNotificationCount() {
+		if (!browser) return;
+		
+		const authState = $authStore;
+		if (!authState.isAuthenticated) return;
+		
+		try {
+			const response = await authenticatedFetch('/api/notifications?limit=1&offset=0');
+			if (!response.ok) {
+				throw new Error(`Failed to fetch notifications: ${response.status}`);
+			}
+			
+			const result = await response.json();
+			if (result.success) {
+				const unreadCount = result.data.unreadCount || 0;
+				const totalCount = result.data.pagination?.total || 0;
+				notificationStore.setCounts(unreadCount, totalCount);
+			}
+		} catch (err) {
+			console.error('Error fetching notification count:', err);
+		}
+	}
+
 	// Add event listener for click outside
 	onMount(() => {
 		const savedTheme = localStorage.getItem('theme');
@@ -50,9 +81,29 @@
 		// Add click outside listener
 		document.addEventListener('click', handleClickOutside);
 
+		// Wait for auth store to be initialized before fetching notifications
+		let unsubscribe;
+		unsubscribe = authStore.subscribe((authState) => {
+			if (authState.isAuthenticated) {
+				fetchNotificationCount();
+				if (unsubscribe) {
+					unsubscribe();
+				}
+			}
+		});
+
+		// Refresh notification count every 10 seconds
+		const interval = setInterval(() => {
+			if ($authStore.isAuthenticated) {
+				fetchNotificationCount();
+			}
+		}, 10000);
+
 		// Cleanup
 		return () => {
 			document.removeEventListener('click', handleClickOutside);
+			clearInterval(interval);
+			if (unsubscribe) unsubscribe();
 		};
 	});
 
@@ -114,6 +165,20 @@
 				<span class="material-symbols-outlined">
 					{isDarkMode ? 'light_mode' : 'dark_mode'}
 				</span>
+			</button>
+
+			<!-- Notifications button -->
+			<button 
+				class="icon-button notifications-button" 
+				onclick={() => onnavigate('notifications')}
+				aria-label="Notifications"
+			>
+				<span class="material-symbols-outlined">notifications</span>
+				{#if unreadNotificationCount > 0}
+					<span class="navbar-notification-badge">
+						{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+					</span>
+				{/if}
 			</button>
 
 			<!-- User profile section with dropdown -->

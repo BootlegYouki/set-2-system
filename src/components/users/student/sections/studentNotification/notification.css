@@ -344,6 +344,10 @@
   color: var(--md-sys-color-on-surface);
   position: relative;
   overflow: hidden;
+  
+  /* Stagger animation */
+  animation: slideInUp 0.5s ease-out backwards;
+  animation-delay: calc(var(--card-index) * 0.05s);
 }
 
 .notification-card:hover {
@@ -705,5 +709,17 @@
   
   .notification-icon {
     border: 2px solid var(--md-sys-color-outline);
+  }
+}
+
+/* Slide in animation for stagger effect */
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

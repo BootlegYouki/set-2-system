@@ -35,7 +35,7 @@
 	$: currentQuarterNum = $studentGradeStore.currentQuarter;
 	$: currentQuarter = $studentGradeStore.currentQuarterName;
 	$: currentSchoolYear = $studentGradeStore.currentSchoolYear;
-	$: loading = $studentGradeStore.isLoading || $studentGradeStore.isRefreshing;
+	$: loading = $studentGradeStore.isLoading;
 	$: error = $studentGradeStore.error;
 	$: previousQuarterAverage = $studentGradeStore.previousQuarterAverage;
 	$: averageChange = $studentGradeStore.averageChange;
@@ -252,18 +252,23 @@
 	}
 
 	// Get verified grades count
-	function getVerifiedGradesCount() {
-		if (!grades || grades.length === 0) return { verified: 0, total: 0 };
-		const verifiedCount = grades.filter(subject => 
+	function getVerifiedGradesCount(gradesList) {
+		if (!gradesList || gradesList.length === 0) return { verified: 0, total: 0 };
+		const verifiedCount = gradesList.filter(subject => 
 			subject.verified && 
 			subject.numericGrade > 0 && 
 			subject.teacher !== "No teacher"
 		).length;
-		return { verified: verifiedCount, total: grades.length };
+		return { verified: verifiedCount, total: gradesList.length };
 	}
 
-	// Reactive calculation for verified grades
-	$: verifiedGrades = getVerifiedGradesCount();
+	// Reactive calculation for verified grades - explicitly depend on grades and quarter
+	$: verifiedGrades = getVerifiedGradesCount(grades);
+	
+	// Force recalculation when quarter changes
+	$: if (currentQuarterNum) {
+		verifiedGrades = getVerifiedGradesCount(grades);
+	}
 
 	// Grade breakdown accordion functions (similar to todo list)
 	function toggleGradeBreakdown(subjectId) {
@@ -437,33 +442,43 @@
 	{:else}
 		<!-- Overall Performance Card -->
 		<div class="performance-card">
-			<div class="performance-header">
-				<div class="performance-title-section">
-					<div class="performance-title-content">
-						<h2 class="performance-title">Academic Performance</h2>
-						{#if sectionInfo}
-							<div class="performance-subtitle">Grade {sectionInfo.gradeLevel} • {sectionInfo.name} </div>
-						{/if}
-					</div>
+		<div class="performance-header">
+			<div class="performance-title-section">
+				<div class="performance-title-content">
+					<h2 class="performance-title">Academic Performance</h2>
+					{#if sectionInfo}
+						<div class="performance-subtitle">Grade {sectionInfo.gradeLevel} • {sectionInfo.name} </div>
+					{/if}
 				</div>
+				<button 
+					class="refresh-data-btn" 
+					on:click={() => studentGradeStore.forceRefresh($authStore.userData.id, currentQuarterNum, currentSchoolYear)}
+					title="Refresh data from database"
+					disabled={loading}>
+					<span class="material-symbols-outlined">refresh</span>
+				</button>
 			</div>
+		</div>
 			
 			<div class="performance-stats">
 			<div class="grade-stat-item primary">
 				<div class="stat-header">
-					<div class="stat-label">Overall Average</div>
+					<div class="stat-label">Quarter Average</div>
 					<div class="stat-icon">
 						<span class="material-symbols-outlined">star</span>
 					</div>
 				</div>
-				<div class="grade-stat-value">
+			<div class="grade-stat-value">
+				{#key `${currentQuarterNum}-${currentSchoolYear}`}
 					<CountUp 
 						value={overallAverage} 
 						decimals={1} 
 						duration={2.5} 
 						colorTransition={true}
 						getGradeColor={getGradeColor} />
-				</div>
+				{/key}
+			</div>
+			{#key `${currentQuarterNum}-${currentSchoolYear}`}
 				{#if averageChange !== null}
 					<div class="grade-comparison" class:positive={averageChange > 0} class:negative={averageChange < 0} class:neutral={averageChange === 0}>
 						<span class="material-symbols-outlined comparison-icon">
@@ -496,7 +511,8 @@
 						</span>
 					</div>
 				{/if}
-			</div>
+			{/key}
+		</div>
 			
 			<div class="grade-stat-item secondary">
 				<div class="stat-header">
@@ -505,17 +521,21 @@
 						<span class="material-symbols-outlined">school</span>
 					</div>
 				</div>
-				<div class="grade-stat-value">
+			<div class="grade-stat-value">
+				{#key `${currentQuarterNum}-${currentSchoolYear}`}
 					<CountUp value={totalSubjects} decimals={0} duration={2} />
-				</div>
-				<div class="grade-info-badge">
-					<span class="material-symbols-outlined badge-icon">
-						verified
-					</span>
+				{/key}
+			</div>
+			<div class="grade-info-badge">
+				<span class="material-symbols-outlined badge-icon">
+					verified
+				</span>
+				{#key `${currentQuarterNum}-${currentSchoolYear}`}
 					<span class="badge-text">
 						{verifiedGrades.verified}/{verifiedGrades.total} Verified Grades
 					</span>
-				</div>
+				{/key}
+			</div>
 			</div>
 
 			<div class="grade-stat-item tertiary">
@@ -525,17 +545,19 @@
 						<span class="material-symbols-outlined">crown</span>
 					</div>
 				</div>
-				<div class="grade-stat-value">
-					Rank <CountUp value={classRank} decimals={0} duration={2} />
-				</div>
-				<div class="grade-info-badge">
-					<span class="material-symbols-outlined badge-icon">
-						groups
-					</span>
+			<div class="grade-stat-value">
+				Rank {#key `${currentQuarterNum}-${currentSchoolYear}`}<CountUp value={classRank} decimals={0} duration={2} />{/key}
+			</div>
+			<div class="grade-info-badge">
+				<span class="material-symbols-outlined badge-icon">
+					groups
+				</span>
+				{#key `${currentQuarterNum}-${currentSchoolYear}`}
 					<span class="badge-text">
 						Out of {totalStudentsInSection} Students
 					</span>
-				</div>
+				{/key}
+			</div>
 			</div>
 			</div>
 
@@ -546,12 +568,6 @@
 				<div class="analysis-header">
 					<div class="analysis-title-group">
 						<h3 class="analysis-title">AI Performance Analysis</h3>
-						{#if isCachedAnalysis && aiAnalysis}
-							<span class="cache-badge" title="Analysis from cache (refreshed every 7 days)">
-								<span class="material-symbols-outlined">schedule</span>
-								Cached
-							</span>
-						{/if}
 					</div>
 					<div class="analysis-controls">
 						{#if aiAnalysis && !aiAnalysisLoading}
@@ -657,18 +673,21 @@
 									<h3 class="subject-name" style="color: {cardColors.text};">{subject.name}</h3>
 									<p class="teacher-name" class:no-teacher={subject.teacher === "No teacher"}>{subject.teacher}</p>
 									<div class="progress-bar">
-										{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified) > 0}
-											<div 
-												class="progress-fill progress-fill-animated" 
-												style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}%; background-color: {progressBarColors[subject.id] || getGradeColor(subject.numericGrade)}">
-											</div>
-										{/if}
+										{#key `${subject.id}-${currentQuarterNum}-${currentSchoolYear}`}
+											{#if getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified) > 0}
+												<div 
+													class="progress-fill progress-fill-animated" 
+													style="width: {getProgressWidth(subject.numericGrade, subject.teacher !== "No teacher", subject.numericGrade > 0, subject.verified)}%; background-color: {progressBarColors[subject.id] || getGradeColor(subject.numericGrade)}">
+												</div>
+											{/if}
+										{/key}
 									</div>
 								</div>
 								
-								<!-- Column 3: Grade Display -->
-								<div class="grade-column">
-									<div class="grade-large">
+							<!-- Column 3: Grade Display -->
+							<div class="grade-column">
+								<div class="grade-large">
+									{#key `${subject.id}-${currentQuarterNum}`}
 										{#if subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified}
 											<CountUp 
 												value={subject.numericGrade} 
@@ -684,11 +703,12 @@
 										{#if subject.numericGrade > 0 && !subject.verified}
 											<span class="unverified-indicator" title="Grade not yet verified">*</span>
 										{/if}
-									</div>
-									<div class="grade-indicator {getGradeIndicator(subject.numericGrade).color}">
-										{getGradeIndicator(subject.numericGrade).text}
-									</div>
+									{/key}
 								</div>
+								<div class="grade-indicator {getGradeIndicator(subject.numericGrade).color}">
+									{getGradeIndicator(subject.numericGrade).text}
+								</div>
+							</div>
 							</div>
 
 							<!-- Collapsible Breakdown Section -->

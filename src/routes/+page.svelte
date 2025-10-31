@@ -5,6 +5,7 @@
   import StudentMenu from '../components/users/student/navigations/studentMenu/studentMenu.svelte';
   import StudentProfile from '../components/users/student/sections/studentProfile/studentProfile.svelte';
   import StudentGrade from '../components/users/student/sections/studentGrade/studentGrade.svelte';
+  import StudentClassRanking from '../components/users/student/sections/studentClassRanking/studentClassRanking.svelte';
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
   import Notification from '../components/users/student/sections/studentNotification/notification.svelte';
@@ -176,6 +177,8 @@
           <StudentProfile />
         {:else if activeSection === 'grades'}
           <StudentGrade />
+        {:else if activeSection === 'ranking'}
+          <StudentClassRanking />
         {:else if activeSection === 'schedule'}
           <StudentSchedule />
         {:else if activeSection === 'documents'}

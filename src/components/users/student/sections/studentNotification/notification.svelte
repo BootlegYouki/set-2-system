@@ -352,6 +352,15 @@
       return notifications.filter(n => n.type === selectedFilter);
     }
   })();
+  
+  // Animation key to trigger stagger animation on data change
+  let animationKey = 0;
+  $: {
+    // Increment key whenever filter or notifications change
+    selectedFilter;
+    filteredNotifications;
+    animationKey++;
+  }
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -434,69 +443,72 @@
         </button>
       </div>
     {:else if filteredNotifications.length > 0}
-      <div class="notifications-list">
-        {#each filteredNotifications as notification, index (notification.id)}
-          <div 
-            class="notification-card {notification.isRead ? 'read' : 'unread'}"
-          >
-            <!-- Notification Header -->
-             <div class="notification-header-card">
-               <h3 class="notification-title">{notification.title}</h3>
-               <span class="notification-time">{formatTimestamp(notification.timestamp)}</span>
-             </div>
-            
-            <!-- Notification Details -->
-            <div class="notification-details">
-              <div class="notification-content">
-                <p class="notification-message">{notification.message}</p>
-                
-                <!-- Document Request Specific Info -->
-                {#if notification.type === 'document_request'}
-                  {#if notification.adminNote}
-                    <div class="admin-note">
-                      <span class="material-symbols-outlined">note</span>
-                      <div class="note-content">
-                        <span class="note-label">Admin Note:</span>
-                        <span class="note-text">{notification.adminNote}</span>
-                      </div>
-                    </div>
-                  {/if}
-                  {#if notification.rejectionReason}
-                    <div class="rejection-reason">
-                      <span class="material-symbols-outlined">error</span>
-                      <div class="reason-content">
-                        <span class="reason-label">Rejection Reason:</span>
-                        <span class="reason-text">{notification.rejectionReason}</span>
-                      </div>
-                    </div>
-                  {/if}
-                {/if}
-              </div>
+      {#key animationKey}
+        <div class="notifications-list">
+          {#each filteredNotifications as notification, index (notification.id)}
+            <div 
+              class="notification-card {notification.isRead ? 'read' : 'unread'}"
+              style="--card-index: {index};"
+            >
+              <!-- Notification Header -->
+               <div class="notification-header-card">
+                 <h3 class="notification-title">{notification.title}</h3>
+                 <span class="notification-time">{formatTimestamp(notification.timestamp)}</span>
+               </div>
               
-              <!-- Notification Actions -->
-              <div class="notification-actions">
-                <button 
-                  class="action-btn-small read-toggle"
-                  on:click={() => toggleNotificationRead(notification.id)}
-                  title={notification.isRead ? 'Mark as unread' : 'Mark as read'}
-                >
-                  <span class="material-symbols-outlined">
-                    {notification.isRead ? 'mark_email_unread' : 'mark_email_read'}
-                  </span>
-                </button>
+              <!-- Notification Details -->
+              <div class="notification-details">
+                <div class="notification-content">
+                  <p class="notification-message">{notification.message}</p>
+                  
+                  <!-- Document Request Specific Info -->
+                  {#if notification.type === 'document_request'}
+                    {#if notification.adminNote}
+                      <div class="admin-note">
+                        <span class="material-symbols-outlined">note</span>
+                        <div class="note-content">
+                          <span class="note-label">Admin Note:</span>
+                          <span class="note-text">{notification.adminNote}</span>
+                        </div>
+                      </div>
+                    {/if}
+                    {#if notification.rejectionReason}
+                      <div class="rejection-reason">
+                        <span class="material-symbols-outlined">error</span>
+                        <div class="reason-content">
+                          <span class="reason-label">Rejection Reason:</span>
+                          <span class="reason-text">{notification.rejectionReason}</span>
+                        </div>
+                      </div>
+                    {/if}
+                  {/if}
+                </div>
                 
-                <button 
-                  class="action-btn-small delete-btn"
-                  on:click={() => deleteNotification(notification.id)}
-                  title="Delete notification"
-                >
-                  <span class="material-symbols-outlined">delete</span>
-                </button>
+                <!-- Notification Actions -->
+                <div class="notification-actions">
+                  <button 
+                    class="action-btn-small read-toggle"
+                    on:click={() => toggleNotificationRead(notification.id)}
+                    title={notification.isRead ? 'Mark as unread' : 'Mark as read'}
+                  >
+                    <span class="material-symbols-outlined">
+                      {notification.isRead ? 'mark_email_unread' : 'mark_email_read'}
+                    </span>
+                  </button>
+                  
+                  <button 
+                    class="action-btn-small delete-btn"
+                    on:click={() => deleteNotification(notification.id)}
+                    title="Delete notification"
+                  >
+                    <span class="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        {/each}
-      </div>
+          {/each}
+        </div>
+      {/key}
     {:else}
       <div class="no-notifications">
         <div class="no-notifications-icon">

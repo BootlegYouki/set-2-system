@@ -96,25 +96,42 @@ function createStudentGradeStore() {
 		};
 	}
 
-	// Fetch student profile data for section and class rank
+	// Fetch student profile data for section info
 	async function fetchStudentProfile(studentId) {
 		try {
 			const response = await fetch(`/api/student-profile?studentId=${studentId}`);
 			const result = await response.json();
 			
 			if (result.success) {
-				const { section, academicSummary } = result.data;
+				const { section } = result.data;
 				return {
-					sectionInfo: section,
-					classRank: academicSummary.classRank,
-					totalStudentsInSection: academicSummary.totalStudentsInSection
+					sectionInfo: section
 				};
 			}
 		} catch (err) {
 			console.error('Error fetching student profile:', err);
 		}
 		return {
-			sectionInfo: null,
+			sectionInfo: null
+		};
+	}
+
+	// Fetch class rank for specific quarter and school year
+	async function fetchClassRank(studentId, quarter, schoolYear) {
+		try {
+			const response = await fetch(`/api/class-rankings?studentId=${studentId}&quarter=${quarter}&schoolYear=${schoolYear}`);
+			const result = await response.json();
+			
+			if (result.success) {
+				return {
+					classRank: result.myRank,
+					totalStudentsInSection: result.totalStudents
+				};
+			}
+		} catch (err) {
+			console.error('Error fetching class rank:', err);
+		}
+		return {
 			classRank: null,
 			totalStudentsInSection: 0
 		};
@@ -174,63 +191,64 @@ function createStudentGradeStore() {
 				};
 			}
 
-			// Fetch grades data and previous quarter average in parallel
-			const [gradesResult, profileData, previousAverage] = await Promise.all([
-				fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`)
-					.then(res => res.json()),
-				fetchStudentProfile(studentId),
-				fetchPreviousQuarterAverage(studentId, quarter, schoolYear)
-			]);
+		// Fetch grades data, profile, class rank, and previous quarter average in parallel
+		const [gradesResult, profileData, rankData, previousAverage] = await Promise.all([
+			fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`)
+				.then(res => res.json()),
+			fetchStudentProfile(studentId),
+			fetchClassRank(studentId, quarter, schoolYear),
+			fetchPreviousQuarterAverage(studentId, quarter, schoolYear)
+		]);
 
-			if (!gradesResult.success) {
-				throw new Error(gradesResult.error || 'Failed to fetch grades data');
-			}
+		if (!gradesResult.success) {
+			throw new Error(gradesResult.error || 'Failed to fetch grades data');
+		}
 
-			// Calculate average change
-			const currentAverage = gradesResult.data.statistics?.overallAverage || 0;
-			let averageChange = null;
-			if (previousAverage !== null && currentAverage > 0) {
-				averageChange = currentAverage - previousAverage;
-			}
+		// Calculate average change
+		const currentAverage = gradesResult.data.statistics?.overallAverage || 0;
+		let averageChange = null;
+		if (previousAverage !== null && currentAverage > 0) {
+			averageChange = currentAverage - previousAverage;
+		}
 
-			// Update store with new data
-			const newState = {
-				grades: gradesResult.data.grades || [],
-				statistics: gradesResult.data.statistics || { overallAverage: 0, totalSubjects: 0 },
-				sectionInfo: profileData.sectionInfo,
-				classRank: profileData.classRank,
-				totalStudentsInSection: profileData.totalStudentsInSection,
-				currentQuarter: quarter,
-				currentQuarterName: quarterData.currentQuarterName,
-				currentSchoolYear: schoolYear,
-				previousQuarterAverage: previousAverage,
-				averageChange: averageChange,
-				isLoading: false,
-				isRefreshing: false,
-				error: null,
-				lastUpdated: new Date().toISOString(),
-				currentStudentId: studentId
-			};
+		// Update store with new data
+		const newState = {
+			grades: gradesResult.data.grades || [],
+			statistics: gradesResult.data.statistics || { overallAverage: 0, totalSubjects: 0 },
+			sectionInfo: profileData.sectionInfo,
+			classRank: rankData.classRank,
+			totalStudentsInSection: rankData.totalStudentsInSection,
+			currentQuarter: quarter,
+			currentQuarterName: quarterData.currentQuarterName,
+			currentSchoolYear: schoolYear,
+			previousQuarterAverage: previousAverage,
+			averageChange: averageChange,
+			isLoading: false,
+			isRefreshing: false,
+			error: null,
+			lastUpdated: new Date().toISOString(),
+			currentStudentId: studentId
+		};
 
 			update(state => ({
 				...state,
 				...newState
 			}));
 
-			// Cache the data
-			cacheData(studentId, quarter, schoolYear, {
-				grades: newState.grades,
-				statistics: newState.statistics,
-				sectionInfo: newState.sectionInfo,
-				classRank: newState.classRank,
-				totalStudentsInSection: newState.totalStudentsInSection,
-				currentQuarter: quarter,
-				currentQuarterName: quarterData.currentQuarterName,
-				currentSchoolYear: schoolYear,
-				previousQuarterAverage: newState.previousQuarterAverage,
-				averageChange: newState.averageChange,
-				lastUpdated: newState.lastUpdated
-			});
+		// Cache the data (including quarter-specific rank)
+		cacheData(studentId, quarter, schoolYear, {
+			grades: newState.grades,
+			statistics: newState.statistics,
+			sectionInfo: newState.sectionInfo,
+			classRank: newState.classRank,
+			totalStudentsInSection: newState.totalStudentsInSection,
+			currentQuarter: quarter,
+			currentQuarterName: quarterData.currentQuarterName,
+			currentSchoolYear: schoolYear,
+			previousQuarterAverage: newState.previousQuarterAverage,
+			averageChange: newState.averageChange,
+			lastUpdated: newState.lastUpdated
+		});
 
 		} catch (error) {
 			console.error('Error loading student grades:', error);
@@ -355,12 +373,28 @@ function createStudentGradeStore() {
 		return store.loadGrades(studentId, quarter, schoolYear, false);
 	}
 
+	// Clear all cached data for a student (useful for debugging/testing)
+	function clearAllCache(studentId) {
+		try {
+			const keys = Object.keys(localStorage);
+			const prefix = `${CACHE_KEY_PREFIX}${studentId}_`;
+			keys.forEach(key => {
+				if (key.startsWith(prefix)) {
+					localStorage.removeItem(key);
+				}
+			});
+		} catch (error) {
+			console.warn('Failed to clear all cache:', error);
+		}
+	}
+
 	const store = {
 		subscribe,
 		init,
 		loadGrades,
 		changeQuarter,
 		forceRefresh,
+		clearAllCache,
 		getCachedData: (studentId, quarter, schoolYear) => getCachedData(studentId, quarter, schoolYear)
 	};
 
