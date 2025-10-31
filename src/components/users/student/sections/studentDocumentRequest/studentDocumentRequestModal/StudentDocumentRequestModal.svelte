@@ -1,6 +1,7 @@
 <script>
 	import { authStore } from '../../../../../login/js/auth.js';
 	import { api } from '../../../../../../routes/api/helper/api-helper.js';
+	import Modal from '../../../../../common/Modal.svelte';
 
 	// Props passed from modal store
 	let {
@@ -18,6 +19,7 @@
 	let chatMessagesEl = $state();
 	let chatInputEl = $state();
 	let pollingInterval;
+	let showCancelModal = $state(false);
 	// Mobile pagination state
 	let currentPage = $state(1); // 1 = left container, 2 = right container
 	
@@ -137,11 +139,21 @@
 	}
 
 	// Handle cancel request
-	async function handleCancelRequest() {
+	function handleCancelRequest() {
+		// Show confirmation modal before cancelling
+		showCancelModal = true;
+	}
+
+	async function confirmCancel() {
 		if (onCancel) {
 			await onCancel(selectedRequest);
 		}
+		showCancelModal = false;
 		onClose();
+	}
+
+	function cancelCancelRequest() {
+		showCancelModal = false;
 	}
 
 	// Mobile pagination functions
@@ -584,6 +596,48 @@
 			</div>
 		</div>
 	</div>
+{/if}
+
+<!-- Confirmation Modal for Cancel -->
+{#if showCancelModal}
+	<Modal 
+		title="Cancel Request" 
+		size="small" 
+		closable={true}
+		onClose={cancelCancelRequest}
+	>
+		<div class="modal-confirm-content">
+			<div class="modal-message">
+				<p>Are you sure you want to cancel this document request?</p>
+				<div class="confirm-details cancel-warning">
+					<div class="confirm-detail-row">
+						<span class="detail-label">Request ID:</span>
+						<span class="detail-value">{selectedRequest.requestId}</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">Document Type:</span>
+						<span class="detail-value">{selectedRequest.type}</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">Status:</span>
+						<span class="detail-value">{getStatusDisplayName(selectedRequest.status)}</span>
+					</div>
+					<div class="cancel-notice">
+						<span class="material-symbols-outlined">warning</span>
+						<span>This action will mark your request as cancelled. You may need to submit a new request if needed.</span>
+					</div>
+				</div>
+			</div>
+			<div class="modal-actions">
+				<button class="modal-btn modal-btn-secondary" onclick={cancelCancelRequest}>
+					Go Back
+				</button>
+				<button class="modal-btn modal-btn-danger" onclick={confirmCancel}>
+					Cancel Request
+				</button>
+			</div>
+		</div>
+	</Modal>
 {/if}
 
 <style>
@@ -1597,6 +1651,145 @@
 
 		.flow-icon-wrapper .material-symbols-outlined {
 			font-size: 20px;
+		}
+	}
+
+	/* Confirmation Modal Styles - Matching Admin Modal */
+	.modal-confirm-content {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.modal-message {
+		margin: 0;
+		font-family: var(--md-sys-typescale-body-large-font);
+		font-size: var(--md-sys-typescale-body-large-size);
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.6;
+		max-width: none;
+		word-wrap: break-word;
+	}
+
+	.modal-message p {
+		margin: 0 0 12px 0;
+	}
+
+	.confirm-details {
+		background: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		margin-top: var(--spacing-md);
+	}
+
+	.confirm-detail-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: var(--spacing-xs) 0;
+	}
+
+	.detail-label {
+		font-weight: 500;
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.9rem;
+	}
+
+	.detail-value {
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.95rem;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: var(--spacing-md);
+		justify-content: flex-end;
+		margin-top: var(--spacing-md);
+		padding: var(--spacing-md);
+	}
+
+	.modal-btn {
+		padding: var(--spacing-sm) var(--spacing-lg);
+		border: none;
+		border-radius: var(--radius-md);
+		font-family: var(--md-sys-typescale-label-large-font);
+		font-size: var(--md-sys-typescale-label-large-size);
+		font-weight: var(--md-sys-typescale-label-large-weight);
+		cursor: pointer;
+		transition: background-color var(--transition-fast), box-shadow var(--transition-fast);
+		min-width: 80px;
+	}
+
+	.modal-btn-primary {
+		background-color: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+		border: 1px solid var(--md-sys-color-primary);
+	}
+
+	.modal-btn-primary:hover {
+		background-color: var(--md-sys-color-primary-container);
+		color: var(--md-sys-color-on-primary-container);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-btn-secondary {
+		background-color: var(--md-sys-color-surface-container-high);
+		color: var(--md-sys-color-on-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.modal-btn-secondary:hover {
+		background-color: var(--md-sys-color-surface-container-highest);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-btn-danger {
+		background-color: var(--md-sys-color-error);
+		color: var(--md-sys-color-on-error);
+		border: 1px solid var(--md-sys-color-error);
+	}
+
+	.modal-btn-danger:hover {
+		background-color: var(--md-sys-color-error-container);
+		color: var(--md-sys-color-on-error-container);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-btn:focus-visible {
+		outline: 2px solid var(--md-sys-color-primary);
+		outline-offset: 2px;
+	}
+
+	.cancel-notice {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		border-radius: var(--radius-sm);
+		margin-top: var(--spacing-sm);
+		color: var(--md-sys-color-on-surface);
+		font-size: 0.875rem;
+		line-height: 1.4;
+	}
+
+	.cancel-notice .material-symbols-outlined {
+		color: var(--md-sys-color-error);
+		font-size: 20px;
+		flex-shrink: 0;
+	}
+
+	@media (max-width: 640px) {
+		.modal-actions {
+			flex-direction: column-reverse;
+		}
+
+		.modal-btn {
+			width: 100%;
 		}
 	}
 </style>

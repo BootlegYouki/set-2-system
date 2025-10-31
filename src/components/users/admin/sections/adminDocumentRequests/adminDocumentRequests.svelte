@@ -4,6 +4,7 @@
 	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
 	import { docReqModalStore } from './adminDocumentRequestModal/AdmindocReqModalStore.js';
 	import DocumentRequestsStatusChart from './adminDocumentRequestCharts/DocumentRequestsStatusChart.svelte';
+	import { toastStore } from '../../../../common/js/toastStore.js';
 
 	// Dynamic data for document requests (fetched from API)
 	let documentRequests = [];
@@ -212,14 +213,17 @@
 			if (result.success) {
 				// Refresh the list
 				await fetchDocumentRequests();
+				toastStore.success('Document request updated successfully!');
 				return true;
 			} else {
 				error = result.error || 'Failed to update request';
+				toastStore.error(result.error || 'Failed to update document request');
 				return false;
 			}
 		} catch (err) {
 			console.error('Error updating request:', err);
 			error = 'Failed to update request';
+			toastStore.error('An error occurred while updating the request');
 			return false;
 		}
 	}
@@ -243,14 +247,17 @@
 			if (result.success) {
 				// Refresh the list
 				await fetchDocumentRequests();
+				toastStore.success('Document request rejected successfully');
 				return true;
 			} else {
 				error = result.error || 'Failed to reject request';
+				toastStore.error(result.error || 'Failed to reject document request');
 				return false;
 			}
 		} catch (err) {
 			console.error('Error rejecting request:', err);
 			error = 'Failed to reject request';
+			toastStore.error('An error occurred while rejecting the request');
 			return false;
 		}
 	}

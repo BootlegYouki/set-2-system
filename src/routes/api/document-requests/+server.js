@@ -358,11 +358,13 @@ export async function POST({ request }) {
 					return json({ error: 'Request not found' }, { status: 404 });
 				}
 
-				// Track what changed for notifications
+				// Track what changed for notifications and logging
 				let statusChanged = false;
 				let paymentStatusChanged = false;
+				let paymentAmountChanged = false;
 				let oldStatus = existingRequest.status;
 				let oldPaymentStatus = existingRequest.payment_status;
+				let oldPaymentAmount = existingRequest.payment_amount;
 
 				if (status) {
 					updateData.status = status;
@@ -383,7 +385,9 @@ export async function POST({ request }) {
 				}
 
 				if (paymentAmount !== undefined && paymentAmount !== null) {
-					updateData.payment_amount = parseFloat(paymentAmount);
+					const newPaymentAmount = parseFloat(paymentAmount);
+					updateData.payment_amount = newPaymentAmount;
+					paymentAmountChanged = (newPaymentAmount !== oldPaymentAmount);
 				}
 
 				// Set processed by if not already set
@@ -449,11 +453,26 @@ export async function POST({ request }) {
 					});
 				}
 
-				// Log activity
+				// Log activity with detailed information
 				await logActivityWithUser(
 					'document_request_updated',
 					`Document request ${requestId} updated`,
-					user
+					user,
+					{
+						request_id: requestId,
+						document_type: existingRequest.document_type,
+						old_status: oldStatus,
+						new_status: status || oldStatus,
+						student_name: existingRequest.full_name,
+						student_id: existingRequest.account_number,
+						old_payment_amount: oldPaymentAmount,
+						new_payment_amount: updateData.payment_amount || existingRequest.payment_amount,
+						payment_amount_changed: paymentAmountChanged,
+						old_payment_status: oldPaymentStatus,
+						new_payment_status: updateData.payment_status || existingRequest.payment_status,
+						payment_status_changed: paymentStatusChanged,
+						status_changed: statusChanged
+					}
 				);
 
 				return json({ success: true, message: 'Request updated successfully' });
@@ -509,11 +528,18 @@ export async function POST({ request }) {
 					adminId: user.id
 				});
 
-				// Log activity
+				// Log activity with detailed information
 				await logActivityWithUser(
 					'document_request_rejected',
 					`Document request ${rejectRequestId} rejected`,
-					user
+					user,
+					{
+						request_id: rejectRequestId,
+						document_type: requestToReject.document_type,
+						student_name: requestToReject.full_name,
+						student_id: requestToReject.account_number,
+						old_status: requestToReject.status
+					}
 				);
 
 				return json({ success: true, message: 'Request rejected successfully' });
@@ -684,13 +710,6 @@ export async function POST({ request }) {
 						adminId: user.id
 					});
 				}
-
-				// Log activity
-				await logActivityWithUser(
-					'document_request_message_sent',
-					`Message sent to document request ${msgRequestId}`,
-					user
-				);
 
 				// Return the message with decrypted text for the response
 				return json({

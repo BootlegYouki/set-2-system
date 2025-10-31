@@ -22,25 +22,41 @@ export function getUserFromRequest(request) {
 
 /**
  * Log activity with user attribution using MongoDB
- * @param {string} action - The action being performed
- * @param {string} details - Additional details about the action
+ * @param {string} activityType - The type of activity being performed
+ * @param {string} description - Description of the action
  * @param {Object} user - User object from getUserFromRequest
+ * @param {Object} [activityData] - Additional data about the activity
  * @param {string} [ipAddress] - IP address of the user
  */
-export async function logActivityWithUser(action, details, user, ipAddress = null) {
+export async function logActivityWithUser(activityType, description, user, activityData = {}, ipAddress = null) {
   try {
     // Connect to MongoDB
     const db = client.db(process.env.MONGODB_DB_NAME);
     const activityLogsCollection = db.collection('activity_logs');
     
+    // Use ObjectId for user_id if it's a valid string ID
+    let userId = null;
+    if (user?.id) {
+      try {
+        userId = new ObjectId(user.id);
+      } catch (e) {
+        // If conversion fails, store as string
+        userId = user.id;
+      }
+    }
+    
     const logEntry = {
-      action,
-      details,
-      user_id: user?.id || null,
-      user_name: user?.name || 'Unknown',
-      user_account_type: user?.account_type || 'Unknown',
+      activity_type: activityType,
+      user_id: userId,
+      user_account_number: user?.account_number || null,
+      activity_data: {
+        description,
+        full_name: user?.name || user?.full_name || 'Unknown',
+        account_type: user?.account_type || 'Unknown',
+        ...activityData
+      },
       ip_address: ipAddress,
-      timestamp: new Date()
+      created_at: new Date()
     };
     
     await activityLogsCollection.insertOne(logEntry);

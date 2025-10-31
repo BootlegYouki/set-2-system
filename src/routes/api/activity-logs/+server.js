@@ -457,12 +457,99 @@ export async function GET({ url }) {
 					icon = 'key';
 					break;
 				
-				case 'profile_updated':
-					message = `Profile updated: ${data.full_name || performedBy}`;
-					icon = 'edit';
-					break;
+			case 'profile_updated':
+				message = `Profile updated: ${data.full_name || performedBy}`;
+				icon = 'edit';
+				break;
+			
+			case 'document_request_created':
+				message = `Document request created: ${data.document_type || 'Unknown document'} (${data.request_id || 'N/A'})`;
+				icon = 'description';
+				break;
+			
+			case 'document_request_updated':
+				// Format status names nicely
+				const formatStatus = (status) => {
+					if (!status) return '';
+					const statusNames = {
+						'on_hold': 'On Hold',
+						'verifying': 'Verifying',
+						'processing': 'Processing',
+						'for_pickup': 'For Pick Up',
+						'released': 'Released',
+						'rejected': 'Rejected',
+						'cancelled': 'Cancelled'
+					};
+					return statusNames[status] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+				};
+
+				const oldStatus = formatStatus(data.old_status);
+				const newStatus = formatStatus(data.new_status);
 				
-				default:
+				// Build message with student info if available
+				let updateMessage = `Document request ${data.request_id || 'N/A'}`;
+				if (data.document_type) {
+					updateMessage += ` (${data.document_type})`;
+				}
+				if (data.student_name) {
+					updateMessage += ` for ${data.student_name}`;
+				}
+				
+				// Track changes
+				const changes = [];
+				
+				// Status change
+				if (data.status_changed && oldStatus && newStatus && oldStatus !== newStatus) {
+					changes.push(`Status: ${oldStatus} → ${newStatus}`);
+				}
+				
+				// Payment amount change
+				if (data.payment_amount_changed) {
+					const oldAmt = data.old_payment_amount !== null && data.old_payment_amount !== undefined 
+						? `₱${data.old_payment_amount}` 
+						: 'Not set';
+					const newAmt = data.new_payment_amount !== null && data.new_payment_amount !== undefined 
+						? `₱${data.new_payment_amount}` 
+						: 'Not set';
+					changes.push(`Payment: ${oldAmt} → ${newAmt}`);
+				}
+				
+				// Payment status change
+				if (data.payment_status_changed) {
+					const oldPayStatus = data.old_payment_status === 'paid' ? 'Paid' : 'Pending';
+					const newPayStatus = data.new_payment_status === 'paid' ? 'Paid' : 'Pending';
+					changes.push(`Payment status: ${oldPayStatus} → ${newPayStatus}`);
+				}
+				
+				// Add changes to message
+				if (changes.length > 0) {
+					updateMessage += ` - ${changes.join(', ')}`;
+				} else {
+					updateMessage += ' - Updated';
+				}
+				
+				message = updateMessage;
+				icon = 'update';
+				break;
+			
+			case 'document_request_rejected':
+				let rejectMessage = `Document request ${data.request_id || 'N/A'} rejected`;
+				if (data.document_type) {
+					rejectMessage += ` - ${data.document_type}`;
+				}
+				if (data.student_name) {
+					rejectMessage += ` for ${data.student_name}`;
+				}
+				message = rejectMessage;
+				icon = 'cancel';
+				break;
+			
+			case 'document_request_cancelled':
+				message = `Document request cancelled by student: ${data.request_id || 'N/A'}`;
+				icon = 'block';
+				break;
+			
+			default:
 					const actionText = typeof activityType === 'string' ? activityType : 'Unknown Action';
 					message = `${actionText.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: ${data.full_name || performedBy || 'System'}`;
 					icon = 'info';
