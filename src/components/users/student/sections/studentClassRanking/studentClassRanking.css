@@ -325,6 +325,25 @@
 	font-size: 64px;
 	font-variation-settings: 'FILL' 1;
 	filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+	opacity: 0;
+	transform: scale(0.8);
+}
+
+.rank-banner-icon.show-icon {
+	opacity: 1;
+	transform: scale(1);
+	animation: iconFadeIn 0.5s ease-out;
+}
+
+@keyframes iconFadeIn {
+	0% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 
 .rank-info {

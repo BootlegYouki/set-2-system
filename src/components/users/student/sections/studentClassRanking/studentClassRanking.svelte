@@ -1,15 +1,17 @@
 <script>
-	import { onMount } from 'svelte';
 	import { authStore } from '../../../../login/js/auth.js';
 	import { studentClassRankingStore } from '../../../../../lib/stores/student/studentClassRankingStore.js';
+	import { studentGradeStore } from '../../../../../lib/stores/student/studentGradeStore.js';
 	import './studentClassRanking.css';
 	import CountUp from '../../../../common/CountUp.svelte';
 	
 	// Local UI state
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
 	let isDropdownOpen = false;
-	let currentQuarter = '1st Quarter';
-	let currentSchoolYear = '2025-2026';
+	
+	// Get current quarter from studentGradeStore (same source as studentGrade component)
+	$: currentQuarter = $studentGradeStore.currentQuarterName || '1st Quarter';
+	$: currentSchoolYear = $studentGradeStore.currentSchoolYear || '2025-2026';
 	
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -31,6 +33,7 @@
 	// Animation key to trigger stagger animation on data change
 	let animationKey = 0;
 	let showRankNumber = false;
+	let previousQuarter = '';
 	
 	$: {
 		// Increment key whenever quarter or rankings data changes
@@ -45,6 +48,12 @@
 				showRankNumber = true;
 			}, 700);
 		}
+	}
+	
+	// Watch for quarter changes and reload rankings
+	$: if (currentQuarter && currentQuarter !== previousQuarter && $authStore.userData?.id) {
+		previousQuarter = currentQuarter;
+		loadRankings();
 	}
 	
 	function toggleDropdown() {
@@ -98,10 +107,6 @@
 			currentSchoolYear
 		);
 	}
-	
-	onMount(async () => {
-		await loadRankings();
-	});
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -160,62 +165,64 @@
 				</div>
 			{:else}
 				<!-- Student Rank Banner -->
-				<div class="student-rank-banner" class:top-rank={myRank <= 3}>
-					<div class="rank-banner-content">
-						<div class="rank-display">
-							<span class="material-symbols-outlined rank-banner-icon" style="color: {getRankColor(myRank)};">
-								{getRankIcon(myRank)}
-							</span>
-							<div class="rank-info">
-								<span class="rank-banner-label">Your Rank</span>
-								<div class="rank-banner-value">
-									<span class="rank-number-display">
+				{#key animationKey}
+					<div class="student-rank-banner" class:top-rank={myRank <= 3}>
+						<div class="rank-banner-content">
+							<div class="rank-display">
+								<span class="material-symbols-outlined rank-banner-icon" class:show-icon={showRankNumber} style="color: {getRankColor(myRank)};">
+									{getRankIcon(myRank)}
+								</span>
+								<div class="rank-info">
+									<span class="rank-banner-label">Your Rank</span>
+									<div class="rank-banner-value">
+										<span class="rank-number-display">
 										{#if showRankNumber}
 											{#key myRank}
-												<CountUp value={myRank} startVal={totalStudents} duration={2} decimals={0} />
+												<CountUp value={myRank} startVal={totalStudents} duration={1.6} decimals={0} />
 											{/key}
 										{:else}
 											{totalStudents}
 										{/if}
-									</span>
-									<span class="rank-total">/ {totalStudents}</span>
+										</span>
+										<span class="rank-total">/ {totalStudents}</span>
+									</div>
 								</div>
 							</div>
-						</div>
-						<div class="rank-divider"></div>
-						<div class="rank-message">
-							{#if myRank === 1}
-								<div class="message-text">
-									<strong>Outstanding!</strong> You're the top student in your class!
-								</div>
-							{:else if myRank === 2}
-								<div class="message-text">
-									<strong>Excellent work!</strong> You're in 2nd place. Keep pushing for the top!
-								</div>
-							{:else if myRank === 3}
-								<div class="message-text">
-									<strong>Great job!</strong> You're in 3rd place and in the top tier!
-								</div>
-							{:else if myRank <= totalStudents * 0.1}
-								<div class="message-text">
-									<strong>Fantastic!</strong> You're in the top 10% of your class!
-								</div>
-							{:else if myRank <= totalStudents * 0.25}
-								<div class="message-text">
-									<strong>Well done!</strong> You're in the top 25% of your class!
-								</div>
-							{:else if myRank <= totalStudents * 0.50}
-								<div class="message-text">
-									<strong>Good work!</strong> You're in the top half of your class!
-								</div>
-							{:else}
-								<div class="message-text">
-									<strong>Keep going!</strong> You have great potential to improve!
-								</div>
-							{/if}
+							<div class="rank-divider"></div>
+							<div class="rank-message">
+								{#if myRank === 1}
+									<div class="message-text">
+										<strong>Outstanding!</strong> You're the top student in your class!
+									</div>
+								{:else if myRank === 2}
+									<div class="message-text">
+										<strong>Excellent work!</strong> You're in 2nd place. Keep pushing for the top!
+									</div>
+								{:else if myRank === 3}
+									<div class="message-text">
+										<strong>Great job!</strong> You're in 3rd place and in the top tier!
+									</div>
+								{:else if myRank <= totalStudents * 0.1}
+									<div class="message-text">
+										<strong>Fantastic!</strong> You're in the top 10% of your class!
+									</div>
+								{:else if myRank <= totalStudents * 0.25}
+									<div class="message-text">
+										<strong>Well done!</strong> You're in the top 25% of your class!
+									</div>
+								{:else if myRank <= totalStudents * 0.50}
+									<div class="message-text">
+										<strong>Good work!</strong> You're in the top half of your class!
+									</div>
+								{:else}
+									<div class="message-text">
+										<strong>Keep going!</strong> You have great potential to improve!
+									</div>
+								{/if}
+							</div>
 						</div>
 					</div>
-				</div>
+				{/key}
 				{#key animationKey}
 					<div class="rankings-list">
 						{#each rankingsList as student, index (student.studentId)}
