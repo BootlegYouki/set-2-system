@@ -287,6 +287,148 @@
 	margin-top: var(--spacing-xl);
 }
 
+/* Student Rank Banner */
+.student-rank-banner {
+	background-color: var(--md-sys-color-surface-container-high);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	border-radius: var(--radius-xl);
+	padding: var(--spacing-xl);
+	margin-bottom: var(--spacing-xl);
+	box-shadow: var(--elevation-1);
+	position: relative;
+	overflow: hidden;
+	animation: slideInUp 0.5s ease-out backwards;
+}
+
+.student-rank-banner.top-rank {
+	background-color: var(--md-sys-color-surface-container-highest);
+	border: 2px solid var(--md-sys-color-primary);
+	box-shadow: var(--elevation-2);
+}
+
+.rank-banner-content {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xl);
+	position: relative;
+	z-index: 1;
+}
+
+.rank-display {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-md);
+	flex-shrink: 0;
+}
+
+.rank-banner-icon {
+	font-size: 64px;
+	font-variation-settings: 'FILL' 1;
+	filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.rank-info {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.rank-banner-label {
+	font-family: var(--md-sys-typescale-label-medium-font);
+	font-size: var(--md-sys-typescale-label-medium-size);
+	font-weight: 600;
+	color: var(--md-sys-color-on-surface-variant);
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.rank-banner-value {
+	display: flex;
+	align-items: baseline;
+	gap: var(--spacing-xs);
+	font-family: var(--md-sys-typescale-display-medium-font);
+	line-height: 1;
+	letter-spacing: -1px;
+}
+
+.rank-number-display {
+	font-size: 2.5rem;
+	font-weight: 700;
+	color: var(--md-sys-color-on-surface);
+}
+
+.rank-total {
+	font-size: 1.5rem;
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface-variant);
+	opacity: 0.7;
+}
+
+.rank-divider {
+	width: 2px;
+	height: 80px;
+	background: linear-gradient(to bottom, 
+		transparent 0%, 
+		var(--md-sys-color-outline-variant) 20%, 
+		var(--md-sys-color-outline-variant) 80%, 
+		transparent 100%);
+	flex-shrink: 0;
+}
+
+.rank-message {
+	display: flex;
+	align-items: center;
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.message-text {
+	font-family: var(--md-sys-typescale-body-large-font);
+	font-size: 20px;
+	line-height: 1.5;
+	color: var(--md-sys-color-on-surface);
+	max-width: 100%;
+	overflow: hidden;
+	white-space: nowrap;
+	animation: typing 0.6s steps(60, end) 0.7s backwards, 
+	           blink-caret 1s step-end 0.7s infinite;
+	border-right: 2px solid var(--md-sys-color-primary);
+}
+
+.message-text strong {
+	font-weight: 700;
+	color: var(--md-sys-color-primary);
+	display: inline;
+	margin-right: 4px;
+}
+
+@keyframes typing {
+	0% {
+		width: 0;
+	}
+	100% {
+		width: 100%;
+	}
+}
+
+@keyframes blink-caret {
+	0%, 100% {
+		border-color: transparent;
+	}
+	50% {
+		border-color: var(--md-sys-color-primary);
+	}
+}
+
+@keyframes remove-caret {
+	0% {
+		border-right-color: var(--md-sys-color-primary);
+	}
+	100% {
+		border-right-color: transparent;
+	}
+}
+
 .section-title {
 	font-family: var(--md-sys-typescale-title-large-font);
 	font-size: var(--md-sys-typescale-title-large-size);
@@ -341,9 +483,9 @@
 	position: relative;
 	overflow: hidden;
 	
-	/* Stagger animation */
+	/* Stagger animation - starts after 0.7 second delay for banner */
 	animation: slideInUp 0.5s ease-out backwards;
-	animation-delay: calc(var(--card-index) * 0.1s);
+	animation-delay: calc(0.7s + (var(--card-index) * 0.1s));
 }
 
 .ranking-card::before {
@@ -425,7 +567,11 @@
 }
 
 .ranking-card.my-rank .student-name {
-	color: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-surface);
+}
+
+.ranking-card.my-rank .student-id {
+	color: var(--md-sys-color-on-surface);
 }
 
 .student-id {
@@ -526,6 +672,64 @@
 
 	.rank-number {
 		font-size: 1.75rem;
+	}
+
+	/* Rank Banner Responsive */
+	.student-rank-banner {
+		padding: var(--spacing-md);
+	}
+
+	.rank-banner-content {
+		flex-direction: column;
+		gap: var(--spacing-md);
+		text-align: center;
+	}
+
+	.rank-display {
+		justify-content: center;
+		width: 100%;
+	}
+
+	.rank-banner-icon {
+		font-size: 48px;
+	}
+
+	.rank-number-display {
+		font-size: 2rem;
+	}
+
+	.rank-total {
+		font-size: 1.25rem;
+	}
+
+	.rank-divider {
+		width: 100%;
+		height: 2px;
+		background: linear-gradient(to right, 
+			transparent 0%, 
+			var(--md-sys-color-outline-variant) 20%, 
+			var(--md-sys-color-outline-variant) 80%, 
+			transparent 100%);
+	}
+
+	.rank-message {
+		justify-content: center;
+	}
+
+	.message-text {
+		text-align: center;
+		white-space: normal;
+		border-right: none;
+		animation: fadeIn 0.5s ease-out 0.7s backwards;
+	}
+	
+	@keyframes fadeIn {
+		0% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 1;
+		}
 	}
 }
 

@@ -73,16 +73,13 @@
 			<button 
 				class="nav-item" 
 				class:active={item.id === activeSection}
-				class:center-item={item.id === 'schedule'}
 				onclick={() => handleNavigation(item.id)}
 				aria-label={item.label}
 				aria-current={item.id === activeSection ? 'page' : undefined}
 			>
 				<div class="nav-icon-container">
 					<span 
-						class="material-symbols-outlined nav-icon"
-						style={item.id === 'schedule' ? 'font-variation-settings: \'FILL\' 1; font-size: 28px;' : ''}
-					>
+						class="material-symbols-outlined nav-icon">
 						{item.icon}
 					</span>
 				</div>
