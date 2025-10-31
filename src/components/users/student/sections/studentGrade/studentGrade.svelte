@@ -1,32 +1,18 @@
 <script>
   import { onMount } from 'svelte';
   import { authStore } from '../../../../login/js/auth.js';
-  import { api } from '../../../../../routes/api/helper/api-helper.js';
   import './studentGrade.css';
 	import CountUp from '../../../../common/CountUp.svelte';
 	import SubjectPerformanceChart from './studentGradeCharts/SubjectPerformanceChart.svelte';
 	import AssessmentTypeChart from './studentGradeCharts/AssessmentTypeChart.svelte';
+	import { studentGradeStore } from '../../../../../lib/stores/student/studentGradeStore.js';
 	
-	// State variables
-	let loading = true;
-	let error = null;
-	let currentQuarter = '2nd Quarter'; // Default to 2nd Quarter based on current date
-	let currentQuarterNum = 2; // Store the numeric quarter value (default to 2)
-	let currentSchoolYear = '2025-2026'; // Store current school year
+	// Local UI state
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
 	let isDropdownOpen = false;
-	let subjects = [];
-	let totalSubjects = 0;
-	let overallAverage = 0;
-	let studentData = null;
-	let sectionInfo = null;
-	let classRank = null;
-	let totalStudentsInSection = 0;
-	
-	// Accordion state for grade breakdowns (similar to todo list)
 	let expandedGrades = new Set();
 	
-	// AI Analysis variables
+	// AI Analysis variables (not in store as they're component-specific)
 	let aiAnalysis = '';
 	let aiAnalysisLoading = false;
 	let aiAnalysisError = null;
@@ -37,6 +23,21 @@
 	let progressBarColors = {}; // Store current color for each subject
 	let progressBarAnimations = {}; // Store animation frame IDs
 
+	// Reactive store values
+	$: grades = $studentGradeStore.grades;
+	$: subjects = grades; // Alias for template
+	$: statistics = $studentGradeStore.statistics;
+	$: overallAverage = statistics.overallAverage;
+	$: totalSubjects = statistics.totalSubjects;
+	$: sectionInfo = $studentGradeStore.sectionInfo;
+	$: classRank = $studentGradeStore.classRank;
+	$: totalStudentsInSection = $studentGradeStore.totalStudentsInSection;
+	$: currentQuarterNum = $studentGradeStore.currentQuarter;
+	$: currentQuarter = $studentGradeStore.currentQuarterName;
+	$: currentSchoolYear = $studentGradeStore.currentSchoolYear;
+	$: loading = $studentGradeStore.isLoading || $studentGradeStore.isRefreshing;
+	$: error = $studentGradeStore.error;
+
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
 		'1st Quarter': 1,
@@ -44,13 +45,43 @@
 		'3rd Quarter': 3,
 		'4th Quarter': 4
 	};
+	
+	// Watch for grade changes and trigger progress bar animations
+	$: if (grades && grades.length > 0) {
+		// Initialize progress bar colors with starting color BEFORE animation
+		const needsInit = grades.some(subject => 
+			subject.numericGrade > 0 && 
+			subject.teacher !== "No teacher" && 
+			subject.verified && 
+			!progressBarColors[subject.id]
+		);
+		
+		if (needsInit) {
+			grades.forEach(subject => {
+				if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
+					if (!progressBarColors[subject.id]) {
+						progressBarColors[subject.id] = getGradeColor(65); // Start with "needs improvement" color
+					}
+				}
+			});
+			progressBarColors = { ...progressBarColors }; // Trigger reactivity
+			
+			// Start progress bar color animations for each subject
+			setTimeout(() => {
+				grades.forEach(subject => {
+					if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
+						animateProgressBarColor(subject.id, subject.numericGrade);
+					}
+				});
+			}, 100); // Small delay to ensure DOM is ready
+		}
+	}
 
 	function toggleDropdown() {
 		isDropdownOpen = !isDropdownOpen;
 	}
 
 	async function selectQuarter(quarter) {
-		currentQuarter = quarter;
 		isDropdownOpen = false;
 		// Reset AI analysis when quarter changes
 		aiAnalysis = '';
@@ -67,7 +98,11 @@
 		progressBarAnimations = {};
 		progressBarColors = {};
 		
-		await fetchGrades();
+		// Use store to change quarter
+		const quarterNum = quarterToGradingPeriod[quarter];
+		if ($authStore.userData?.id) {
+			await studentGradeStore.changeQuarter($authStore.userData.id, quarterNum, currentSchoolYear);
+		}
 	}
 
 	function handleClickOutside(event) {
@@ -76,22 +111,6 @@
 		}
 	}
 
-	// Fetch student profile data for section and class rank information
-	async function fetchStudentProfile() {
-		try {
-			const response = await api.get(`/api/student-profile?studentId=${$authStore.userData.id}`);
-			
-			if (response.success) {
-				const { section, academicSummary } = response.data;
-				sectionInfo = section;
-				classRank = academicSummary.classRank;
-				totalStudentsInSection = academicSummary.totalStudentsInSection;
-			}
-		} catch (err) {
-			console.error('Error fetching student profile:', err);
-			// Don't set error here as it's not critical for grades display
-		}
-	}
 
 	// Function to determine grade color based on value using CSS custom properties
 	function getGradeColor(grade) {
@@ -110,9 +129,6 @@
 		if (progressBarAnimations[subjectId]) {
 			cancelAnimationFrame(progressBarAnimations[subjectId]);
 		}
-		
-		// Initialize with starting color
-		progressBarColors[subjectId] = getGradeColor(65);
 		
 		const startTime = Date.now();
 		
@@ -327,13 +343,11 @@
 	// Load data when component mounts
 	onMount(async () => {
 		if ($authStore.userData?.id) {
-			// Fetch current quarter and school year first
-			await fetchCurrentQuarter();
-			fetchGrades();
-			fetchStudentProfile();
-		} else {
-			error = 'Please log in to view your grades';
-			loading = false;
+			// Initialize store (will check cache first)
+			const hasCachedData = studentGradeStore.init($authStore.userData.id);
+			
+			// Load fresh data
+			await studentGradeStore.loadGrades($authStore.userData.id);
 		}
 		
 		// Cleanup on component destroy
@@ -346,75 +360,6 @@
 			});
 		};
 	});
-
-	// Fetch current quarter and school year
-	async function fetchCurrentQuarter() {
-		try {
-			const response = await fetch('/api/current-quarter');
-			const data = await response.json();
-			
-			if (data.success && data.data) {
-				currentQuarterNum = data.data.currentQuarter;
-				currentQuarter = data.data.quarterName;
-				currentSchoolYear = data.data.currentSchoolYear;
-			}
-		} catch (err) {
-			console.error('Error fetching current quarter/school year:', err);
-			// Keep default values if fetch fails
-		}
-	}
-
-	// Fetch grades from MongoDB API
-	async function fetchGrades() {
-		try {
-			loading = true;
-			error = null;
-
-			const quarter = quarterToGradingPeriod[currentQuarter];
-			const response = await api.get(`/api/student-grades?student_id=${$authStore.userData.id}&quarter=${quarter}&school_year=${currentSchoolYear}`);
-			
-			if (response.success) {
-				const { grades, statistics } = response.data;
-				
-				// Update subjects with the new API response structure
-				subjects = grades;
-				
-				// Update statistics - fix the property name mismatch
-				overallAverage = statistics.overallAverage || 0;
-				totalSubjects = statistics.totalSubjects || 0;
-				
-				// Set student data from auth store
-				studentData = {
-					name: $authStore.userData.full_name || 'Student',
-					id: $authStore.userData.id
-				};
-				
-				// Initialize progress bar colors with starting color BEFORE animation
-				grades.forEach(subject => {
-					if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
-						progressBarColors[subject.id] = getGradeColor(65); // Start with "needs improvement" color
-					}
-				});
-				progressBarColors = { ...progressBarColors }; // Trigger reactivity
-				
-				// Start progress bar color animations for each subject
-				setTimeout(() => {
-					grades.forEach(subject => {
-						if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
-							animateProgressBarColor(subject.id, subject.numericGrade);
-						}
-					});
-				}, 100); // Small delay to ensure DOM is ready
-			} else {
-				error = response.error || 'Failed to fetch grades';
-			}
-		} catch (err) {
-			console.error('Error fetching grades:', err);
-			error = 'Unable to load grades. Please try again.';
-		} finally {
-			loading = false;
-		}
-	}
 
 </script>
 
@@ -453,7 +398,7 @@
 		<div class="error-container">
 			<span class="material-symbols-outlined error-icon">error</span>
 			<p>Error: {error}</p>
-			<button class="retry-btn" on:click={fetchGrades}>
+			<button class="retry-btn" on:click={() => studentGradeStore.loadGrades($authStore.userData.id)}>
 				<span class="material-symbols-outlined">refresh</span>
 				Try Again
 			</button>
@@ -473,46 +418,46 @@
 			</div>
 			
 			<div class="performance-stats">
-				<div class="grade-stat-item primary">
+			<div class="grade-stat-item primary">
+				<div class="stat-header">
+					<div class="stat-label">Overall Average</div>
 					<div class="stat-icon">
 						<span class="material-symbols-outlined">star</span>
 					</div>
-					<div class="stat-content">
-						<div class="grade-stat-value">
-							<CountUp 
-								value={overallAverage} 
-								decimals={1} 
-								duration={2.5} 
-								colorTransition={true}
-								getGradeColor={getGradeColor} />
-						</div>
-						<div class="stat-label">Overall Average</div>
-					</div>
 				</div>
-				
-				<div class="grade-stat-item secondary">
+				<div class="grade-stat-value">
+					<CountUp 
+						value={overallAverage} 
+						decimals={1} 
+						duration={2.5} 
+						colorTransition={true}
+						getGradeColor={getGradeColor} />
+				</div>
+			</div>
+			
+			<div class="grade-stat-item secondary">
+				<div class="stat-header">
+					<div class="stat-label">Total Subjects</div>
 					<div class="stat-icon">
 						<span class="material-symbols-outlined">school</span>
 					</div>
-					<div class="stat-content">
-						<div class="grade-stat-value">
-							<CountUp value={totalSubjects} decimals={0} duration={2} />
-						</div>
-						<div class="stat-label">Total Subjects</div>
-					</div>
 				</div>
+				<div class="grade-stat-value">
+					<CountUp value={totalSubjects} decimals={0} duration={2} />
+				</div>
+			</div>
 
-				<div class="grade-stat-item tertiary">
+			<div class="grade-stat-item tertiary">
+				<div class="stat-header">
+					<div class="stat-label">Out of {totalStudentsInSection} Students</div>
 					<div class="stat-icon">
 						<span class="material-symbols-outlined">crown</span>
 					</div>
-					<div class="stat-content">
-						<div class="grade-stat-value">
-							Rank <CountUp value={classRank} decimals={0} duration={2} />
-						</div>
-						<div class="stat-label">Out of {totalStudentsInSection} Students</div>
-					</div>
 				</div>
+				<div class="grade-stat-value">
+					Rank <CountUp value={classRank} decimals={0} duration={2} />
+				</div>
+			</div>
 			</div>
 
 			<!-- AI Analysis Container -->

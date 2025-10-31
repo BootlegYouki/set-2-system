@@ -413,12 +413,12 @@
 
 .grade-stat-item {
 	display: flex;
-	align-items: center;
-	gap: var(--spacing-md);
+	flex-direction: column;
+	gap: var(--spacing-sm);
 	padding: var(--spacing-lg);
 	background-color: var(--md-sys-color-surface);
 	border-radius: var(--radius-md);
-	border: 1px solid var(--md-sys-color-outline-variant);
+	border: 2px solid var(--md-sys-color-outline-variant);
 	transition: all var(--transition-normal);
 	position: relative;
 	overflow: hidden;
@@ -430,19 +430,66 @@
 	box-shadow: var(--elevation-1);
 }
 
+/* Border colors for each stat type */
+.grade-stat-item.primary {
+	border-color: var(--md-sys-color-primary);
+}
+
+.grade-stat-item.secondary {
+	border-color: var(--md-sys-color-secondary);
+}
+
+.grade-stat-item.tertiary {
+	border-color: #00acc1;
+}
+
+/* Dark mode adjustments for tertiary border */
+[data-theme="dark"] .grade-stat-item.tertiary {
+	border-color: #4dd0e1;
+}
+
+.stat-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+}
+
 .stat-icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 48px;
-	height: 48px;
+	width: 40px;
+	height: 40px;
 	border-radius: var(--radius-md);
 	flex-shrink: 0;
 }
 
 .stat-icon .material-symbols-outlined {
-	font-size: 24px;
+	font-size: 28px;
 	font-weight: 400;
+}
+
+/* Icon background colors for each stat type */
+.grade-stat-item.primary .stat-icon {
+	background-color: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-primary);
+}
+
+.grade-stat-item.secondary .stat-icon {
+	background-color: var(--md-sys-color-secondary-container);
+	color: var(--md-sys-color-secondary);
+}
+
+.grade-stat-item.tertiary .stat-icon {
+	background-color: #e0f7fa;
+	color: #00acc1;
+}
+
+/* Dark mode adjustments for tertiary icon */
+[data-theme="dark"] .grade-stat-item.tertiary .stat-icon {
+	background-color: #006064;
+	color: #4dd0e1;
 }
 
 .stat-content {
@@ -451,17 +498,34 @@
 }
 
 .grade-stat-value {
-	font-family: var(--md-sys-typescale-title-large-font);
-	font-size: var(--md-sys-typescale-title-large-size);
-	font-weight: var(--md-sys-typescale-title-large-weight);
-	line-height: var(--md-sys-typescale-title-large-line-height);
+	font-family: var(--md-sys-typescale-display-small-font);
+	font-size: 2rem;
+	font-weight: 600;
+	line-height: 1.2;
 	color: var(--md-sys-color-on-surface);
-	margin-bottom: var(--spacing-xs);
+}
+
+/* Stat value colors for each type */
+.grade-stat-item.primary .grade-stat-value {
+	color: var(--md-sys-color-primary);
+}
+
+.grade-stat-item.secondary .grade-stat-value {
+	color: var(--md-sys-color-secondary);
+}
+
+.grade-stat-item.tertiary .grade-stat-value {
+	color: #00acc1;
+}
+
+/* Dark mode adjustments for tertiary value */
+[data-theme="dark"] .grade-stat-item.tertiary .grade-stat-value {
+	color: #4dd0e1;
 }
 
 .stat-label {
-	font-family: var(--md-sys-typescale-body-small-font);
-	font-size: var(--md-sys-typescale-body-small-size);
+	font-family: var(--md-sys-typescale-body-medium-font);
+	font-size: var(--md-sys-typescale-body-medium-size);
 	color: var(--md-sys-color-on-surface-variant);
 	font-weight: 500;
 }
@@ -475,6 +539,14 @@
 	
 	.performance-stats {
 		grid-template-columns: 1fr;
+	}
+	
+	.grade-stat-value {
+		font-size: 2rem;
+	}
+	
+	.stat-label {
+		font-size: 0.875rem;
 	}
 	
 	.class-rank-badge {
