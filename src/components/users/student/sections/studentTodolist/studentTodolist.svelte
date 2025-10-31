@@ -1,16 +1,16 @@
 <script>
   import './studentTodolist.css';
   import { authStore } from '../../../../login/js/auth.js';
-  import { api } from '../../../../../routes/api/helper/api-helper.js';
+  import { studentTodolistStore } from '../../../../../lib/stores/student/studentTodolistStore.js';
   import { modalStore } from '../../../../common/js/modalStore.js';
   import { toastStore } from '../../../../common/js/toastStore.js';
   import { onMount } from 'svelte';
 
-  // Todo data from database
-  let todos = [];
+  // Subscribe to the store
+  $: ({ todos, isLoading, isRefreshing, error, lastUpdated } = $studentTodolistStore);
+  
+  // Local state
   let buttonLoading = false;
-  let loading = false;
-  let error = null;
 
   // Search and filter state
   let searchQuery = '';
@@ -65,30 +65,11 @@
     'July', 'August', 'September', 'October', 'November', 'December'];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // API Functions
-  async function fetchTodos() {
-    try {
-      loading = true;
-      error = null;
-      
-      const user = $authStore.userData;
-      if (!user || !user.id) {
-        throw new Error('User not authenticated');
-      }
-
-      const response = await api.get(`/api/student-todos?studentId=${user.id}`);
-      
-      if (response.success) {
-        todos = response.data || [];
-      } else {
-        throw new Error(response.error || 'Failed to fetch todos');
-      }
-    } catch (err) {
-      console.error('Error fetching todos:', err);
-      error = err.message;
-      toastStore.error('Failed to load todos: ' + err.message);
-    } finally {
-      loading = false;
+  // Handle refresh functionality
+  async function handleRefresh() {
+    const authState = $authStore;
+    if (authState.isAuthenticated && authState.userData?.id) {
+      await studentTodolistStore.forceRefresh(authState.userData.id);
     }
   }
 
@@ -107,17 +88,15 @@
       }
 
       const todoData = {
-        studentId: user.id,
         title: newTodoTitle.trim(),
         description: newTodoDescription.trim() || null,
         category: newTodoCategory,
         dueDate: newTodoDueDate || null
       };
 
-      const response = await api.post('/api/student-todos', todoData);
+      const result = await studentTodolistStore.addTodo(user.id, todoData);
       
-      if (response.success) {
-        todos = [response.data, ...todos]; // Add to beginning of array
+      if (result.success) {
         toastStore.success('Todo added successfully!');
         
         // Reset form
@@ -127,7 +106,7 @@
         newTodoDueDate = '';
         isAddTodoFormOpen = false;
       } else {
-        throw new Error(response.error || 'Failed to add todo');
+        throw new Error(result.error || 'Failed to add todo');
       }
     } catch (err) {
       console.error('Error adding todo:', err);
@@ -144,16 +123,12 @@
         throw new Error('User not authenticated');
       }
 
-      const response = await api.delete('/api/student-todos', {
-        id: todoId,
-        studentId: user.id
-      });
+      const result = await studentTodolistStore.deleteTodo(user.id, todoId);
       
-      if (response.success) {
-        todos = todos.filter(todo => todo.id !== todoId);
+      if (result.success) {
         toastStore.success('Todo deleted successfully!');
       } else {
-        throw new Error(response.error || 'Failed to delete todo');
+        throw new Error(result.error || 'Failed to delete todo');
       }
     } catch (err) {
       console.error('Error deleting todo:', err);
@@ -168,23 +143,14 @@
         throw new Error('User not authenticated');
       }
 
-      const response = await api.put('/api/student-todos', {
-        id: todoId,
-        studentId: user.id,
-        action: 'toggle'
-      });
+      const result = await studentTodolistStore.toggleTodo(user.id, todoId);
       
-      if (response.success) {
-        // Update the todo in the local array
-        todos = todos.map(todo => 
-          todo.id === todoId ? response.data : todo
-        );
-        
-        const todo = response.data;
+      if (result.success) {
+        const todo = result.data;
         const message = todo.completed ? 'Todo marked as completed!' : 'Todo marked as pending!';
         toastStore.success(message);
       } else {
-        throw new Error(response.error || 'Failed to update todo');
+        throw new Error(result.error || 'Failed to update todo');
       }
     } catch (err) {
       console.error('Error toggling todo:', err);
@@ -199,21 +165,12 @@
         throw new Error('User not authenticated');
       }
 
-      const response = await api.put('/api/student-todos', {
-        id: todoId,
-        studentId: user.id,
-        action: 'update',
-        ...updateData
-      });
+      const result = await studentTodolistStore.updateTodo(user.id, todoId, updateData);
       
-      if (response.success) {
-        // Update the todo in the local array
-        todos = todos.map(todo => 
-          todo.id === todoId ? response.data : todo
-        );
+      if (result.success) {
         toastStore.success('Todo updated successfully!');
       } else {
-        throw new Error(response.error || 'Failed to update todo');
+        throw new Error(result.error || 'Failed to update todo');
       }
     } catch (err) {
       console.error('Error updating todo:', err);
@@ -221,9 +178,29 @@
     }
   }
 
-  // Load todos when component mounts
+  // Initialize store and set up periodic refresh
   onMount(() => {
-    fetchTodos();
+    const authState = $authStore;
+    if (authState.isAuthenticated && authState.userData?.id) {
+      // Initialize store with cached data if available
+      const hasCachedData = studentTodolistStore.init(authState.userData.id);
+      
+      // Load fresh data if no cache or load silently if cached
+      studentTodolistStore.loadTodos(authState.userData.id, hasCachedData);
+
+      // Set up periodic refresh every 5 minutes
+      const refreshInterval = setInterval(() => {
+        const currentAuthState = $authStore;
+        if (currentAuthState.isAuthenticated && currentAuthState.userData?.id) {
+          studentTodolistStore.loadTodos(currentAuthState.userData.id, true); // Silent refresh
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+
+      // Cleanup interval on component destroy
+      return () => {
+        clearInterval(refreshInterval);
+      };
+    }
   });
 
   // Functions
@@ -318,13 +295,9 @@
     }
   }
   
+  // Handle click outside for dropdowns
   onMount(() => {
     document.addEventListener('click', handleClickOutside);
-    
-    // Load todos when component mounts
-    if ($authStore.userData?.id) {
-      fetchTodos();
-    }
     
     return () => {
       document.removeEventListener('click', handleClickOutside);
@@ -532,6 +505,14 @@
   $: totalCount = todos.length;
   $: filteredCompletedCount = filteredTodos.filter(t => t.completed).length;
   $: filteredTotalCount = filteredTodos.length;
+
+  // Animation key to trigger re-render on filter/search changes
+  let animationKey = 0;
+  $: {
+    // Increment key whenever filtered todos change to trigger animation
+    filteredTodos;
+    animationKey++;
+  }
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -540,11 +521,15 @@
   <!-- Header Section -->
   <div class="todo-header">
     <div class="header-content">
-      <h1 class="page-title">Todo List</h1>
-      <p class="page-subtitle">
-        Keep track of your tasks and assignments
-        <span class="progress-badge">{completedCount}/{totalCount} completed</span>
-      </p>
+      <div class="header-text-content">
+        <h1 class="page-title">Todo List</h1>
+        <p class="page-subtitle">
+          Keep track of your tasks and assignments
+          <span class="progress-badge">{completedCount}/{totalCount} completed</span>
+        </p>
+      </div>
+      <div class="header-actions">
+      </div>
     </div>
   </div>
 
@@ -752,13 +737,16 @@
             </div>
           {/if}
         </div>
+        <button class="todo-refresh-button" on:click={handleRefresh} disabled={isLoading} title="Refresh todos">
+          <span class="material-symbols-outlined">refresh</span>
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Todo List -->
   <div class="todos-section">
-    {#if loading}
+    {#if isLoading}
       <div class="loading-state">
         <div class="system-loader"></div>
         <p>Loading todos...</p>
@@ -767,49 +755,51 @@
       <div class="error-state">
         <span class="material-symbols-outlined">error</span>
         <p>{error}</p>
-        <button class="retry-btn" on:click={fetchTodos}>
+        <button class="retry-btn" on:click={handleRefresh}>
           Retry
         </button>
       </div>
     {:else if filteredTodos.length > 0}
-      <div class="todos-list">
-        {#each filteredTodos as todo, index (todo.id)}
-          <div class="todo-card" class:completed={todo.completed} style="--card-index: {index + 1};">
-            <div class="todo-checkbox">
+      {#key animationKey}
+        <div class="todos-list">
+          {#each filteredTodos as todo, index (todo.id)}
+            <div class="todo-card" class:completed={todo.completed} style="--card-index: {index};">
+              <div class="todo-checkbox">
               <input
                 type="checkbox"
                 checked={todo.completed}
                 on:change={() => toggleTodo(todo.id)}
                 id="todo-{todo.id}"
-                disabled={loading}
+                disabled={isLoading}
               />
-              <label for="todo-{todo.id}" class="checkbox-label"></label>
-            </div>
-
-            <div class="todo-content">
-              <h3 class="todo-title" class:completed={todo.completed}>{todo.title}</h3>
-              {#if todo.description}
-                <p class="todo-description">{todo.description}</p>
-              {/if}
-              <div class="todo-meta">
-                <span class="todo-category">{todo.category}</span>
-                <span class="todo-due-date">{formatDueDate(todo.dueDate)}</span>
+                <label for="todo-{todo.id}" class="checkbox-label"></label>
               </div>
-            </div>
 
-            <div class="todo-actions">
+              <div class="todo-content">
+                <h3 class="todo-title" class:completed={todo.completed}>{todo.title}</h3>
+                {#if todo.description}
+                  <p class="todo-description">{todo.description}</p>
+                {/if}
+                <div class="todo-meta">
+                  <span class="todo-category">{todo.category}</span>
+                  <span class="todo-due-date">{formatDueDate(todo.dueDate)}</span>
+                </div>
+              </div>
+
+              <div class="todo-actions">
               <button
                 class="action-btn todo-delete-btn"
                 on:click={() => handleDeleteTodo(todo)}
                 title="Delete task"
-                disabled={loading}
+                disabled={isLoading}
               >
                 <span class="material-symbols-outlined">delete</span>
               </button>
+              </div>
             </div>
-          </div>
-        {/each}
-      </div>
+          {/each}
+        </div>
+      {/key}
     {:else if todos.length > 0}
       <div class="no-filtered-todos">
         <div class="no-todos-icon">

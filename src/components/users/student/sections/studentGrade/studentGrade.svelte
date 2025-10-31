@@ -270,6 +270,14 @@
 		verifiedGrades = getVerifiedGradesCount(grades);
 	}
 
+	// Animation key to trigger re-render on quarter changes
+	let animationKey = 0;
+	$: {
+		// Increment key whenever quarter changes to trigger animation
+		currentQuarterNum;
+		animationKey++;
+	}
+
 	// Grade breakdown accordion functions (similar to todo list)
 	function toggleGradeBreakdown(subjectId) {
 		if (expandedGrades.has(subjectId)) {
@@ -382,8 +390,8 @@
 			// Initialize store (will check cache first)
 			const hasCachedData = studentGradeStore.init($authStore.userData.id);
 			
-			// Load fresh data
-			await studentGradeStore.loadGrades($authStore.userData.id);
+			// Load fresh data (silent if we have cached data)
+			await studentGradeStore.loadGrades($authStore.userData.id, null, null, hasCachedData);
 		}
 		
 		// Cleanup on component destroy
@@ -460,14 +468,15 @@
 			</div>
 		</div>
 			
-			<div class="performance-stats">
-			<div class="grade-stat-item primary">
-				<div class="stat-header">
-					<div class="stat-label">Quarter Average</div>
-					<div class="stat-icon">
-						<span class="material-symbols-outlined">star</span>
+			{#key `stats-${currentQuarterNum}-${currentSchoolYear}`}
+				<div class="performance-stats">
+				<div class="grade-stat-item primary" style="--stat-index: 0;">
+					<div class="stat-header">
+						<div class="stat-label">Quarter Average</div>
+						<div class="stat-icon">
+							<span class="material-symbols-outlined">star</span>
+						</div>
 					</div>
-				</div>
 			<div class="grade-stat-value">
 				{#key `${currentQuarterNum}-${currentSchoolYear}`}
 					<CountUp 
@@ -479,7 +488,16 @@
 				{/key}
 			</div>
 			{#key `${currentQuarterNum}-${currentSchoolYear}`}
-				{#if averageChange !== null}
+				{#if overallAverage === 0}
+					<div class="grade-comparison no-grades">
+						<span class="material-symbols-outlined comparison-icon">
+							pending
+						</span>
+						<span class="comparison-text">
+							No Grades Yet
+						</span>
+					</div>
+				{:else if averageChange !== null}
 					<div class="grade-comparison" class:positive={averageChange > 0} class:negative={averageChange < 0} class:neutral={averageChange === 0}>
 						<span class="material-symbols-outlined comparison-icon">
 							{#if averageChange > 0}
@@ -514,7 +532,7 @@
 			{/key}
 		</div>
 			
-			<div class="grade-stat-item secondary">
+			<div class="grade-stat-item secondary" style="--stat-index: 1;">
 				<div class="stat-header">
 					<div class="stat-label">Total Subjects</div>
 					<div class="stat-icon">
@@ -538,7 +556,7 @@
 			</div>
 			</div>
 
-			<div class="grade-stat-item tertiary">
+			<div class="grade-stat-item tertiary" style="--stat-index: 2;">
 				<div class="stat-header">
 					<div class="stat-label">Class Rank</div>
 					<div class="stat-icon">
@@ -560,6 +578,7 @@
 			</div>
 			</div>
 			</div>
+			{/key}
 
 			<!-- AI Analysis Container -->
 
@@ -645,13 +664,14 @@
 					<small>Grades will appear here once they are verified by your teachers</small>
 				</div>
 			{:else}
-				<div class="subjects-grid">
-					{#each subjects as subject, index (subject.subject_id || subject.id)}
-						{@const cardColors = getCardColorClasses(index)}
-						{@const hasBreakdown = hasDetailedScores(subject)}
-						{@const isExpanded = isGradeExpanded(subject.id)}
-						
-						<div class="subject-accordion">
+				{#key animationKey}
+					<div class="subjects-grid">
+						{#each subjects as subject, index (subject.subject_id || subject.id)}
+							{@const cardColors = getCardColorClasses(index)}
+							{@const hasBreakdown = hasDetailedScores(subject)}
+							{@const isExpanded = isGradeExpanded(subject.id)}
+							
+							<div class="subject-accordion" style="--card-index: {index};">
 							<!-- Main Subject Card (clickable if has breakdown) -->
 							<div 
 								class="subject-card" 
@@ -790,6 +810,7 @@
 						</div>
 					{/each}
 				</div>
+			{/key}
 			{/if}
 		</div>
 	{/if}

@@ -276,7 +276,7 @@
 	<!-- Quick Actions Section -->
 	<div class="quick-actions-section">
 		<div class="quick-actions-header">
-			<h2 class="quick-actions-title">Quick Actions</h2>
+			<h2 class="quick-actions-title">Request a Document</h2>
 			<div style="display: flex; gap: 8px;">
 				<button class="request-new-button" on:click={toggleRequestForm} disabled={loading}>
 					<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>

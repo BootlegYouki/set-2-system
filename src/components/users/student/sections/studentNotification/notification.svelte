@@ -19,7 +19,6 @@
   const filterOptions = [
     { value: 'all', label: 'All Notifications', icon: 'notifications' },
     { value: 'unread', label: 'Unread Only', icon: 'mark_email_unread' },
-    { value: 'todo', label: 'To-Do Due Dates', icon: 'assignment' },
     { value: 'grade', label: 'Grades', icon: 'grade' },
     { value: 'document', label: 'Document Requests', icon: 'description' }
   ];

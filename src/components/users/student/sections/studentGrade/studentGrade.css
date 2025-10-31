@@ -452,6 +452,10 @@
 	transition: all var(--transition-normal);
 	position: relative;
 	overflow: hidden;
+
+	/* Stagger animation */
+	animation: slideInUp 0.5s ease-out backwards;
+	animation-delay: calc(var(--stat-index) * 0.1s);
 }
 
 .grade-stat-item:hover {
@@ -630,6 +634,18 @@
 	background: linear-gradient(135deg, rgba(126, 87, 194, 0.15) 0%, rgba(92, 107, 192, 0.15) 100%);
 	color: #b39ddb;
 	border: 1px solid rgba(126, 87, 194, 0.3);
+}
+
+.grade-comparison.no-grades {
+	background-color: var(--md-sys-color-surface-variant);
+	color: var(--md-sys-color-on-surface-variant);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+[data-theme="dark"] .grade-comparison.no-grades {
+	background-color: rgba(189, 189, 189, 0.1);
+	color: #bdbdbd;
+	border: 1px solid rgba(189, 189, 189, 0.2);
 }
 
 /* Grade Info Badge Styles */
@@ -1515,6 +1531,10 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all var(--transition-normal);
+
+  /* Stagger animation */
+  animation: slideInUp 0.5s ease-out backwards;
+  animation-delay: calc(var(--card-index) * 0.1s);
 }
 
 /* Clickable Subject Card */
@@ -1775,5 +1795,37 @@
 
   .computation-item {
     font-size: 14px;
+  }
+}
+
+/* Slide in animation */
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide in from bottom with bounce animation */
+@keyframes slideInUpBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .subject-accordion,
+  .grade-stat-item {
+    animation: none;
   }
 }

@@ -295,6 +295,40 @@
   margin-bottom: var(--spacing-xl);
 }
 
+.todo-refresh-button {
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-width: 50px;
+  height: 50px;
+}
+
+.todo-refresh-button:hover:not(:disabled) {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  transform: translateY(-1px);
+}
+
+.todo-refresh-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.todo-refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.todo-refresh-button .material-symbols-outlined {
+  font-size: 20px;
+}
+
 .page-title {
   font-family: var(--md-sys-typescale-headline-large-font);
   font-size: var(--md-sys-typescale-headline-large-size);
@@ -800,6 +834,10 @@
   color: var(--md-sys-color-on-surface);
   gap: var(--spacing-md);
   align-items: start;
+
+  /* Stagger animation */
+  animation: slideInUp 0.5s ease-out backwards;
+  animation-delay: calc(var(--card-index) * 0.1s);
 }
 
 .todo-card:hover {
@@ -1054,22 +1092,16 @@
   }
 }
 
-/* Animation for new todos */
-@keyframes todoSlideIn {
-  from {
+/* Slide in animation */
+@keyframes slideInUp {
+  0% {
     opacity: 0;
-    transform: translateY(-20px) scale(0.95);
+    transform: translateY(20px);
   }
-  to {
+  100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
-}
-
-.todo-card {
-  animation: todoSlideIn 0.4s ease-out;
-  animation-fill-mode: both;
-  animation-delay: calc(var(--card-index, 0) * 0.1s);
 }
 
 /* Reduced motion support */
