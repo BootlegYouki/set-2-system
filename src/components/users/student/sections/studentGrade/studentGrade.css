@@ -530,6 +530,111 @@
 	font-weight: 500;
 }
 
+/* Grade Comparison Styles */
+.grade-comparison {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border-radius: var(--radius-full);
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: 0.875rem;
+	font-weight: 500;
+	margin-top: var(--spacing-xs);
+	width: fit-content;
+	transition: all var(--transition-normal);
+}
+
+.grade-comparison .comparison-icon {
+	font-size: 1.25rem;
+	font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
+}
+
+.grade-comparison.positive {
+	background-color: rgba(46, 125, 50, 0.1);
+	color: #2e7d32;
+	border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+[data-theme="dark"] .grade-comparison.positive {
+	background-color: rgba(76, 175, 80, 0.15);
+	color: #81c784;
+	border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.grade-comparison.negative {
+	background-color: rgba(198, 40, 40, 0.1);
+	color: #c62828;
+	border: 1px solid rgba(198, 40, 40, 0.3);
+}
+
+[data-theme="dark"] .grade-comparison.negative {
+	background-color: rgba(244, 67, 54, 0.15);
+	color: #e57373;
+	border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.grade-comparison.neutral {
+	background-color: rgba(117, 117, 117, 0.1);
+	color: #757575;
+	border: 1px solid rgba(117, 117, 117, 0.3);
+}
+
+[data-theme="dark"] .grade-comparison.neutral {
+	background-color: rgba(189, 189, 189, 0.15);
+	color: #bdbdbd;
+	border: 1px solid rgba(189, 189, 189, 0.3);
+}
+
+.grade-comparison .comparison-text {
+	white-space: nowrap;
+}
+
+.grade-comparison.first-quarter {
+	background: linear-gradient(135deg, rgba(103, 58, 183, 0.1) 0%, rgba(63, 81, 181, 0.1) 100%);
+	color: #5e35b1;
+	border: 1px solid rgba(103, 58, 183, 0.3);
+}
+
+[data-theme="dark"] .grade-comparison.first-quarter {
+	background: linear-gradient(135deg, rgba(126, 87, 194, 0.15) 0%, rgba(92, 107, 192, 0.15) 100%);
+	color: #b39ddb;
+	border: 1px solid rgba(126, 87, 194, 0.3);
+}
+
+/* Grade Info Badge Styles */
+.grade-info-badge {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	padding: var(--spacing-xs) var(--spacing-sm);
+	border-radius: var(--radius-full);
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: 0.875rem;
+	font-weight: 500;
+	margin-top: var(--spacing-xs);
+	width: fit-content;
+	transition: all var(--transition-normal);
+	background-color: rgba(66, 66, 66, 0.08);
+	color: var(--md-sys-color-on-surface-variant);
+	border: 1px solid rgba(66, 66, 66, 0.12);
+}
+
+[data-theme="dark"] .grade-info-badge {
+	background-color: rgba(245, 245, 245, 0.08);
+	color: var(--md-sys-color-on-surface-variant);
+	border: 1px solid rgba(245, 245, 245, 0.12);
+}
+
+.grade-info-badge .badge-icon {
+	font-size: 1.125rem;
+	font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+}
+
+.grade-info-badge .badge-text {
+	white-space: nowrap;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
 	.performance-header {

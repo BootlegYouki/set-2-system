@@ -37,6 +37,8 @@
 	$: currentSchoolYear = $studentGradeStore.currentSchoolYear;
 	$: loading = $studentGradeStore.isLoading || $studentGradeStore.isRefreshing;
 	$: error = $studentGradeStore.error;
+	$: previousQuarterAverage = $studentGradeStore.previousQuarterAverage;
+	$: averageChange = $studentGradeStore.averageChange;
 
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -233,6 +235,35 @@
 		if (grade >= 65) return 'grade-needs-improvement';
 		return 'grade-needs-improvement'; // For grades below 65 (like 38)
 	}
+
+	// Get first quarter message based on current performance
+	function getFirstQuarterMessage(average) {
+		if (average >= 90) {
+			return 'Keep it up!';
+		} else if (average >= 85) {
+			return 'Maintain the momentum!';
+		} else if (average >= 80) {
+			return 'Push for higher!';
+		} else if (average >= 75) {
+			return 'Aim higher next quarter!';
+		} else {
+			return 'Work harder next quarter!';
+		}
+	}
+
+	// Get verified grades count
+	function getVerifiedGradesCount() {
+		if (!grades || grades.length === 0) return { verified: 0, total: 0 };
+		const verifiedCount = grades.filter(subject => 
+			subject.verified && 
+			subject.numericGrade > 0 && 
+			subject.teacher !== "No teacher"
+		).length;
+		return { verified: verifiedCount, total: grades.length };
+	}
+
+	// Reactive calculation for verified grades
+	$: verifiedGrades = getVerifiedGradesCount();
 
 	// Grade breakdown accordion functions (similar to todo list)
 	function toggleGradeBreakdown(subjectId) {
@@ -433,6 +464,38 @@
 						colorTransition={true}
 						getGradeColor={getGradeColor} />
 				</div>
+				{#if averageChange !== null}
+					<div class="grade-comparison" class:positive={averageChange > 0} class:negative={averageChange < 0} class:neutral={averageChange === 0}>
+						<span class="material-symbols-outlined comparison-icon">
+							{#if averageChange > 0}
+								trending_up
+							{:else if averageChange < 0}
+								trending_down
+							{:else}
+								trending_flat
+							{/if}
+						</span>
+						<span class="comparison-text">
+							{#if averageChange > 0}
+								+{averageChange.toFixed(1)}
+							{:else if averageChange < 0}
+								{averageChange.toFixed(1)}
+							{:else}
+								No change
+							{/if}
+							from last quarter
+						</span>
+					</div>
+				{:else if currentQuarterNum === 1 && overallAverage > 0}
+					<div class="grade-comparison first-quarter">
+						<span class="material-symbols-outlined comparison-icon">
+							rocket_launch
+						</span>
+						<span class="comparison-text">
+							{getFirstQuarterMessage(overallAverage)}
+						</span>
+					</div>
+				{/if}
 			</div>
 			
 			<div class="grade-stat-item secondary">
@@ -445,17 +508,33 @@
 				<div class="grade-stat-value">
 					<CountUp value={totalSubjects} decimals={0} duration={2} />
 				</div>
+				<div class="grade-info-badge">
+					<span class="material-symbols-outlined badge-icon">
+						verified
+					</span>
+					<span class="badge-text">
+						{verifiedGrades.verified}/{verifiedGrades.total} Verified Grades
+					</span>
+				</div>
 			</div>
 
 			<div class="grade-stat-item tertiary">
 				<div class="stat-header">
-					<div class="stat-label">Out of {totalStudentsInSection} Students</div>
+					<div class="stat-label">Class Rank</div>
 					<div class="stat-icon">
 						<span class="material-symbols-outlined">crown</span>
 					</div>
 				</div>
 				<div class="grade-stat-value">
 					Rank <CountUp value={classRank} decimals={0} duration={2} />
+				</div>
+				<div class="grade-info-badge">
+					<span class="material-symbols-outlined badge-icon">
+						groups
+					</span>
+					<span class="badge-text">
+						Out of {totalStudentsInSection} Students
+					</span>
 				</div>
 			</div>
 			</div>

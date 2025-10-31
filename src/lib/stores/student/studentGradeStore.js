@@ -22,7 +22,9 @@ function createStudentGradeStore() {
 		isRefreshing: false,
 		error: null,
 		lastUpdated: null,
-		currentStudentId: null
+		currentStudentId: null,
+		previousQuarterAverage: null,
+		averageChange: null
 	};
 
 	const { subscribe, set, update } = writable(initialState);
@@ -118,6 +120,34 @@ function createStudentGradeStore() {
 		};
 	}
 
+	// Fetch previous quarter's average for comparison
+	async function fetchPreviousQuarterAverage(studentId, currentQuarter, schoolYear) {
+		try {
+			// Determine previous quarter
+			let prevQuarter = currentQuarter - 1;
+			let prevSchoolYear = schoolYear;
+			
+			// If current quarter is 1, get quarter 4 from previous school year
+			if (prevQuarter < 1) {
+				prevQuarter = 4;
+				// Parse school year and decrement
+				const [startYear, endYear] = schoolYear.split('-').map(y => parseInt(y));
+				prevSchoolYear = `${startYear - 1}-${endYear - 1}`;
+			}
+			
+			// Fetch previous quarter grades
+			const response = await fetch(`/api/student-grades?student_id=${studentId}&quarter=${prevQuarter}&school_year=${prevSchoolYear}`);
+			const result = await response.json();
+			
+			if (result.success && result.data.statistics) {
+				return result.data.statistics.overallAverage || null;
+			}
+		} catch (err) {
+			console.error('Error fetching previous quarter average:', err);
+		}
+		return null;
+	}
+
 	// Main function to load grades data
 	async function loadGrades(studentId, quarter = null, schoolYear = null, silent = false) {
 		try {
@@ -144,16 +174,24 @@ function createStudentGradeStore() {
 				};
 			}
 
-			// Fetch grades data
-			const gradesResponse = await fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`);
-			const gradesResult = await gradesResponse.json();
+			// Fetch grades data and previous quarter average in parallel
+			const [gradesResult, profileData, previousAverage] = await Promise.all([
+				fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`)
+					.then(res => res.json()),
+				fetchStudentProfile(studentId),
+				fetchPreviousQuarterAverage(studentId, quarter, schoolYear)
+			]);
 
 			if (!gradesResult.success) {
 				throw new Error(gradesResult.error || 'Failed to fetch grades data');
 			}
 
-			// Fetch student profile data
-			const profileData = await fetchStudentProfile(studentId);
+			// Calculate average change
+			const currentAverage = gradesResult.data.statistics?.overallAverage || 0;
+			let averageChange = null;
+			if (previousAverage !== null && currentAverage > 0) {
+				averageChange = currentAverage - previousAverage;
+			}
 
 			// Update store with new data
 			const newState = {
@@ -165,6 +203,8 @@ function createStudentGradeStore() {
 				currentQuarter: quarter,
 				currentQuarterName: quarterData.currentQuarterName,
 				currentSchoolYear: schoolYear,
+				previousQuarterAverage: previousAverage,
+				averageChange: averageChange,
 				isLoading: false,
 				isRefreshing: false,
 				error: null,
@@ -187,6 +227,8 @@ function createStudentGradeStore() {
 				currentQuarter: quarter,
 				currentQuarterName: quarterData.currentQuarterName,
 				currentSchoolYear: schoolYear,
+				previousQuarterAverage: newState.previousQuarterAverage,
+				averageChange: newState.averageChange,
 				lastUpdated: newState.lastUpdated
 			});
 
@@ -202,7 +244,9 @@ function createStudentGradeStore() {
 				statistics: {
 					overallAverage: 0,
 					totalSubjects: 0
-				}
+				},
+				previousQuarterAverage: null,
+				averageChange: null
 			}));
 		}
 	}
