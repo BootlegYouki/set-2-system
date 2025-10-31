@@ -689,6 +689,120 @@
 	border: 1px solid var(--status-cancelled-border);
 }
 
+/* Chat Indicator Button */
+.chat-indicator-btn {
+	position: relative;
+	background: transparent;
+	border: 1px solid var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary-container);
+	border-radius: var(--radius-full);
+	padding: var(--spacing-sm) var(--spacing-sm);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.docreq-request-card.status-on_hold-border .chat-indicator-btn {
+	border-color: var(--status-on-hold-border);
+	color: var(--status-on-hold-text);
+}
+
+.docreq-request-card.status-verifying-border .chat-indicator-btn {
+	border-color: var(--status-verifying-border);
+	color: var(--status-verifying-text);
+}
+
+.docreq-request-card.status-processing-border .chat-indicator-btn {
+	border-color: var(--status-processing-border);
+	color: var(--status-processing-text);
+}
+
+.docreq-request-card.status-for_pickup-border .chat-indicator-btn {
+	border-color: var(--status-for-pickup-border);
+	color: var(--status-for-pickup-text);
+}
+
+.docreq-request-card.status-released-border .chat-indicator-btn {
+	border-color: var(--status-released-border);
+	color: var(--status-released-text);
+}
+
+.docreq-request-card.status-rejected-border .chat-indicator-btn {
+	border-color: var(--status-rejected-border);
+	color: var(--status-rejected-text);
+}
+
+.docreq-request-card.status-cancelled-border .chat-indicator-btn {
+	border-color: var(--status-cancelled-border);
+	color: var(--status-cancelled-text);
+}
+
+.chat-indicator-btn:hover {
+	background: transparent;
+	transform: scale(1.05);
+}
+
+.chat-indicator-btn:active {
+	transform: scale(0.95);
+}
+
+.chat-indicator-btn .material-symbols-outlined {
+	font-size: 18px;
+}
+
+/* Chat Badge */
+.chat-badge {
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	line-height: 1;
+	padding: 2px 4px;
+	border-radius: 8px;
+	background: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+	min-width: 16px;
+	text-align: center;
+}
+
+.docreq-request-card.status-on_hold-border .chat-badge {
+	background: var(--status-on-hold-border);
+	color: white;
+}
+
+.docreq-request-card.status-verifying-border .chat-badge {
+	background: var(--status-verifying-border);
+	color: white;
+}
+
+.docreq-request-card.status-processing-border .chat-badge {
+	background: var(--status-processing-border);
+	color: white;
+}
+
+.docreq-request-card.status-for_pickup-border .chat-badge {
+	background: var(--status-for-pickup-border);
+	color: white;
+}
+
+.docreq-request-card.status-released-border .chat-badge {
+	background: var(--status-released-border);
+	color: white;
+}
+
+.docreq-request-card.status-rejected-border .chat-badge {
+	background: var(--status-rejected-border);
+	color: white;
+}
+
+.docreq-request-card.status-cancelled-border .chat-badge {
+	background: var(--status-cancelled-border);
+	color: white;
+}
+
 /* Request Details */
 .admindocreq-request-content {
 	margin-bottom: var(--spacing-md);

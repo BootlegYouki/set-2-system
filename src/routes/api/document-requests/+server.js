@@ -108,7 +108,9 @@ export async function GET({ url, request }) {
 					purpose: req.purpose,
 					dateOfBirth: formatDateDisplay(req.birthdate),
 					processedBy: req.processed_by,
-					processedById: req.processed_by_id
+					processedById: req.processed_by_id,
+					messages: decryptMessages(req.messages || []),
+					lastReadAt: req.last_read_at || null
 				}));
 
 				return json({ success: true, data: formattedRequests });

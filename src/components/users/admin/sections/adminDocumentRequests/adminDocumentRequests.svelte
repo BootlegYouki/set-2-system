@@ -141,6 +141,9 @@
 					updateRequestAPI,
 					rejectRequestAPI
 				);
+
+				// Mark messages as read when modal is opened
+				await markMessagesAsRead(request.requestId);
 			} else {
 				console.error('Failed to fetch request details:', result.error);
 				alert('Failed to load request details. Please try again.');
@@ -148,6 +151,33 @@
 		} catch (error) {
 			console.error('Error fetching request details:', error);
 			alert('An error occurred while loading the request details.');
+		}
+	}
+
+	// Mark messages as read for admin
+	async function markMessagesAsRead(requestId) {
+		try {
+			const response = await authenticatedFetch('/api/document-requests', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					action: 'markAsRead',
+					requestId: requestId
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				// Refresh the list to update the unread counts
+				await fetchDocumentRequests();
+			} else {
+				console.error('Failed to mark messages as read:', result.error);
+			}
+		} catch (err) {
+			console.error('Error marking messages as read:', err);
 		}
 	}
 
@@ -269,6 +299,32 @@
 		const [year, month, day] = dateString.split('-');
 		if (!year || !month || !day) return dateString; // Return original if not in expected format
 		return `${month}/${day}/${year}`;
+	}
+
+	// Get unread message count for a request (only count student messages for admin)
+	function getUnreadMessageCount(request) {
+		if (!request.messages || request.messages.length === 0) {
+			return 0;
+		}
+		
+		// Filter for student messages only (exclude admin messages)
+		const studentMessages = request.messages.filter(msg => msg.authorRole !== 'admin');
+		
+		if (studentMessages.length === 0) {
+			return 0;
+		}
+		
+		// If never read, all student messages are unread
+		if (!request.lastReadAt) {
+			return studentMessages.length;
+		}
+		
+		// Count student messages created after last read
+		const lastReadTime = new Date(request.lastReadAt).getTime();
+		return studentMessages.filter(msg => {
+			const messageTime = new Date(msg.created_at).getTime();
+			return messageTime > lastReadTime;
+		}).length;
 	}
 
 	// Track if component has mounted
@@ -650,6 +706,12 @@
 										<span>Rejected</span>
 									{/if}
 								</div>
+								<button class="chat-indicator-btn" title="{getUnreadMessageCount(request) > 0 ? `${getUnreadMessageCount(request)} unread message${getUnreadMessageCount(request) !== 1 ? 's' : ''}` : 'View messages'}">
+									<span class="material-symbols-outlined">chat_bubble</span>
+									{#if getUnreadMessageCount(request) > 0}
+										<span class="chat-badge">{getUnreadMessageCount(request)}</span>
+									{/if}
+								</button>
 							</div>
 						</div>
 
