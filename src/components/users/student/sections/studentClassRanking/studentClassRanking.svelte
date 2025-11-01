@@ -33,12 +33,10 @@
 	// Animation key to trigger stagger animation on data change
 	let animationKey = 0;
 	let showRankNumber = false;
-	let previousQuarter = '';
+	let previousQuarter = null;
+	let hasInitialLoad = false;
 	
 	$: {
-		// Increment key whenever quarter or rankings data changes
-		currentQuarter;
-		rankingsList;
 		animationKey++;
 		
 		// Delay rank animation to match typing animation start (0.7s)
@@ -51,19 +49,21 @@
 	}
 	
 	// Watch for quarter changes and reload rankings
-	$: if (currentQuarter && currentQuarter !== previousQuarter && $authStore.userData?.id) {
-		previousQuarter = currentQuarter;
-		loadRankings();
+	$: if (currentQuarter && $authStore.userData?.id) {
+		// Only load if quarter actually changed or it's the first load
+		if (previousQuarter === null || currentQuarter !== previousQuarter) {
+			previousQuarter = currentQuarter;
+			loadRankings();
+		}
 	}
 	
 	function toggleDropdown() {
 		isDropdownOpen = !isDropdownOpen;
 	}
 	
-	async function selectQuarter(quarter) {
+	function selectQuarter(quarter) {
 		isDropdownOpen = false;
 		currentQuarter = quarter;
-		await loadRankings();
 	}
 	
 	function handleClickOutside(event) {
