@@ -18,6 +18,8 @@
 	let aiAnalysisError = null;
 	let showAiAnalysis = false;
 	let isCachedAnalysis = false;
+	let isStreamingComplete = false; // Track when streaming is finished
+	let showChartsLoading = false; // Track loading state for charts
 	
 	// Progress bar color animation state
 	let progressBarColors = {}; // Store current color for each subject
@@ -90,6 +92,8 @@
 		showAiAnalysis = false;
 		aiAnalysisError = null;
 		isCachedAnalysis = false;
+		isStreamingComplete = false;
+		showChartsLoading = false;
 		
 		// Cancel and reset progress bar animations
 		Object.values(progressBarAnimations).forEach(animationId => {
@@ -310,6 +314,8 @@
 		aiAnalysis = ''; // Reset analysis
 		showAiAnalysis = true; // Show the container immediately
 		isCachedAnalysis = false;
+		isStreamingComplete = false; // Reset streaming status
+		showChartsLoading = false; // Reset charts loading state
 		
 		try {
 			const quarter = quarterToGradingPeriod[currentQuarter];
@@ -345,6 +351,13 @@
 				const { done, value } = await reader.read();
 				
 				if (done) {
+					// Show charts loading indicator
+					showChartsLoading = true;
+					// Add a 0.5s delay before showing the graphs
+					setTimeout(() => {
+						showChartsLoading = false;
+						isStreamingComplete = true;
+					}, 2000);
 					break;
 				}
 
@@ -634,8 +647,19 @@
 				{/if}
 			</div>
 
-		<!-- Grade Analysis Charts - Only shown when AI analysis is available -->
-		{#if aiAnalysis && !aiAnalysisError}
+		<!-- Charts Loading State -->
+		{#if showChartsLoading && aiAnalysis && !aiAnalysisError}
+			<div class="charts-section">
+				<h2 class="section-title">Performance Analytics</h2>
+				<div class="loading-container">
+					<div class="system-loader"></div>
+					<p>Preparing charts...</p>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Grade Analysis Charts - Only shown when AI analysis streaming is complete -->
+		{#if isStreamingComplete && aiAnalysis && !aiAnalysisError}
 			<div class="charts-section">
 				<h2 class="section-title">Performance Analytics</h2>
 				<div class="charts-grid">
