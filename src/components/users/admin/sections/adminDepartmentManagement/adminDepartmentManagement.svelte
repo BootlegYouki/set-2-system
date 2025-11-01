@@ -12,8 +12,6 @@
 	let selectedSubjects = [];
 	let selectedTeachers = [];
 
-	// Search terms
-	let searchTerm = '';
 
 	// Department creation state
 	let departmentName = '';
@@ -23,9 +21,11 @@
 	let departments = [];
 	let filteredDepartments = [];
 
-	// Filter state
+	// Filter state - keeping filter logic but removing dropdown UI
 	let selectedFilter = 'all';
-	let isFilterDropdownOpen = false;
+	
+	// Search state
+	let departmentsSearchTerm = '';
 
 	// Edit department state
 	let editingDepartmentId = null;
@@ -55,7 +55,7 @@
 	let isLoadingSubjects = false;
 	let isLoadingTeachers = false;
 
-	// Filter options
+	// Filter options - keeping for logic but not displaying
 	const filterOptions = [
 		{ id: 'all', name: 'All Departments', icon: 'corporate_fare' },
 		{ id: 'with_subjects', name: 'With Subjects', icon: 'book' },
@@ -143,8 +143,7 @@
 	});
 
 	// Computed properties
-	$: selectedFilterObj = filterOptions.find((filter) => filter.id === selectedFilter);
-	$: if (departments) filterDepartments(departments, selectedFilter, searchTerm);
+	$: if (departments) filterDepartments(departments, selectedFilter, departmentsSearchTerm);
 
 	// Filtered arrays for dropdowns
 	$: filteredSubjects = availableSubjects.filter(
@@ -179,7 +178,7 @@
 	});
 
 	// Functions
-	function filterDepartments(depts = departments, filter = selectedFilter, search = searchTerm) {
+	function filterDepartments(depts = departments, filter = selectedFilter, search = departmentsSearchTerm) {
 		let filtered = [...depts];
 
 		// Apply type filter
@@ -208,15 +207,6 @@
 		filteredDepartments = filtered;
 	}
 
-	// Filter functions
-	function toggleFilterDropdown() {
-		isFilterDropdownOpen = !isFilterDropdownOpen;
-	}
-
-	function selectFilter(filter) {
-		selectedFilter = filter.id;
-		isFilterDropdownOpen = false;
-	}
 
 	// Department CRUD operations
 	async function handleCreateDepartment() {
@@ -596,6 +586,11 @@
 		}
 		return dateString;
 	}
+	
+	// Clear search function
+	function clearSearch() {
+		departmentsSearchTerm = '';
+	}
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -675,69 +670,25 @@
 					</p>
 				</div>
 
-				<!-- Search and Filter Container -->
-				<div class="dept-mgmt-search-filter-container">
-					<!-- Search Input -->
-					<div class="search-container">
-						<div class="search-input-wrapper">
-							<span class="material-symbols-outlined search-icon">search</span>
-							<input
-								type="text"
-								class="search-input"
-								placeholder="Search departments by name or code..."
-								bind:value={searchTerm}
-							/>
-							{#if searchTerm}
-								<button
-									type="button"
-									class="clear-search-button"
-									on:click={() => (searchTerm = '')}
-								>
-									<span class="material-symbols-outlined">close</span>
-								</button>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Filter Dropdown -->
-					<div class="filter-container">
-						<div class="custom-dropdown" class:open={isFilterDropdownOpen}>
+				<!-- Search Container -->
+				<div class="dept-mgmt-search-container">
+					<div class="dept-mgmt-search-input-wrapper">
+						<span class="material-symbols-outlined dept-mgmt-search-icon">search</span>
+						<input
+							type="text"
+							placeholder="Search by name or code..."
+							class="dept-mgmt-search-input"
+							bind:value={departmentsSearchTerm}
+						/>
+						{#if departmentsSearchTerm}
 							<button
 								type="button"
-								class="dropdown-trigger filter-trigger"
-								class:selected={selectedFilter !== 'all'}
-								on:click={toggleFilterDropdown}
+								class="dept-mgmt-clear-search-button"
+								on:click={clearSearch}
 							>
-								{#if selectedFilterObj}
-									<div class="selected-option">
-										<span class="material-symbols-outlined option-icon"
-											>{selectedFilterObj.icon}</span
-										>
-										<div class="option-content">
-											<span class="option-name">{selectedFilterObj.name}</span>
-										</div>
-									</div>
-								{:else}
-									<span class="placeholder">Filter by type</span>
-								{/if}
-								<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+								<span class="material-symbols-outlined">close</span>
 							</button>
-							<div class="dropdown-menu">
-								{#each filterOptions as filter (filter.id)}
-									<button
-										type="button"
-										class="dropdown-option"
-										class:selected={selectedFilter === filter.id}
-										on:click={() => selectFilter(filter)}
-									>
-										<span class="material-symbols-outlined option-icon">{filter.icon}</span>
-										<div class="option-content">
-											<span class="option-name">{filter.name}</span>
-										</div>
-									</button>
-								{/each}
-							</div>
-						</div>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -753,14 +704,13 @@
 			{:else if filteredDepartments.length === 0}
 				<div class="dept-mgmt-empty-state">
 					<span class="material-symbols-outlined dept-mgmt-empty-icon">corporate_fare</span>
-					<h3 class="dept-mgmt-empty-title">
-						{searchTerm ? 'No departments found' : 'No departments created yet'}
-					</h3>
-					<p class="dept-mgmt-empty-description">
-						{searchTerm
-							? 'Try adjusting your search terms'
-							: 'Create your first department to get started'}
-					</p>
+					{#if departments.length === 0}
+						<h3 class="dept-mgmt-empty-title">No departments created yet</h3>
+						<p class="dept-mgmt-empty-description">Create your first department to get started</p>
+					{:else}
+						<h3 class="dept-mgmt-empty-title">No departments found</h3>
+						<p class="dept-mgmt-empty-description">No departments match your search or filter criteria</p>
+					{/if}
 				</div>
 			{:else}
 				{#each filteredDepartments as department (department.id)}

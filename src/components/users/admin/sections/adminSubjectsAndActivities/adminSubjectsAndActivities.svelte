@@ -13,12 +13,20 @@
 
 	// Dropdown states
 	let isGradeDropdownOpen = false;
-	let isLevelCategoryFilterOpen = false;
 
 	// Search and filter state
 	let searchTerm = '';
-	let selectedLevelCategory = ''; // All grade levels
+	let selectedLevelCategory = ''; // All grade levels - keeping for logic but removing dropdown UI
 	let activitySearchTerm = '';
+
+	// Clear search functions
+	function clearSubjectSearch() {
+		searchTerm = '';
+	}
+
+	function clearActivitySearch() {
+		activitySearchTerm = '';
+	}
 
 	// Edit subject states
 	let editingSubjectId = null;
@@ -93,7 +101,6 @@
 
 	// Computed properties
 	$: selectedGradeLevelObj = gradeLevels.find((grade) => grade.value === selectedGradeLevel);
-	$: selectedLevelCategoryObj = gradeLevels.find((grade) => grade.value === selectedLevelCategory);
 	$: filteredSubjects = recentSubjects.filter((subject) => {
 		const matchesSearchTerm =
 			subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -242,17 +249,12 @@
 		isGradeDropdownOpen = false;
 	}
 
-	function toggleLevelCategoryFilter() {
-		isLevelCategoryFilterOpen = !isLevelCategoryFilterOpen;
-	}
-
 	function selectLevelCategory(gradeLevel) {
 		if (gradeLevel) {
 			selectedLevelCategory = gradeLevel.value;
 		} else {
 			selectedLevelCategory = '';
 		}
-		isLevelCategoryFilterOpen = false;
 	}
 
 	// Handle click outside to close dropdowns
@@ -262,9 +264,6 @@
 			isEditGradeDropdownOpen = false;
 			isIconDropdownOpen = false;
 			isEditIconDropdownOpen = false;
-		}
-		if (!event.target.closest('.adminsubject-level-category-filter')) {
-			isLevelCategoryFilterOpen = false;
 		}
 	}
 
@@ -689,92 +688,25 @@
 							<p class="admin-section-subtitle">All subjects in the system</p>
 						</div>
 
-						<!-- Search and Filter Container -->
-						<div class="adminsubject-filters-container">
-							<!-- Search Input -->
-							<div class="adminsubject-search-container">
-								<div class="adminsubject-search-input-wrapper">
-									<span class="material-symbols-outlined adminsubject-search-icon">search</span>
-									<input
-										type="text"
-										placeholder="Search by subject name or code"
-										class="adminsubject-search-input"
-										bind:value={searchTerm}
-									/>
-									{#if searchTerm}
-										<button
-											type="button"
-											class="adminsubject-clear-search-button"
-											on:click={() => (searchTerm = '')}
-										>
-											<span class="material-symbols-outlined">close</span>
-										</button>
-									{/if}
-								</div>
-							</div>
-
-							<!-- Level Category Filter -->
-							<div
-								class="adminsubject-level-category-filter adminsubject-level-category-dropdown"
-								class:open={isLevelCategoryFilterOpen}
-							>
-								<button
-									type="button"
-									class="adminsubject-level-category-trigger"
-									class:selected={selectedLevelCategory}
-									on:click={toggleLevelCategoryFilter}
-								>
-									{#if selectedLevelCategoryObj}
-										<div class="adminsubject-level-category-selected">
-											<span class="material-symbols-outlined adminsubject-level-category-icon"
-												>school</span
-											>
-											<div class="adminsubject-level-category-content">
-												<span class="adminsubject-level-category-name"
-													>{selectedLevelCategoryObj.label}</span
-												>
-											</div>
-										</div>
-									{:else}
-										<span class="adminsubject-level-category-placeholder">All Grade Levels</span>
-									{/if}
-									<span class="material-symbols-outlined adminsubject-level-category-arrow"
-										>expand_more</span
-									>
-								</button>
-								<div class="adminsubject-level-category-menu">
+						<!-- Search Container -->
+						<div class="adminsubject-search-container">
+							<div class="adminsubject-search-input-wrapper">
+								<span class="material-symbols-outlined adminsubject-search-icon">search</span>
+								<input
+									type="text"
+									placeholder="Search by subject name or code..."
+									class="adminsubject-search-input"
+									bind:value={searchTerm}
+								/>
+								{#if searchTerm}
 									<button
 										type="button"
-										class="adminsubject-level-category-option"
-										class:selected={selectedLevelCategory === ''}
-										on:click={() => selectLevelCategory(null)}
+										class="adminsubject-clear-search-button"
+										on:click={clearSubjectSearch}
 									>
-										<span class="material-symbols-outlined adminsubject-level-category-icon"
-											>clear_all</span
-										>
-										<div class="adminsubject-level-category-content">
-											<span class="adminsubject-level-category-name">All Grade Levels</span>
-										</div>
+										<span class="material-symbols-outlined">close</span>
 									</button>
-									{#each gradeLevels as gradeLevel (gradeLevel.value)}
-										<button
-											type="button"
-											class="adminsubject-level-category-option"
-											class:selected={selectedLevelCategory === gradeLevel.value}
-											on:click={() => selectLevelCategory(gradeLevel)}
-										>
-											<span class="material-symbols-outlined adminsubject-level-category-icon"
-												>school</span
-											>
-											<div class="adminsubject-level-category-content">
-												<span class="adminsubject-level-category-name">{gradeLevel.label}</span>
-												<span class="adminsubject-level-category-description"
-													>{gradeLevel.description}</span
-												>
-											</div>
-										</button>
-									{/each}
-								</div>
+								{/if}
 							</div>
 						</div>
 					</div>
@@ -1100,28 +1032,25 @@
 							<p class="admin-section-subtitle">All activity types in the system</p>
 						</div>
 
-						<!-- Search and Filter Container -->
-						<div class="adminactivity-filters-container">
-							<!-- Search Input -->
-							<div class="adminactivity-search-container">
-								<div class="adminactivity-search-input-wrapper">
-									<span class="material-symbols-outlined adminactivity-search-icon">search</span>
-									<input
-										type="text"
-										placeholder="Search by activity name or code"
-										class="adminactivity-search-input"
-										bind:value={activitySearchTerm}
-									/>
-									{#if activitySearchTerm}
-										<button
-											type="button"
-											class="adminactivity-clear-search-button"
-											on:click={() => (activitySearchTerm = '')}
-										>
-											<span class="material-symbols-outlined">close</span>
-										</button>
-									{/if}
-								</div>
+						<!-- Search Container -->
+						<div class="adminactivity-search-container">
+							<div class="adminactivity-search-input-wrapper">
+								<span class="material-symbols-outlined adminactivity-search-icon">search</span>
+								<input
+									type="text"
+									placeholder="Search by activity name or code..."
+									class="adminactivity-search-input"
+									bind:value={activitySearchTerm}
+								/>
+								{#if activitySearchTerm}
+									<button
+										type="button"
+										class="adminactivity-clear-search-button"
+										on:click={clearActivitySearch}
+									>
+										<span class="material-symbols-outlined">close</span>
+									</button>
+								{/if}
 							</div>
 						</div>
 					</div>

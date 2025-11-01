@@ -670,13 +670,10 @@
 }
 
 /* Filters Container */
-.adminsubject-filters-container {
-	display: flex;
-	gap: var(--spacing-md);
-}
-
 .adminsubject-search-container {
-	flex: 3;
+	position: relative;
+	flex: 1;
+	min-width: 400px;
 }
 
 .adminsubject-level-category-filter {
@@ -836,78 +833,73 @@
 /* Removed duplicate dropdown arrow pseudo-element - using explicit HTML element instead */
 
 
-/* Search Input Styles */
-.adminsubject-search-container {
-	position: relative;
-	margin-bottom: var(--spacing-lg);
-}
-
 .adminsubject-search-input-wrapper {
 	position: relative;
 	display: flex;
 	align-items: center;
-}
-
-.adminsubject-search-input {
-	width: 100%;
-	padding: var(--spacing-md) 48px var(--spacing-md) 48px; /* Add padding for both icon and clear button */
+	background-color: var(--md-sys-color-surface);
 	border: 1px solid var(--md-sys-color-outline);
 	border-radius: var(--radius-md);
-	background-color: var(--md-sys-color-surface);
-	color: var(--md-sys-color-on-surface);
-	font-family: var(--md-sys-typescale-body-large-font);
-	font-size: var(--md-sys-typescale-body-large-size);
-	transition: background-color var(--transition-normal);
-	box-sizing: border-box;
+	transition: all var(--transition-normal);
 	min-height: 58px;
-	min-width: 350px;
 }
 
-.adminsubject-search-input:focus {
-	outline: none;
+.adminsubject-search-input-wrapper:focus-within {
 	border-color: var(--md-sys-color-primary);
-	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
-}
-
-.adminsubject-search-input::placeholder {
-	color: var(--md-sys-color-on-surface-variant);
-	opacity: 0.7;
+	box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
 }
 
 .adminsubject-search-icon {
 	position: absolute;
-	top: 50%;
-	left: 16px;
-	transform: translateY(-50%);
-	font-size: 24px;
+	left: calc(var(--spacing-sm) + 5px);
 	color: var(--md-sys-color-on-surface-variant);
-	pointer-events: none; /* Make sure the icon doesn't block clicks on the input */
+	font-size: 20px;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.adminsubject-search-input {
+	width: 100%;
+	padding: var(--spacing-sm) var(--spacing-md);
+	padding-left: 40px;
+	padding-right: 40px;
+	border: none;
+	border-radius: var(--radius-md);
+	background-color: transparent;
+	color: var(--md-sys-color-on-surface);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	transition: all var(--transition-normal);
+	box-sizing: border-box;
+}
+
+.adminsubject-search-input:focus {
+	outline: none;
+}
+
+.adminsubject-search-input::placeholder {
+	color: var(--md-sys-color-on-surface-variant);
 }
 
 .adminsubject-clear-search-button {
 	position: absolute;
-	top: 50%;
-	right: 12px;
-	transform: translateY(-50%);
+	right: var(--spacing-xs);
 	background: none;
 	border: none;
 	color: var(--md-sys-color-on-surface-variant);
 	cursor: pointer;
-	padding: 4px;
+	padding: var(--spacing-xs);
 	border-radius: var(--radius-sm);
-	transition: all var(--transition-normal);
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	transition: all var(--transition-normal);
+	font-size: 18px;
+	z-index: 2;
 }
 
 .adminsubject-clear-search-button:hover {
 	background-color: var(--md-sys-color-surface-variant);
 	color: var(--md-sys-color-on-surface);
-}
-
-.adminsubject-clear-search-button .material-symbols-outlined {
-	font-size: 20px;
 }
 
 /* No Results Message */
@@ -1217,83 +1209,79 @@
 /* Activity Types Specific Styles */
 
 /* Activity Filters Container */
-.adminactivity-filters-container {
-	display: flex;
-	gap: var(--spacing-md);
-	margin-bottom: var(--spacing-lg);
-}
-
 .adminactivity-search-container {
-	flex: 3;
 	position: relative;
+	flex: 1;
+	min-width: 400px;
 }
 
 .adminactivity-search-input-wrapper {
 	position: relative;
 	display: flex;
 	align-items: center;
-}
-
-.adminactivity-search-input {
-	width: 100%;
-	padding: var(--spacing-md) 48px var(--spacing-md) 48px; /* Add padding for both icon and clear button */
+	background-color: var(--md-sys-color-surface);
 	border: 1px solid var(--md-sys-color-outline);
 	border-radius: var(--radius-md);
-	background-color: var(--md-sys-color-surface);
-	color: var(--md-sys-color-on-surface);
-	font-family: var(--md-sys-typescale-body-large-font);
-	font-size: var(--md-sys-typescale-body-large-size);
-	transition: background-color var(--transition-normal);
-	box-sizing: border-box;
+	transition: all var(--transition-normal);
 	min-height: 58px;
-	min-width: 340px;
 }
 
-.adminactivity-search-input:focus {
-	outline: none;
+.adminactivity-search-input-wrapper:focus-within {
 	border-color: var(--md-sys-color-primary);
-	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
-}
-
-.adminactivity-search-input::placeholder {
-	color: var(--md-sys-color-on-surface-variant);
-	opacity: 0.7;
+	box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
 }
 
 .adminactivity-search-icon {
 	position: absolute;
-	top: 50%;
-	left: 16px;
-	transform: translateY(-50%);
-	font-size: 24px;
+	left: calc(var(--spacing-sm) + 5px);
 	color: var(--md-sys-color-on-surface-variant);
-	pointer-events: none; /* Make sure the icon doesn't block clicks on the input */
+	font-size: 20px;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.adminactivity-search-input {
+	width: 100%;
+	padding: var(--spacing-sm) var(--spacing-md);
+	padding-left: 40px;
+	padding-right: 40px;
+	border: none;
+	border-radius: var(--radius-md);
+	background-color: transparent;
+	color: var(--md-sys-color-on-surface);
+	font-size: var(--md-sys-typescale-body-medium-size);
+	transition: all var(--transition-normal);
+	box-sizing: border-box;
+}
+
+.adminactivity-search-input:focus {
+	outline: none;
+}
+
+.adminactivity-search-input::placeholder {
+	color: var(--md-sys-color-on-surface-variant);
 }
 
 .adminactivity-clear-search-button {
 	position: absolute;
-	top: 50%;
-	right: 12px;
-	transform: translateY(-50%);
+	right: var(--spacing-xs);
 	background: none;
 	border: none;
 	color: var(--md-sys-color-on-surface-variant);
 	cursor: pointer;
-	padding: 4px;
+	padding: var(--spacing-xs);
 	border-radius: var(--radius-sm);
-	transition: all var(--transition-normal);
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	transition: all var(--transition-normal);
+	font-size: 18px;
+	z-index: 2;
 }
 
 .adminactivity-clear-search-button:hover {
 	background-color: var(--md-sys-color-surface-variant);
 	color: var(--md-sys-color-on-surface);
-}
-
-.adminactivity-clear-search-button .material-symbols-outlined {
-	font-size: 20px;
 }
 
 .adminactivity-category-filter {

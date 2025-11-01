@@ -33,10 +33,6 @@
 	let isDropdownOpen = false;
 	let isGenderDropdownOpen = false;
 	let isGradeLevelDropdownOpen = false;
-	let isFilterDropdownOpen = false;
-
-	// Filter state
-	let selectedFilter = 'all';
 
 	// Edit account state
 	let editingAccountId = null;
@@ -232,9 +228,6 @@
 		// This prevents interruption during typing
 	}
 
-	// Search functionality
-	let searchQuery = '';
-
 	// Account types
 	const accountTypes = [
 		{
@@ -257,14 +250,6 @@
 		}
 	];
 
-	// Filter options
-	const filterOptions = [
-		{ id: 'all', name: 'All Accounts', icon: 'group' },
-		{ id: 'student', name: 'Students', icon: 'school' },
-		{ id: 'teacher', name: 'Teachers', icon: 'person' },
-		{ id: 'admin', name: 'Admins', icon: 'admin_panel_settings' }
-	];
-
 	// Gender options
 	const genderOptions = [
 		{ id: 'male', name: 'Male', icon: 'male' },
@@ -283,9 +268,22 @@
 	let recentAccounts = [];
 	let isLoadingAccounts = false;
 
+	// Search and filter states
+	let accountsSearchTerm = '';
+	let selectedFilter = 'all';
+	let isFilterDropdownOpen = false;
+
+	// Filter options
+	const filterOptions = [
+		{ id: 'all', name: 'All Accounts', icon: 'group' },
+		{ id: 'student', name: 'Student Accounts', icon: 'school' },
+		{ id: 'teacher', name: 'Teacher Accounts', icon: 'person' },
+		{ id: 'admin', name: 'Admin Accounts', icon: 'admin_panel_settings' }
+	];
+
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
-		if (!event.target.closest('.custom-dropdown')) {
+		if (!event.target.closest('.custom-dropdown') && !event.target.closest('.account-filter-dropdown')) {
 			isDropdownOpen = false;
 			isGenderDropdownOpen = false;
 			isGradeLevelDropdownOpen = false;
@@ -526,17 +524,6 @@
 		isEditGradeLevelDropdownOpen = false;
 	}
 
-	// Toggle filter dropdown
-	function toggleFilterDropdown() {
-		isFilterDropdownOpen = !isFilterDropdownOpen;
-	}
-
-	// Select filter and close dropdown
-	function selectFilter(filter) {
-		selectedFilter = filter.id;
-		isFilterDropdownOpen = false;
-	}
-
 	// Handle form submission
 	async function handleCreateAccount() {
 		if (!selectedAccountType || !selectedGender || !firstName || !lastName) {
@@ -681,9 +668,6 @@
 		(gradeLevel) => gradeLevel.id === selectedGradeLevel
 	);
 
-	// Get selected filter object
-	$: selectedFilterObj = filterOptions.find((filter) => filter.id === selectedFilter);
-
 	// Get selected edit grade level object
 	$: selectedEditGradeLevelObj = gradeLevelOptions.find(
 		(gradeLevel) => gradeLevel.id === editGradeLevel
@@ -721,23 +705,40 @@
 		}
 	}
 
-	// Filter accounts based on selected filter and search query
+	// Get selected filter object
+	$: selectedFilterObj = filterOptions.find((filter) => filter.id === selectedFilter);
+
+	// Filter accounts based on search term and selected filter
 	$: filteredAccounts = recentAccounts.filter((account) => {
-		// First apply type filter
-		const accountType = account.type.toLowerCase();
-		const typeMatches = selectedFilter === 'all' || accountType === selectedFilter;
+		// Filter by account type
+		const matchesFilter =
+			selectedFilter === 'all' || account.type.toLowerCase() === selectedFilter.toLowerCase();
 
-		// Then apply search filter
-		if (!searchQuery.trim()) {
-			return typeMatches;
-		}
+		// Filter by search term (search in name, number, and type)
+		const matchesSearch =
+			!accountsSearchTerm ||
+			account.name?.toLowerCase().includes(accountsSearchTerm.toLowerCase()) ||
+			account.number?.toString().toLowerCase().includes(accountsSearchTerm.toLowerCase()) ||
+			account.type?.toLowerCase().includes(accountsSearchTerm.toLowerCase());
 
-		const query = searchQuery.toLowerCase().trim();
-		const nameMatches = account.name.toLowerCase().includes(query);
-		const numberMatches = account.number.toString().includes(query);
-
-		return typeMatches && (nameMatches || numberMatches);
+		return matchesFilter && matchesSearch;
 	});
+
+	// Toggle filter dropdown
+	function toggleFilterDropdown() {
+		isFilterDropdownOpen = !isFilterDropdownOpen;
+	}
+
+	// Select filter option
+	function selectFilter(filter) {
+		selectedFilter = filter.id;
+		isFilterDropdownOpen = false;
+	}
+
+	// Clear search function
+	function clearSearch() {
+		accountsSearchTerm = '';
+	}
 
 	// Preview account number by fetching from backend API
 	let previewAccountNumber = '';
@@ -1172,26 +1173,26 @@
 			<div class="section-header-content">
 				<div class="section-title-group">
 					<h2 class="section-title">All Account Creations</h2>
-					<p class="section-subtitle">All accounts in the system</p>
+					<p class="account-creation-section-subtitle">All accounts in the system</p>
 				</div>
 
 				<!-- Search and Filter Container -->
-				<div class="search-filter-container">
+				<div class="account-search-filter-container">
 					<!-- Search Input -->
-					<div class="search-container">
-						<div class="search-input-wrapper">
-							<span class="material-symbols-outlined search-icon">search</span>
+					<div class="account-search-container">
+						<div class="account-search-input-wrapper">
+							<span class="material-symbols-outlined account-search-icon">search</span>
 							<input
 								type="text"
-								class="search-input"
-								placeholder="Search accounts by name or number..."
-								bind:value={searchQuery}
+								placeholder="Search by name, account number, or account type..."
+								class="account-search-input"
+								bind:value={accountsSearchTerm}
 							/>
-							{#if searchQuery}
+							{#if accountsSearchTerm}
 								<button
 									type="button"
-									class="clear-search-button"
-									on:click={() => (searchQuery = '')}
+									class="account-clear-search-button"
+									on:click={clearSearch}
 								>
 									<span class="material-symbols-outlined">close</span>
 								</button>
@@ -1200,39 +1201,41 @@
 					</div>
 
 					<!-- Filter Dropdown -->
-					<div class="filter-container">
-						<div class="custom-dropdown" class:open={isFilterDropdownOpen}>
+					<div class="account-filter-container">
+						<div class="account-filter-dropdown" class:open={isFilterDropdownOpen}>
 							<button
 								type="button"
-								class="dropdown-trigger filter-trigger"
+								class="account-filter-trigger"
 								class:selected={selectedFilter !== 'all'}
 								on:click={toggleFilterDropdown}
 							>
 								{#if selectedFilterObj}
-									<div class="selected-option">
-										<span class="material-symbols-outlined option-icon"
+									<div class="account-filter-selected-option">
+										<span class="material-symbols-outlined account-filter-option-icon"
 											>{selectedFilterObj.icon}</span
 										>
-										<div class="option-content">
-											<span class="option-name">{selectedFilterObj.name}</span>
+										<div class="account-filter-option-content">
+											<span class="account-filter-option-name">{selectedFilterObj.name}</span>
 										</div>
 									</div>
 								{:else}
-									<span class="placeholder">Filter by type</span>
+									<span class="account-filter-placeholder">Filter by type</span>
 								{/if}
-								<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
+								<span class="material-symbols-outlined account-filter-dropdown-arrow">expand_more</span>
 							</button>
-							<div class="dropdown-menu">
+							<div class="account-filter-dropdown-menu">
 								{#each filterOptions as filter (filter.id)}
 									<button
 										type="button"
-										class="dropdown-option"
+										class="account-filter-dropdown-option"
 										class:selected={selectedFilter === filter.id}
 										on:click={() => selectFilter(filter)}
 									>
-										<span class="material-symbols-outlined option-icon">{filter.icon}</span>
-										<div class="option-content">
-											<span class="option-name">{filter.name}</span>
+										<span class="material-symbols-outlined account-filter-option-icon"
+											>{filter.icon}</span
+										>
+										<div class="account-filter-option-content">
+											<span class="account-filter-option-name">{filter.name}</span>
 										</div>
 									</button>
 								{/each}
@@ -1248,6 +1251,15 @@
 				<div class="loading-container">
 					<span class="account-loader"></span>
 					<p class="loading-text">Loading accounts...</p>
+				</div>
+			{:else if filteredAccounts.length === 0}
+				<div class="no-results">
+					<span class="material-symbols-outlined no-results-icon">group_off</span>
+					{#if recentAccounts.length === 0}
+						<p>No accounts created yet.</p>
+					{:else}
+						<p>No accounts found matching your search or filter.</p>
+					{/if}
 				</div>
 			{:else}
 				{#each filteredAccounts as account (account.id)}
@@ -1561,15 +1573,6 @@
 									</form>
 								</div>
 							</div>
-						{/if}
-					</div>
-				{:else}
-					<div class="no-results">
-						<span class="material-symbols-outlined no-results-icon">group_off</span>
-						{#if recentAccounts.length === 0}
-							<p>No accounts created yet.</p>
-						{:else}
-							<p>No accounts found matching your search or filter.</p>
 						{/if}
 					</div>
 				{/each}
