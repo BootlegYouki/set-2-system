@@ -54,8 +54,9 @@
 		const messageText = newMessage.trim();
 		
 		// Create optimistic message with "Sending" as temporary author
+		const tempId = `temp-${Date.now()}`; // Store temp ID
 		const optimisticMessage = {
-			id: `temp-${Date.now()}`, // Temporary ID
+			id: tempId,
 			text: messageText,
 			author: 'Sending...',
 			authorRole: 'admin',
@@ -88,14 +89,14 @@
 			const result = await response.json();
 
 			if (result.success) {
-				// Replace optimistic message with actual message from server
+				// Replace optimistic message with actual message from server, keeping the same ID
 				selectedRequest.messages = selectedRequest.messages.map(msg => 
-					msg.id === optimisticMessage.id ? { ...result.data, isPending: false } : msg
+					msg.id === tempId ? { ...result.data, id: tempId, isPending: false } : msg
 				);
 			} else {
 				console.error('Failed to send message:', result.error);
 				// Remove the optimistic message on failure
-				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== optimisticMessage.id);
+				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
 				// Show error notification
 				alert('Failed to send message. Please try again.');
 				// Restore the message text so user can retry
@@ -104,7 +105,7 @@
 		} catch (error) {
 			console.error('Error sending message:', error);
 			// Remove the optimistic message on error
-			selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== optimisticMessage.id);
+			selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
 			alert('An error occurred while sending the message.');
 			// Restore the message text so user can retry
 			newMessage = messageText;
@@ -535,7 +536,7 @@
 											{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 										</span>
 									</div>
-									<div class="message-text">{msg.text}</div>
+									<div class="admin-document-request-message-text">{msg.text}</div>
 								</div>
 							</div>
 						{/each}
@@ -894,8 +895,8 @@
 		border: 1px solid var(--md-sys-color-outline-variant);
 		overflow-y: auto;
 		margin-bottom: var(--spacing-sm);
-		min-height: 350px;
-		max-height: 350px;
+		min-height: 400px;
+		max-height: 400px;
 		display: flex;
 		flex-direction: column;
 		justify-content: flex-end;
@@ -1038,6 +1039,7 @@
 		border: 1px solid var(--md-sys-color-outline-variant);
 		align-items: center;
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+		margin-top: auto;
 	}
 
 	.admin-chat-input input {

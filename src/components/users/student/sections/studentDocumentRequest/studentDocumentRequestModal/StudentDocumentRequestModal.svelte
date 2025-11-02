@@ -432,7 +432,7 @@
 										<span class="message-author">{msg.author}</span>
 										<span class="message-time">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
 									</div>
-									<div class="message-text">{msg.text}</div>
+									<div class="student-document-request-message-text">{msg.text}</div>
 								</div>
 							</div>
 						{/each}
