@@ -377,34 +377,76 @@ Component Averages:
     prompt += `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Analyze the grade data above and provide a concise, data-driven response in this exact format:
+Analyze the grade data above and provide a supportive, empowering academic performance report in this exact format:
 
-**STRENGTHS:**
-- List your top-performing subjects with specific scores (e.g., "Mathematics WW: 48.5/50")
-- Identify which assessment types (WW/PT/QA) you excel in
-- Note any consistently high performance patterns
+**CELEBRATING YOUR STRENGTHS:**
+- Recognize your top 3-5 performing subjects with specific scores (e.g., "You're excelling in Mathematics with WW: 48.5/50, PT: 45.2/50 - that's outstanding work!")
+- Celebrate which assessment types (WW/PT/QA) showcase your abilities best
+- Highlight your strongest overall average and acknowledge the effort behind it
+- Appreciate subjects where you've scored above 90% - these prove what you're capable of achieving
+- Note positive patterns that show your dedication and learning style strengths
 
-**AREAS FOR IMPROVEMENT:**
-- Pinpoint subjects and specific assessment types needing attention with actual scores
-- Highlight individual low scores and inconsistent performance
-- Identify patterns of weakness across subjects
+**OPPORTUNITIES FOR GROWTH:**
+(Frame these as potential, not failures)
+- Identify subjects that could use some extra attention, with specific scores and gentle context
+- Recognize which assessment type might not be playing to your strengths yet
+- Point out areas where a little focused effort could make a big difference
+- Note subjects with uneven performance (e.g., "Your WW shows you understand the material - let's translate that to PT")
+- Acknowledge that everyone has subjects that challenge them more
 
-**ACTIONABLE RECOMMENDATIONS:**
-- Provide 4-6 specific, prioritized action steps you should take immediately
-- Suggest which assessment types to focus on per subject
-- Recommend concrete study strategies and time allocation based on score gaps
+**YOUR PERSONALIZED ACTION PLAN:**
+Provide 5-7 specific, encouraging steps ranked by impact and achievability:
 
-**PERFORMANCE INSIGHTS:**
-- Compare your performance across WW, PT, and QA assessment types
-- Note any trends (improving/declining) and score distribution patterns
-- Identify if certain assessment types consistently challenge you
+1. **Quick Wins** (build momentum with achievable improvements):
+   - Identify easiest areas to boost scores in the short term
+   
+2. **Strategic Focus Areas** (where effort will pay off most):
+   - "Let's strengthen your PT in [subject] - you're at 32.5/50, and with your WW at 45.0/50, we know you've got the knowledge!"
+   
+3. **Study Strategies Tailored to You**:
+   - For lower WW: "Try setting aside 20-30 minutes daily for practice - consistency is key"
+   - For lower PT: "Hands-on practice and real-world applications could help this click for you"
+   - For lower QA: "Let's work on test strategies - your knowledge is there, we just need to showcase it"
+   
+4. **Time Management That Works**:
+   - Realistic suggestions for which subjects need more attention
+   - Balance between improvement and maintaining strengths
+   
+5. **Building on Your Strengths**:
+   - How to leverage what you're already good at
+   - Ways to maintain your excellent performance in strong areas
+
+6. **Support Resources**:
+   - When to ask teachers for help
+   - Study groups, tutoring, or materials that could support you
+
+**UNDERSTANDING YOUR PERFORMANCE PATTERNS:**
+- Compare your WW, PT, and QA averages with encouraging context
+- Identify your learning style based on which assessments you excel in
+- Note any positive trends or areas showing improvement
+- Highlight subjects where one strong area shows your capability
+- Frame the gap between highest and lowest subjects as room for growth, not failure
+
+**YOUR PROGRESS STORY & NEXT STEPS:**
+- Open with genuine recognition of your overall effort and progress
+- Identify your **most achievable next goal** (be specific and realistic)
+- Acknowledge that improvement is a journey - small steps matter
+- Remind you of your proven capabilities (reference your highest scores)
+- End with personalized encouragement that reinforces belief in your potential
+- Include a motivating statement about what's possible with focused effort
 
 CRITICAL REQUIREMENTS:
-• Use second-person perspective ("You" not "This student")
-• Reference actual numeric scores (e.g., "38.2/50"), never percentages
-• Round all decimals to nearest tenth
-• Be constructive yet honest about weaknesses
-• Base all observations on the specific data provided
+- Use warm, second-person perspective ("you", "your") throughout
+- Always cite actual scores with format: [Score]/[Maximum] (e.g., "38.2/50")
+- Round all decimals to one decimal place
+- Be genuinely encouraging while staying honest - growth mindset language
+- Frame every weakness as a growth opportunity with specific support
+- Acknowledge effort and progress, not just results
+- Use phrases like "room to grow", "opportunity to strengthen", "potential to improve"
+- Avoid judgmental language like "poor", "bad", "failing" - use "developing", "emerging", "growing"
+- Make recommendations feel achievable, not overwhelming
+- Remember: these scores don't define you - they're just a snapshot of where to focus next
+- End on an uplifting, empowering note that instills confidence
 `;
     
     return prompt;

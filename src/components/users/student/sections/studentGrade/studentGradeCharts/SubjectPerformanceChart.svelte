@@ -32,10 +32,10 @@
 
 		// Color based on performance
 		const backgroundColors = grades.map(grade => {
-			if (grade >= 85) return 'rgba(76, 175, 80, 0.8)'; // Green - Excellent
-			if (grade >= 80) return 'rgba(33, 150, 243, 0.8)'; // Blue - Good
-			if (grade >= 75) return 'rgba(255, 152, 0, 0.8)'; // Orange - Satisfactory
-			return 'rgba(244, 67, 54, 0.8)'; // Red - Needs Improvement
+			if (grade >= 85) return 'rgba(76, 175, 80, 1.0)'; // Green - Excellent
+			if (grade >= 80) return 'rgba(33, 150, 243, 1.0)'; // Blue - Good
+			if (grade >= 75) return 'rgba(255, 152, 0, 1.0)'; // Orange - Satisfactory
+			return 'rgba(244, 67, 54, 1.0)'; // Red - Needs Improvement
 		});
 
 		const borderColors = grades.map(grade => {
@@ -44,6 +44,30 @@
 			if (grade >= 75) return 'rgb(255, 152, 0)';
 			return 'rgb(244, 67, 54)';
 		});
+
+		// Calculate dynamic bar thickness based on number of items
+		const numItems = validSubjects.length;
+		let maxBarThickness;
+		let categoryPercentage;
+		let barPercentage;
+
+		if (numItems <= 3) {
+			maxBarThickness = 50;
+			categoryPercentage = 0.6;
+			barPercentage = 0.7;
+		} else if (numItems <= 6) {
+			maxBarThickness = 40;
+			categoryPercentage = 0.7;
+			barPercentage = 0.75;
+		} else if (numItems <= 10) {
+			maxBarThickness = 30;
+			categoryPercentage = 0.8;
+			barPercentage = 0.85;
+		} else {
+			maxBarThickness = 20;
+			categoryPercentage = 0.9;
+			barPercentage = 0.9;
+		}
 
 		const ctx = chartCanvas.getContext('2d');
 		chartInstance = new Chart(ctx, {
@@ -58,10 +82,9 @@
 						borderColor: borderColors,
 						borderWidth: 2,
 						borderRadius: 8,
-						barThickness: 25,
-						maxBarThickness: 45,
-						categoryPercentage: 0.7,
-						barPercentage: 0.8
+						maxBarThickness: maxBarThickness,
+						categoryPercentage: categoryPercentage,
+						barPercentage: barPercentage
 					}
 				]
 			},
@@ -89,24 +112,45 @@
 						}
 					},
 					tooltip: {
-						backgroundColor: 'rgba(0, 0, 0, 0.8)',
-						padding: 12,
+						backgroundColor: 'rgba(30, 30, 30, 0.95)',
+						padding: 16,
+						cornerRadius: 12,
 						titleFont: {
-							size: 14,
-							weight: 'bold'
+							size: 15,
+							weight: '600',
+							family: "'Inter', 'Segoe UI', sans-serif"
 						},
 						bodyFont: {
-							size: 13
+							size: 14,
+							weight: '500',
+							family: "'Inter', 'Segoe UI', sans-serif"
 						},
+						titleColor: '#ffffff',
+						bodyColor: '#e0e0e0',
+						borderColor: 'rgba(255, 255, 255, 0.1)',
+						borderWidth: 1,
+						displayColors: false,
+						titleMarginBottom: 8,
+						bodySpacing: 6,
 						callbacks: {
 							label: function (context) {
 								const grade = context.parsed.x;
 								let performance = '';
-								if (grade >= 85) performance = 'Excellent';
-								else if (grade >= 80) performance = 'Good';
-								else if (grade >= 75) performance = 'Satisfactory';
-								else performance = 'Needs Improvement';
-								return `Grade: ${grade.toFixed(1)} (${performance})`;
+								let emoji = '';
+								if (grade >= 85) {
+									performance = 'Excellent';
+									emoji = '🌟';
+								} else if (grade >= 80) {
+									performance = 'Good';
+									emoji = '✨';
+								} else if (grade >= 75) {
+									performance = 'Satisfactory';
+									emoji = '👍';
+								} else {
+									performance = 'Needs Improvement';
+									emoji = '📈';
+								}
+								return `${emoji} ${grade.toFixed(1)}% - ${performance}`;
 							}
 						}
 					}

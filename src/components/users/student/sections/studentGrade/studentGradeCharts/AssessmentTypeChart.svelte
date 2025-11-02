@@ -42,7 +42,7 @@
 					{
 						label: 'Written Work',
 						data: writtenWorkData,
-						backgroundColor: 'rgba(33, 150, 243, 0.85)',
+						backgroundColor: 'rgba(33, 150, 243, 1.0)',
 						borderColor: 'rgb(33, 150, 243)',
 						borderWidth: 2,
 						borderRadius: 6,
@@ -52,7 +52,7 @@
 					{
 						label: 'Performance Tasks',
 						data: performanceTasksData,
-						backgroundColor: 'rgba(156, 39, 176, 0.85)',
+						backgroundColor: 'rgba(156, 39, 176, 1.0)',
 						borderColor: 'rgb(156, 39, 176)',
 						borderWidth: 2,
 						borderRadius: 6,
@@ -62,7 +62,7 @@
 					{
 						label: 'Quarterly Assessment',
 						data: quarterlyAssessmentData,
-						backgroundColor: 'rgba(255, 152, 0, 0.85)',
+						backgroundColor: 'rgba(255, 152, 0, 1.0)',
 						borderColor: 'rgb(255, 152, 0)',
 						borderWidth: 2,
 						borderRadius: 6,
@@ -113,25 +113,56 @@
 						}
 					},
 					tooltip: {
-						backgroundColor: 'rgba(0, 0, 0, 0.8)',
-						padding: 12,
+						backgroundColor: 'rgba(30, 30, 30, 0.95)',
+						padding: 16,
+						cornerRadius: 12,
 						titleFont: {
-							size: 14,
-							weight: 'bold'
+							size: 15,
+							weight: '600',
+							family: "'Inter', 'Segoe UI', sans-serif"
 						},
 						bodyFont: {
-							size: 13
+							size: 14,
+							weight: '500',
+							family: "'Inter', 'Segoe UI', sans-serif"
 						},
+						titleColor: '#ffffff',
+						bodyColor: '#e0e0e0',
+						borderColor: 'rgba(255, 255, 255, 0.1)',
+						borderWidth: 1,
+						displayColors: true,
+						usePointStyle: true,
+						pointStyle: 'circle',
+						boxWidth: 8,
+						boxHeight: 8,
+						boxPadding: 6,
+						titleMarginBottom: 10,
+						bodySpacing: 8,
+						multiKeyBackground: 'transparent',
 						callbacks: {
 							label: function (context) {
 								const label = context.dataset.label || '';
 								const value = context.parsed.y;
 								let performance = '';
-								if (value >= 85) performance = ' (Excellent)';
-								else if (value >= 80) performance = ' (Good)';
-								else if (value >= 75) performance = ' (Satisfactory)';
-								else if (value > 0) performance = ' (Needs Improvement)';
-								return `${label}: ${value.toFixed(1)}${performance}`;
+								let emoji = '';
+								if (value >= 85) {
+									performance = 'Excellent';
+									emoji = '🌟';
+								} else if (value >= 80) {
+									performance = 'Good';
+									emoji = '✨';
+								} else if (value >= 75) {
+									performance = 'Satisfactory';
+									emoji = '👍';
+								} else if (value > 0) {
+									performance = 'Needs Improvement';
+									emoji = '📈';
+								}
+								
+								if (performance) {
+									return `${label}: ${value.toFixed(1)}% ${emoji} ${performance}`;
+								}
+								return `${label}: ${value.toFixed(1)}%`;
 							}
 						}
 					}
