@@ -1,11 +1,17 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
-import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { getUserFromRequest, logActivityWithUser, verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
 // GET /api/rooms - Fetch all rooms with optional filtering and assigned sections
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - admins, teachers, and advisers can view rooms
+    const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const searchTerm = url.searchParams.get('search') || '';
     const building = url.searchParams.get('building');
     const status = url.searchParams.get('status');
@@ -88,6 +94,12 @@ export async function GET({ url }) {
 // POST /api/rooms - Create a new room
 export async function POST({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can create rooms
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { name, building, floor } = data;
     
@@ -190,6 +202,12 @@ export async function POST({ request, getClientAddress }) {
 // PATCH /api/rooms - Assign or unassign sections to/from rooms
 export async function PATCH({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can assign/unassign sections to rooms
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { roomId, sectionIds, action } = data;
     
@@ -372,6 +390,12 @@ export async function PATCH({ request, getClientAddress }) {
 // PUT /api/rooms - Update an existing room
 export async function PUT({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can update rooms
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { id, name, building, floor, status, assignedTo } = data;
     
@@ -487,6 +511,12 @@ export async function PUT({ request, getClientAddress }) {
 // DELETE /api/rooms - Delete a room
 export async function DELETE({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can delete rooms
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { id } = data;
     

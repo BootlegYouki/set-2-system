@@ -207,13 +207,13 @@
 }
 
 .year-levels-grid {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: var(--spacing-xl);
-  overflow-x: auto;
   padding-bottom: var(--spacing-md);
 }
 
-/* Custom scrollbar for year levels grid */
+/* Custom scrollbar for year levels grid (in case of overflow on very small screens) */
 .year-levels-grid::-webkit-scrollbar {
   height: 8px;
 }
@@ -240,8 +240,7 @@
   padding: var(--spacing-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--md-sys-color-outline-variant);
-  flex: 1;
-  min-width: 350px;
+  min-width: 0; /* Allow container to shrink below min-width on small screens */
 }
 
 .year-level-header {
@@ -400,6 +399,11 @@
   .class-mgmt-stats-grid {
     gap: var(--spacing-md);
   }
+  
+  .year-levels-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--spacing-lg);
+  }
 }
 
 @media (max-width: 768px) {
@@ -409,6 +413,11 @@
   
   .class-mgmt-stats-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .year-levels-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
   }
   
   .year-level-header {
@@ -423,13 +432,24 @@
   
   .year-level-container {
     padding: var(--spacing-md);
-    min-width: 300px;
   }
 }
 
 @media (max-width: 480px) {
   .class-mgmt-page-title {
     font-size: 24px;
+  }
+  
+  .class-management-container {
+    padding: var(--spacing-md);
+  }
+  
+  .year-levels-grid {
+    gap: var(--spacing-sm);
+  }
+  
+  .year-level-container {
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 }
 

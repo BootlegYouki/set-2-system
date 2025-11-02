@@ -1,9 +1,16 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
+import { verifyAuth } from '../helper/auth-helper.js';
 
 // GET /api/dashboard - Fetch dashboard statistics
-export async function GET() {
+export async function GET({ request }) {
   try {
+    // Verify authentication - admins, teachers, and advisers can view dashboard statistics
+    const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     // Connect to MongoDB
     const db = await connectToDatabase();
     

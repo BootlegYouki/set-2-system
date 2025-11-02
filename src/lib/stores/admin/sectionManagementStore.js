@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { authenticatedFetch } from '../../../routes/api/helper/api-helper.js';
 
 // Cache configuration - only for sections
 const SECTIONS_CACHE_KEY = 'sectionsCache';
@@ -97,7 +98,7 @@ export const sectionManagementStore = (() => {
                 url += `?search=${encodeURIComponent(searchTerm.trim())}`;
             }
             
-            const response = await fetch(url);
+            const response = await authenticatedFetch(url);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);

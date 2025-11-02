@@ -59,27 +59,29 @@ export async function POST({ request, getClientAddress }) {
       accountType: user.account_type
     };
     
-    // Log the login activity asynchronously (don't await - improves response time)
-    const ip_address = getClientAddress();
-    const user_agent = request.headers.get('user-agent');
-    const activityLogsCollection = db.collection('activity_logs');
-    
-    // Fire and forget - log activity without blocking the response
-    activityLogsCollection.insertOne({
-      activity_type: 'user_login',
-      user_id: user._id,
-      user_account_number: user.account_number,
-      activity_data: {
-        full_name: user.full_name,
-        account_type: user.account_type
-      },
-      ip_address: ip_address,
-      user_agent: user_agent,
-      created_at: new Date()
-    }).catch(logError => {
-      console.error('Error logging login activity:', logError);
-      // Activity logging failure doesn't affect login success
-    });
+    // Log the login activity asynchronously (only for admin users)
+    if (user.account_type === 'admin') {
+      const ip_address = getClientAddress();
+      const user_agent = request.headers.get('user-agent');
+      const activityLogsCollection = db.collection('activity_logs');
+      
+      // Fire and forget - log activity without blocking the response
+      activityLogsCollection.insertOne({
+        activity_type: 'user_login',
+        user_id: user._id,
+        user_account_number: user.account_number,
+        activity_data: {
+          full_name: user.full_name,
+          account_type: user.account_type
+        },
+        ip_address: ip_address,
+        user_agent: user_agent,
+        created_at: new Date()
+      }).catch(logError => {
+        console.error('Error logging login activity:', logError);
+        // Activity logging failure doesn't affect login success
+      });
+    }
     
     return json({ 
       success: true, 

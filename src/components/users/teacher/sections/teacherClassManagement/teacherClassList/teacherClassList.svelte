@@ -188,13 +188,19 @@
     }
 
     try {
+      // Create user info object for authentication
+      const userInfo = {
+        id: $authStore.userData.id,
+        name: $authStore.userData.name,
+        account_number: $authStore.userData.accountNumber,
+        account_type: $authStore.userData.account_type || $authStore.userData.accountType
+      };
+
       const response = await fetch(`/api/grades/grade-items?section_id=${selectedClass.sectionId}&subject_id=${activeSubject.id}&grading_period_id=${currentQuarter}&teacher_id=${$authStore.userData.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': $authStore.userData.id.toString(),
-          'x-user-account-number': $authStore.userData.accountNumber || '',
-          'x-user-name': encodeURIComponent($authStore.userData.name || '')
+          'x-user-info': JSON.stringify(userInfo)
         }
       });
       
@@ -509,14 +515,20 @@
         const currentCount = gradingConfig[category].count;
         const defaultName = `${categoryLabels[category]} ${currentCount + 1}`;
 
+        // Create user info object for authentication
+        const userInfo = {
+          id: $authStore.userData.id,
+          name: $authStore.userData.name,
+          account_number: $authStore.userData.accountNumber,
+          account_type: $authStore.userData.account_type || $authStore.userData.accountType
+        };
+
         // Call API to add grade item to database
         const response = await fetch('/api/grades/grade-items', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': $authStore.userData.id.toString(),
-            'x-user-account-number': $authStore.userData.accountNumber || '',
-            'x-user-name': encodeURIComponent($authStore.userData.name || '')
+            'x-user-info': JSON.stringify(userInfo)
           },
           body: JSON.stringify({
             action: 'create_grade_item',

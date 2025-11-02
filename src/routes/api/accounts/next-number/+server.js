@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../../database/db.js';
+import { verifyAuth } from '../../helper/auth-helper.js';
 
 // Function to generate the next account number (same logic as in accounts/+server.js)
 async function generateAccountNumber(accountType) {
@@ -45,8 +46,14 @@ async function generateAccountNumber(accountType) {
 }
 
 // GET /api/accounts/next-number - Get the next available account number for preview
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - only admins can get next account number
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const accountType = url.searchParams.get('type');
     
     if (!accountType) {

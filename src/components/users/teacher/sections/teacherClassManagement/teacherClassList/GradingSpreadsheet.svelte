@@ -455,14 +455,20 @@
 
     if (gradeItemId) {
       try {
+        // Create user info object for authentication
+        const userInfo = {
+          id: $authStore.userData.id,
+          name: $authStore.userData.name,
+          account_number: $authStore.userData.accountNumber,
+          account_type: $authStore.userData.account_type || $authStore.userData.accountType
+        };
+
         // Call API to update the total score in the database
         const response = await fetch('/api/grades/grade-items', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': $authStore.userData?.id?.toString() || '',
-            'x-user-account-number': $authStore.userData?.accountNumber || '',
-            'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+            'x-user-info': JSON.stringify(userInfo)
           },
           body: JSON.stringify({
             grade_item_id: gradeItemId,
@@ -509,14 +515,20 @@
 
     if (gradeItemId) {
       try {
+        // Create user info object for authentication
+        const userInfo = {
+          id: $authStore.userData.id,
+          name: $authStore.userData.name,
+          account_number: $authStore.userData.accountNumber,
+          account_type: $authStore.userData.account_type || $authStore.userData.accountType
+        };
+
         // Call API to update the name in the database
         const response = await fetch('/api/grades/grade-items', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': $authStore.userData?.id?.toString() || '',
-            'x-user-account-number': $authStore.userData?.accountNumber || '',
-            'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+            'x-user-info': JSON.stringify(userInfo)
           },
           body: JSON.stringify({
             grade_item_id: gradeItemId,
@@ -593,14 +605,20 @@
         return;
       }
 
+      // Create user info object for authentication
+      const userInfo = {
+        id: $authStore.userData.id,
+        name: $authStore.userData.name,
+        account_number: $authStore.userData.accountNumber,
+        account_type: $authStore.userData.account_type || $authStore.userData.accountType
+      };
+
       // Call API to remove grade item from database
       const response = await fetch('/api/grades/grade-items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': $authStore.userData?.id?.toString() || '',
-          'x-user-account-number': $authStore.userData?.accountNumber || '',
-          'x-user-name': encodeURIComponent($authStore.userData?.name || '')
+          'x-user-info': JSON.stringify(userInfo)
         },
         body: JSON.stringify({
           action: 'remove',
@@ -1386,8 +1404,14 @@
                 })
               });
 
-              // authenticatedFetch already handles response.ok and throws on error
-              // If we reach here, the request was successful
+              // Check if response is ok
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: response.statusText }));
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+              }
+
+              // Parse successful response
+              const result = await response.json();
 
               // Remove from local gradingConfig - update all relevant properties
               gradingConfig[assessmentType].count -= 1;

@@ -1,12 +1,19 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../../database/db.js';
+import { verifyAuth } from '../../helper/auth-helper.js';
 
 // Email validation regex - standard email format validation
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 // GET /api/accounts/check-email?email=xxx - Check if email is already used
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - only admins can check email availability
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const email = url.searchParams.get('email');
     
     if (!email) {

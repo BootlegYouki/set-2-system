@@ -1,8 +1,15 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../../database/db.js';
+import { verifyAuth } from '../../helper/auth-helper.js';
 
 export async function GET({ request, url }) {
     try {
+        // Verify authentication - admins, teachers, and advisers can view sections per grade data
+        const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        
         const db = await connectToDatabase();
 
         // Aggregate sections by grade level

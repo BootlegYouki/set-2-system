@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 import { toastStore } from '../../../components/common/js/toastStore.js';
+import { authStore } from '../../../components/login/js/auth.js';
+import { get } from 'svelte/store';
 
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -23,6 +25,25 @@ function createStudentClassRankingStore() {
 	};
 
 	const { subscribe, set, update } = writable(initialState);
+
+	// Helper function to get auth headers
+	function getAuthHeaders() {
+		const authState = get(authStore);
+		if (!authState?.isAuthenticated || !authState.userData) {
+			return {};
+		}
+		
+		const userInfo = {
+			id: authState.userData.id,
+			name: authState.userData.name,
+			account_number: authState.userData.accountNumber,
+			account_type: authState.userData.account_type || authState.userData.accountType
+		};
+		
+		return {
+			'x-user-info': JSON.stringify(userInfo)
+		};
+	}
 
 	// Helper function to get cache key
 	function getCacheKey(studentId, quarter, schoolYear) {
@@ -85,7 +106,10 @@ function createStudentClassRankingStore() {
 	// Fetch rankings data from API
 	async function fetchRankings(studentId, quarter, schoolYear) {
 		const response = await fetch(
-			`/api/class-rankings?studentId=${studentId}&quarter=${quarter}&schoolYear=${schoolYear}`
+			`/api/class-rankings?studentId=${studentId}&quarter=${quarter}&schoolYear=${schoolYear}`,
+			{
+				headers: getAuthHeaders()
+			}
 		);
 		
 		if (!response.ok) {

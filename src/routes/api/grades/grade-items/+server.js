@@ -1,10 +1,18 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../../database/db.js';
 import { ObjectId } from 'mongodb';
+import { verifyAuth } from '../../helper/auth-helper.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
   try {
+    // Verify authentication - only teachers, advisers, and admins can access grade items
+    const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     const sectionId = url.searchParams.get('section_id');
     const subjectId = url.searchParams.get('subject_id');
     const gradingPeriodId = url.searchParams.get('grading_period_id');
@@ -15,6 +23,11 @@ export async function GET({ url, request }) {
       return json({ 
         error: 'Missing required parameters: section_id, subject_id, grading_period_id' 
       }, { status: 400 });
+    }
+    
+    // Authorization check: teachers can only access their own grade items
+    if (currentUser.account_type === 'teacher' && teacherId && teacherId !== currentUser.id) {
+      return json({ error: 'Unauthorized: You can only access your own grade items' }, { status: 403 });
     }
 
     const db = await connectToDatabase();
@@ -81,12 +94,24 @@ export async function GET({ url, request }) {
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
   try {
+    // Verify authentication - only teachers, advisers, and admins can modify grade items
+    const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     const { action, ...data } = await request.json();
     const db = await connectToDatabase();
 
     switch (action) {
       case 'create_grade_item':
         const { section_id, subject_id, grading_period_id, teacher_id, category, name, total_score } = data;
+        
+        // Authorization check: teachers can only create grade items for their own classes
+        if (currentUser.account_type === 'teacher' && teacher_id && teacher_id !== currentUser.id) {
+          return json({ error: 'Unauthorized: You can only create grade items for your own classes' }, { status: 403 });
+        }
         
         // Find existing configuration
         const config = await db.collection('grade_configurations').findOne({
@@ -160,9 +185,11 @@ export async function POST({ request }) {
           return json({ success: false, error: 'Missing grade item id' }, { status: 400 });
         }
 
-        // Remove grade item from all categories
+        // Remove grade item from all categories - only update documents with valid grade_items
         await db.collection('grade_configurations').updateMany(
-          {},
+          {
+            grade_items: { $exists: true, $ne: null }
+          },
           {
             $pull: {
               'grade_items.writtenWork': { id: gradeItemId },
@@ -194,6 +221,13 @@ export async function POST({ request }) {
 /** @type {import('./$types').RequestHandler} */
 export async function PUT({ request }) {
   try {
+    // Verify authentication - only teachers, advisers, and admins can update grade items
+    const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     const data = await request.json();
     const db = await connectToDatabase();
 
@@ -244,6 +278,11 @@ export async function PUT({ request }) {
 
     // Original bulk update functionality for backward compatibility
     const { section_id, subject_id, grading_period_id, teacher_id, grade_items } = data;
+    
+    // Authorization check: teachers can only update their own grade items
+    if (currentUser.account_type === 'teacher' && teacher_id && teacher_id !== currentUser.id) {
+      return json({ error: 'Unauthorized: You can only update your own grade items' }, { status: 403 });
+    }
 
     // Update or create grade configuration
     const result = await db.collection('grade_configurations').updateOne(
@@ -280,23 +319,45 @@ export async function PUT({ request }) {
 /** @type {import('./$types').RequestHandler} */
 export async function DELETE({ url, request }) {
   try {
+    console.log('DELETE /api/grades/grade-items - Starting request');
+    
+    // Verify authentication - only teachers, advisers, and admins can delete grade items
+    const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      console.log('Authentication failed:', authResult.error);
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    console.log('User authenticated:', { id: currentUser.id, account_type: currentUser.account_type });
+    
     const db = await connectToDatabase();
+    console.log('Database connected');
 
     // Try to read JSON body in case the client sent a grade_item_id in the body
     let body = {};
     try {
-      body = await request.json();
+      const text = await request.text();
+      console.log('Request body text:', text);
+      if (text) {
+        body = JSON.parse(text);
+        console.log('Parsed body:', body);
+      }
     } catch (err) {
-      // Ignore if no JSON body provided
+      console.log('No JSON body or failed to parse:', err.message);
       body = {};
     }
 
     // If a specific grade_item_id is provided in the body, remove that item from all configs
     if (body && body.grade_item_id) {
       const gradeItemId = body.grade_item_id;
+      
+      console.log('Deleting grade item:', gradeItemId);
 
-      await db.collection('grade_configurations').updateMany(
-        {},
+      // Only update documents where grade_items exists and is not null
+      const result = await db.collection('grade_configurations').updateMany(
+        {
+          grade_items: { $exists: true, $ne: null }
+        },
         {
           $pull: {
             'grade_items.writtenWork': { id: gradeItemId },
@@ -306,9 +367,13 @@ export async function DELETE({ url, request }) {
           $set: { updated_at: new Date() }
         }
       );
+      
+      console.log('Delete result:', { matchedCount: result.matchedCount, modifiedCount: result.modifiedCount });
 
       return json({ success: true, message: 'Grade item deleted successfully' });
     }
+
+    console.log('No grade_item_id in body, checking query params');
 
     // Fallback: delete whole grade configuration if query params are provided
     const sectionId = url.searchParams.get('section_id');
@@ -320,6 +385,11 @@ export async function DELETE({ url, request }) {
       return json({ 
         error: 'Missing required parameters' 
       }, { status: 400 });
+    }
+    
+    // Authorization check: teachers can only delete their own grade items
+    if (currentUser.account_type === 'teacher' && teacherId && teacherId !== currentUser.id) {
+      return json({ error: 'Unauthorized: You can only delete your own grade items' }, { status: 403 });
     }
 
     // Convert to ObjectId where appropriate to match how configs are stored
@@ -334,9 +404,10 @@ export async function DELETE({ url, request }) {
 
   } catch (error) {
     console.error('Error in grades/grade-items DELETE:', error);
+    console.error('Error stack:', error.stack);
     return json({ 
       success: false,
-      error: 'Internal server error' 
+      error: error.message || 'Internal server error'
     }, { status: 500 });
   }
 }

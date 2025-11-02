@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
+import { verifyAuth } from '../helper/auth-helper.js';
 
 // Helper function to get current school year from admin settings
 async function getCurrentSchoolYear(db) {
@@ -18,6 +19,13 @@ async function getCurrentSchoolYear(db) {
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
   try {
+    // Verify authentication - only students, teachers, advisers, and admins can access grades
+    const authResult = await verifyAuth(request, ['student', 'teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     const db = await connectToDatabase();
     
     // Get query parameters
@@ -39,6 +47,73 @@ export async function GET({ url, request }) {
         success: false,
         error: 'Invalid student ID format'
       }, { status: 400 });
+    }
+    
+    // Authorization check: students can only view their own grades
+    if (currentUser.account_type === 'student' && currentUser.id !== student_id) {
+      return json({ 
+        success: false,
+        error: 'Unauthorized: You can only view your own grades' 
+      }, { status: 403 });
+    }
+    
+    // Teachers can view grades for students in their classes
+    if (currentUser.account_type === 'teacher') {
+      // Check if this teacher teaches this student
+      const studentSchedule = await db.collection('schedules').findOne({
+        teacher_id: new ObjectId(currentUser.id),
+        school_year,
+        schedule_type: 'subject'
+      });
+      
+      if (!studentSchedule) {
+        return json({ 
+          success: false,
+          error: 'Unauthorized: You can only view grades for your students' 
+        }, { status: 403 });
+      }
+      
+      // Verify the student is in one of this teacher's sections
+      const studentInSection = await db.collection('section_students').findOne({
+        student_id: new ObjectId(student_id),
+        section_id: studentSchedule.section_id,
+        status: 'active'
+      });
+      
+      if (!studentInSection) {
+        return json({ 
+          success: false,
+          error: 'Unauthorized: You can only view grades for your students' 
+        }, { status: 403 });
+      }
+    }
+    
+    // Advisers can view grades for students in their advisory section
+    if (currentUser.account_type === 'adviser') {
+      const advisorySection = await db.collection('sections').findOne({
+        adviser_id: new ObjectId(currentUser.id),
+        status: 'active'
+      });
+      
+      if (!advisorySection) {
+        return json({ 
+          success: false,
+          error: 'Unauthorized: You can only view grades for students in your advisory section' 
+        }, { status: 403 });
+      }
+      
+      const studentInAdvisorySection = await db.collection('section_students').findOne({
+        student_id: new ObjectId(student_id),
+        section_id: advisorySection._id,
+        status: 'active'
+      });
+      
+      if (!studentInAdvisorySection) {
+        return json({ 
+          success: false,
+          error: 'Unauthorized: You can only view grades for students in your advisory section' 
+        }, { status: 403 });
+      }
     }
 
     // First, get the student's basic info to determine grade level

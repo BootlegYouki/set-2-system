@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
-import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { getUserFromRequest, logActivityWithUser, verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
 // Helper function to get current school year from admin settings
@@ -17,8 +17,15 @@ async function getCurrentSchoolYear(db) {
 }
 
 // GET - Fetch schedules with optional filtering
-export async function GET({ url }) {
+export async function GET({ url, request }) {
     try {
+        // Verify authentication - all users can view schedules
+        const authResult = await verifyAuth(request, ['student', 'teacher', 'adviser', 'admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        const user = authResult.user;
+
         const action = url.searchParams.get('action');
         const sectionId = url.searchParams.get('sectionId');
         const dayOfWeek = url.searchParams.get('dayOfWeek');
@@ -339,6 +346,11 @@ export async function GET({ url }) {
                 const studentId = url.searchParams.get('studentId');
                 if (!studentId) {
                     return json({ success: false, error: 'Student ID is required' }, { status: 400 });
+                }
+
+                // Authorization: Students can only view their own schedule
+                if (user.account_type === 'student' && user.id !== studentId) {
+                    return json({ success: false, error: 'Forbidden: You can only view your own schedule' }, { status: 403 });
                 }
 
                 const studentSchedules = await db.collection('schedules').aggregate([
@@ -720,6 +732,13 @@ export async function GET({ url }) {
 // POST - Create new schedule
 export async function POST({ request, getClientAddress }) {
     try {
+        // Verify authentication - only teachers, advisers, and admins can create schedules
+        const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        const user = authResult.user;
+
         const data = await request.json();
         console.log('Received schedule data:', data);
         
@@ -981,6 +1000,13 @@ export async function POST({ request, getClientAddress }) {
 // PUT - Update schedule
 export async function PUT({ request, getClientAddress }) {
     try {
+        // Verify authentication - only teachers, advisers, and admins can update schedules
+        const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        const user = authResult.user;
+
         const data = await request.json();
         const { 
             scheduleId,
@@ -1224,6 +1250,13 @@ export async function PUT({ request, getClientAddress }) {
 // DELETE - Remove schedule
 export async function DELETE({ url, request, getClientAddress }) {
     try {
+        // Verify authentication - only teachers, advisers, and admins can delete schedules
+        const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        const user = authResult.user;
+
         const scheduleId = url.searchParams.get('id');
         const clientIP = getClientAddress();
         const userAgent = request.headers.get('user-agent');

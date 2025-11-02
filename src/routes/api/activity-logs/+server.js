@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
+import { verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
 // Helper function to format time from 24-hour to 12-hour AM/PM format
@@ -62,7 +63,7 @@ export async function POST({ request, getClientAddress }) {
 }
 
 // GET - Fetch recent activities
-export async function GET({ url }) {
+export async function GET({ url, request }) {
 	// Helper function to format time to AM/PM format (for GET function)
 	function formatTimeInGet(timeString) {
 		if (!timeString) return '';
@@ -91,6 +92,12 @@ export async function GET({ url }) {
 	}
 
 	try {
+		// Verify authentication - only admins can view activity logs
+		const authResult = await verifyAuth(request, ['admin']);
+		if (!authResult.success) {
+			return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+		}
+		
 		const limit = parseInt(url.searchParams.get('limit')) || 10;
 		const offset = parseInt(url.searchParams.get('offset')) || 0;
 		const activity_type = url.searchParams.get('type');
@@ -251,6 +258,25 @@ export async function GET({ url }) {
 				case 'section_updated':
 					message = `Section updated: ${data.section_name}`;
 					icon = 'edit';
+					break;
+				
+				case 'adviser_assigned_to_section':
+					const assignedAdviserName = data.adviser ? `${data.adviser.name} (${data.adviser.account_number})` : 'Unknown Adviser';
+					message = `Adviser assigned to ${data.section_name} (Grade ${data.grade_level}): ${assignedAdviserName}`;
+					icon = 'person_add';
+					break;
+				
+				case 'adviser_changed_in_section':
+					const oldAdviserChanged = data.old_adviser ? `${data.old_adviser.name} (${data.old_adviser.account_number})` : 'No adviser';
+					const newAdviserChanged = data.new_adviser ? `${data.new_adviser.name} (${data.new_adviser.account_number})` : 'No adviser';
+					message = `Adviser changed for ${data.section_name} (Grade ${data.grade_level}): ${oldAdviserChanged} → ${newAdviserChanged}`;
+					icon = 'swap_horiz';
+					break;
+				
+				case 'adviser_removed_from_section':
+					const removedAdviserName = data.adviser ? `${data.adviser.name} (${data.adviser.account_number})` : 'Unknown Adviser';
+					message = `Adviser removed from ${data.section_name} (Grade ${data.grade_level}): ${removedAdviserName}`;
+					icon = 'person_remove';
 					break;
 				
 				case 'section_adviser_changed':

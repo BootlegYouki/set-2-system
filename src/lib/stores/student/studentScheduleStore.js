@@ -1,9 +1,32 @@
 import { writable } from 'svelte/store';
 import { toastStore } from '../../../components/common/js/toastStore.js';
+import { authStore } from '../../../components/login/js/auth.js';
 
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 const CACHE_KEY_PREFIX = 'student_schedule_';
+
+// Helper function to get authentication headers
+function getAuthHeaders() {
+	let userInfo;
+	authStore.subscribe(value => {
+		userInfo = value.userData;
+	})();
+
+	if (!userInfo) {
+		console.warn('No user info available for authentication');
+		return {};
+	}
+
+	return {
+		'x-user-info': JSON.stringify({
+			id: userInfo.id,
+			name: userInfo.name,
+			account_number: userInfo.accountNumber,
+			account_type: userInfo.accountType
+		})
+	};
+}
 
 // Create the store
 function createStudentScheduleStore() {
@@ -174,12 +197,16 @@ function createStudentScheduleStore() {
 			}));
 
 			// Fetch current school year from admin settings
-			const currentQuarterResponse = await fetch('/api/current-quarter');
+			const currentQuarterResponse = await fetch('/api/current-quarter', {
+				headers: getAuthHeaders()
+			});
 			const currentQuarterData = await currentQuarterResponse.json();
 			const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 
 			// Fetch schedule data
-			const response = await fetch(`/api/schedules?action=student-schedules&studentId=${studentId}&schoolYear=${schoolYear}`);
+			const response = await fetch(`/api/schedules?action=student-schedules&studentId=${studentId}&schoolYear=${schoolYear}`, {
+				headers: getAuthHeaders()
+			});
 			const result = await response.json();
 
 			if (!result.success) {

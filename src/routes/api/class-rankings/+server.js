@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
+import { verifyAuth } from '../helper/auth-helper.js';
 
 // Helper function to get current school year from admin settings
 async function getCurrentSchoolYear(db) {
@@ -16,8 +17,15 @@ async function getCurrentSchoolYear(db) {
 }
 
 /** @type {import('./$types').RequestHandler} */
-export async function GET({ url }) {
+export async function GET({ url, request }) {
 	try {
+		// Verify authentication - only students, teachers, advisers, and admins can access class rankings
+		const authResult = await verifyAuth(request, ['student', 'teacher', 'adviser', 'admin']);
+		if (!authResult.success) {
+			return json({ error: authResult.error }, { status: 401 });
+		}
+		const currentUser = authResult.user;
+		
 		const db = await connectToDatabase();
 		
 		// Get query parameters
@@ -38,6 +46,31 @@ export async function GET({ url }) {
 				success: false,
 				error: 'Invalid student ID format'
 			}, { status: 400 });
+		}
+		
+		// Authorization check: students can only view rankings for classes they're in
+		// This allows a student to see the full class ranking (including all classmates)
+		if (currentUser.account_type === 'student') {
+			// Verify the requesting student is in the same section as the queried student
+			const requestingStudentSection = await db.collection('section_students').findOne({
+				student_id: new ObjectId(currentUser.id),
+				status: 'active'
+			});
+			
+			const queriedStudentSection = await db.collection('section_students').findOne({
+				student_id: new ObjectId(studentId),
+				status: 'active'
+			});
+			
+			// Students can view rankings if they're querying their own ID or someone in their section
+			if (currentUser.id !== studentId && 
+			    (!requestingStudentSection || !queriedStudentSection || 
+			     requestingStudentSection.section_id.toString() !== queriedStudentSection.section_id.toString())) {
+				return json({ 
+					success: false,
+					error: 'Unauthorized: You can only view rankings for your own class' 
+				}, { status: 403 });
+			}
 		}
 
 		// Get the student's section enrollment
@@ -64,6 +97,32 @@ export async function GET({ url }) {
 				success: false,
 				error: 'Section not found'
 			}, { status: 404 });
+		}
+		
+		// Additional authorization for teachers: verify they teach in this section
+		if (currentUser.account_type === 'teacher') {
+			const teacherSchedule = await db.collection('schedules').findOne({
+				teacher_id: new ObjectId(currentUser.id),
+				section_id: section._id,
+				schedule_type: 'subject'
+			});
+			
+			if (!teacherSchedule) {
+				return json({ 
+					success: false,
+					error: 'Unauthorized: You can only view rankings for sections you teach' 
+				}, { status: 403 });
+			}
+		}
+		
+		// Additional authorization for advisers: verify this is their advisory section
+		if (currentUser.account_type === 'adviser') {
+			if (!section.adviser_id || section.adviser_id.toString() !== currentUser.id) {
+				return json({ 
+					success: false,
+					error: 'Unauthorized: You can only view rankings for your advisory section' 
+				}, { status: 403 });
+			}
 		}
 
 		const sectionInfo = {

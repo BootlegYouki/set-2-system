@@ -2,7 +2,7 @@
 	import './adminScheduleForm.css';
 	import { toastStore } from '../../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../../common/js/modalStore.js';
-	import { api } from '../../../../../../routes/api/helper/api-helper.js';
+	import { api, authenticatedFetch } from '../../../../../../routes/api/helper/api-helper.js';
 	import { authStore } from '../../../../../login/js/auth.js';
 	import { onMount, afterUpdate } from 'svelte';
 	import TimeInput from './TimeInput.svelte';
@@ -17,6 +17,8 @@
 
 	// Search states for dropdowns
 	let sectionSearchTerm = '';
+	let subjectSearchTerm = '';
+	let teacherSearchTerm = '';
 
 	// Loading states
 	let isLoadingSections = false;
@@ -65,7 +67,7 @@
 	async function loadSections() {
 		isLoadingSections = true;
 		try {
-			const response = await fetch('/api/sections?action=available-sections');
+			const response = await authenticatedFetch('/api/sections?action=available-sections');
 			const result = await response.json();
 
 			if (result.success) {
@@ -229,15 +231,13 @@
 						schoolYear: currentSchoolYear
 					});
 
-					// Add teacher ID if selected
-					if (formData.teacherId && formData.scheduleType === 'subject') {
-						params.append('teacherId', formData.teacherId);
-					}
+				// Add teacher ID if selected
+				if (formData.teacherId && formData.scheduleType === 'subject') {
+					params.append('teacherId', formData.teacherId);
+				}
 
-					const response = await fetch(`/api/schedules?${params}`);
-					const result = await response.json();
-
-					return {
+				const response = await authenticatedFetch(`/api/schedules?${params}`);
+				const result = await response.json();					return {
 						day: dayName,
 						dayDisplay: days.find((d) => d.id === dayId)?.name,
 						...result
@@ -336,6 +336,39 @@
 		(section) =>
 			section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase()) ||
 			section.grade.toLowerCase().includes(sectionSearchTerm.toLowerCase())
+	);
+
+	$: filteredSubjects = subjects.filter(
+		(subject) =>
+			subject.name?.toLowerCase().includes(subjectSearchTerm.toLowerCase()) ||
+			subject.description?.toLowerCase().includes(subjectSearchTerm.toLowerCase())
+	);
+
+	$: filteredTeachers = teachers.filter(
+		(teacher) => {
+			// First, filter by department if a subject is selected
+			if (formData.subjectId) {
+				const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
+				if (selectedSubject && selectedSubject.department_id) {
+					// Only show teachers from the same department as the selected subject
+					if (teacher.department_id !== selectedSubject.department_id) {
+						return false;
+					}
+				}
+			}
+			
+			// Then filter by search term
+			const searchLower = teacherSearchTerm.toLowerCase();
+			const fullName = teacher.full_name?.toLowerCase() || '';
+			const firstName = teacher.first_name?.toLowerCase() || '';
+			const lastName = teacher.last_name?.toLowerCase() || '';
+			const email = teacher.email?.toLowerCase() || '';
+			
+			return fullName.includes(searchLower) ||
+				firstName.includes(searchLower) ||
+				lastName.includes(searchLower) ||
+				email.includes(searchLower);
+		}
 	);
 
 	// Get selected objects for form display
@@ -460,7 +493,7 @@
 	// Load existing schedules from API
 	async function loadSchedules() {
 		try {
-			const response = await fetch('/api/schedules');
+			const response = await authenticatedFetch('/api/schedules');
 			const result = await response.json();
 
 			if (result.success) {
@@ -590,8 +623,19 @@
 
 	// Selection functions
 	function selectSubject(subject) {
+		const previousSubjectId = formData.subjectId;
 		formData.subjectId = subject.id;
 		isSubjectDropdownOpen = false;
+		subjectSearchTerm = ''; // Clear search term
+		
+		// Reset teacher selection if switching to a different subject
+		// (in case the current teacher is not in the new subject's department)
+		if (previousSubjectId !== subject.id && formData.teacherId) {
+			const selectedTeacher = teachers.find((t) => t.id === formData.teacherId);
+			if (selectedTeacher && selectedTeacher.department_id !== subject.department_id) {
+				formData.teacherId = '';
+			}
+		}
 	}
 
 	function selectActivityType(activityType) {
@@ -602,6 +646,7 @@
 	function selectTeacher(teacher) {
 		formData.teacherId = teacher.id;
 		isTeacherDropdownOpen = false;
+		teacherSearchTerm = ''; // Clear search term
 	}
 
 	function selectScheduleType(type) {
@@ -630,7 +675,7 @@
 				? `/api/subjects?action=available-subjects&grade_level=${gradeLevel}`
 				: '/api/subjects?action=available-subjects';
 
-			const response = await fetch(url);
+			const response = await authenticatedFetch(url);
 			const result = await response.json();
 
 			if (result.success) {
@@ -648,7 +693,7 @@
 
 		isLoadingActivityTypes = true;
 		try {
-			const response = await fetch('/api/activity-types?action=available-activity-types');
+			const response = await authenticatedFetch('/api/activity-types?action=available-activity-types');
 			const result = await response.json();
 
 			if (result.success) {
@@ -666,7 +711,7 @@
 
 		isLoadingTeachers = true;
 		try {
-			const response = await fetch('/api/users?action=teachers');
+			const response = await authenticatedFetch('/api/users?action=teachers');
 			const result = await response.json();
 
 			if (result.success) {
@@ -708,17 +753,35 @@
 				const dayName = days.find((d) => d.id === dayId)?.name.toLowerCase();
 
 				try {
-					const result = await api.post('/api/schedules', {
-						sectionId: selectedFormSection,
-						dayOfWeek: dayName,
-						startTime: formData.startTime,
-						endTime: formData.endTime,
-						scheduleType: formData.scheduleType,
-						subjectId: formData.scheduleType === 'subject' ? formData.subjectId : null,
-						activityTypeId: formData.scheduleType === 'activity' ? formData.activityTypeId : null,
-						teacherId: formData.teacherId || null,
-						schoolYear: currentSchoolYear
+					// Use authenticatedFetch directly instead of api.post to handle both success and error responses
+					const response = await authenticatedFetch('/api/schedules', {
+						method: 'POST',
+						body: JSON.stringify({
+							sectionId: selectedFormSection,
+							dayOfWeek: dayName,
+							startTime: formData.startTime,
+							endTime: formData.endTime,
+							scheduleType: formData.scheduleType,
+							subjectId: formData.scheduleType === 'subject' ? formData.subjectId : null,
+							activityTypeId: formData.scheduleType === 'activity' ? formData.activityTypeId : null,
+							teacherId: formData.teacherId || null,
+							schoolYear: currentSchoolYear
+						})
 					});
+					
+					// Parse the response body
+					const result = await response.json();
+					
+					// If response is not OK (status 409 for conflicts, etc.), mark as failed
+					if (!response.ok) {
+						return { 
+							success: false, 
+							error: result.error || 'Failed to create schedule',
+							conflictType: result.conflictType,
+							conflictingSchedule: result.conflictingSchedule
+						};
+					}
+					
 					return result;
 				} catch (error) {
 					// Convert error response to result format
@@ -1103,13 +1166,23 @@
 													class="scheduleassign-dropdown-menu"
 													class:open={isSubjectDropdownOpen}
 												>
+													<!-- Search Container -->
+													<div class="scheduleassign-search-container">
+														<input
+															type="text"
+															class="scheduleassign-search-input"
+															placeholder="Search subjects..."
+															bind:value={subjectSearchTerm}
+														/>
+														<span class="material-icons scheduleassign-search-icon">search</span>
+													</div>
 													{#if isLoadingSubjects}
 														<div class="scheduleassign-loading">
 															<span class="scheduleassign-loader"></span>
 															<span>Loading subjects...</span>
 														</div>
-													{:else if subjects.length > 0}
-														{#each subjects as subject (subject.id)}
+													{:else if filteredSubjects.length > 0}
+														{#each filteredSubjects as subject (subject.id)}
 															<button
 																type="button"
 																class="scheduleassign-dropdown-option"
@@ -1129,7 +1202,9 @@
 															<span class="material-symbols-outlined scheduleassign-empty-icon"
 																>inbox</span
 															>
-															<span class="scheduleassign-empty-text">No subjects available</span>
+															<span class="scheduleassign-empty-text">
+																{subjectSearchTerm ? 'No subjects found' : 'No subjects available'}
+															</span>
 														</div>
 													{/if}
 												</div>
@@ -1248,13 +1323,23 @@
 													class="scheduleassign-dropdown-menu"
 													class:open={isTeacherDropdownOpen}
 												>
+													<!-- Search Container -->
+													<div class="scheduleassign-search-container">
+														<input
+															type="text"
+															class="scheduleassign-search-input"
+															placeholder="Search teachers..."
+															bind:value={teacherSearchTerm}
+														/>
+														<span class="material-icons scheduleassign-search-icon">search</span>
+													</div>
 													{#if isLoadingTeachers}
 														<div class="scheduleassign-loading">
 															<span class="scheduleassign-loader"></span>
 															<span>Loading teachers...</span>
 														</div>
-													{:else if teachers.length > 0}
-														{#each teachers as teacher (teacher.id)}
+													{:else if filteredTeachers.length > 0}
+														{#each filteredTeachers as teacher (teacher.id)}
 															<button
 																type="button"
 																class="scheduleassign-dropdown-option"
@@ -1276,7 +1361,9 @@
 															<span class="material-symbols-outlined scheduleassign-empty-icon"
 																>inbox</span
 															>
-															<span class="scheduleassign-empty-text">No teachers available</span>
+															<span class="scheduleassign-empty-text">
+																{teacherSearchTerm ? 'No teachers found' : 'No teachers available'}
+															</span>
 														</div>
 													{/if}
 												</div>

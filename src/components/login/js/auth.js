@@ -63,8 +63,8 @@ function createAuthStore() {
       // Get current user data before logout for activity logging
       const currentState = get(authStore);
       
-      // Log logout activity if user is authenticated
-      if (currentState.isAuthenticated && currentState.userData) {
+      // Log logout activity only for admin users
+      if (currentState.isAuthenticated && currentState.userData && currentState.userType === 'admin') {
         try {
           await fetch('/api/activity-logs', {
             method: 'POST',

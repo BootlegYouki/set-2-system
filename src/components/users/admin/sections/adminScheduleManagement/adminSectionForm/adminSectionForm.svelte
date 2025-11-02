@@ -2,7 +2,7 @@
 	import './adminSectionForm.css';
 	import { modalStore } from '../../../../../common/js/modalStore.js';
 	import { toastStore } from '../../../../../common/js/toastStore.js';
-	import { api } from '../../../../../../routes/api/helper/api-helper.js';
+	import { api, authenticatedFetch } from '../../../../../../routes/api/helper/api-helper.js';
 	import { onMount } from 'svelte';
 	import { sectionManagementStore } from '../../../../../../lib/stores/admin/sectionManagementStore.js';
 
@@ -58,7 +58,7 @@
 	// Fetch current school year from admin settings
 	async function fetchCurrentSchoolYear() {
 		try {
-			const response = await fetch('/api/current-quarter');
+			const response = await authenticatedFetch('/api/current-quarter');
 			const result = await response.json();
 			if (result.success && result.data?.currentSchoolYear) {
 				schoolYear = result.data.currentSchoolYear;

@@ -1,10 +1,17 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
+import { verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
 /** @type {import('./$types').RequestHandler} */
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - admins, teachers, and advisers can view student bulk data
+    const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const db = await connectToDatabase();
     
     // Get current school year from admin settings

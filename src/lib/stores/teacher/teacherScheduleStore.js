@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { authenticatedFetch } from '../../../routes/api/helper/api-helper.js';
 
 // Cache configuration
 const CACHE_KEY = 'teacherScheduleCache';
@@ -93,13 +94,13 @@ function createTeacherScheduleStore() {
 				// Fetch current school year if not provided
 				let currentSchoolYear = schoolYear;
 				if (!currentSchoolYear) {
-					const currentQuarterResponse = await fetch('/api/current-quarter');
+					const currentQuarterResponse = await authenticatedFetch('/api/current-quarter');
 					const currentQuarterData = await currentQuarterResponse.json();
 					currentSchoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 				}
 
 				// Fetch schedule data
-				const response = await fetch(`/api/schedules?action=teacher-schedules&teacherId=${teacherId}&schoolYear=${currentSchoolYear}`);
+				const response = await authenticatedFetch(`/api/schedules?action=teacher-schedules&teacherId=${teacherId}&schoolYear=${currentSchoolYear}`);
 				const result = await response.json();
 
 				if (!result.success) {

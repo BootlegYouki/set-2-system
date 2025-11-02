@@ -1,11 +1,17 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
-import { getUserFromRequest } from '../helper/auth-helper.js';
+import { getUserFromRequest, verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
 // GET /api/subjects - Fetch all subjects with optional filtering
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - admins, teachers, and advisers can view subjects
+    const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const action = url.searchParams.get('action');
     const searchTerm = url.searchParams.get('search') || '';
     const gradeLevel = url.searchParams.get('grade_level');
@@ -128,6 +134,12 @@ export async function GET({ url }) {
 // POST /api/subjects - Create a new subject
 export async function POST({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can create subjects
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { name, code, gradeLevel, department_id } = data;
     
@@ -239,6 +251,12 @@ export async function POST({ request, getClientAddress }) {
 // PUT /api/subjects - Update an existing subject
 export async function PUT({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can update subjects
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { id, name, code, gradeLevel, department_id } = data;
     
@@ -391,6 +409,12 @@ export async function PUT({ request, getClientAddress }) {
 // DELETE /api/subjects - Delete a subject
 export async function DELETE({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can delete subjects
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { id } = data;
     

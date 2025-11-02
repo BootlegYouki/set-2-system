@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
-import { getUserFromRequest } from '../helper/auth-helper.js';
+import { getUserFromRequest, verifyAuth } from '../helper/auth-helper.js';
 
 // Function to generate random colors
 function getRandomColor() {
@@ -14,8 +14,14 @@ function getRandomColor() {
 }
 
 // GET /api/activity-types - Fetch all activity types with optional filtering
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - admins, teachers, and advisers can view activity types
+    const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const searchTerm = url.searchParams.get('search') || '';
     
     // Connect to MongoDB
@@ -74,6 +80,12 @@ export async function GET({ url }) {
 // POST /api/activity-types - Create a new activity type
 export async function POST({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can create activity types
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { name, code, icon } = data;
     
@@ -202,6 +214,12 @@ export async function POST({ request, getClientAddress }) {
 // PUT /api/activity-types - Update an existing activity type
 export async function PUT({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can update activity types
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { id, name, code, icon } = data;
     
@@ -345,6 +363,12 @@ export async function PUT({ request, getClientAddress }) {
 // DELETE /api/activity-types - Delete an activity type
 export async function DELETE({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can delete activity types
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const data = await request.json();
     const { id } = data;
     

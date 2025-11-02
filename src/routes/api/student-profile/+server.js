@@ -17,12 +17,26 @@ async function getCurrentSchoolYear(db) {
 }
 
 // GET /api/student-profile - Get comprehensive student profile data
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - only students, teachers, advisers, and admins can access student profiles
+    const authResult = await verifyAuth(request, ['student', 'teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     const studentId = url.searchParams.get('studentId');
     
     if (!studentId) {
       return json({ error: 'Student ID is required' }, { status: 400 });
+    }
+    
+    // Authorization check: students can only view their own profile
+    if (currentUser.account_type === 'student' && currentUser.id !== studentId) {
+      return json({ 
+        error: 'Unauthorized: You can only view your own profile' 
+      }, { status: 403 });
     }
 
     const db = await connectToDatabase();
@@ -49,6 +63,54 @@ export async function GET({ url }) {
 
     if (!student) {
       return json({ error: 'Student not found' }, { status: 404 });
+    }
+    
+    // For teachers: verify they teach this student
+    if (currentUser.account_type === 'teacher') {
+      const teacherSchedules = await db.collection('schedules').find({
+        teacher_id: new ObjectId(currentUser.id),
+        schedule_type: 'subject'
+      }).toArray();
+      
+      const teacherSectionIds = teacherSchedules.map(s => s.section_id);
+      
+      const studentInTeacherSection = await db.collection('section_students').findOne({
+        student_id: new ObjectId(studentId),
+        section_id: { $in: teacherSectionIds },
+        status: 'active'
+      });
+      
+      if (!studentInTeacherSection) {
+        return json({ 
+          error: 'Unauthorized: You can only view profiles of your students' 
+        }, { status: 403 });
+      }
+    }
+    
+    // For advisers: verify this is their advisory student
+    if (currentUser.account_type === 'adviser') {
+      const advisorySection = await db.collection('sections').findOne({
+        adviser_id: new ObjectId(currentUser.id),
+        status: 'active'
+      });
+      
+      if (advisorySection) {
+        const studentInAdvisorySection = await db.collection('section_students').findOne({
+          student_id: new ObjectId(studentId),
+          section_id: advisorySection._id,
+          status: 'active'
+        });
+        
+        if (!studentInAdvisorySection) {
+          return json({ 
+            error: 'Unauthorized: You can only view profiles of students in your advisory section' 
+          }, { status: 403 });
+        }
+      } else {
+        return json({ 
+          error: 'Unauthorized: You can only view profiles of students in your advisory section' 
+        }, { status: 403 });
+      }
     }
 
     let sectionInfo = null;

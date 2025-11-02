@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
 import { toastStore } from '../../../components/common/js/toastStore.js';
+import { authStore } from '../../../components/login/js/auth.js';
+import { get } from 'svelte/store';
 
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -29,6 +31,25 @@ function createStudentGradeStore() {
 	};
 
 	const { subscribe, set, update } = writable(initialState);
+
+	// Helper function to get auth headers
+	function getAuthHeaders() {
+		const authState = get(authStore);
+		if (!authState?.isAuthenticated || !authState.userData) {
+			return {};
+		}
+		
+		const userInfo = {
+			id: authState.userData.id,
+			name: authState.userData.name,
+			account_number: authState.userData.accountNumber,
+			account_type: authState.userData.account_type || authState.userData.accountType
+		};
+		
+		return {
+			'x-user-info': JSON.stringify(userInfo)
+		};
+	}
 
 	// Helper function to get cache key
 	function getCacheKey(studentId, quarter, schoolYear) {
@@ -91,7 +112,9 @@ function createStudentGradeStore() {
 	// Fetch current quarter and school year
 	async function fetchCurrentQuarter() {
 		try {
-			const response = await fetch('/api/current-quarter');
+			const response = await fetch('/api/current-quarter', {
+				headers: getAuthHeaders()
+			});
 			const data = await response.json();
 			
 			if (data.success && data.data) {
@@ -116,7 +139,9 @@ function createStudentGradeStore() {
 	// Fetch student profile data for section info
 	async function fetchStudentProfile(studentId) {
 		try {
-			const response = await fetch(`/api/student-profile?studentId=${studentId}`);
+			const response = await fetch(`/api/student-profile?studentId=${studentId}`, {
+				headers: getAuthHeaders()
+			});
 			const result = await response.json();
 			
 			if (result.success) {
@@ -136,7 +161,9 @@ function createStudentGradeStore() {
 	// Fetch class rank for specific quarter and school year
 	async function fetchClassRank(studentId, quarter, schoolYear) {
 		try {
-			const response = await fetch(`/api/class-rankings?studentId=${studentId}&quarter=${quarter}&schoolYear=${schoolYear}`);
+			const response = await fetch(`/api/class-rankings?studentId=${studentId}&quarter=${quarter}&schoolYear=${schoolYear}`, {
+				headers: getAuthHeaders()
+			});
 			const result = await response.json();
 			
 			if (result.success) {
@@ -170,7 +197,9 @@ function createStudentGradeStore() {
 			}
 			
 			// Fetch previous quarter grades
-			const response = await fetch(`/api/student-grades?student_id=${studentId}&quarter=${prevQuarter}&school_year=${prevSchoolYear}`);
+			const response = await fetch(`/api/student-grades?student_id=${studentId}&quarter=${prevQuarter}&school_year=${prevSchoolYear}`, {
+				headers: getAuthHeaders()
+			});
 			const result = await response.json();
 			
 			if (result.success && result.data.statistics) {
@@ -210,8 +239,9 @@ function createStudentGradeStore() {
 
 		// Fetch grades data, profile, class rank, and previous quarter average in parallel
 		const [gradesResult, profileData, rankData, previousAverage] = await Promise.all([
-			fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`)
-				.then(res => res.json()),
+			fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`, {
+				headers: getAuthHeaders()
+			}).then(res => res.json()),
 			fetchStudentProfile(studentId),
 			fetchClassRank(studentId, quarter, schoolYear),
 			fetchPreviousQuarterAverage(studentId, quarter, schoolYear)

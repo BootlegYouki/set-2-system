@@ -375,14 +375,6 @@
 		const passingStudents = studentsWithGrades.filter(s => s.average >= 75).length;
 		const rate = Math.round((passingStudents / studentsWithGrades.length) * 100);
 		
-		// Debug logging
-		console.log('Pass Rate Calculation:', {
-			totalStudents: studentsWithGrades.length,
-			passingStudents: passingStudents,
-			rate: rate,
-			studentAverages: studentsWithGrades.map(s => ({ name: s.name, average: s.average }))
-		});
-		
 		return rate;
 	});
 

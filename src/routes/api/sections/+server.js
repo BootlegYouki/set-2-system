@@ -1,11 +1,17 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
-import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { getUserFromRequest, logActivityWithUser, verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
 // GET - Fetch sections, available teachers, and available students
-export async function GET({ url }) {
+export async function GET({ url, request }) {
     try {
+        // Verify authentication - admins, teachers, and advisers can view sections
+        const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        
         const db = await connectToDatabase();
         const action = url.searchParams.get('action');
         const gradeLevel = url.searchParams.get('gradeLevel');
@@ -376,6 +382,13 @@ export async function GET({ url }) {
 // POST - Create new section
 export async function POST({ request, getClientAddress }) {
     try {
+        // Verify authentication - only admins can create sections
+        const authResult = await verifyAuth(request, ['admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        const user = authResult.user;
+        
         const db = await connectToDatabase();
         const requestBody = await request.json();
         const { 
@@ -391,14 +404,6 @@ export async function POST({ request, getClientAddress }) {
         const adviserId = adviserId_raw || requestBody.adviser_id;
         const clientIP = getClientAddress();
         const userAgent = request.headers.get('user-agent');
-        const user = await getUserFromRequest(request);
-        
-        console.log('User authentication result:', user ? 'SUCCESS' : 'FAILED');
-        console.log('User details:', user ? { id: user._id, account_type: user.account_type } : 'No user');
-
-        if (!user) {
-            return json({ success: false, error: 'Authentication required' }, { status: 401 });
-        }
 
         // Validate required fields
         if (!sectionName || !gradeLevel || !schoolYear) {
@@ -542,8 +547,9 @@ export async function POST({ request, getClientAddress }) {
 
         // Log activity
         try {
-            // Create activity log with proper structure
             const activityCollection = db.collection('activity_logs');
+            
+            // Create activity log with proper structure
             await activityCollection.insertOne({
                 activity_type: 'section_created',
                 user_id: user?.id ? new ObjectId(user.id) : null,
@@ -558,6 +564,32 @@ export async function POST({ request, getClientAddress }) {
                 user_agent: userAgent,
                 created_at: new Date()
             });
+
+            // Log adviser assignment if an adviser was assigned during creation
+            if (adviserId) {
+                const adviser = await db.collection('users').findOne({
+                    _id: new ObjectId(adviserId)
+                });
+                
+                if (adviser) {
+                    await activityCollection.insertOne({
+                        activity_type: 'adviser_assigned_to_section',
+                        user_id: user?.id ? new ObjectId(user.id) : null,
+                        user_account_number: user?.account_number || null,
+                        activity_data: {
+                            section_name: sectionName,
+                            grade_level: parseInt(gradeLevel),
+                            adviser: {
+                                name: adviser.full_name,
+                                account_number: adviser.account_number
+                            }
+                        },
+                        ip_address: clientIP,
+                        user_agent: userAgent,
+                        created_at: new Date()
+                    });
+                }
+            }
 
             // Log individual student enrollments
             if (studentIds && studentIds.length > 0) {
@@ -643,6 +675,13 @@ export async function POST({ request, getClientAddress }) {
 export async function PUT({ request, getClientAddress }) {
     console.log('=== PUT REQUEST STARTED ===');
     try {
+        // Verify authentication - only admins can update sections
+        const authResult = await verifyAuth(request, ['admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        const user = authResult.user;
+        
         const db = await connectToDatabase();
         console.log('Database connected successfully');
         
@@ -663,12 +702,6 @@ export async function PUT({ request, getClientAddress }) {
         
         const clientIP = getClientAddress();
         const userAgent = request.headers.get('user-agent');
-        const user = await getUserFromRequest(request);
-
-        if (!user) {
-            console.log('Authentication failed - returning 401');
-            return json({ success: false, error: 'Authentication required' }, { status: 401 });
-        }
 
         if (!sectionId) {
             console.log('Section ID missing - returning 400');
@@ -717,6 +750,7 @@ export async function PUT({ request, getClientAddress }) {
         }
 
         // Handle adviser update
+        let adviserChangeLog = null; // Track adviser changes for specific logging
         if (updates.adviserId !== undefined) {
             if (updates.adviserId && updates.adviserId !== currentSection.adviser_id?.toString()) {
                 // Validate new adviser
@@ -750,9 +784,48 @@ export async function PUT({ request, getClientAddress }) {
 
                 updateData.$set.adviser_id = new ObjectId(updates.adviserId);
                 changes.push(`Adviser assigned: ${adviser.full_name}`);
+                
+                // Prepare adviser change log
+                adviserChangeLog = {
+                    type: currentSection.adviser_id ? 'adviser_changed' : 'adviser_assigned',
+                    newAdviser: {
+                        name: adviser.full_name,
+                        account_number: adviser.account_number
+                    },
+                    oldAdviser: null
+                };
+                
+                // If there was a previous adviser, get their details
+                if (currentSection.adviser_id) {
+                    const oldAdviser = await db.collection('users').findOne({
+                        _id: currentSection.adviser_id
+                    });
+                    if (oldAdviser) {
+                        adviserChangeLog.oldAdviser = {
+                            name: oldAdviser.full_name,
+                            account_number: oldAdviser.account_number
+                        };
+                    }
+                }
             } else if (!updates.adviserId && currentSection.adviser_id) {
+                // Get old adviser details before removing
+                const oldAdviser = await db.collection('users').findOne({
+                    _id: currentSection.adviser_id
+                });
+                
                 updateData.$unset = { adviser_id: "" };
                 changes.push('Adviser removed');
+                
+                // Prepare adviser removal log
+                if (oldAdviser) {
+                    adviserChangeLog = {
+                        type: 'adviser_removed',
+                        oldAdviser: {
+                            name: oldAdviser.full_name,
+                            account_number: oldAdviser.account_number
+                        }
+                    };
+                }
             }
         }
 
@@ -955,15 +1028,66 @@ export async function PUT({ request, getClientAddress }) {
             );
         }
 
-        // Log section update activity (only for non-student changes)
-        const nonStudentChanges = changes.filter(change => 
+        // Log adviser changes specifically
+        if (adviserChangeLog) {
+            const activityCollection = db.collection('activity_logs');
+            
+            if (adviserChangeLog.type === 'adviser_assigned') {
+                await activityCollection.insertOne({
+                    activity_type: 'adviser_assigned_to_section',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.account_number || null,
+                    activity_data: {
+                        section_name: currentSection.name,
+                        grade_level: currentSection.grade_level,
+                        adviser: adviserChangeLog.newAdviser
+                    },
+                    ip_address: clientIP,
+                    user_agent: userAgent,
+                    created_at: new Date()
+                });
+            } else if (adviserChangeLog.type === 'adviser_changed') {
+                await activityCollection.insertOne({
+                    activity_type: 'adviser_changed_in_section',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.account_number || null,
+                    activity_data: {
+                        section_name: currentSection.name,
+                        grade_level: currentSection.grade_level,
+                        old_adviser: adviserChangeLog.oldAdviser,
+                        new_adviser: adviserChangeLog.newAdviser
+                    },
+                    ip_address: clientIP,
+                    user_agent: userAgent,
+                    created_at: new Date()
+                });
+            } else if (adviserChangeLog.type === 'adviser_removed') {
+                await activityCollection.insertOne({
+                    activity_type: 'adviser_removed_from_section',
+                    user_id: user?.id ? new ObjectId(user.id) : null,
+                    user_account_number: user?.account_number || null,
+                    activity_data: {
+                        section_name: currentSection.name,
+                        grade_level: currentSection.grade_level,
+                        adviser: adviserChangeLog.oldAdviser
+                    },
+                    ip_address: clientIP,
+                    user_agent: userAgent,
+                    created_at: new Date()
+                });
+            }
+        }
+        
+        // Log section update activity (only for non-student and non-adviser changes)
+        const nonStudentAdviserChanges = changes.filter(change => 
             !change.includes('Added') && 
             !change.includes('Removed') && 
-            !change.includes('students')
+            !change.includes('students') &&
+            !change.includes('Adviser')
         );
         
-        if (nonStudentChanges.length > 0) {
-            // Create activity log with proper structure for non-student changes only
+        if (nonStudentAdviserChanges.length > 0) {
+            // Create activity log with proper structure for non-student/non-adviser changes only
             const activityCollection = db.collection('activity_logs');
             await activityCollection.insertOne({
                 activity_type: 'section_updated',
@@ -1035,6 +1159,12 @@ export async function PUT({ request, getClientAddress }) {
 // DELETE - Remove section
 export async function DELETE({ request, getClientAddress, url }) {
     try {
+        // Verify authentication - only admins can delete sections
+        const authResult = await verifyAuth(request, ['admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+        
         const db = await connectToDatabase();
         
         // Get sectionId from URL parameters instead of request body
@@ -1042,11 +1172,6 @@ export async function DELETE({ request, getClientAddress, url }) {
         
         const clientIP = getClientAddress();
         const userAgent = request.headers.get('user-agent');
-        const user = getUserFromRequest(request);
-
-        if (!user) {
-            return json({ success: false, error: 'Authentication required' }, { status: 401 });
-        }
 
         if (!sectionId) {
             return json({ success: false, error: 'Section ID is required' }, { status: 400 });

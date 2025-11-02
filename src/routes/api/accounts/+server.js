@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
 import bcrypt from 'bcrypt';
-import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
+import { getUserFromRequest, logActivityWithUser, verifyAuth } from '../helper/auth-helper.js';
 import { sendAccountCreationEmail } from '../helper/email-helper.js';
 import { ObjectId } from 'mongodb';
 
@@ -11,6 +11,12 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 // POST /api/accounts - Create a new account
 export async function POST({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can create accounts
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const { accountType, gender, gradeLevel, firstName, lastName, middleInitial, email, birthdate, address, guardian, contactNumber, createdBy } = await request.json();
     
     // Validate required fields
@@ -199,8 +205,15 @@ export async function POST({ request, getClientAddress }) {
 }
 
 // GET /api/accounts - Fetch all accounts
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - admins can view all accounts, teachers/advisers can view students
+    const authResult = await verifyAuth(request, ['admin', 'teacher', 'adviser']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    const user = authResult.user;
+    
     const limit = url.searchParams.get('limit'); // Get limit parameter but don't set default
     const type = url.searchParams.get('type'); // Get the type parameter
     
@@ -216,8 +229,11 @@ export async function GET({ url }) {
       ]
     };
     
-    // Add type filter if provided
-    if (type) {
+    // Authorization: Teachers and advisers can only view student accounts
+    if (user.account_type === 'teacher' || user.account_type === 'adviser') {
+      filter.account_type = 'student';
+    } else if (type) {
+      // Admins can filter by type
       filter.account_type = type;
     }
     
@@ -293,6 +309,12 @@ export async function GET({ url }) {
 // PUT /api/accounts - Update an existing account
 export async function PUT({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can update accounts
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const { id, firstName, lastName, middleInitial, gradeLevel, birthdate, address, guardian, contactNumber } = await request.json();
     
     // Validate required fields
@@ -450,6 +472,12 @@ export async function PUT({ request, getClientAddress }) {
 // DELETE /api/accounts - Delete an account by ID
 export async function DELETE({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can delete accounts
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const { id } = await request.json();
     
     if (!id) {
@@ -556,6 +584,12 @@ async function generateAccountNumber(accountType) {
 // PATCH /api/accounts - Archive a student account by ID
 export async function PATCH({ request, getClientAddress }) {
   try {
+    // Verify authentication - only admins can archive accounts
+    const authResult = await verifyAuth(request, ['admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+    
     const { id, action } = await request.json();
     
     if (!id) {

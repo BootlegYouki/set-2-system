@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 import { createGradeVerificationNotification, formatTeacherName } from '../helper/notification-helper.js';
+import { verifyAuth } from '../helper/auth-helper.js';
 
 // Helper function to get current school year from admin settings
 async function getCurrentSchoolYear(db) {
@@ -19,6 +20,13 @@ async function getCurrentSchoolYear(db) {
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, request }) {
   try {
+    // Verify authentication - only students, teachers, advisers, and admins can access grades
+    const authResult = await verifyAuth(request, ['student', 'teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     const db = await connectToDatabase();
     
     // Get current school year from database
@@ -35,6 +43,16 @@ export async function GET({ url, request }) {
 
     // Get grades for a specific student
     if (action === 'student_grades' && student_id) {
+      // Authorization check: students can only view their own grades
+      if (currentUser.account_type === 'student' && currentUser.id !== student_id) {
+        return json({ error: 'Unauthorized: You can only view your own grades' }, { status: 403 });
+      }
+      
+      // Teachers can only view grades for their students
+      if (currentUser.account_type === 'teacher' && teacher_id && teacher_id !== currentUser.id) {
+        return json({ error: 'Unauthorized: You can only view grades for your own students' }, { status: 403 });
+      }
+      
       const grades = await db.collection('grades').findOne({
         student_id: new ObjectId(student_id),
         section_id: new ObjectId(section_id),
@@ -62,6 +80,22 @@ export async function GET({ url, request }) {
 
     // Get all students' grades for a section and subject
     if (action === 'section_grades' && section_id && subject_id && teacher_id) {
+      // Authorization check: only teachers (for their subjects), advisers (for their sections), and admins
+      if (currentUser.account_type === 'teacher' && teacher_id !== currentUser.id) {
+        return json({ error: 'Unauthorized: You can only view grades for your own classes' }, { status: 403 });
+      }
+      
+      if (currentUser.account_type === 'adviser') {
+        // Check if this is their advisory section
+        const section = await db.collection('sections').findOne({
+          _id: new ObjectId(section_id),
+          adviser_id: new ObjectId(currentUser.id)
+        });
+        if (!section) {
+          return json({ error: 'Unauthorized: You can only view grades for your advisory section' }, { status: 403 });
+        }
+      }
+      
       const pipeline = [
         {
           $match: {
@@ -111,6 +145,19 @@ export async function GET({ url, request }) {
 
     // Get advisory class grades (all subjects for students in a section)
     if (action === 'advisory_grades' && section_id && teacher_id) {
+      // Authorization check: only advisers (for their sections) and admins
+      if (currentUser.account_type === 'adviser') {
+        const section = await db.collection('sections').findOne({
+          _id: new ObjectId(section_id),
+          adviser_id: new ObjectId(currentUser.id)
+        });
+        if (!section) {
+          return json({ error: 'Unauthorized: You can only view grades for your advisory section' }, { status: 403 });
+        }
+      } else if (currentUser.account_type === 'teacher') {
+        return json({ error: 'Unauthorized: Only advisers and admins can view advisory grades' }, { status: 403 });
+      }
+      
       const pipeline = [
         {
           $match: {
@@ -189,6 +236,13 @@ export async function GET({ url, request }) {
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request }) {
   try {
+    // Verify authentication - only teachers, advisers, and admins can modify grades
+    const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     console.log('POST handler called - attempting database connection...');
     const db = await connectToDatabase();
     console.log('Database connection result:', db);
@@ -223,6 +277,11 @@ export async function POST({ request }) {
       // Validate required fields
       if (!student_id || !teacher_id || !section_id || !subject_id || !category || !name) {
         return json({ error: 'Missing required fields' }, { status: 400 });
+      }
+      
+      // Authorization check: teachers can only add grades for their own classes
+      if (currentUser.account_type === 'teacher' && teacher_id !== currentUser.id) {
+        return json({ error: 'Unauthorized: You can only add grades for your own classes' }, { status: 403 });
       }
 
       // Validate category
@@ -292,8 +351,16 @@ export async function POST({ request }) {
         quarter = 1,
         category,
         grade_index,
-        score
+        score,
+        teacher_id
       } = body;
+      
+      // Authorization check: teachers can only update grades for their own classes
+      if (currentUser.account_type === 'teacher') {
+        if (!teacher_id || teacher_id !== currentUser.id) {
+          return json({ error: 'Unauthorized: You can only update grades for your own classes' }, { status: 403 });
+        }
+      }
 
       const filter = {
         student_id: new ObjectId(student_id),
@@ -341,6 +408,19 @@ export async function POST({ request }) {
         teacher_id,
         verified = true
       } = body;
+      
+      // Authorization check: only advisers can verify grades
+      if (currentUser.account_type === 'adviser') {
+        const section = await db.collection('sections').findOne({
+          _id: new ObjectId(section_id),
+          adviser_id: new ObjectId(currentUser.id)
+        });
+        if (!section) {
+          return json({ error: 'Unauthorized: You can only verify grades for your advisory section' }, { status: 403 });
+        }
+      } else if (currentUser.account_type === 'teacher') {
+        return json({ error: 'Unauthorized: Only advisers and admins can verify grades' }, { status: 403 });
+      }
 
       const filter = {
         student_id: new ObjectId(student_id),
@@ -414,6 +494,11 @@ export async function POST({ request }) {
       // Authenticate teacher
       if (!teacher_id) {
         return json({ error: 'Teacher authentication required' }, { status: 401 });
+      }
+      
+      // Authorization check: teachers can only submit grades for their own classes
+      if (currentUser.account_type === 'teacher' && teacher_id !== currentUser.id) {
+        return json({ error: 'Unauthorized: You can only submit grades for your own classes' }, { status: 403 });
       }
 
       const processedStudents = [];
@@ -564,6 +649,13 @@ async function recalculateAverages(db, filter) {
 /** @type {import('./$types').RequestHandler} */
 export async function DELETE({ request }) {
   try {
+    // Verify authentication - only teachers, advisers, and admins can delete grades
+    const authResult = await verifyAuth(request, ['teacher', 'adviser', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error }, { status: 401 });
+    }
+    const currentUser = authResult.user;
+    
     const db = await connectToDatabase();
     
     // Get current school year from database
@@ -578,8 +670,16 @@ export async function DELETE({ request }) {
       school_year = currentSchoolYear,
       quarter = 1,
       category,
-      grade_index
+      grade_index,
+      teacher_id
     } = body;
+    
+    // Authorization check: teachers can only delete grades for their own classes
+    if (currentUser.account_type === 'teacher') {
+      if (!teacher_id || teacher_id !== currentUser.id) {
+        return json({ error: 'Unauthorized: You can only delete grades for your own classes' }, { status: 403 });
+      }
+    }
 
     const filter = {
       student_id: new ObjectId(student_id),
