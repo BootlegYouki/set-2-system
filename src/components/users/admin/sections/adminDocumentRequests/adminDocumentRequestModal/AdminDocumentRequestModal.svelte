@@ -1,6 +1,7 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import { authenticatedFetch } from '../../../../../../routes/api/helper/api-helper.js';
+	import { authStore } from '../../../../../login/js/auth.js';
 	import Modal from '../../../../../common/Modal.svelte';
 
 	// Props passed from modal store
@@ -53,12 +54,12 @@
 		isSendingMessage = true;
 		const messageText = newMessage.trim();
 		
-		// Create optimistic message with "Sending" as temporary author
+		// Create optimistic message with actual sender name
 		const tempId = `temp-${Date.now()}`; // Store temp ID
 		const optimisticMessage = {
 			id: tempId,
 			text: messageText,
-			author: 'Sending...',
+			author: $authStore.userData?.name || 'Admin',
 			authorRole: 'admin',
 			created_at: new Date().toISOString(),
 			isPending: true // Flag to track optimistic messages (internal only)

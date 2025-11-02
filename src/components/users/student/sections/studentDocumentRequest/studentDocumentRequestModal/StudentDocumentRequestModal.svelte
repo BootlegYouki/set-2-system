@@ -84,11 +84,12 @@
 		isSendingMessage = true;
 		const messageText = newMessage.trim();
 		
-		// Create optimistic message with "Sending..." as temporary author
+		// Create optimistic message with actual sender name
+		const tempId = `temp-${Date.now()}`; // Store temp ID
 		const optimisticMessage = {
-			id: `temp-${Date.now()}`, // Temporary ID
+			id: tempId,
 			text: messageText,
-			author: 'Sending...', // Will be replaced by server response
+			author: $authStore.userData?.name || 'Student',
 			authorRole: 'student',
 			created_at: new Date().toISOString(),
 			isPending: true // Flag to track optimistic messages (internal only)
@@ -113,14 +114,14 @@
 			});
 
 			if (result.success) {
-				// Replace optimistic message with actual message from server
+				// Replace optimistic message with actual message from server, keeping the same ID
 				selectedRequest.messages = selectedRequest.messages.map(msg => 
-					msg.id === optimisticMessage.id ? { ...result.data, isPending: false } : msg
+					msg.id === tempId ? { ...result.data, id: tempId, isPending: false } : msg
 				);
 			} else {
 				console.error('Failed to send message:', result.error);
 				// Remove the optimistic message on failure
-				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== optimisticMessage.id);
+				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
 				// Show error notification
 				alert('Failed to send message. Please try again.');
 				// Restore the message text so user can retry
@@ -129,7 +130,7 @@
 		} catch (error) {
 			console.error('Error sending message:', error);
 			// Remove the optimistic message on error
-			selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== optimisticMessage.id);
+			selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
 			alert('An error occurred while sending the message.');
 			// Restore the message text so user can retry
 			newMessage = messageText;
