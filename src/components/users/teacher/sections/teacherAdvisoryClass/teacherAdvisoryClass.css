@@ -10,6 +10,54 @@
   overflow-x: hidden;
   scroll-behavior: smooth;
 }
+
+/* Staggering Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.stagger-item {
+  animation: fadeInUp 0.5s ease-out forwards;
+  animation-delay: calc(var(--stagger-index) * 0.08s);
+  opacity: 0;
+}
+
+.stagger-grade-item {
+  animation: fadeInScale 0.4s ease-out forwards;
+  animation-delay: calc(var(--stagger-index) * 0.05s);
+  opacity: 0;
+}
 /* Error State */
 .error-container {
   display: flex;
@@ -1034,6 +1082,17 @@
   .grade-score {
     margin-left: 0;
     align-self: flex-end;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-item,
+  .stagger-grade-item,
+  .fade-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 

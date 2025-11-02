@@ -488,7 +488,7 @@
 
 <div class="advisory-class-container">
 	<!-- Header Section -->
-	<div class="advisory-page-header">
+	<div class="advisory-page-header fade-in">
 		<div class="header-content">
 			<h1 class="advisory-page-title">Advisory Class Dashboard</h1>
 			<div class="header-controls">
@@ -548,7 +548,7 @@
 	<div class="advisory-stats-section">
 		<div class="advisory-stats-grid">
 			{#each statsConfig as stat, index (stat.id)}
-				<div class="advisory-stat-card {getBorderColorByIndex(index)}">
+				<div class="advisory-stat-card {getBorderColorByIndex(index)} stagger-item" style="--stagger-index: {index}">
 					<div class="stat-card-header">
 						<p class="advisory-stat-label">{stat.label}</p>
 						<div class="advisory-stat-icon">
@@ -606,10 +606,11 @@
 					<p>No students found in this advisory class</p>
 				</div>
 			{:else}
-				{#each studentsWithAverages as student (student.id)}
+				{#each studentsWithAverages as student, index (student.id)}
 					<div
-						class="advisory-student-card {student.gradesVerified ? 'verified' : 'pending'}"
+						class="advisory-student-card {student.gradesVerified ? 'verified' : 'pending'} stagger-item"
 						class:selected={selectedStudent?.id === student.id}
+						style="--stagger-index: {index}"
 					>
 						<button class="student-header" onclick={() => selectStudent(student)}>
 							<div class="student-header-content">
@@ -668,15 +669,16 @@
 									</div>
 								</div>
 								<div class="grades-grid">
-									{#each student.grades as grade (grade.subject)}
+									{#each student.grades as grade, gradeIndex (grade.subject)}
 										{@const finalGrade = student.finalGrades?.find(
 											(fg) => fg.subjectName === grade.subject
 										)}
 										<button
-											class="grade-item {finalGrade?.verified ? 'verified' : 'unverified'}"
+											class="grade-item {finalGrade?.verified ? 'verified' : 'unverified'} stagger-grade-item"
 											class:loading={verifyingGrades.has(finalGrade?.id)}
 											disabled={verifyingGrades.has(finalGrade?.id) || finalGrade?.verified}
 											onclick={() => !finalGrade?.verified && verifyFinalGrade(finalGrade.id)}
+											style="--stagger-index: {gradeIndex}"
 										>
 											<div class="grade-overlay">
 												<div class="overlay-content">

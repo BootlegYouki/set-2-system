@@ -130,7 +130,7 @@
 
 <div class="class-management-container">
   <!-- Header Section -->
-  <div class="class-mgmt-page-header">
+  <div class="class-mgmt-page-header fade-in">
     <div class="header-content">
       <h1 class="class-mgmt-page-title">Class Management</h1>
       <p class="class-mgmt-page-subtitle">Overview of your teaching assignments and student distribution</p>
@@ -141,7 +141,7 @@
   <div class="class-mgmt-stats-section">
     <div class="class-mgmt-stats-grid">
       {#each statsConfig as stat, index (stat.id)}
-        <div class="class-mgmt-stat-card {getBorderColorByIndex(index)}">
+        <div class="class-mgmt-stat-card {getBorderColorByIndex(index)} stagger-item" style="--stagger-index: {index}">
           <div class="stat-card-header">
             <p class="class-mgmt-stat-label">{stat.label}</p>
             <div class="class-mgmt-stat-icon">
@@ -192,8 +192,8 @@
       </div>
     {:else}
       <div class="year-levels-grid">
-        {#each classData as yearData (yearData.yearLevel)}
-          <div class="year-level-container">
+        {#each classData as yearData, yearIndex (yearData.yearLevel)}
+          <div class="year-level-container stagger-item" style="--stagger-index: {yearIndex}">
             <!-- Year Level Header -->
             <div class="year-level-header">
               <div class="year-level-info">
@@ -209,11 +209,12 @@
 
             <!-- Sections Grid -->
             <div class="sections-grid">
-              {#each yearData.sections as section (section.name)}
+              {#each yearData.sections as section, sectionIndex (section.name)}
                 <button 
-                  class="section-card" 
+                  class="section-card stagger-section-item" 
                   onclick={() => handleSectionClick(yearData.yearLevel, section.name, section.id)}
                   aria-label="View class list for {section.name}"
+                  style="--stagger-index: {sectionIndex}"
                 >
                   <div class="section-card-content">
                     <div class="section-name">{section.name}</div>
