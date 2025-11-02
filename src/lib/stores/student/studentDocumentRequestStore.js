@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { api } from '../../../routes/api/helper/api-helper.js';
+import { toastStore } from '../../../components/common/js/toastStore.js';
 
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -31,6 +32,22 @@ function createStudentDocumentRequestStore() {
 
 	// Helper function to get cached data
 	function getCachedData(studentId) {
+		try {
+			const cacheKey = getCacheKey(studentId);
+			const cached = localStorage.getItem(cacheKey);
+			if (cached) {
+				const parsedData = JSON.parse(cached);
+				// Return cached data even if expired (for offline fallback)
+				return parsedData.data;
+			}
+		} catch (error) {
+			console.warn('Failed to retrieve cached document request data:', error);
+		}
+		return null;
+	}
+	
+	// Helper function to get only valid cached data (for init)
+	function getValidCachedData(studentId) {
 		try {
 			const cacheKey = getCacheKey(studentId);
 			const cached = localStorage.getItem(cacheKey);
@@ -129,9 +146,33 @@ function createStudentDocumentRequestStore() {
 				cacheData(studentId, currentState);
 			}
 
-		} catch (error) {
-			console.error('Error loading document requests:', error);
+	} catch (error) {
+		console.error('Error loading document requests:', error);
+		
+		// Try to get cached data even if it's expired
+		let studentId;
+		update(state => {
+			studentId = state.currentStudentId;
+			return state;
+		});
+		
+		const cachedData = getCachedData(studentId);
+		
+		if (cachedData) {
+			// If we have cached data, use it and show a toast notification
+			update(state => ({
+				...state,
+				requestHistory: cachedData.requestHistory || [],
+				lastUpdated: cachedData.lastUpdated,
+				isLoading: false,
+				isRefreshing: false,
+				error: null // Don't set error since we have cached data
+			}));
 			
+			// Show connection error toast
+			toastStore.error('No internet connection. Showing offline data.');
+		} else {
+			// No cached data available, show error container
 			update(state => ({
 				...state,
 				isLoading: false,
@@ -141,10 +182,11 @@ function createStudentDocumentRequestStore() {
 			}));
 		}
 	}
+	}
 
 	// Initialize store with cached data if available
 	function init(studentId) {
-		const cachedData = getCachedData(studentId);
+		const cachedData = getValidCachedData(studentId);
 		if (cachedData) {
 			update(state => ({
 				...state,

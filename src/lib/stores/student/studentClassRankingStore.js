@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { toastStore } from '../../../components/common/js/toastStore.js';
 
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -36,6 +37,22 @@ function createStudentClassRankingStore() {
 
 	// Helper function to get cached data
 	function getCachedData(studentId, quarter, schoolYear) {
+		try {
+			const cacheKey = getCacheKey(studentId, quarter, schoolYear);
+			const cached = localStorage.getItem(cacheKey);
+			if (cached) {
+				const parsedData = JSON.parse(cached);
+				// Return cached data even if expired (for offline fallback)
+				return parsedData.data;
+			}
+		} catch (error) {
+			console.warn('Failed to retrieve cached class ranking data:', error);
+		}
+		return null;
+	}
+	
+	// Helper function to get only valid cached data (for init)
+	function getValidCachedData(studentId, quarter, schoolYear) {
 		try {
 			const cacheKey = getCacheKey(studentId, quarter, schoolYear);
 			const cached = localStorage.getItem(cacheKey);
@@ -81,6 +98,36 @@ function createStudentClassRankingStore() {
 	return {
 		subscribe,
 
+		// Initialize store with cached data if available
+		init(studentId, quarter, schoolYear) {
+			const cachedData = getValidCachedData(studentId, quarter, schoolYear);
+			if (cachedData) {
+				update(state => ({
+					...state,
+					...cachedData,
+					currentStudentId: studentId,
+					currentQuarter: quarter,
+					currentSchoolYear: schoolYear,
+					isLoading: false,
+					isRefreshing: false,
+					error: null
+				}));
+				return true; // Has cached data
+			}
+			
+			// No cached data, set up initial state
+			update(state => ({
+				...state,
+				currentStudentId: studentId,
+				currentQuarter: quarter,
+				currentSchoolYear: schoolYear,
+				isLoading: true,
+				isRefreshing: false,
+				error: null
+			}));
+			return false; // No cached data
+		},
+
 		// Load rankings with optional force refresh
 		async loadRankings(studentId, quarter, schoolYear, forceRefresh = false) {
 			if (!studentId) {
@@ -88,28 +135,14 @@ function createStudentClassRankingStore() {
 				return;
 			}
 
-			// Check cache first if not forcing refresh
-			if (!forceRefresh) {
-				const cachedData = getCachedData(studentId, quarter, schoolYear);
-				if (cachedData) {
-					update(state => ({
-						...state,
-						...cachedData,
-						currentStudentId: studentId,
-						currentQuarter: quarter,
-						currentSchoolYear: schoolYear,
-						isLoading: false,
-						error: null
-					}));
-					return;
-				}
-			}
+			// Don't check cache here anymore - always try to fetch
+			// (cache checking is done in init)
 
-			// Set loading state
+			// Set loading/refreshing state
 			update(state => ({
 				...state,
-				isLoading: !forceRefresh,
-				isRefreshing: forceRefresh,
+				isLoading: state.rankingsList.length === 0 && !forceRefresh,
+				isRefreshing: state.rankingsList.length > 0 || forceRefresh,
 				error: null,
 				currentStudentId: studentId,
 				currentQuarter: quarter,
@@ -147,8 +180,42 @@ function createStudentClassRankingStore() {
 				// Update the store
 				set(newState);
 
-			} catch (error) {
-				console.error('Error loading class rankings:', error);
+		} catch (error) {
+			console.error('Error loading class rankings:', error);
+			
+			// Try to get cached data even if it's expired
+			const cachedData = getCachedData(studentId, quarter, schoolYear);
+			
+			console.log('Rankings fetch failed, checking cache:', {
+				hasCachedData: !!cachedData,
+				studentId,
+				quarter,
+				schoolYear
+			});
+			
+			if (cachedData) {
+				// If we have cached data, use it and show a toast notification
+				console.log('Using cached rankings data and showing toast');
+				update(state => ({
+					...state,
+					myRank: cachedData.myRank || 0,
+					totalStudents: cachedData.totalStudents || 0,
+					myAverage: cachedData.myAverage || 0,
+					sectionInfo: cachedData.sectionInfo || null,
+					rankingsList: cachedData.rankingsList || [],
+					lastUpdated: cachedData.lastUpdated,
+					isLoading: false,
+					isRefreshing: false,
+					error: null // Don't set error since we have cached data
+				}));
+				
+				// Show connection error toast - always show it
+				setTimeout(() => {
+					toastStore.error('No internet connection. Showing offline data.');
+				}, 100);
+			} else {
+				console.log('No cached data available, showing error container');
+				// No cached data available, show error container
 				update(state => ({
 					...state,
 					isLoading: false,
@@ -156,6 +223,7 @@ function createStudentClassRankingStore() {
 					error: error.message || 'Failed to load rankings'
 				}));
 			}
+		}
 		},
 
 		// Refresh current rankings

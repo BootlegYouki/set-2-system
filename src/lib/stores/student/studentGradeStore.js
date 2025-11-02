@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { toastStore } from '../../../components/common/js/toastStore.js';
 
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -42,6 +43,22 @@ function createStudentGradeStore() {
 
 	// Helper function to get cached data
 	function getCachedData(studentId, quarter, schoolYear) {
+		try {
+			const cacheKey = getCacheKey(studentId, quarter, schoolYear);
+			const cached = localStorage.getItem(cacheKey);
+			if (cached) {
+				const parsedData = JSON.parse(cached);
+				// Return cached data even if expired (for offline fallback)
+				return parsedData.data;
+			}
+		} catch (error) {
+			console.warn('Failed to retrieve cached student grades data:', error);
+		}
+		return null;
+	}
+	
+	// Helper function to get only valid cached data (for init)
+	function getValidCachedData(studentId, quarter, schoolYear) {
 		try {
 			const cacheKey = getCacheKey(studentId, quarter, schoolYear);
 			const cached = localStorage.getItem(cacheKey);
@@ -250,9 +267,36 @@ function createStudentGradeStore() {
 			lastUpdated: newState.lastUpdated
 		});
 
-		} catch (error) {
-			console.error('Error loading student grades:', error);
+	} catch (error) {
+		console.error('Error loading student grades:', error);
+		
+		// Try to get cached data even if it's expired
+		const cachedData = getCachedData(studentId, quarter, schoolYear);
+		
+		if (cachedData) {
+			// If we have cached data, use it and show a toast notification
+			update(state => ({
+				...state,
+				grades: cachedData.grades || [],
+				statistics: cachedData.statistics || { overallAverage: 0, totalSubjects: 0 },
+				sectionInfo: cachedData.sectionInfo,
+				classRank: cachedData.classRank,
+				totalStudentsInSection: cachedData.totalStudentsInSection,
+				currentQuarter: cachedData.currentQuarter,
+				currentQuarterName: cachedData.currentQuarterName,
+				currentSchoolYear: cachedData.currentSchoolYear,
+				previousQuarterAverage: cachedData.previousQuarterAverage,
+				averageChange: cachedData.averageChange,
+				lastUpdated: cachedData.lastUpdated,
+				isLoading: false,
+				isRefreshing: false,
+				error: null // Don't set error since we have cached data
+			}));
 			
+			// Show connection error toast
+			toastStore.error('No internet connection. Showing offline data.');
+		} else {
+			// No cached data available, show error container
 			update(state => ({
 				...state,
 				isLoading: false,
@@ -268,13 +312,14 @@ function createStudentGradeStore() {
 			}));
 		}
 	}
+	}
 
 	// Initialize store with cached data if available
 	function init(studentId, quarter = null, schoolYear = null) {
 		// If quarter/schoolYear not provided, we need to fetch them first
 		if (!quarter || !schoolYear) {
 			fetchCurrentQuarter().then(quarterData => {
-				const cachedData = getCachedData(
+				const cachedData = getValidCachedData(
 					studentId, 
 					quarterData.currentQuarter, 
 					quarterData.currentSchoolYear
@@ -305,7 +350,7 @@ function createStudentGradeStore() {
 			return false;
 		}
 
-		const cachedData = getCachedData(studentId, quarter, schoolYear);
+		const cachedData = getValidCachedData(studentId, quarter, schoolYear);
 		if (cachedData) {
 			update(state => ({
 				...state,
@@ -334,7 +379,7 @@ function createStudentGradeStore() {
 	// Change quarter
 	async function changeQuarter(studentId, quarter, schoolYear) {
 		// Check cache first
-		const cachedData = getCachedData(studentId, quarter, schoolYear);
+		const cachedData = getValidCachedData(studentId, quarter, schoolYear);
 		if (cachedData) {
 			update(state => ({
 				...state,
