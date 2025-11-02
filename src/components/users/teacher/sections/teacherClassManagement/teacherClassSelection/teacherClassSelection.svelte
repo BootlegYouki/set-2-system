@@ -215,15 +215,20 @@
                   onclick={() => handleSectionClick(yearData.yearLevel, section.name, section.id)}
                   aria-label="View class list for {section.name}"
                 >
-                  <div class="section-name">{section.name}</div>
-                  {#if section.subjects && section.subjects.length > 0}
-                    <div class="section-subjects">
-                      {section.subjects.slice(0, 2).join(', ')}
-                      {#if section.subjects.length > 2}
-                        <span class="more-subjects">+{section.subjects.length - 2} more</span>
-                      {/if}
-                    </div>
-                  {/if}
+                  <div class="section-card-content">
+                    <div class="section-name">{section.name}</div>
+                    {#if section.subjects && section.subjects.length > 0}
+                      <div class="section-subjects">
+                        <span>{section.subjects.slice(0, 2).join(', ')}</span>
+                        {#if section.subjects.length > 2}
+                          <span class="more-subjects">+{section.subjects.length - 2} more</span>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                  <div class="section-card-icon">
+                    <span class="material-symbols-outlined">chevron_right</span>
+                  </div>
                 </button>
               {/each}
             </div>

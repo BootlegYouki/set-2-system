@@ -130,7 +130,7 @@
   opacity: 1;
 }
 
-.spreadsheet-header.student-info {
+.spreadsheet-header.spreadsheet-student-info {
   background-color: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
   position: sticky;
@@ -183,7 +183,7 @@
   height: 40px;
 }
 
-.spreadsheet-cell.student-info {
+.spreadsheet-cell.spreadsheet-student-info {
   background-color: var(--md-sys-color-surface-container-low);
   position: sticky;
   left: 0;
@@ -241,7 +241,7 @@
   max-width: 80px;
 }
 
-.spreadsheet-cell.student-info .cell-input {
+.spreadsheet-cell.spreadsheet-student-info .cell-input {
   text-align: left;
 }
 

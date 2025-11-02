@@ -384,7 +384,7 @@
     const headers = spreadsheetData[0];
     const header = headers[colIndex];
 
-    if (colIndex < 2) return 'student-info';
+    if (colIndex < 2) return 'spreadsheet-student-info';
     if (header === 'Final Grade') return 'calculated';
     if (header?.includes('Avg')) return 'calculated';
     if (header?.startsWith('WW')) return 'written-work';
@@ -1576,7 +1576,7 @@
         <tr>
           {#each spreadsheetData[0] || [] as header, colIndex}
             <th class="spreadsheet-header"
-                class:student-info={colIndex < 2}
+                class:spreadsheet-student-info={colIndex < 2}
                 class:calculated={isCalculatedColumn(colIndex)}
                 class:final-grade={getColumnType(colIndex) === 'final-grade'}
                 class:clickable={isAssessmentColumn(colIndex)}
@@ -1600,7 +1600,7 @@
                 class="spreadsheet-cell"
                 class:selected={selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex}
                 class:editing={isEditing && selectedCell?.row === rowIndex + 1 && selectedCell?.col === colIndex}
-                class:student-info={colIndex < 2}
+                class:spreadsheet-student-info={colIndex < 2}
                 class:calculated={isCalculatedColumn(colIndex)}
                 class:final-grade={getColumnType(colIndex) === 'final-grade'}
                 class:editable={!isCalculatedColumn(colIndex) && colIndex > 1}
