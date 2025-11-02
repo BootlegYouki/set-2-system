@@ -335,6 +335,7 @@
 	gap: var(--spacing-md);
 	max-height: 600px;
 	overflow-y: auto;
+	border-radius: var(--radius-md);
 }
 
 /* Custom scrollbar styling for activities list */
