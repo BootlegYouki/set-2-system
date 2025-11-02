@@ -5,13 +5,13 @@
 	import { showSuccess } from '../../../../common/js/toastStore.js';
 	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
 	import { authStore } from '../../../../login/js/auth.js';
-	import { notificationStore } from '../../stores/notificationStore.js';
+	import { studentNotificationStore } from '../../../../../lib/stores/student/studentNotificationStore.js';
 
 	// Props
 	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
 
 	// Notification state from shared store
-	let unreadNotificationCount = $derived($notificationStore.unreadCount);
+	let unreadNotificationCount = $derived($studentNotificationStore.unreadCount);
 
 	// Function to get title based on gender
 	function getTitle(gender) {
@@ -51,20 +51,11 @@
 		if (!browser) return;
 		
 		const authState = $authStore;
-		if (!authState.isAuthenticated) return;
+		if (!authState.isAuthenticated || !authState.userData?.id) return;
 		
 		try {
-			const response = await authenticatedFetch('/api/notifications?limit=1&offset=0');
-			if (!response.ok) {
-				throw new Error(`Failed to fetch notifications: ${response.status}`);
-			}
-			
-			const result = await response.json();
-			if (result.success) {
-				const unreadCount = result.data.unreadCount || 0;
-				const totalCount = result.data.pagination?.total || 0;
-				notificationStore.setCounts(unreadCount, totalCount);
-			}
+			// Use the store's loadNotifications method with silent refresh
+			await studentNotificationStore.loadNotifications(authState.userData.id, 'all', true);
 		} catch (err) {
 			console.error('Error fetching notification count:', err);
 		}

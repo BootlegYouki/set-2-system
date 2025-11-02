@@ -1,19 +1,19 @@
 <script>
-  import './notification.css';
+  import './studentNotification.css';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
   import { authStore } from '../../../../login/js/auth.js';
-  import { notificationStore } from '../../stores/notificationStore.js';
   import { modalStore } from '../../../../common/js/modalStore.js';
   import { toastStore } from '../../../../common/js/toastStore.js';
+  import { studentNotificationStore } from '../../../../../lib/stores/student/studentNotificationStore.js';
 
-  // State variables
-  let notifications = [];
-  let loading = true;
-  let error = null;
-  let unreadCount = 0;
-  let totalCount = 0;
+  // State variables from store
+  $: notifications = $studentNotificationStore.notifications;
+  $: loading = $studentNotificationStore.isLoading;
+  $: error = $studentNotificationStore.error;
+  $: unreadCount = $studentNotificationStore.unreadCount;
+  $: totalCount = $studentNotificationStore.totalCount;
 
   // Filter options
   const filterOptions = [
@@ -36,6 +36,7 @@
   function selectFilter(filter) {
     selectedFilter = filter;
     isFilterDropdownOpen = false;
+    studentNotificationStore.setFilter(filter);
     fetchNotifications(); // Refetch with new filter
   }
 
@@ -133,205 +134,49 @@
 
   // API Functions
   async function fetchNotifications() {
-    try {
-      loading = true;
-      error = null;
-      
-      const user = $authStore.userData;
-      console.log('Auth store userData:', user);
-      
-      if (!user?.id) {
-        throw new Error('User not authenticated');
-      }
-
-      const params = new URLSearchParams({
-        student_id: user.id,
-        ...(selectedFilter !== 'all' && selectedFilter !== 'unread' && { type: selectedFilter }),
-        ...(selectedFilter === 'unread' && { is_read: 'false' })
-      });
-
-      console.log('Fetching notifications with params:', params.toString());
-      const response = await authenticatedFetch(`/api/notifications?${params}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch notifications: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('API response data:', data);
-      
-      // The API returns data in data.data structure and notifications are already transformed
-      const responseData = data.data || data;
-      notifications = responseData.notifications || [];
-      
-      console.log('Transformed notifications:', notifications);
-      
-      unreadCount = responseData.unreadCount || 0;
-      totalCount = responseData.pagination?.total || notifications.length;
-      
-      // Update the shared notification store
-      notificationStore.setCounts(unreadCount, totalCount);
-      
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-      error = err.message;
-      notifications = [];
-    } finally {
-      loading = false;
+    const user = $authStore.userData;
+    
+    if (!user?.id) {
+      error = 'User not authenticated';
+      return;
     }
+
+    await studentNotificationStore.loadNotifications(user.id, selectedFilter);
   }
 
   async function updateNotificationStatus(id, isRead) {
-    try {
-      const user = $authStore.userData;
-      if (!user?.id) {
-        throw new Error('User not authenticated');
-      }
+    const user = $authStore.userData;
+    if (!user?.id) return;
 
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: id,
-          action: isRead ? 'mark_read' : 'mark_unread'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update notification: ${response.status}`);
-      }
-
-      // Update local state
-      notifications = notifications.map(n => 
-        n.id === id ? { ...n, isRead } : n
-      );
-      
-      // Update unread count
-      if (isRead) {
-        unreadCount = Math.max(0, unreadCount - 1);
-        notificationStore.decrementUnread();
-      } else {
-        unreadCount += 1;
-        notificationStore.incrementUnread();
-      }
-
-    } catch (err) {
-      console.error('Error updating notification status:', err);
-      error = err.message;
-    }
+    await studentNotificationStore.updateNotificationStatus(user.id, id, isRead);
   }
 
   async function deleteNotificationAPI(id) {
-    try {
-      const user = $authStore.userData;
-      if (!user?.id) {
-        throw new Error('User not authenticated');
-      }
+    const user = $authStore.userData;
+    if (!user?.id) return;
 
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ id: id })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to delete notification: ${response.status}`);
-      }
-
-      // Remove from local state
-      const deletedNotification = notifications.find(n => n.id === id);
-      notifications = notifications.filter(n => n.id !== id);
-      
-      // Update counts
-      if (deletedNotification && !deletedNotification.isRead) {
-        unreadCount = Math.max(0, unreadCount - 1);
-        notificationStore.decrementUnread();
-      }
-      totalCount = Math.max(0, totalCount - 1);
-      notificationStore.setCounts(unreadCount, totalCount);
-
-    } catch (err) {
-      console.error('Error deleting notification:', err);
-      error = err.message;
-    }
+    await studentNotificationStore.deleteNotification(user.id, id);
   }
 
   async function markAllAsReadAPI() {
-    try {
-      const user = $authStore.userData;
-      if (!user?.id) {
-        throw new Error('User not authenticated');
-      }
+    const user = $authStore.userData;
+    if (!user?.id) return;
 
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'mark_all_read'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to mark all as read: ${response.status}`);
-      }
-
-      // Update local state
-      notifications = notifications.map(n => ({ ...n, isRead: true }));
-      unreadCount = 0;
-      
-      // Update the shared notification store
-      notificationStore.markAllRead();
-
-    } catch (err) {
-      console.error('Error marking all as read:', err);
-      error = err.message;
-    }
+    await studentNotificationStore.markAllAsRead(user.id);
   }
 
   async function clearAllReadAPI() {
-    try {
-      const user = $authStore.userData;
-      if (!user?.id) {
-        throw new Error('User not authenticated');
-      }
+    const user = $authStore.userData;
+    if (!user?.id) return;
 
-      const response = await authenticatedFetch('/api/notifications', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          action: 'delete_read'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to clear read notifications: ${response.status}`);
-      }
-
-      // Remove read notifications from local state
-      const readCount = notifications.filter(n => n.isRead).length;
-      notifications = notifications.filter(n => !n.isRead);
-      totalCount = Math.max(0, totalCount - readCount);
-      
-      // Update the shared notification store
-      notificationStore.setCounts(unreadCount, totalCount);
-
-    } catch (err) {
-      console.error('Error clearing read notifications:', err);
-      error = err.message;
-    }
+    await studentNotificationStore.clearAllRead(user.id);
   }
 
   // Initialize component
   onMount(() => {
     if (browser && $authStore.userData?.id) {
+      const user = $authStore.userData;
+      studentNotificationStore.init(user.id, selectedFilter);
       fetchNotifications();
     }
   });
@@ -354,11 +199,16 @@
   
   // Animation key to trigger stagger animation on data change
   let animationKey = 0;
+  let lastFilteredLength = 0;
+  let lastFilter = selectedFilter;
+  
+  // Only increment key when filter changes or notification count changes
   $: {
-    // Increment key whenever filter or notifications change
-    selectedFilter;
-    filteredNotifications;
-    animationKey++;
+    if (selectedFilter !== lastFilter || filteredNotifications.length !== lastFilteredLength) {
+      animationKey++;
+      lastFilter = selectedFilter;
+      lastFilteredLength = filteredNotifications.length;
+    }
   }
 </script>
 

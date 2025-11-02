@@ -8,7 +8,7 @@
   import StudentClassRanking from '../components/users/student/sections/studentClassRanking/studentClassRanking.svelte';
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
-  import Notification from '../components/users/student/sections/studentNotification/notification.svelte';
+  import Notification from '../components/users/student/sections/studentNotification/studentNotification.svelte';
   import StudentTodoList from '../components/users/student/sections/studentTodolist/studentTodolist.svelte';
   import TeacherNavbar from '../components/users/teacher/navigations/teacherNavbar/teacherNavbar.svelte';
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
