@@ -128,6 +128,13 @@ export function decryptMessages(messages) {
 
 	return messages.map(msg => {
 		try {
+			// Skip decryption for empty text (messages with only attachments)
+			if (!msg.text || msg.text === '') {
+				return {
+					...msg,
+					text: ''
+				};
+			}
 			return {
 				...msg,
 				text: decryptMessage(msg.text)

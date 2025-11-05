@@ -18,6 +18,8 @@
 	let isSendingMessage = $state(false);
 	let chatMessagesEl = $state();
 	let chatInputEl = $state();
+	let fileInputEl = $state();
+	let selectedFiles = $state([]);
 	let pollingInterval;
 	let showCancelModal = $state(false);
 	// Mobile pagination state
@@ -42,6 +44,59 @@
 				chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 			}, 100);
 		}
+	}
+
+	// Handle file selection
+	function handleFileSelect(event) {
+		const files = Array.from(event.target.files || []);
+		if (files.length === 0) return;
+
+		// Limit file size to 10MB per file
+		const maxSize = 10 * 1024 * 1024;
+		const validFiles = files.filter(file => {
+			if (file.size > maxSize) {
+				alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+				return false;
+			}
+			return true;
+		});
+
+		selectedFiles = [...selectedFiles, ...validFiles];
+		
+		// Reset the file input value to allow re-uploading the same file
+		if (fileInputEl) {
+			fileInputEl.value = '';
+		}
+	}
+
+	// Remove selected file
+	function removeFile(index) {
+		selectedFiles = selectedFiles.filter((_, i) => i !== index);
+	}
+
+	// Trigger file input click
+	function triggerFileInput() {
+		if (fileInputEl) {
+			fileInputEl.click();
+		}
+	}
+
+	// Convert file to base64
+	async function fileToBase64(file) {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result);
+			reader.onerror = reject;
+			reader.readAsDataURL(file);
+		});
+	}
+
+	// Download file attachment
+	function downloadFile(attachment) {
+		const link = document.createElement('a');
+		link.href = attachment.data;
+		link.download = attachment.name;
+		link.click();
 	}
 
 	// Get status display name
@@ -79,10 +134,30 @@
 
 	// Send a new message with optimistic UI update
 	async function sendMessage() {
-		if (!newMessage.trim() || isSendingMessage || !selectedRequest || isChatDisabled) return;
+		if ((!newMessage.trim() && selectedFiles.length === 0) || isSendingMessage || !selectedRequest || isChatDisabled) return;
 
 		isSendingMessage = true;
 		const messageText = newMessage.trim();
+		const filesToSend = [...selectedFiles];
+		
+		// Convert files to base64
+		let attachments = [];
+		try {
+			for (const file of filesToSend) {
+				const base64Data = await fileToBase64(file);
+				attachments.push({
+					name: file.name,
+					type: file.type,
+					size: file.size,
+					data: base64Data
+				});
+			}
+		} catch (error) {
+			console.error('Error converting files:', error);
+			alert('Failed to process files. Please try again.');
+			isSendingMessage = false;
+			return;
+		}
 		
 		// Create optimistic message with actual sender name
 		const tempId = `temp-${Date.now()}`; // Store temp ID
@@ -92,12 +167,14 @@
 			author: $authStore.userData?.name || 'Student',
 			authorRole: 'student',
 			created_at: new Date().toISOString(),
+			attachments: attachments,
 			isPending: true // Flag to track optimistic messages (internal only)
 		};
 
 		// Immediately add message to UI
 		selectedRequest.messages = [...(selectedRequest.messages || []), optimisticMessage];
 		newMessage = '';
+		selectedFiles = [];
 		scrollToBottom();
 		
 		// Refocus the input immediately
@@ -110,7 +187,8 @@
 			const result = await api.post('/api/document-requests', {
 				action: 'sendMessage',
 				requestId: selectedRequest.requestId,
-				message: messageText
+				message: messageText,
+				attachments: attachments
 			});
 
 			if (result.success) {
@@ -124,16 +202,18 @@
 				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
 				// Show error notification
 				alert('Failed to send message. Please try again.');
-				// Restore the message text so user can retry
+				// Restore the message text and files so user can retry
 				newMessage = messageText;
+				selectedFiles = filesToSend;
 			}
 		} catch (error) {
 			console.error('Error sending message:', error);
 			// Remove the optimistic message on error
 			selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
 			alert('An error occurred while sending the message.');
-			// Restore the message text so user can retry
+			// Restore the message text and files so user can retry
 			newMessage = messageText;
+			selectedFiles = filesToSend;
 		} finally {
 			isSendingMessage = false;
 		}
@@ -433,7 +513,23 @@
 										<span class="message-author">{msg.author}</span>
 										<span class="message-time">{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
 									</div>
-									<div class="student-document-request-message-text">{msg.text}</div>
+									{#if msg.text}
+										<div class="student-document-request-message-text">{msg.text}</div>
+									{/if}
+									{#if msg.attachments && msg.attachments.length > 0}
+										<div class="message-attachments">
+											{#each msg.attachments as attachment}
+												<button class="attachment-item" onclick={() => downloadFile(attachment)}>
+													<span class="material-symbols-outlined">attach_file</span>
+													<div class="attachment-info">
+														<span class="attachment-name">{attachment.name}</span>
+														<span class="attachment-size">{(attachment.size / 1024).toFixed(1)} KB</span>
+													</div>
+													<span class="material-symbols-outlined">download</span>
+												</button>
+											{/each}
+										</div>
+									{/if}
 								</div>
 							</div>
 						{/each}
@@ -446,34 +542,58 @@
 					{/if}
 				</div>
 
-				<div class="student-chat-input" class:disabled={isChatDisabled}>
-					{#if isChatDisabled}
-						<div class="chat-disabled-notice">
-							<span class="material-symbols-outlined">block</span>
-							<span>Chat is disabled for {selectedRequest.status === 'released' ? 'released' : 'cancelled'} requests</span>
+				<div class="student-chat-input-wrapper">
+					{#if selectedFiles.length > 0}
+						<div class="selected-files-preview">
+							{#each selectedFiles as file, index}
+								<div class="file-preview-item">
+									<span class="material-symbols-outlined">description</span>
+									<span class="file-preview-name">{file.name}</span>
+									<span class="file-preview-size">({(file.size / 1024).toFixed(1)} KB)</span>
+									<button class="remove-file-btn" onclick={() => removeFile(index)} title="Remove file">
+										<span class="material-symbols-outlined">close</span>
+									</button>
+								</div>
+							{/each}
 						</div>
-					{:else}
-						<button class="attach-btn" title="Attach file" aria-label="Attach file">
-							<span class="material-symbols-outlined">attach_file</span>
-						</button>
-						<input 
-							bind:this={chatInputEl}
-							placeholder="Type your message..." 
-							aria-label="Message input" 
-							bind:value={newMessage}
-							onkeydown={(e) => e.key === 'Enter' && !isSendingMessage && sendMessage()}
-							disabled={isSendingMessage}
-						/>
-						<button 
-							class="send-btn" 
-							title="Send message" 
-							aria-label="Send message" 
-							onclick={sendMessage}
-							disabled={isSendingMessage || !newMessage.trim()}
-						>
-							<span class="material-symbols-outlined">send</span>
-						</button>
 					{/if}
+					<div class="student-chat-input" class:disabled={isChatDisabled}>
+						{#if isChatDisabled}
+							<div class="chat-disabled-notice">
+								<span class="material-symbols-outlined">block</span>
+								<span>Chat is disabled for {selectedRequest.status === 'released' ? 'released' : 'cancelled'} requests</span>
+							</div>
+						{:else}
+							<input 
+								type="file" 
+								bind:this={fileInputEl}
+								onchange={handleFileSelect}
+								multiple
+								accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+								style="display: none;"
+							/>
+							<button class="attach-btn" title="Attach file" aria-label="Attach file" onclick={triggerFileInput}>
+								<span class="material-symbols-outlined">attach_file</span>
+							</button>
+							<input 
+								bind:this={chatInputEl}
+								placeholder="Type your message..." 
+								aria-label="Message input" 
+								bind:value={newMessage}
+								onkeydown={(e) => e.key === 'Enter' && !e.shiftKey && !isSendingMessage && sendMessage()}
+								disabled={isSendingMessage}
+							/>
+							<button 
+								class="send-btn" 
+								title="Send message" 
+								aria-label="Send message" 
+								onclick={sendMessage}
+								disabled={isSendingMessage || (!newMessage.trim() && selectedFiles.length === 0)}
+							>
+								<span class="material-symbols-outlined">send</span>
+							</button>
+						{/if}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -996,6 +1116,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xs);
+	}
+
+	/* Reduce chat messages height when files are selected */
+	.chat-container:has(.selected-files-preview) .student-chat-messages {
+		max-height: 460px;
 	}
 
 	.no-chat {
@@ -1792,6 +1917,147 @@
 		.modal-btn {
 			width: 100%;
 		}
+	}
+
+	/* File Upload Styles */
+	.student-chat-input-wrapper {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+	}
+
+	.selected-files-preview {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-sm);
+		background: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.file-preview-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		background: var(--md-sys-color-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		border-radius: var(--radius-sm);
+		font-size: 0.875rem;
+	}
+
+	.file-preview-item .material-symbols-outlined {
+		font-size: 18px;
+		color: var(--md-sys-color-primary);
+	}
+
+	.file-preview-name {
+		font-weight: 500;
+		max-width: 150px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.file-preview-size {
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.75rem;
+	}
+
+	.remove-file-btn {
+		background: transparent;
+		border: none;
+		padding: 2px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius-sm);
+		transition: all var(--transition-fast);
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.remove-file-btn .material-symbols-outlined {
+		font-size: 16px;
+	}
+
+	.remove-file-btn:hover {
+		background: var(--md-sys-color-error-container);
+		color: var(--md-sys-color-error);
+	}
+
+	/* Message Attachments */
+	.message-attachments {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+		margin-top: var(--spacing-xs);
+	}
+
+	.attachment-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		text-align: left;
+		width: 100%;
+	}
+
+	.attachment-item:hover {
+		background: rgba(255, 255, 255, 0.1);
+		border-color: var(--md-sys-color-primary);
+		transform: translateY(-1px);
+	}
+
+	.attachment-item .material-symbols-outlined:first-child {
+		font-size: 20px;
+		color: var(--md-sys-color-primary);
+	}
+
+	.attachment-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.attachment-name {
+		font-weight: 500;
+		font-size: 0.9rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: inherit;
+	}
+
+	.attachment-size {
+		font-size: 0.75rem;
+		opacity: 0.7;
+		color: inherit;
+	}
+
+	.attachment-item .material-symbols-outlined:last-child {
+		font-size: 18px;
+		opacity: 0.7;
+	}
+
+	.message-wrapper.sent .attachment-item {
+		background: rgba(255, 255, 255, 0.1);
+		border-color: rgba(255, 255, 255, 0.2);
+		color: var(--md-sys-color-on-primary);
+	}
+
+	.message-wrapper.received .attachment-item {
+		background: var(--md-sys-color-surface-container-high);
+		border-color: var(--md-sys-color-outline-variant);
+		color: var(--md-sys-color-on-surface);
 	}
 </style>
 

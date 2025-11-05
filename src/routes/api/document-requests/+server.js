@@ -643,56 +643,58 @@ export async function POST({ request }) {
 					data: { lastReadAt: new Date() }
 				});
 
-			case 'sendMessage':
-				// Both students and admins can send messages
-				const msgRequestId = data.requestId;
-				const messageText = data.message;
+		case 'sendMessage':
+			// Both students and admins can send messages
+			const msgRequestId = data.requestId;
+			const messageText = data.message || '';
+			const attachments = data.attachments || [];
 
-				if (!msgRequestId || !messageText) {
-					return json({ error: 'Request ID and message are required' }, { status: 400 });
-				}
+			if (!msgRequestId || (!messageText && attachments.length === 0)) {
+				return json({ error: 'Request ID and message or attachments are required' }, { status: 400 });
+			}
 
-				// Find the request
-				const targetRequest = await db
-					.collection('document_requests')
-					.findOne({ request_id: msgRequestId });
+			// Find the request
+			const targetRequest = await db
+				.collection('document_requests')
+				.findOne({ request_id: msgRequestId });
 
-				if (!targetRequest) {
-					return json({ error: 'Request not found' }, { status: 404 });
-				}
+			if (!targetRequest) {
+				return json({ error: 'Request not found' }, { status: 404 });
+			}
 
-				// For students, verify they own the request
-				if (user.account_type === 'student' && targetRequest.student_id !== user.id) {
-					return json({ error: 'You can only send messages to your own requests' }, { status: 403 });
-				}
+			// For students, verify they own the request
+			if (user.account_type === 'student' && targetRequest.student_id !== user.id) {
+				return json({ error: 'You can only send messages to your own requests' }, { status: 403 });
+			}
 
-				// Encrypt the message text before storing
-				const encryptedText = encryptMessage(messageText.trim());
+			// Encrypt the message text before storing (if present)
+			const encryptedText = messageText ? encryptMessage(messageText.trim()) : '';
 
-				// Create the message object with encrypted text
-				const newMessage = {
-					id: new ObjectId().toString(),
-					author: user.name || user.full_name,
-					authorId: user.id,
-					authorRole: user.account_type,
-					text: encryptedText,
-					created_at: new Date()
-				};
+			// Create the message object with encrypted text and attachments
+			const newMessage = {
+				id: new ObjectId().toString(),
+				author: user.name || user.full_name,
+				authorId: user.id,
+				authorRole: user.account_type,
+				text: encryptedText,
+				attachments: attachments, // Store attachments (already base64 encoded from client)
+				created_at: new Date()
+			};
 
-				// Add message to the document request
-				const messageResult = await db
-					.collection('document_requests')
-					.updateOne(
-						{ request_id: msgRequestId },
-						{
-							$push: { messages: newMessage },
-							$set: { updated_at: new Date() }
-						}
-					);
+			// Add message to the document request
+			const messageResult = await db
+				.collection('document_requests')
+				.updateOne(
+					{ request_id: msgRequestId },
+					{
+						$push: { messages: newMessage },
+						$set: { updated_at: new Date() }
+					}
+				);
 
-				if (messageResult.matchedCount === 0) {
-					return json({ error: 'Failed to send message' }, { status: 500 });
-				}
+			if (messageResult.matchedCount === 0) {
+				return json({ error: 'Failed to send message' }, { status: 500 });
+			}
 
 				// 3. Notify student when admin/teacher sends a message
 				if (user.account_type === 'admin' || user.account_type === 'teacher') {
