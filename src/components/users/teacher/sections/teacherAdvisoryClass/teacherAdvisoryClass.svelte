@@ -612,7 +612,7 @@
 								<div class="student-info-row">
 									<div class="student-info-item">
 										<span class="material-symbols-outlined">person</span>
-										<span>Student #{student.studentNumber}</span>
+										<span>{student.studentNumber}</span>
 									</div>
 									<div class="student-info-item">
 										<span class="material-symbols-outlined"

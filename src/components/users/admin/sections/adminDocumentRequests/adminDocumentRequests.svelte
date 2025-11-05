@@ -9,6 +9,7 @@
 	// Dynamic data for document requests (fetched from API)
 	let documentRequests = [];
 	let isLoading = true;
+	let isRefreshing = false;
 	let error = null;
 
 	// Static filter state (for UI only, no functionality yet)
@@ -129,11 +130,21 @@
 	// Open modal using document request modal store
 	async function openModal(request) {
 		try {
-			// Fetch the full request details including messages
+			// Open modal immediately with existing data (matches student side behavior)
+			docReqModalStore.open(
+				request,
+				requestStatuses,
+				modalStatuses,
+				updateRequestAPI,
+				rejectRequestAPI
+			);
+
+			// Fetch the full request details including messages in background
 			const response = await authenticatedFetch(`/api/document-requests?action=single&requestId=${request.requestId}`);
 			const result = await response.json();
 
 			if (result.success) {
+				// Update modal with fresh data
 				docReqModalStore.open(
 					result.data,
 					requestStatuses,
@@ -146,11 +157,9 @@
 				await markMessagesAsRead(request.requestId);
 			} else {
 				console.error('Failed to fetch request details:', result.error);
-				alert('Failed to load request details. Please try again.');
 			}
 		} catch (error) {
 			console.error('Error fetching request details:', error);
-			alert('An error occurred while loading the request details.');
 		}
 	}
 
@@ -171,8 +180,16 @@
 			const result = await response.json();
 
 			if (result.success) {
-				// Refresh the list to update the unread counts
-				await fetchDocumentRequests();
+				// Update local state instead of refetching - just mark messages as read for this request
+				documentRequests = documentRequests.map(req => {
+					if (req.requestId === requestId) {
+						return {
+							...req,
+							lastReadAt: new Date().toISOString()
+						};
+					}
+					return req;
+				});
 			} else {
 				console.error('Failed to mark messages as read:', result.error);
 			}
@@ -182,9 +199,14 @@
 	}
 
 	// Fetch document requests from API
-	async function fetchDocumentRequests() {
+	async function fetchDocumentRequests(silent = false) {
 		try {
-			isLoading = true;
+			// Set loading state (only if not silent)
+			if (!silent) {
+				isLoading = true;
+			} else {
+				isRefreshing = true;
+			}
 			error = null;
 
 			// Build query params
@@ -220,6 +242,7 @@
 			error = 'Failed to load document requests';
 		} finally {
 			isLoading = false;
+			isRefreshing = false;
 		}
 	}
 
@@ -329,11 +352,24 @@
 
 	// Track if component has mounted
 	let hasMounted = false;
+	let pollingInterval;
 
 	// Load data on mount
 	onMount(() => {
 		fetchDocumentRequests();
 		hasMounted = true;
+
+		// Start polling for updates every 30 seconds (matches student side)
+		pollingInterval = setInterval(() => {
+			fetchDocumentRequests(true); // Silent refresh - no loading spinner
+		}, 30 * 1000); // 30 seconds
+
+		// Cleanup polling on component destroy
+		return () => {
+			if (pollingInterval) {
+				clearInterval(pollingInterval);
+			}
+		};
 	});
 
 	// Debounced search - only re-fetch when search term changes after mount

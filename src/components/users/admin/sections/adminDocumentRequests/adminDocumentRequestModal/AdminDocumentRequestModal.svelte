@@ -900,7 +900,6 @@
 		max-height: 400px;
 		display: flex;
 		flex-direction: column;
-		justify-content: flex-end;
 		gap: var(--spacing-xs);
 	}
 
@@ -984,7 +983,7 @@
 	}
 
 	.message-bubble {
-		max-width: 70%;
+		max-width: 16rem;
 		padding: 10px 14px;
 		border-radius: 16px;
 		position: relative;
