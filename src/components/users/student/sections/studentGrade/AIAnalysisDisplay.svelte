@@ -173,7 +173,7 @@
 						<span>Action Plan</span>
 					</div>
 					{#each analysisData.actionPlan as action, index}
-						<div class="item-row action-row" in:fly|local="{{ y: -10, duration: 350, delay: 100 + (index * 80), easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+						<div class="item-row action-row" style="--action-index: {index};" in:fly|local="{{ y: -10, duration: 350, delay: 100 + (index * 80), easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 							<h4 class="action-name">{action.title}</h4>
 							<p class="item-text">{action.description}</p>
 							<p class="item-note">{action.expectedImpact}</p>
@@ -362,8 +362,13 @@
 	}
 
 	/* Action Items */
-	.action-row {
-		border-left: 3px solid var(--md-sys-color-primary);
+	.action-row {		
+		border: 1px solid;
+		border-color: hsl(
+			220, 
+			calc(40% + (var(--action-index) * 10%)), 
+			calc(80% - (var(--action-index) * 8%))
+		);
 	}
 
 	.action-name {
