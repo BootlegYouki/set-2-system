@@ -1,16 +1,19 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { Chart, DoughnutController, ArcElement, Tooltip, Legend, Title } from 'chart.js';
-	import { api } from '../../../../../../routes/api/helper/api-helper.js';
+	import { dashboardStore } from '../../../../../../lib/stores/admin/dashboardStore.js';
 
 	// Register Chart.js components
 	Chart.register(DoughnutController, ArcElement, Tooltip, Legend, Title);
 
 	let chartCanvas;
 	let chartInstance;
-	let loading = true;
-	let error = null;
-	let chartData = null;
+
+	// Subscribe to store for this chart
+	$: chartState = $dashboardStore.charts.studentsPerGrade;
+	$: loading = chartState.isLoading;
+	$: error = chartState.error;
+	$: chartData = chartState.data;
 
 	const gradeLevels = ['7', '8', '9', '10'];
 
@@ -21,31 +24,11 @@
 		'rgb(102, 102, 102)' // Grade 10 - Teal
 	];
 
-	async function fetchStudentsData() {
-		try {
-			loading = true;
-			error = null;
-
-			// Fetch students data from API
-			const response = await api.get('/api/dashboard/students-per-grade');
-
-			if (response.success) {
-				chartData = response.data;
-				loading = false;
-				// Create chart after loading is set to false, so canvas is rendered
-				setTimeout(() => {
-					if (chartCanvas) {
-						createChart(response.data);
-					}
-				}, 0);
-			} else {
-				throw new Error(response.error || 'Failed to fetch students data');
-			}
-		} catch (err) {
-			console.error('Error fetching students per grade level:', err);
-			error = err.message;
-			loading = false;
-		}
+	// Create chart when data is available (always with animation since no cache)
+	$: if (chartData && !loading && chartCanvas) {
+		setTimeout(() => {
+			createChart(chartData);
+		}, 0);
 	}
 
 	function createChart(data) {
@@ -191,13 +174,6 @@
 	}
 
 	onMount(() => {
-		fetchStudentsData();
-
-		// Refresh every 60 seconds
-		const refreshInterval = setInterval(() => {
-			fetchStudentsData();
-		}, 5 * 60 * 1000);
-
 		// Listen for theme changes
 		const observer = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
@@ -213,7 +189,6 @@
 		});
 
 		return () => {
-			clearInterval(refreshInterval);
 			observer.disconnect();
 		};
 	});
@@ -235,10 +210,6 @@
 		<div class="chart-error">
 			<span class="material-symbols-outlined">error</span>
 			<p>{error}</p>
-			<button class="retry-button" on:click={fetchStudentsData}>
-				<span class="material-symbols-outlined">refresh</span>
-				Retry
-			</button>
 		</div>
 	{:else}
 		<canvas bind:this={chartCanvas}></canvas>

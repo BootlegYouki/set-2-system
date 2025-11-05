@@ -74,6 +74,46 @@
 		}
 	}
 
+	// Fetch chart data - Students per grade
+	async function fetchStudentsPerGrade(silent = false) {
+		try {
+			if (!silent) {
+				dashboardStore.setChartLoading('studentsPerGrade', true);
+			}
+
+			const response = await api.get('/api/dashboard/students-per-grade');
+
+			if (response.success) {
+				dashboardStore.updateChartData('studentsPerGrade', response.data);
+			} else {
+				throw new Error(response.error || 'Failed to fetch students per grade data');
+			}
+		} catch (error) {
+			console.error('Error fetching students per grade:', error);
+			dashboardStore.setChartError('studentsPerGrade', error.message);
+		}
+	}
+
+	// Fetch chart data - Sections per grade
+	async function fetchSectionsPerGrade(silent = false) {
+		try {
+			if (!silent) {
+				dashboardStore.setChartLoading('sectionsPerGrade', true);
+			}
+
+			const response = await api.get('/api/dashboard/sections-per-grade');
+
+			if (response.success) {
+				dashboardStore.updateChartData('sectionsPerGrade', response.data);
+			} else {
+				throw new Error(response.error || 'Failed to fetch sections per grade data');
+			}
+		} catch (error) {
+			console.error('Error fetching sections per grade:', error);
+			dashboardStore.setChartError('sectionsPerGrade', error.message);
+		}
+	}
+
 	// Fetch recent activities from API
 	async function fetchRecentActivities(silent = false) {
 		try {
@@ -105,13 +145,28 @@
 			dashboardStore.init(cachedData);
 		}
 
+		// Initialize chart data with cached data
+		const cachedStudentsChart = dashboardStore.getCachedChartData('studentsPerGrade');
+		if (cachedStudentsChart) {
+			dashboardStore.initChartData('studentsPerGrade', cachedStudentsChart);
+		}
+
+		const cachedSectionsChart = dashboardStore.getCachedChartData('sectionsPerGrade');
+		if (cachedSectionsChart) {
+			dashboardStore.initChartData('sectionsPerGrade', cachedSectionsChart);
+		}
+
 		// Fetch fresh data (silent if we have cache, visible loading if not)
 		fetchDashboardStats(!!cachedData);
+		fetchStudentsPerGrade(!!cachedStudentsChart);
+		fetchSectionsPerGrade(!!cachedSectionsChart);
 		fetchRecentActivities(false); // Always show loading for activity logs
 
 		// Set up periodic silent refresh every 30 seconds
 		const refreshInterval = setInterval(() => {
 			fetchDashboardStats(true); // Always silent for periodic refresh
+			fetchStudentsPerGrade(true); // Always silent for periodic refresh
+			fetchSectionsPerGrade(true); // Always silent for periodic refresh
 			fetchRecentActivities(true); // Always silent for periodic refresh
 		}, 30000);
 

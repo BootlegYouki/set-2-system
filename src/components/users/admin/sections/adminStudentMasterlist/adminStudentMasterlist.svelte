@@ -4,11 +4,13 @@
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { modalStore } from '../../../../common/js/modalStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
+	import { studentMasterlistStore } from '../../../../../lib/stores/admin/studentMasterlistStore.js';
 
-	// State variables
-	let students = [];
+	// Subscribe to store
+	$: ({ students, sections: sectionOptions, isLoading, error } = $studentMasterlistStore);
+
+	// Local UI state
 	let filteredStudents = [];
-	let isLoading = true;
 	let searchQuery = '';
 	let selectedGradeLevel = '';
 	let selectedSection = '';
@@ -26,24 +28,29 @@
 		{ id: '10', name: 'Grade 10', icon: 'looks_4' }
 	];
 
-	// Section options - will be populated from database
-	let sectionOptions = [{ id: '', name: 'All Sections' }];
-
 	// Computed values
 	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
 
+	// Reactive filter
+	$: if (students) {
+		filterStudents();
+	}
+
 	// Load students data
-	async function loadStudents() {
-		isLoading = true;
+	async function loadStudents(silent = false) {
 		try {
+			if (!silent) {
+				studentMasterlistStore.setLoading(true);
+			}
+
 			const data = await api.get('/api/accounts?type=student');
 			if (!data.success) {
 				throw new Error('Failed to load students');
 			}
 
 			// Transform API data to match our component structure
-			students = data.accounts.map((account) => ({
+			const transformedStudents = data.accounts.map((account) => ({
 				id: account.id,
 				name: account.name,
 				number: account.number, // Add the student ID number
@@ -56,14 +63,14 @@
 				contactNumber: account.contactNumber || 'Not specified',
 				status: account.status || 'active'
 			}));
-			filterStudents();
+
+			studentMasterlistStore.updateStudents(transformedStudents);
 		} catch (error) {
 			console.error('Error loading students:', error);
-			toastStore.error('Failed to load students. Please try again.');
-			// Fallback to empty array on error
-			students = [];
-		} finally {
-			isLoading = false;
+			studentMasterlistStore.setError(error.message);
+			if (!silent) {
+				toastStore.error('Failed to load students. Please try again.');
+			}
 		}
 	}
 
@@ -79,11 +86,13 @@
 				}));
 
 				// Combine "All Sections" with actual sections
-				sectionOptions = [{ id: '', name: 'All Sections' }, ...sectionsFromDB];
+				const allSections = [{ id: '', name: 'All Sections' }, ...sectionsFromDB];
+				studentMasterlistStore.updateSections(allSections);
 			}
 		} catch (error) {
 			console.error('Error loading sections:', error);
 			// Keep default "All Sections" option if loading fails
+			studentMasterlistStore.updateSections([{ id: '', name: 'All Sections' }]);
 		}
 	}
 
@@ -198,11 +207,25 @@
 	}
 
 	onMount(() => {
-		loadSections(); // Load sections first
-		loadStudents();
+		// Initialize store with cached data (instant load)
+		const cachedData = studentMasterlistStore.getCachedData();
+		if (cachedData) {
+			studentMasterlistStore.init(cachedData);
+		}
+
+		// Fetch fresh data (silent if we have cache, visible loading if not)
+		loadSections();
+		loadStudents(!!cachedData);
+
+		// Set up periodic silent refresh every 30 seconds
+		const refreshInterval = setInterval(() => {
+			loadStudents(true); // Always silent for periodic refresh
+		}, 30000);
+
 		document.addEventListener('click', handleClickOutside);
 
 		return () => {
+			clearInterval(refreshInterval);
 			document.removeEventListener('click', handleClickOutside);
 		};
 	});

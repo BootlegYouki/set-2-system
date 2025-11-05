@@ -12,7 +12,22 @@ function createDashboardStore() {
 		isLoading: false,
 		error: null,
 		lastUpdated: null,
-		isInitialized: false
+		isInitialized: false,
+		// Chart data
+		charts: {
+			studentsPerGrade: {
+				data: null,
+				isLoading: false,
+				error: null,
+				lastUpdated: null
+			},
+			sectionsPerGrade: {
+				data: null,
+				isLoading: false,
+				error: null,
+				lastUpdated: null
+			}
+		}
 	});
 
 	return {
@@ -86,15 +101,109 @@ function createDashboardStore() {
 			return null;
 		},
 
-		// Clear cache
-		clearCache: () => {
-			try {
-				localStorage.removeItem('dashboard-stats-cache');
-			} catch (e) {
-				console.warn('Failed to clear dashboard cache:', e);
-			}
+	// Clear cache
+	clearCache: () => {
+		try {
+			localStorage.removeItem('dashboard-stats-cache');
+			localStorage.removeItem('dashboard-charts-cache');
+		} catch (e) {
+			console.warn('Failed to clear dashboard cache:', e);
 		}
-	};
+	},
+
+	// ========== CHART DATA METHODS ==========
+
+	// Initialize chart data with cached data
+	initChartData: (chartType, cachedData) => {
+		if (cachedData) {
+			update(state => ({
+				...state,
+				charts: {
+					...state.charts,
+					[chartType]: {
+						...state.charts[chartType],
+						data: cachedData,
+						isLoading: false
+					}
+				}
+			}));
+		}
+	},
+
+	// Set chart loading state
+	setChartLoading: (chartType, loading) => {
+		update(state => ({
+			...state,
+			charts: {
+				...state.charts,
+				[chartType]: {
+					...state.charts[chartType],
+					isLoading: loading
+				}
+			}
+		}));
+	},
+
+	// Update chart data
+	updateChartData: (chartType, newData) => {
+		update(state => ({
+			...state,
+			charts: {
+				...state.charts,
+				[chartType]: {
+					data: newData,
+					isLoading: false,
+					error: null,
+					lastUpdated: new Date()
+				}
+			}
+		}));
+
+		// Cache to localStorage
+		try {
+			const cacheKey = `dashboard-chart-${chartType}-cache`;
+			localStorage.setItem(cacheKey, JSON.stringify({
+				data: newData,
+				timestamp: Date.now()
+			}));
+		} catch (e) {
+			console.warn(`Failed to cache ${chartType} data:`, e);
+		}
+	},
+
+	// Set chart error
+	setChartError: (chartType, error) => {
+		update(state => ({
+			...state,
+			charts: {
+				...state.charts,
+				[chartType]: {
+					...state.charts[chartType],
+					error,
+					isLoading: false
+				}
+			}
+		}));
+	},
+
+	// Get cached chart data
+	getCachedChartData: (chartType) => {
+		try {
+			const cacheKey = `dashboard-chart-${chartType}-cache`;
+			const cached = localStorage.getItem(cacheKey);
+			if (cached) {
+				const { data, timestamp } = JSON.parse(cached);
+				// Cache is valid for 5 minutes
+				if (Date.now() - timestamp < 5 * 60 * 1000) {
+					return data;
+				}
+			}
+		} catch (e) {
+			console.warn(`Failed to retrieve cached ${chartType} data:`, e);
+		}
+		return null;
+	}
+};
 }
 
 export const dashboardStore = createDashboardStore();

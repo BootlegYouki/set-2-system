@@ -1,44 +1,27 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title } from 'chart.js';
-	import { api } from '../../../../../../routes/api/helper/api-helper.js';
+	import { dashboardStore } from '../../../../../../lib/stores/admin/dashboardStore.js';
 
 	// Register Chart.js components
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
 	let chartCanvas;
 	let chartInstance;
-	let loading = true;
-	let error = null;
-	let chartData = null;
+
+	// Subscribe to store for this chart
+	$: chartState = $dashboardStore.charts.sectionsPerGrade;
+	$: loading = chartState.isLoading;
+	$: error = chartState.error;
+	$: chartData = chartState.data;
 
 	const gradeLevels = ['7', '8', '9', '10'];
 
-	async function fetchGradesData() {
-		try {
-			loading = true;
-			error = null;
-
-			// Fetch sections per grade level data from API
-			const response = await api.get('/api/dashboard/sections-per-grade');
-			
-			if (response.success) {
-				chartData = response.data;
-				loading = false;
-				// Create chart after loading is set to false, so canvas is rendered
-				setTimeout(() => {
-					if (chartCanvas) {
-						createChart(response.data);
-					}
-				}, 0);
-			} else {
-				throw new Error(response.error || 'Failed to fetch sections data');
-			}
-		} catch (err) {
-			console.error('Error fetching sections data:', err);
-			error = err.message;
-			loading = false;
-		}
+	// Create chart when data is available (always with animation since no cache)
+	$: if (chartData && !loading && chartCanvas) {
+		setTimeout(() => {
+			createChart(chartData);
+		}, 0);
 	}
 
 	function createChart(data) {
@@ -162,13 +145,6 @@
 	}
 
 	onMount(() => {
-		fetchGradesData();
-
-		// Refresh every 60 seconds
-		const refreshInterval = setInterval(() => {
-			fetchGradesData();
-		}, 60000);
-
 		// Listen for theme changes
 		const observer = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
@@ -184,7 +160,6 @@
 		});
 
 		return () => {
-			clearInterval(refreshInterval);
 			observer.disconnect();
 		};
 	});
@@ -206,10 +181,6 @@
 		<div class="chart-error">
 			<span class="material-symbols-outlined">error</span>
 			<p>{error}</p>
-			<button class="retry-button" on:click={fetchGradesData}>
-				<span class="material-symbols-outlined">refresh</span>
-				Retry
-			</button>
 		</div>
 	{:else}
 		<canvas bind:this={chartCanvas}></canvas>
