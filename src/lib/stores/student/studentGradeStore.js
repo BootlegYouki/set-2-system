@@ -570,57 +570,72 @@ function createStudentGradeStore() {
 			}
 
 			// Fetch from API (API checks database cache, then generates if needed)
-			const response = await fetch('/api/ai-grade-analysis', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					...getAuthHeaders()
-				},
-				body: JSON.stringify({
-					studentId,
-					quarter,
-					schoolYear,
-					forceRefresh
-				})
-			});
+			// Set a longer timeout (90 seconds) for AI generation
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 90000);
+			
+			try {
+				const response = await fetch('/api/ai-grade-analysis', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						...getAuthHeaders()
+					},
+					body: JSON.stringify({
+						studentId,
+						quarter,
+						schoolYear,
+						forceRefresh
+					}),
+					signal: controller.signal
+				});
+				
+				clearTimeout(timeoutId);
 
-			if (!response.ok) {
-				throw new Error('Failed to fetch AI analysis');
+				if (!response.ok) {
+					throw new Error('Failed to fetch AI analysis');
+				}
+
+				// Read the streamed response
+				const reader = response.body.getReader();
+				const decoder = new TextDecoder();
+				let jsonString = '';
+
+				while (true) {
+					const { value, done } = await reader.read();
+					if (done) break;
+					jsonString += decoder.decode(value, { stream: true });
+				}
+
+				// Parse the JSON
+				const analysisData = JSON.parse(jsonString);
+
+				// Validate structure
+				if (!analysisData || !analysisData.overallInsight) {
+					throw new Error('Invalid analysis data structure');
+				}
+
+				// Cache to localStorage (database cache is handled by API)
+				cacheAiAnalysis(studentId, quarter, schoolYear, analysisData);
+				console.log('AI Analysis: Cached to localStorage and database');
+
+				// Update store
+				update(state => ({
+					...state,
+					aiAnalysis: analysisData,
+					aiAnalysisLoading: false,
+					aiAnalysisError: null,
+					aiAnalysisTimestamp: Date.now()
+				}));
+
+				return analysisData;
+			} catch (fetchError) {
+				clearTimeout(timeoutId);
+				if (fetchError.name === 'AbortError') {
+					throw new Error('AI analysis is taking longer than expected. Please try again.');
+				}
+				throw fetchError;
 			}
-
-			// Read the streamed response
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-			let jsonString = '';
-
-			while (true) {
-				const { value, done } = await reader.read();
-				if (done) break;
-				jsonString += decoder.decode(value, { stream: true });
-			}
-
-			// Parse the JSON
-			const analysisData = JSON.parse(jsonString);
-
-			// Validate structure
-			if (!analysisData || !analysisData.overallInsight) {
-				throw new Error('Invalid analysis data structure');
-			}
-
-			// Cache to localStorage (database cache is handled by API)
-			cacheAiAnalysis(studentId, quarter, schoolYear, analysisData);
-			console.log('AI Analysis: Cached to localStorage and database');
-
-			// Update store
-			update(state => ({
-				...state,
-				aiAnalysis: analysisData,
-				aiAnalysisLoading: false,
-				aiAnalysisError: null,
-				aiAnalysisTimestamp: Date.now()
-			}));
-
-			return analysisData;
 
 		} catch (error) {
 			console.error('Error loading AI analysis:', error);
