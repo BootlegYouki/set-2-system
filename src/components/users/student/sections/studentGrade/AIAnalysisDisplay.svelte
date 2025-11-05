@@ -66,7 +66,7 @@
 	{:else if analysisData}
 		<!-- Overview (Section 1) -->
 		{#if visibleSections >= 1}
-			<div class="analysis-section" in:fly="{{ y: -20, duration: 400, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">psychology</span>
 					<span>Overview</span>
@@ -77,13 +77,13 @@
 
 		<!-- Strengths (Section 2) -->
 		{#if visibleSections >= 2}
-			<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">emoji_events</span>
 					<span>Strengths</span>
 				</div>
-				{#each analysisData.strengths as strength}
-					<div class="item-row">
+				{#each analysisData.strengths as strength, index}
+					<div class="item-row" in:fly|local="{{ y: -10, duration: 350, delay: 100 + (index * 80), easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 						<div class="item-top">
 							<span class="item-name">{strength.subject}</span>
 							<span class="item-value">{strength.score.toFixed(1)}</span>
@@ -97,13 +97,13 @@
 		<!-- Areas for Growth (Section 3) -->
 		{#if analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0}
 			{#if visibleSections >= 3}
-				<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 100, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<div class="section-title">
 						<span class="material-symbols-outlined">trending_up</span>
 						<span>Areas for Growth</span>
 					</div>
-					{#each analysisData.areasForGrowth as area}
-						<div class="item-row">
+					{#each analysisData.areasForGrowth as area, index}
+						<div class="item-row" in:fly|local="{{ y: -10, duration: 350, delay: 100 + (index * 80), easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 							<div class="item-top">
 								<span class="item-name">{area.subject}</span>
 								<span class="item-value">{area.score.toFixed(1)}</span>
@@ -118,14 +118,14 @@
 
 		<!-- Assessment Breakdown (Section 4 or 3 if no areas for growth) -->
 		{#if visibleSections >= (analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 4 : 3)}
-			<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 150, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 150, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">analytics</span>
 					<span>Assessment Breakdown</span>
 				</div>
 				<div class="assessment-row">
 					{#if analysisData.assessmentInsights.writtenWork}
-						<div class="assessment-item">
+						<div class="assessment-item" in:fly|local="{{ y: -10, duration: 350, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 							<div class="assessment-top">
 								<span class="assessment-name">Written Work</span>
 								<span class="assessment-value">{analysisData.assessmentInsights.writtenWork.average.toFixed(1)}%</span>
@@ -135,7 +135,7 @@
 					{/if}
 					
 					{#if analysisData.assessmentInsights.performanceTasks}
-						<div class="assessment-item">
+						<div class="assessment-item" in:fly|local="{{ y: -10, duration: 350, delay: 180, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 							<div class="assessment-top">
 								<span class="assessment-name">Performance Tasks</span>
 								<span class="assessment-value">{analysisData.assessmentInsights.performanceTasks.average.toFixed(1)}%</span>
@@ -145,7 +145,7 @@
 					{/if}
 
 					{#if analysisData.assessmentInsights.quarterlyAssessment}
-						<div class="assessment-item">
+						<div class="assessment-item" in:fly|local="{{ y: -10, duration: 350, delay: 260, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 							<div class="assessment-top">
 								<span class="assessment-name">Quarterly Assessment</span>
 								<span class="assessment-value">{analysisData.assessmentInsights.quarterlyAssessment.average.toFixed(1)}%</span>
@@ -167,13 +167,13 @@
 		{#if analysisData.actionPlan && analysisData.actionPlan.length > 0}
 			{@const actionPlanIndex = (analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 5 : 4)}
 			{#if visibleSections >= actionPlanIndex}
-				<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 200, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 200, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<div class="section-title">
 						<span class="material-symbols-outlined">checklist</span>
 						<span>Action Plan</span>
 					</div>
-					{#each analysisData.actionPlan as action}
-						<div class="item-row action-row">
+					{#each analysisData.actionPlan as action, index}
+						<div class="item-row action-row" in:fly|local="{{ y: -10, duration: 350, delay: 100 + (index * 80), easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 							<h4 class="action-name">{action.title}</h4>
 							<p class="item-text">{action.description}</p>
 							<p class="item-note">{action.expectedImpact}</p>
@@ -185,7 +185,7 @@
 
 		<!-- Motivational Message (Last Section) -->
 		{#if analysisData.motivationalMessage && visibleSections >= totalSections}
-			<div class="analysis-section motivational" in:fly="{{ y: -20, duration: 400, delay: 250, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+			<div class="analysis-section motivational" in:fly|local="{{ y: -20, duration: 400, delay: 250, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<p>{analysisData.motivationalMessage}</p>
 			</div>
 		{/if}
@@ -193,14 +193,14 @@
 		<!-- Show More / Show Less Buttons -->
 		<div class="ai-action-buttons">
 			{#if !allSectionsVisible}
-				<button class="show-more-btn" on:click={showMoreSection} in:fly="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<button class="show-more-btn" on:click={showMoreSection} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<span class="material-symbols-outlined">expand_more</span>
 					<span>Show More</span>
 				</button>
 			{/if}
 			
 			{#if visibleSections > 1}
-				<button class="show-more-btn" on:click={showLess} in:fly="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<button class="show-more-btn" on:click={showLess} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<span class="material-symbols-outlined">expand_less</span>
 					<span>Show Less</span>
 				</button>
@@ -261,19 +261,19 @@
 		align-items: center;
 		gap: var(--spacing-sm);
 		margin-bottom: var(--spacing-md);
-		font-size: 0.9375rem;
+		font-size: 1.125rem;
 		font-weight: 600;
 		color: var(--md-sys-color-on-surface);
 	}
 
 	.section-title .material-symbols-outlined {
-		font-size: 1.25rem;
+		font-size: 1.5rem;
 		color: var(--md-sys-color-primary);
 	}
 
 	.section-text {
 		margin: 0;
-		font-size: 0.875rem;
+		font-size: 1rem;
 		line-height: 1.6;
 		color: var(--md-sys-color-on-surface-variant);
 	}
@@ -299,26 +299,26 @@
 
 	.item-name {
 		font-weight: 600;
-		font-size: 0.875rem;
+		font-size: 1rem;
 		color: var(--md-sys-color-on-surface);
 	}
 
 	.item-value {
 		font-weight: 700;
-		font-size: 0.875rem;
+		font-size: 1rem;
 		color: var(--md-sys-color-primary);
 	}
 
 	.item-text {
 		margin: 0 0 var(--spacing-xs) 0;
-		font-size: 0.8125rem;
+		font-size: 0.9375rem;
 		line-height: 1.5;
 		color: var(--md-sys-color-on-surface-variant);
 	}
 
 	.item-note {
 		margin: 0;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 		color: var(--md-sys-color-outline);
 	}
 
@@ -344,19 +344,19 @@
 
 	.assessment-name {
 		font-weight: 600;
-		font-size: 0.8125rem;
+		font-size: 0.9375rem;
 		color: var(--md-sys-color-on-surface);
 	}
 
 	.assessment-value {
 		font-weight: 700;
-		font-size: 0.875rem;
+		font-size: 1rem;
 		color: var(--md-sys-color-primary);
 	}
 
 	.assessment-text {
 		margin: 0;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 		line-height: 1.5;
 		color: var(--md-sys-color-on-surface-variant);
 	}
@@ -368,7 +368,7 @@
 
 	.action-name {
 		margin: 0 0 var(--spacing-xs) 0;
-		font-size: 0.875rem;
+		font-size: 1rem;
 		font-weight: 600;
 		color: var(--md-sys-color-on-surface);
 	}
@@ -382,7 +382,7 @@
 
 	.motivational p {
 		margin: 0;
-		font-size: 0.875rem;
+		font-size: 1rem;
 		line-height: 1.6;
 		color: var(--md-sys-color-on-primary-container);
 		font-style: italic;
