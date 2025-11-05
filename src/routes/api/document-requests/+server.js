@@ -696,24 +696,38 @@ export async function POST({ request }) {
 				return json({ error: 'Failed to send message' }, { status: 500 });
 			}
 
-				// 3. Notify student when admin/teacher sends a message
-				if (user.account_type === 'admin' || user.account_type === 'teacher') {
-					// Truncate long messages for notification
-					const notificationMessage = messageText.length > 100 
+			// 3. Notify student when admin/teacher sends a message
+			if (user.account_type === 'admin' || user.account_type === 'teacher') {
+				let notificationMessage = '';
+				
+				// Handle different message scenarios
+				if (messageText && attachments.length > 0) {
+					// Both text and attachments
+					const truncatedText = messageText.length > 80 
+						? messageText.substring(0, 80) + '...' 
+						: messageText;
+					notificationMessage = `${truncatedText} (+ ${attachments.length} file${attachments.length > 1 ? 's' : ''})`;
+				} else if (messageText) {
+					// Only text
+					notificationMessage = messageText.length > 100 
 						? messageText.substring(0, 100) + '...' 
 						: messageText;
-					
-					await createDocumentRequestNotification(db, targetRequest.student_id, {
-						title: `New Message from ${user.name}`,
-						message: `You have a new message regarding your "${targetRequest.document_type}" request (${msgRequestId}): "${notificationMessage}"`,
-						priority: 'normal',
-						requestId: msgRequestId,
-						documentType: targetRequest.document_type,
-						status: targetRequest.status,
-						adminName: user.name,
-						adminId: user.id
-					});
+				} else if (attachments.length > 0) {
+					// Only attachments
+					notificationMessage = `Sent ${attachments.length} file${attachments.length > 1 ? 's' : ''}`;
 				}
+				
+				await createDocumentRequestNotification(db, targetRequest.student_id, {
+					title: `New Message from ${user.name}`,
+					message: `You have a new message regarding your "${targetRequest.document_type}" request (${msgRequestId}): ${notificationMessage}`,
+					priority: 'normal',
+					requestId: msgRequestId,
+					documentType: targetRequest.document_type,
+					status: targetRequest.status,
+					adminName: user.name,
+					adminId: user.id
+				});
+			}
 
 				// Return the message with decrypted text for the response
 				return json({
