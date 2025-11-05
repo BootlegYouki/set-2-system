@@ -2,19 +2,30 @@ import { json } from '@sveltejs/kit';
 import dotenv from 'dotenv';
 import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
 
+// Constants
+const GEMINI_MODEL = "gemini-2.5-flash";
+
 export async function POST({ request }) {
+    console.log('=== AI Grade Analysis Request Started ===');
+    
+    // Declare variables at top scope for fallback access in catch block
+    let db;
+    let cacheKey;
+    
     try {
         const { studentId, quarter, schoolYear, forceRefresh = false } = await request.json();
+        console.log('Request params:', { studentId, quarter, schoolYear, forceRefresh });
 
         if (!studentId) {
             return json({ error: 'Missing student ID' }, { status: 400 });
         }
 
         // Connect to MongoDB
-        const db = await connectToDatabase();
+        db = await connectToDatabase();
 
         // Fetch student data
         const student = await db.collection('users').findOne({ _id: new ObjectId(studentId) });
@@ -23,7 +34,7 @@ export async function POST({ request }) {
         }
 
         // Check for cached analysis (skip if forceRefresh is true)
-        const cacheKey = {
+        cacheKey = {
             student_id: new ObjectId(studentId),
             quarter: quarter,
             school_year: schoolYear
@@ -39,9 +50,16 @@ export async function POST({ request }) {
                 ((now - new Date(cachedAnalysis.created_at)) / (1000 * 60 * 60 * 24)) < CACHE_DURATION_DAYS;
 
             if (cacheValid && cachedAnalysis.analysis) {
-                console.log('Serving cached AI analysis');
-                // Stream the cached analysis to maintain consistent UX
-                return streamCachedAnalysis(cachedAnalysis.analysis);
+                // Check if cached analysis is valid JSON (not old text format)
+                const isValidJSON = typeof cachedAnalysis.analysis === 'object' && cachedAnalysis.analysis.overallInsight;
+                
+                if (isValidJSON) {
+                    console.log('Serving cached AI analysis (JSON format)');
+                    return streamCachedAnalysis(cachedAnalysis.analysis);
+                } else {
+                    console.log('Cached analysis is in old format, regenerating...');
+                    // Don't use old cache, regenerate with new prompt
+                }
             }
         } else {
             console.log('Force refresh requested - bypassing cache');
@@ -67,85 +85,108 @@ export async function POST({ request }) {
         // Create the prompt for AI analysis
         const prompt = createAnalysisPrompt(gradeAnalysisData);
 
-        // Call OpenRouter API
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENROUTER_AI_KEY}`,
-                'HTTP-Referer': '',
-                'X-Title': '',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: process.env.AI_MODEL,
-                messages: [
-                    {
-                        role: 'user',
-                        content: prompt,
-                    },
-                ],
-                max_tokens: 2000,
-                temperature: 0.7,
-                stream: true, // Enable streaming
-            }),
+        // Initialize Google Gemini AI
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        
+        // Use Gemini 2.5 Flash for fast, efficient JSON responses
+        const model = genAI.getGenerativeModel({ 
+            model: GEMINI_MODEL,
+            generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 5000,
+                responseMimeType: "application/json", // Force JSON response
+            }
         });
-
-        if (!response.ok) {
-            throw new Error(`OpenRouter API error: ${response.status}`);
+        
+        console.log('Using Google Gemini model:', GEMINI_MODEL);
+        console.log('Making request to Gemini API...');
+        
+        // Generate content using the official SDK
+        let fullAnalysis;
+        try {
+            const result = await model.generateContent(prompt);
+            console.log('Gemini API response received');
+            const response = result.response;
+            fullAnalysis = response.text();
+            console.log('Response text extracted, length:', fullAnalysis.length);
+        } catch (geminiError) {
+            console.error('Gemini API call failed:', geminiError);
+            console.error('Error details:', {
+                message: geminiError.message,
+                name: geminiError.name,
+                stack: geminiError.stack
+            });
+            throw new Error(`Gemini API error: ${geminiError.message}`);
         }
 
-        // Create a streaming response and save to cache
-        let fullAnalysis = '';
+        // Parse the AI response as JSON
+        let parsedAnalysis;
+        try {
+            // Clean up the response - remove any markdown code blocks, extra text, etc.
+            let cleanedAnalysis = fullAnalysis.trim();
+            
+            // Remove markdown code blocks
+            if (cleanedAnalysis.startsWith('```json')) {
+                cleanedAnalysis = cleanedAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            } else if (cleanedAnalysis.startsWith('```')) {
+                cleanedAnalysis = cleanedAnalysis.replace(/```\n?/g, '');
+            }
+            
+            // Find the first { and last } to extract just the JSON object
+            const firstBrace = cleanedAnalysis.indexOf('{');
+            const lastBrace = cleanedAnalysis.lastIndexOf('}');
+            
+            if (firstBrace === -1 || lastBrace === -1) {
+                throw new Error('No JSON object found in response');
+            }
+            
+            cleanedAnalysis = cleanedAnalysis.substring(firstBrace, lastBrace + 1);
+            
+            // Parse the JSON
+            parsedAnalysis = JSON.parse(cleanedAnalysis);
+            
+            // Validate the structure
+            if (!parsedAnalysis.overallInsight || !parsedAnalysis.performanceLevel) {
+                throw new Error('Invalid JSON structure - missing required fields');
+            }
+            
+        } catch (error) {
+            console.error('Failed to parse AI response as JSON:', error);
+            console.error('Gemini Model used:', GEMINI_MODEL);
+            console.error('Raw response (first 500 chars):', fullAnalysis.substring(0, 500));
+            
+            // Provide helpful error message
+            throw new Error('Gemini returned invalid JSON format. Please try again.');
+        }
+
+        // Save to cache
+        await saveAnalysisToCache(db, cacheKey, parsedAnalysis);
+
+        // Stream the JSON response character by character for smooth UI
+        const jsonString = JSON.stringify(parsedAnalysis);
         const stream = new ReadableStream({
-            async start(controller) {
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
+            start(controller) {
+                const chunkSize = 50;
+                let position = 0;
 
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        
-                        if (done) {
-                            // Save complete analysis to cache
-                            await saveAnalysisToCache(db, cacheKey, fullAnalysis);
-                            controller.close();
-                            break;
-                        }
-
-                        const chunk = decoder.decode(value, { stream: true });
-                        const lines = chunk.split('\n').filter(line => line.trim() !== '');
-
-                        for (const line of lines) {
-                            if (line.startsWith('data: ')) {
-                                const data = line.slice(6);
-                                
-                                if (data === '[DONE]') {
-                                    continue;
-                                }
-
-                                try {
-                                    const parsed = JSON.parse(data);
-                                    const content = parsed.choices[0]?.delta?.content;
-                                    
-                                    if (content) {
-                                        fullAnalysis += content;
-                                        controller.enqueue(new TextEncoder().encode(content));
-                                    }
-                                } catch (e) {
-                                    // Skip malformed JSON
-                                }
-                            }
-                        }
+                const interval = setInterval(() => {
+                    if (position >= jsonString.length) {
+                        clearInterval(interval);
+                        controller.close();
+                        return;
                     }
-                } catch (error) {
-                    controller.error(error);
-                }
+
+                    const chunk = jsonString.slice(position, position + chunkSize);
+                    controller.enqueue(new TextEncoder().encode(chunk));
+                    position += chunkSize;
+                }, 15);
             }
         });
 
         return new Response(stream, {
             headers: {
-                'Content-Type': 'text/plain; charset=utf-8',
+                'Content-Type': 'application/json; charset=utf-8',
                 'Cache-Control': 'no-cache',
                 'Connection': 'keep-alive',
             }
@@ -153,9 +194,38 @@ export async function POST({ request }) {
 
     } catch (error) {
         console.error('AI Grade Analysis Error:', error);
+        console.error('Error stack:', error.stack);
+        
+        // FALLBACK: Try to return cached analysis (even if expired) if generation failed
+        if (db && cacheKey) {
+            try {
+                console.log('⚠️ AI generation failed - attempting to retrieve cached analysis as fallback...');
+                const cachedAnalysis = await db.collection('ai_grade_analysis_cache').findOne(cacheKey);
+                
+                if (cachedAnalysis && cachedAnalysis.analysis) {
+                    // Check if it's valid JSON format
+                    const isValidJSON = typeof cachedAnalysis.analysis === 'object' && cachedAnalysis.analysis.overallInsight;
+                    
+                    if (isValidJSON) {
+                        const cacheAge = Math.floor((new Date() - new Date(cachedAnalysis.created_at)) / (1000 * 60 * 60 * 24));
+                        console.log(`✅ Serving cached analysis as fallback (${cacheAge} days old)`);
+                        
+                        // Return the cached analysis
+                        return streamCachedAnalysis(cachedAnalysis.analysis);
+                    }
+                }
+                
+                console.log('❌ No valid cached analysis found for fallback');
+            } catch (fallbackError) {
+                console.error('Failed to retrieve cached analysis as fallback:', fallbackError);
+            }
+        }
+        
+        // No cache available, return error
         return json({
             error: 'Failed to generate AI analysis',
-            details: error.message
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         }, { status: 500 });
     }
 }
@@ -183,29 +253,32 @@ async function saveAnalysisToCache(db, cacheKey, analysis) {
 
 // Helper function to stream cached analysis
 function streamCachedAnalysis(analysis) {
+    // Convert analysis object to JSON string
+    const jsonString = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
+    
     const stream = new ReadableStream({
         start(controller) {
             // Stream cached content in chunks to simulate real streaming
-            const chunkSize = 20;
+            const chunkSize = 50;
             let position = 0;
 
             const interval = setInterval(() => {
-                if (position >= analysis.length) {
+                if (position >= jsonString.length) {
                     clearInterval(interval);
                     controller.close();
                     return;
                 }
 
-                const chunk = analysis.slice(position, position + chunkSize);
+                const chunk = jsonString.slice(position, position + chunkSize);
                 controller.enqueue(new TextEncoder().encode(chunk));
                 position += chunkSize;
-            }, 10); // Small delay between chunks for smooth streaming effect
+            }, 15); // Small delay between chunks for smooth streaming effect
         }
     });
 
     return new Response(stream, {
         headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Type': 'application/json; charset=utf-8',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
             'X-Cache-Status': 'HIT'
@@ -377,76 +450,72 @@ Component Averages:
     prompt += `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Analyze the grade data above and provide a supportive, empowering academic performance report in this exact format:
+Analyze the grade data above and provide a supportive, empowering academic performance report.
 
-**CELEBRATING YOUR STRENGTHS:**
-- Recognize your top 3-5 performing subjects with specific scores (e.g., "You're excelling in Mathematics with WW: 48.5/50, PT: 45.2/50 - that's outstanding work!")
-- Celebrate which assessment types (WW/PT/QA) showcase your abilities best
-- Highlight your strongest overall average and acknowledge the effort behind it
-- Appreciate subjects where you've scored above 90% - these prove what you're capable of achieving
-- Note positive patterns that show your dedication and learning style strengths
+Return a JSON object with this EXACT structure:
 
-**OPPORTUNITIES FOR GROWTH:**
-(Frame these as potential, not failures)
-- Identify subjects that could use some extra attention, with specific scores and gentle context
-- Recognize which assessment type might not be playing to your strengths yet
-- Point out areas where a little focused effort could make a big difference
-- Note subjects with uneven performance (e.g., "Your WW shows you understand the material - let's translate that to PT")
-- Acknowledge that everyone has subjects that challenge them more
+{
+  "overallInsight": "A 2-3 sentence warm, personalized opening that recognizes the student's overall performance and effort",
+  "performanceLevel": "excellent|good|satisfactory|needs-improvement",
+  "strengths": [
+    {
+      "subject": "Subject name",
+      "score": 95.5,
+      "reason": "Specific reason why this is a strength (mention specific assessment types and scores)"
+    }
+  ],
+  "areasForGrowth": [
+    {
+      "subject": "Subject name", 
+      "score": 75.0,
+      "currentGap": "Brief description of the gap",
+      "potential": "Encouraging note about potential for improvement"
+    }
+  ],
+  "assessmentInsights": {
+    "writtenWork": {
+      "average": 85.5,
+      "performance": "excellent|good|satisfactory|needs-improvement",
+      "insight": "Brief encouraging insight about written work performance"
+    },
+    "performanceTasks": {
+      "average": 82.3,
+      "performance": "excellent|good|satisfactory|needs-improvement", 
+      "insight": "Brief encouraging insight about performance tasks"
+    },
+    "quarterlyAssessment": {
+      "average": 88.0,
+      "performance": "excellent|good|satisfactory|needs-improvement",
+      "insight": "Brief encouraging insight about quarterly assessments"
+    }
+  },
+  "actionPlan": [
+    {
+      "priority": "high|medium|low",
+      "title": "Short action title",
+      "description": "Specific, encouraging action step",
+      "expectedImpact": "What improvement this could bring"
+    }
+  ],
+  "studyRecommendations": {
+    "timeManagement": "Specific time management tip",
+    "focusAreas": ["Subject 1", "Subject 2"],
+    "strengthsToLeverage": "How to use their strengths to improve weaker areas"
+  },
+  "motivationalMessage": "A warm, personalized closing message that instills confidence and acknowledges their potential"
+}
 
-**YOUR PERSONALIZED ACTION PLAN:**
-Provide 5-7 specific, encouraging steps ranked by impact and achievability:
-
-1. **Quick Wins** (build momentum with achievable improvements):
-   - Identify easiest areas to boost scores in the short term
-   
-2. **Strategic Focus Areas** (where effort will pay off most):
-   - "Let's strengthen your PT in [subject] - you're at 32.5/50, and with your WW at 45.0/50, we know you've got the knowledge!"
-   
-3. **Study Strategies Tailored to You**:
-   - For lower WW: "Try setting aside 20-30 minutes daily for practice - consistency is key"
-   - For lower PT: "Hands-on practice and real-world applications could help this click for you"
-   - For lower QA: "Let's work on test strategies - your knowledge is there, we just need to showcase it"
-   
-4. **Time Management That Works**:
-   - Realistic suggestions for which subjects need more attention
-   - Balance between improvement and maintaining strengths
-   
-5. **Building on Your Strengths**:
-   - How to leverage what you're already good at
-   - Ways to maintain your excellent performance in strong areas
-
-6. **Support Resources**:
-   - When to ask teachers for help
-   - Study groups, tutoring, or materials that could support you
-
-**UNDERSTANDING YOUR PERFORMANCE PATTERNS:**
-- Compare your WW, PT, and QA averages with encouraging context
-- Identify your learning style based on which assessments you excel in
-- Note any positive trends or areas showing improvement
-- Highlight subjects where one strong area shows your capability
-- Frame the gap between highest and lowest subjects as room for growth, not failure
-
-**YOUR PROGRESS STORY & NEXT STEPS:**
-- Open with genuine recognition of your overall effort and progress
-- Identify your **most achievable next goal** (be specific and realistic)
-- Acknowledge that improvement is a journey - small steps matter
-- Remind you of your proven capabilities (reference your highest scores)
-- End with personalized encouragement that reinforces belief in your potential
-- Include a motivating statement about what's possible with focused effort
-
-CRITICAL REQUIREMENTS:
-- Use warm, second-person perspective ("you", "your") throughout
-- Always cite actual scores with format: [Score]/[Maximum] (e.g., "38.2/50")
-- Round all decimals to one decimal place
-- Be genuinely encouraging while staying honest - growth mindset language
-- Frame every weakness as a growth opportunity with specific support
-- Acknowledge effort and progress, not just results
-- Use phrases like "room to grow", "opportunity to strengthen", "potential to improve"
-- Avoid judgmental language like "poor", "bad", "failing" - use "developing", "emerging", "growing"
-- Make recommendations feel achievable, not overwhelming
-- Remember: these scores don't define you - they're just a snapshot of where to focus next
-- End on an uplifting, empowering note that instills confidence
+REQUIREMENTS:
+- Use warm, second-person perspective in all text fields ("you", "your")
+- Round all numeric scores to one decimal place
+- Include 3-5 items in strengths array (top performing subjects)
+- Include 2-4 items in areasForGrowth array (subjects needing attention)
+- Include 5-7 items in actionPlan array, ordered by priority (high/medium/low)
+- Be genuinely encouraging while staying honest
+- Use growth mindset language - frame weaknesses as opportunities
+- Avoid judgmental words like "poor", "bad", "failing" - use "developing", "emerging", "growing"
+- Make all recommendations feel achievable and supportive
+- Provide specific, actionable advice
 `;
     
     return prompt;

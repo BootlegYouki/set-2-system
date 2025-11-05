@@ -1,0 +1,445 @@
+<script>
+	import { fly, fade } from 'svelte/transition';
+	import { quintOut } from 'svelte/easing';
+	import { tick } from 'svelte';
+	import AssessmentTypeChart from './studentGradeCharts/AssessmentTypeChart.svelte';
+	import SubjectPerformanceChart from './studentGradeCharts/SubjectPerformanceChart.svelte';
+
+	export let analysisData = null;
+	export let isLoading = false;
+	export let error = null;
+	export let subjects = [];
+
+	let visibleSections = 0; // Start with no sections visible
+	
+	// Reset visibleSections when loading starts
+	$: if (isLoading) {
+		visibleSections = 0;
+	}
+	
+	// Show first section when data loads (with delay for animation)
+	$: if (analysisData && !isLoading && visibleSections === 0) {
+		tick().then(() => {
+			setTimeout(() => {
+				visibleSections = 1;
+			}, 50);
+		});
+	}
+
+	function showMoreSection() {
+		visibleSections++;
+	}
+
+	function showLess() {
+		if (visibleSections > 1) {
+			visibleSections--;
+		}
+	}
+
+	// Calculate total number of sections
+	$: totalSections = analysisData ? 
+		1 + // Overview
+		1 + // Strengths
+		(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) +
+		1 + // Assessment Breakdown
+		(analysisData.actionPlan && analysisData.actionPlan.length > 0 ? 1 : 0) +
+		(analysisData.motivationalMessage ? 1 : 0)
+		: 0;
+
+	$: allSectionsVisible = visibleSections >= totalSections;
+</script>
+
+<div class="ai-analysis-display">
+	{#if isLoading}
+		<div class="analysis-loading">
+			<div class="system-loader"></div>
+			<p>Generating your personalized analysis...</p>
+		</div>
+	{:else if error}
+		<div class="analysis-error">
+			<span class="material-symbols-outlined">error</span>
+			<div class="error-content">
+				<h4>Unable to Generate Analysis</h4>
+				<p>{error}</p>
+			</div>
+		</div>
+	{:else if analysisData}
+		<!-- Overview (Section 1) -->
+		{#if visibleSections >= 1}
+			<div class="analysis-section" in:fly="{{ y: -20, duration: 400, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<div class="section-title">
+					<span class="material-symbols-outlined">psychology</span>
+					<span>Overview</span>
+				</div>
+				<p class="section-text">{analysisData.overallInsight}</p>
+			</div>
+		{/if}
+
+		<!-- Strengths (Section 2) -->
+		{#if visibleSections >= 2}
+			<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<div class="section-title">
+					<span class="material-symbols-outlined">emoji_events</span>
+					<span>Strengths</span>
+				</div>
+				{#each analysisData.strengths as strength}
+					<div class="item-row">
+						<div class="item-top">
+							<span class="item-name">{strength.subject}</span>
+							<span class="item-value">{strength.score.toFixed(1)}</span>
+						</div>
+						<p class="item-text">{strength.reason}</p>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
+		<!-- Areas for Growth (Section 3) -->
+		{#if analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0}
+			{#if visibleSections >= 3}
+				<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 100, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+					<div class="section-title">
+						<span class="material-symbols-outlined">trending_up</span>
+						<span>Areas for Growth</span>
+					</div>
+					{#each analysisData.areasForGrowth as area}
+						<div class="item-row">
+							<div class="item-top">
+								<span class="item-name">{area.subject}</span>
+								<span class="item-value">{area.score.toFixed(1)}</span>
+							</div>
+							<p class="item-text">{area.currentGap}</p>
+							<p class="item-note">{area.potential}</p>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+
+		<!-- Assessment Breakdown (Section 4 or 3 if no areas for growth) -->
+		{#if visibleSections >= (analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 4 : 3)}
+			<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 150, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<div class="section-title">
+					<span class="material-symbols-outlined">analytics</span>
+					<span>Assessment Breakdown</span>
+				</div>
+				<div class="assessment-row">
+					{#if analysisData.assessmentInsights.writtenWork}
+						<div class="assessment-item">
+							<div class="assessment-top">
+								<span class="assessment-name">Written Work</span>
+								<span class="assessment-value">{analysisData.assessmentInsights.writtenWork.average.toFixed(1)}%</span>
+							</div>
+							<p class="assessment-text">{analysisData.assessmentInsights.writtenWork.insight}</p>
+						</div>
+					{/if}
+					
+					{#if analysisData.assessmentInsights.performanceTasks}
+						<div class="assessment-item">
+							<div class="assessment-top">
+								<span class="assessment-name">Performance Tasks</span>
+								<span class="assessment-value">{analysisData.assessmentInsights.performanceTasks.average.toFixed(1)}%</span>
+							</div>
+							<p class="assessment-text">{analysisData.assessmentInsights.performanceTasks.insight}</p>
+						</div>
+					{/if}
+
+					{#if analysisData.assessmentInsights.quarterlyAssessment}
+						<div class="assessment-item">
+							<div class="assessment-top">
+								<span class="assessment-name">Quarterly Assessment</span>
+								<span class="assessment-value">{analysisData.assessmentInsights.quarterlyAssessment.average.toFixed(1)}%</span>
+							</div>
+							<p class="assessment-text">{analysisData.assessmentInsights.quarterlyAssessment.insight}</p>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Charts -->
+				<div class="charts-section">
+					<AssessmentTypeChart {subjects} />
+					<SubjectPerformanceChart {subjects} />
+				</div>
+			</div>
+		{/if}
+
+		<!-- Action Plan (Section 5 or 4) -->
+		{#if analysisData.actionPlan && analysisData.actionPlan.length > 0}
+			{@const actionPlanIndex = (analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 5 : 4)}
+			{#if visibleSections >= actionPlanIndex}
+				<div class="analysis-section" in:fly="{{ y: -20, duration: 400, delay: 200, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+					<div class="section-title">
+						<span class="material-symbols-outlined">checklist</span>
+						<span>Action Plan</span>
+					</div>
+					{#each analysisData.actionPlan as action}
+						<div class="item-row action-row">
+							<h4 class="action-name">{action.title}</h4>
+							<p class="item-text">{action.description}</p>
+							<p class="item-note">{action.expectedImpact}</p>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		{/if}
+
+		<!-- Motivational Message (Last Section) -->
+		{#if analysisData.motivationalMessage && visibleSections >= totalSections}
+			<div class="analysis-section motivational" in:fly="{{ y: -20, duration: 400, delay: 250, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+				<p>{analysisData.motivationalMessage}</p>
+			</div>
+		{/if}
+
+		<!-- Show More / Show Less Buttons -->
+		<div class="ai-action-buttons">
+			{#if !allSectionsVisible}
+				<button class="show-more-btn" on:click={showMoreSection} in:fly="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+					<span class="material-symbols-outlined">expand_more</span>
+					<span>Show More</span>
+				</button>
+			{/if}
+			
+			{#if visibleSections > 1}
+				<button class="show-more-btn" on:click={showLess} in:fly="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade="{{ duration: 200 }}">
+					<span class="material-symbols-outlined">expand_less</span>
+					<span>Show Less</span>
+				</button>
+			{/if}
+		</div>
+	{/if}
+</div>
+
+<style>
+	.ai-analysis-display {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-lg);
+	}
+
+	/* Loading & Error */
+	.analysis-loading,
+	.analysis-error {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: var(--spacing-xl);
+		text-align: center;
+		gap: var(--spacing-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		border-radius: var(--radius-lg);
+		background: var(--md-sys-color-surface-variant);
+	}
+
+	.analysis-error .material-symbols-outlined {
+		font-size: 3rem;
+		color: var(--md-sys-color-error);
+	}
+
+	.error-content h4 {
+		margin: var(--spacing-sm) 0;
+		font-size: 1.125rem;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.error-content p {
+		margin: 0;
+		color: var(--md-sys-color-on-surface-variant);
+		font-size: 0.9375rem;
+	}
+
+	/* Sections */
+	.analysis-section {
+		border: 1px solid var(--md-sys-color-outline-variant);
+		border-radius: var(--radius-lg);
+		padding: var(--spacing-lg);
+		background: var(--md-sys-color-surface-container);
+	}
+
+	.section-title {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		margin-bottom: var(--spacing-md);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.section-title .material-symbols-outlined {
+		font-size: 1.25rem;
+		color: var(--md-sys-color-primary);
+	}
+
+	.section-text {
+		margin: 0;
+		font-size: 0.875rem;
+		line-height: 1.6;
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	/* Item Rows */
+	.item-row {
+		padding: var(--spacing-md);
+		background: var(--md-sys-color-surface-variant);
+		border-radius: var(--radius-md);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.item-row:last-child {
+		margin-bottom: 0;
+	}
+
+	.item-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.item-name {
+		font-weight: 600;
+		font-size: 0.875rem;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.item-value {
+		font-weight: 700;
+		font-size: 0.875rem;
+		color: var(--md-sys-color-primary);
+	}
+
+	.item-text {
+		margin: 0 0 var(--spacing-xs) 0;
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.item-note {
+		margin: 0;
+		font-size: 0.75rem;
+		color: var(--md-sys-color-outline);
+	}
+
+	/* Assessment Row */
+	.assessment-row {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: var(--spacing-sm);
+	}
+
+	.assessment-item {
+		padding: var(--spacing-md);
+		background: var(--md-sys-color-surface-variant);
+		border-radius: var(--radius-md);
+	}
+
+	.assessment-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.assessment-name {
+		font-weight: 600;
+		font-size: 0.8125rem;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.assessment-value {
+		font-weight: 700;
+		font-size: 0.875rem;
+		color: var(--md-sys-color-primary);
+	}
+
+	.assessment-text {
+		margin: 0;
+		font-size: 0.75rem;
+		line-height: 1.5;
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	/* Action Items */
+	.action-row {
+		border-left: 3px solid var(--md-sys-color-primary);
+	}
+
+	.action-name {
+		margin: 0 0 var(--spacing-xs) 0;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	/* Motivational */
+	.motivational {
+		background: var(--md-sys-color-primary-container);
+		border-color: var(--md-sys-color-primary);
+		text-align: center;
+	}
+
+	.motivational p {
+		margin: 0;
+		font-size: 0.875rem;
+		line-height: 1.6;
+		color: var(--md-sys-color-on-primary-container);
+		font-style: italic;
+	}
+
+	/* Action Buttons */
+	.ai-action-buttons {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		align-items: center;
+	}
+
+	.show-more-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--spacing-xs);
+		flex: 1;
+		padding: var(--spacing-md) var(--spacing-md);
+		background: var(--md-sys-color-surface-variant);
+		color: var(--md-sys-color-on-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all var(--transition-normal);
+		width: 60%;
+	}
+
+	.show-more-btn:hover {
+		background: var(--md-sys-color-surface-container-hover);
+		border-color: var(--md-sys-color-outline);
+	}
+
+	.show-more-btn .material-symbols-outlined {
+		font-size: 1.125rem;
+	}
+
+	/* Charts Section */
+	.charts-section {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+		gap: var(--spacing-lg);
+		margin-top: var(--spacing-lg);
+	}
+
+	/* Responsive */
+	@media (max-width: 768px) {
+		.assessment-row {
+			grid-template-columns: 1fr;
+		}
+
+		.charts-section {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
+

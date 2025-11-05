@@ -1,10 +1,10 @@
 <script>
   import { onMount } from 'svelte';
   import { authStore } from '../../../../login/js/auth.js';
+  import { toastStore } from '../../../../common/js/toastStore.js';
   import './studentGrade.css';
 	import CountUp from '../../../../common/CountUp.svelte';
-	import SubjectPerformanceChart from './studentGradeCharts/SubjectPerformanceChart.svelte';
-	import AssessmentTypeChart from './studentGradeCharts/AssessmentTypeChart.svelte';
+	import AIAnalysisDisplay from './AIAnalysisDisplay.svelte';
 	import { studentGradeStore } from '../../../../../lib/stores/student/studentGradeStore.js';
 	
 	// Local UI state
@@ -12,14 +12,24 @@
 	let isDropdownOpen = false;
 	let expandedGrades = new Set();
 	
-	// AI Analysis variables (not in store as they're component-specific)
-	let aiAnalysis = '';
-	let aiAnalysisLoading = false;
-	let aiAnalysisError = null;
+	// AI Analysis state
 	let showAiAnalysis = false;
-	let isCachedAnalysis = false;
-	let isStreamingComplete = false; // Track when streaming is finished
-	let showChartsLoading = false; // Track loading state for charts
+	let lastStudentId = null;
+	
+	// Reactive AI Analysis from store
+	$: aiAnalysisData = $studentGradeStore.aiAnalysis;
+	$: aiAnalysisLoading = $studentGradeStore.aiAnalysisLoading;
+	$: aiAnalysisError = $studentGradeStore.aiAnalysisError;
+	
+	// Reset showAiAnalysis when switching accounts
+	$: if ($authStore.userData?.id && lastStudentId && lastStudentId !== $authStore.userData.id) {
+		showAiAnalysis = false;
+	}
+	
+	// Track current student ID
+	$: if ($authStore.userData?.id) {
+		lastStudentId = $authStore.userData.id;
+	}
 	
 	// Progress bar color animation state
 	let progressBarColors = {}; // Store current color for each subject
@@ -87,13 +97,10 @@
 
 	async function selectQuarter(quarter) {
 		isDropdownOpen = false;
-		// Reset AI analysis when quarter changes
-		aiAnalysis = '';
+		
+		// Clear AI analysis from store when quarter changes
+		studentGradeStore.clearAiAnalysis();
 		showAiAnalysis = false;
-		aiAnalysisError = null;
-		isCachedAnalysis = false;
-		isStreamingComplete = false;
-		showChartsLoading = false;
 		
 		// Cancel and reset progress bar animations
 		Object.values(progressBarAnimations).forEach(animationId => {
@@ -305,89 +312,6 @@
 		);
 	}
 
-	// Function to get AI analysis
-	async function getAiAnalysis(forceRefresh = false) {
-		if (aiAnalysisLoading || !subjects.length || !$authStore.userData?.id) return;
-		
-		aiAnalysisLoading = true;
-		aiAnalysisError = null;
-		aiAnalysis = ''; // Reset analysis
-		showAiAnalysis = true; // Show the container immediately
-		isCachedAnalysis = false;
-		isStreamingComplete = false; // Reset streaming status
-		showChartsLoading = false; // Reset charts loading state
-		
-		try {
-			const quarter = quarterToGradingPeriod[currentQuarter];
-			
-			const response = await fetch('/api/ai-grade-analysis', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					studentId: $authStore.userData.id,
-					quarter: quarter,
-					schoolYear: currentSchoolYear,
-					forceRefresh: forceRefresh
-				})
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to get AI analysis');
-			}
-
-			// Check if response is from cache
-			const cacheStatus = response.headers.get('X-Cache-Status');
-			isCachedAnalysis = cacheStatus === 'HIT';
-
-			aiAnalysisLoading = false; // Stop loading before streaming starts
-
-			// Read the streaming response
-			const reader = response.body.getReader();
-			const decoder = new TextDecoder();
-
-			while (true) {
-				const { done, value } = await reader.read();
-				
-				if (done) {
-					// Show charts loading indicator
-					showChartsLoading = true;
-					// Add a 0.5s delay before showing the graphs
-					setTimeout(() => {
-						showChartsLoading = false;
-						isStreamingComplete = true;
-					}, 2000);
-					break;
-				}
-
-				const chunk = decoder.decode(value, { stream: true });
-				aiAnalysis += chunk;
-				
-				// Force Svelte to update the UI
-				aiAnalysis = aiAnalysis;
-			}
-		} catch (error) {
-			console.error('AI Analysis Error:', error);
-			aiAnalysisError = error.message;
-			aiAnalysisLoading = false;
-		}
-	}
-
-	// Function to refresh AI analysis (bypass cache)
-	async function refreshAiAnalysis() {
-		await getAiAnalysis(true);
-	}
-
-	// Function to toggle AI analysis visibility
-	function toggleAiAnalysis() {
-		if (!showAiAnalysis && !aiAnalysis) {
-			getAiAnalysis();
-		} else {
-			showAiAnalysis = !showAiAnalysis;
-		}
-	}
-
 	function formatScoreLabel(index, type) {
 		const types = {
 			written: 'Quiz',
@@ -395,6 +319,57 @@
 			quarterly: 'Exam'
 		};
 		return `${types[type] || 'Task'} ${index + 1}`;
+	}
+
+	// Function to get AI analysis
+	async function getAiAnalysis(forceRefresh = false) {
+		if (aiAnalysisLoading || !subjects.length || !$authStore.userData?.id) return;
+		
+		showAiAnalysis = true;
+		
+		try {
+			const quarter = quarterToGradingPeriod[currentQuarter];
+			await studentGradeStore.loadAiAnalysis($authStore.userData.id, quarter, currentSchoolYear, forceRefresh);
+			
+			if (!forceRefresh) {
+				toastStore.success('AI Analysis generated successfully');
+			}
+		} catch (error) {
+			console.error('AI Analysis Error:', error);
+			toastStore.error('Failed to generate AI analysis');
+		}
+	}
+
+	// Function to refresh AI analysis (bypass cache)
+	async function refreshAiAnalysis() {
+		try {
+			await getAiAnalysis(true);
+			toastStore.success('Analysis refreshed successfully');
+		} catch (error) {
+			console.error('Error refreshing analysis:', error);
+		}
+	}
+
+	// Function to toggle AI analysis visibility
+	function toggleAiAnalysis() {
+		if (!showAiAnalysis && !aiAnalysisData) {
+			// Try to init from cache first
+			const studentId = $authStore.userData?.id;
+			const quarter = quarterToGradingPeriod[currentQuarter];
+			
+			if (studentId) {
+				const hasCache = studentGradeStore.initAiAnalysis(studentId, quarter, currentSchoolYear);
+				if (!hasCache) {
+					// No cache, fetch new analysis
+					getAiAnalysis();
+				} else {
+					// Had cache, just show it
+					showAiAnalysis = true;
+				}
+			}
+		} else {
+			showAiAnalysis = !showAiAnalysis;
+		}
 	}
 
 	// Load data when component mounts
@@ -593,85 +568,50 @@
 			</div>
 			{/key}
 
-			<!-- AI Analysis Container -->
-
 		</div>
-			<div class="ai-analysis-container">
-				<div class="analysis-header">
-					<div class="analysis-title-group">
-						<h3 class="analysis-title">AI Performance Analysis</h3>
-					</div>
-					<div class="analysis-controls">
-						{#if aiAnalysis && !aiAnalysisLoading}
-							<button 
-								class="refresh-analysis-btn" 
-								on:click={refreshAiAnalysis}
-								title="Refresh analysis">
-								<span class="material-symbols-outlined">refresh</span>
-							</button>
-						{/if}
-						<button 
-							class="ai-analysis-toggle-btn" 
-							on:click={toggleAiAnalysis}
-							title={showAiAnalysis ? 'Hide AI Analysis' : 'Get AI Analysis'}>
-							{#if showAiAnalysis}
-								<span class="material-symbols-outlined">expand_less</span>
-							{:else}
-								<span class="material-symbols-outlined">expand_more</span>
-							{/if}
-						</button>
-					</div>
+
+		<!-- AI Analysis Section -->
+		<div class="ai-analysis-section">
+			<div class="analysis-section-header">
+				<div class="analysis-title-group">
+					<span class="material-symbols-outlined">psychology</span>
+					<h2 class="section-title">AI Performance Insights</h2>
 				</div>
-				
-				{#if showAiAnalysis}
-					<div class="analysis-content">
-						{#if aiAnalysisError}
-							<div class="analysis-error">
-								<span class="material-symbols-outlined">error</span>
-								<p>Failed to generate AI analysis: {aiAnalysisError}</p>
-								<button class="retry-analysis-btn" on:click={() => getAiAnalysis()}>
-									Try Again
-								</button>
-							</div>
-						{:else if aiAnalysis}
-							<div class="analysis-text">
-								{@html aiAnalysis.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}
-							</div>
+				<div class="analysis-controls">
+					{#if aiAnalysisData && !aiAnalysisLoading}
+						<button 
+							class="ai-refresh-btn" 
+							on:click={refreshAiAnalysis}
+							title="Refresh analysis">
+							<span class="material-symbols-outlined">refresh</span>
+						</button>
+					{/if}
+					<button 
+						class="toggle-analysis-btn" 
+						on:click={toggleAiAnalysis}
+						class:active={showAiAnalysis}
+						title={showAiAnalysis ? 'Hide Analysis' : 'Get AI Analysis'}>
+						{#if showAiAnalysis}
+							<span class="material-symbols-outlined">expand_less</span>
+							<span>Hide Analysis</span>
 						{:else}
-							<div class="analysis-placeholder">
-								<div class="system-loader"></div>
-								Loading Analysis...
-							</div>
+							<span class="material-symbols-outlined">auto_awesome</span>
+							<span>Get AI Analysis</span>
 						{/if}
+					</button>
+				</div>
+			</div>
+			
+				{#if showAiAnalysis}
+					<div class="analysis-display-container">
+						<AIAnalysisDisplay 
+							analysisData={aiAnalysisData}
+							isLoading={aiAnalysisLoading}
+							error={aiAnalysisError}
+							subjects={grades} />
 					</div>
 				{/if}
-			</div>
-
-		<!-- Charts Loading State -->
-		{#if showChartsLoading && aiAnalysis && !aiAnalysisError}
-			<div class="charts-section">
-				<h2 class="section-title">Performance Analytics</h2>
-				<div class="loading-container">
-					<div class="system-loader"></div>
-					<p>Preparing charts...</p>
-				</div>
-			</div>
-		{/if}
-
-		<!-- Grade Analysis Charts - Only shown when AI analysis streaming is complete -->
-		{#if isStreamingComplete && aiAnalysis && !aiAnalysisError}
-			<div class="charts-section">
-				<h2 class="section-title">Performance Analytics</h2>
-				<div class="charts-grid">
-					<div class="chart-wrapper">
-						<SubjectPerformanceChart {subjects} />
-					</div>
-					<div class="chart-wrapper">
-						<AssessmentTypeChart {subjects} />
-					</div>
-				</div>
-			</div>
-		{/if}
+		</div>
 
 		<!-- Subjects Grid -->
 		<div class="subjects-section">

@@ -247,29 +247,4 @@
 		font-size: 48px;
 		color: var(--md-sys-color-error);
 	}
-
-	.retry-button {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-xs);
-		padding: var(--spacing-sm) var(--spacing-md);
-		background-color: var(--md-sys-color-primary);
-		color: var(--md-sys-color-on-primary);
-		border: none;
-		border-radius: var(--radius-md);
-		cursor: pointer;
-		font-family: var(--md-sys-typescale-label-large-font);
-		font-size: var(--md-sys-typescale-label-large-size);
-		font-weight: var(--md-sys-typescale-label-large-weight);
-		transition: all var(--transition-normal);
-	}
-
-	.retry-button:hover {
-		background-color: var(--md-sys-color-primary-container);
-		color: var(--md-sys-color-on-primary-container);
-	}
-
-	.retry-button .material-symbols-outlined {
-		font-size: 18px;
-	}
 </style>

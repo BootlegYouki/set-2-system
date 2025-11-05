@@ -35,7 +35,7 @@
     position: fixed;
     bottom: var(--spacing-lg);
     right: var(--spacing-lg);
-    z-index: 9999;
+    z-index: 10001;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);

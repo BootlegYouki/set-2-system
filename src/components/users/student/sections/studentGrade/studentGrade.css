@@ -1829,3 +1829,111 @@
     animation: none;
   }
 }
+
+/* ==================== AI Analysis Section ==================== */
+
+.ai-analysis-section {
+  margin: var(--spacing-xl) 0;
+}
+
+.analysis-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.analysis-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.analysis-title-group .material-symbols-outlined {
+  font-size: 1.5rem;
+  color: var(--md-sys-color-primary);
+}
+
+.analysis-title-group .section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+}
+
+.analysis-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.ai-refresh-btn,
+.toggle-analysis-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-size: 0.875rem;
+  background: var(--md-sys-color-surface-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+.ai-refresh-btn:hover,
+.toggle-analysis-btn:hover {
+  background: var(--md-sys-color-surface-container-hover);
+  border-color: var(--md-sys-color-outline);
+}
+
+.toggle-analysis-btn.active {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border-color: var(--md-sys-color-primary);
+}
+
+.ai-refresh-btn .material-symbols-outlined,
+.toggle-analysis-btn .material-symbols-outlined {
+  font-size: 1.125rem;
+}
+
+.analysis-display-container {
+  margin-top: var(--spacing-lg);
+}
+
+/* Responsive adjustments for analysis section */
+@media (max-width: 768px) {
+  .analysis-section-header {
+    gap: var(--spacing-md);
+    align-items: stretch;
+  }
+
+  .analysis-title-group {
+    justify-content: center;
+  }
+
+  .analysis-controls {
+    justify-content: center;
+  }
+
+  .toggle-analysis-btn span:not(.material-symbols-outlined) {
+    display: inline;
+  }
+}
+
+@media (max-width: 480px) {
+  .toggle-analysis-btn span:not(.material-symbols-outlined) {
+    display: none;
+  }
+
+  .ai-refresh-btn,
+  .toggle-analysis-btn {
+    padding: var(--spacing-sm);
+  }
+}

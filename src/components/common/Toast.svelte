@@ -68,7 +68,7 @@
 <style>
   .toast {
     position: relative;
-    z-index: 9999;
+    z-index: 10001;
     min-width: 300px;
     max-width: 500px;
     border-radius: var(--radius-lg);

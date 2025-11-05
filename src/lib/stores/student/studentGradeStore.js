@@ -6,6 +6,8 @@ import { get } from 'svelte/store';
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 const CACHE_KEY_PREFIX = 'student_grades_';
+const AI_ANALYSIS_CACHE_KEY_PREFIX = 'student_ai_analysis_';
+const AI_ANALYSIS_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 // Create the store
 function createStudentGradeStore() {
@@ -27,7 +29,12 @@ function createStudentGradeStore() {
 		lastUpdated: null,
 		currentStudentId: null,
 		previousQuarterAverage: null,
-		averageChange: null
+		averageChange: null,
+		// AI Analysis cache
+		aiAnalysis: null,
+		aiAnalysisLoading: false,
+		aiAnalysisError: null,
+		aiAnalysisTimestamp: null
 	};
 
 	const { subscribe, set, update } = writable(initialState);
@@ -346,6 +353,23 @@ function createStudentGradeStore() {
 
 	// Initialize store with cached data if available
 	function init(studentId, quarter = null, schoolYear = null) {
+		// Clear AI analysis when switching to a different student
+		let currentStudentId;
+		subscribe(state => {
+			currentStudentId = state.currentStudentId;
+		})();
+		
+		if (currentStudentId && currentStudentId !== studentId) {
+			// Different student, clear AI analysis
+			update(state => ({
+				...state,
+				aiAnalysis: null,
+				aiAnalysisLoading: false,
+				aiAnalysisError: null,
+				aiAnalysisTimestamp: null
+			}));
+		}
+		
 		// If quarter/schoolYear not provided, we need to fetch them first
 		if (!quarter || !schoolYear) {
 			fetchCurrentQuarter().then(quarterData => {
@@ -362,7 +386,12 @@ function createStudentGradeStore() {
 						currentStudentId: studentId,
 						isLoading: false,
 						isRefreshing: false,
-						error: null
+						error: null,
+						// Clear AI analysis for new student
+						aiAnalysis: null,
+						aiAnalysisLoading: false,
+						aiAnalysisError: null,
+						aiAnalysisTimestamp: null
 					}));
 				} else {
 					update(state => ({
@@ -373,7 +402,12 @@ function createStudentGradeStore() {
 						currentSchoolYear: quarterData.currentSchoolYear,
 						isLoading: true,
 						isRefreshing: false,
-						error: null
+						error: null,
+						// Clear AI analysis for new student
+						aiAnalysis: null,
+						aiAnalysisLoading: false,
+						aiAnalysisError: null,
+						aiAnalysisTimestamp: null
 					}));
 				}
 			});
@@ -388,7 +422,12 @@ function createStudentGradeStore() {
 				currentStudentId: studentId,
 				isLoading: false,
 				isRefreshing: false,
-				error: null
+				error: null,
+				// Clear AI analysis for new student
+				aiAnalysis: null,
+				aiAnalysisLoading: false,
+				aiAnalysisError: null,
+				aiAnalysisTimestamp: null
 			}));
 			return true; // Has cached data
 		}
@@ -401,7 +440,12 @@ function createStudentGradeStore() {
 			currentSchoolYear: schoolYear,
 			isLoading: true,
 			isRefreshing: false,
-			error: null
+			error: null,
+			// Clear AI analysis for new student
+			aiAnalysis: null,
+			aiAnalysisLoading: false,
+			aiAnalysisError: null,
+			aiAnalysisTimestamp: null
 		}));
 		return false; // No cached data
 	}
@@ -453,14 +497,183 @@ function createStudentGradeStore() {
 		try {
 			const keys = Object.keys(localStorage);
 			const prefix = `${CACHE_KEY_PREFIX}${studentId}_`;
+			const aiPrefix = `${AI_ANALYSIS_CACHE_KEY_PREFIX}${studentId}_`;
 			keys.forEach(key => {
-				if (key.startsWith(prefix)) {
+				if (key.startsWith(prefix) || key.startsWith(aiPrefix)) {
 					localStorage.removeItem(key);
 				}
 			});
 		} catch (error) {
 			console.warn('Failed to clear all cache:', error);
 		}
+	}
+
+	// AI Analysis caching functions
+	function getAiAnalysisCacheKey(studentId, quarter, schoolYear) {
+		return `${AI_ANALYSIS_CACHE_KEY_PREFIX}${studentId}_${quarter}_${schoolYear}`;
+	}
+
+	function getCachedAiAnalysis(studentId, quarter, schoolYear) {
+		try {
+			const cacheKey = getAiAnalysisCacheKey(studentId, quarter, schoolYear);
+			const cached = localStorage.getItem(cacheKey);
+			if (cached) {
+				const parsedData = JSON.parse(cached);
+				// Check if cache is still valid (7 days)
+				if (Date.now() - parsedData.timestamp < AI_ANALYSIS_CACHE_DURATION) {
+					return parsedData.data;
+				}
+			}
+		} catch (error) {
+			console.warn('Failed to retrieve cached AI analysis:', error);
+		}
+		return null;
+	}
+
+	function cacheAiAnalysis(studentId, quarter, schoolYear, analysisData) {
+		try {
+			const cacheKey = getAiAnalysisCacheKey(studentId, quarter, schoolYear);
+			const cacheEntry = {
+				data: analysisData,
+				timestamp: Date.now()
+			};
+			localStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+		} catch (error) {
+			console.warn('Failed to cache AI analysis:', error);
+		}
+	}
+
+	// Load AI Analysis (with dual caching: localStorage + database)
+	async function loadAiAnalysis(studentId, quarter, schoolYear, forceRefresh = false) {
+		try {
+			// Set loading state
+			update(state => ({
+				...state,
+				aiAnalysisLoading: true,
+				aiAnalysisError: null
+			}));
+
+			// Check localStorage cache first (unless force refresh)
+			if (!forceRefresh) {
+				const cachedAnalysis = getCachedAiAnalysis(studentId, quarter, schoolYear);
+				if (cachedAnalysis) {
+					console.log('AI Analysis: Using localStorage cache');
+					update(state => ({
+						...state,
+						aiAnalysis: cachedAnalysis,
+						aiAnalysisLoading: false,
+						aiAnalysisError: null,
+						aiAnalysisTimestamp: Date.now()
+					}));
+					return cachedAnalysis;
+				}
+			}
+
+			// Fetch from API (API checks database cache, then generates if needed)
+			const response = await fetch('/api/ai-grade-analysis', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...getAuthHeaders()
+				},
+				body: JSON.stringify({
+					studentId,
+					quarter,
+					schoolYear,
+					forceRefresh
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to fetch AI analysis');
+			}
+
+			// Read the streamed response
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let jsonString = '';
+
+			while (true) {
+				const { value, done } = await reader.read();
+				if (done) break;
+				jsonString += decoder.decode(value, { stream: true });
+			}
+
+			// Parse the JSON
+			const analysisData = JSON.parse(jsonString);
+
+			// Validate structure
+			if (!analysisData || !analysisData.overallInsight) {
+				throw new Error('Invalid analysis data structure');
+			}
+
+			// Cache to localStorage (database cache is handled by API)
+			cacheAiAnalysis(studentId, quarter, schoolYear, analysisData);
+			console.log('AI Analysis: Cached to localStorage and database');
+
+			// Update store
+			update(state => ({
+				...state,
+				aiAnalysis: analysisData,
+				aiAnalysisLoading: false,
+				aiAnalysisError: null,
+				aiAnalysisTimestamp: Date.now()
+			}));
+
+			return analysisData;
+
+		} catch (error) {
+			console.error('Error loading AI analysis:', error);
+			
+			// Try localStorage cache as fallback (even if expired)
+			const cachedAnalysis = getCachedAiAnalysis(studentId, quarter, schoolYear);
+			if (cachedAnalysis) {
+				update(state => ({
+					...state,
+					aiAnalysis: cachedAnalysis,
+					aiAnalysisLoading: false,
+					aiAnalysisError: null,
+					aiAnalysisTimestamp: Date.now()
+				}));
+				return cachedAnalysis;
+			}
+
+			// No cache available
+			update(state => ({
+				...state,
+				aiAnalysis: null,
+				aiAnalysisLoading: false,
+				aiAnalysisError: error.message,
+				aiAnalysisTimestamp: null
+			}));
+			
+			throw error;
+		}
+	}
+
+	// Clear AI Analysis from store (when switching quarters)
+	function clearAiAnalysis() {
+		update(state => ({
+			...state,
+			aiAnalysis: null,
+			aiAnalysisLoading: false,
+			aiAnalysisError: null,
+			aiAnalysisTimestamp: null
+		}));
+	}
+
+	// Initialize AI Analysis from cache if available
+	function initAiAnalysis(studentId, quarter, schoolYear) {
+		const cachedAnalysis = getCachedAiAnalysis(studentId, quarter, schoolYear);
+		if (cachedAnalysis) {
+			update(state => ({
+				...state,
+				aiAnalysis: cachedAnalysis,
+				aiAnalysisTimestamp: Date.now()
+			}));
+			return true;
+		}
+		return false;
 	}
 
 	const store = {
@@ -470,7 +683,12 @@ function createStudentGradeStore() {
 		changeQuarter,
 		forceRefresh,
 		clearAllCache,
-		getCachedData: (studentId, quarter, schoolYear) => getCachedData(studentId, quarter, schoolYear)
+		getCachedData: (studentId, quarter, schoolYear) => getCachedData(studentId, quarter, schoolYear),
+		// AI Analysis methods
+		loadAiAnalysis,
+		clearAiAnalysis,
+		initAiAnalysis,
+		getCachedAiAnalysis: (studentId, quarter, schoolYear) => getCachedAiAnalysis(studentId, quarter, schoolYear)
 	};
 
 	return store;

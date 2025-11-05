@@ -1,6 +1,7 @@
 <script>
 	import { authStore } from '../../../../../login/js/auth.js';
 	import { api } from '../../../../../../routes/api/helper/api-helper.js';
+	import { toastStore } from '../../../../../common/js/toastStore.js';
 	import Modal from '../../../../../common/Modal.svelte';
 
 	// Props passed from modal store
@@ -55,7 +56,7 @@
 		const maxSize = 10 * 1024 * 1024;
 		const validFiles = files.filter(file => {
 			if (file.size > maxSize) {
-				alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+				toastStore.error(`File "${file.name}" is too large. Maximum size is 10MB.`);
 				return false;
 			}
 			return true;
@@ -154,7 +155,7 @@
 			}
 		} catch (error) {
 			console.error('Error converting files:', error);
-			alert('Failed to process files. Please try again.');
+			toastStore.error('Failed to process files. Please try again.');
 			isSendingMessage = false;
 			return;
 		}
@@ -198,22 +199,22 @@
 				);
 			} else {
 				console.error('Failed to send message:', result.error);
-				// Remove the optimistic message on failure
-				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
-				// Show error notification
-				alert('Failed to send message. Please try again.');
-				// Restore the message text and files so user can retry
-				newMessage = messageText;
-				selectedFiles = filesToSend;
-			}
-		} catch (error) {
-			console.error('Error sending message:', error);
-			// Remove the optimistic message on error
+			// Remove the optimistic message on failure
 			selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
-			alert('An error occurred while sending the message.');
+			// Show error notification
+			toastStore.error('Failed to send message. Please try again.');
 			// Restore the message text and files so user can retry
 			newMessage = messageText;
 			selectedFiles = filesToSend;
+			}
+		} catch (error) {
+		console.error('Error sending message:', error);
+		// Remove the optimistic message on error
+		selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
+		toastStore.error('An error occurred while sending the message.');
+		// Restore the message text and files so user can retry
+		newMessage = messageText;
+		selectedFiles = filesToSend;
 		} finally {
 			isSendingMessage = false;
 		}
