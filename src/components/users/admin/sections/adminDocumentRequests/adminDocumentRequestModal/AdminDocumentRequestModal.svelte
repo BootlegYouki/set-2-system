@@ -2117,7 +2117,6 @@
 
 	.attachment-item .material-symbols-outlined:first-child {
 		font-size: 20px;
-		color: var(--md-sys-color-primary);
 	}
 
 	.attachment-info {
