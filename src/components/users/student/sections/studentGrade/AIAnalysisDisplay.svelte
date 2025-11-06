@@ -458,10 +458,10 @@
 	}
 
 	.change-item {
-		padding: var(--spacing-sm) var(--spacing-md);
-		background: var(--md-sys-color-surface);
-		border-radius: var(--radius-sm);
-		margin-bottom: var(--spacing-xs);
+		padding: var(--spacing-md);
+		background: var(--md-sys-color-surface-variant);
+		border-radius: var(--radius-md);
+		margin-bottom: var(--spacing-sm);
 	}
 
 	.change-item:last-child {
@@ -483,24 +483,19 @@
 
 	.change-value {
 		font-weight: 700;
-		font-size: 0.875rem;
-		padding: 2px var(--spacing-xs);
-		border-radius: var(--radius-xs);
+		font-size: 1rem;
 	}
 
 	.change-value.positive {
-		color: var(--md-sys-color-tertiary);
-		background: var(--md-sys-color-tertiary-container);
+		color: var(--md-sys-color-primary);
 	}
 
 	.change-value.negative {
 		color: var(--md-sys-color-error);
-		background: var(--md-sys-color-error-container);
 	}
 
 	.change-value.neutral {
 		color: var(--md-sys-color-on-surface-variant);
-		background: var(--md-sys-color-surface-variant);
 	}
 
 	.change-observation {

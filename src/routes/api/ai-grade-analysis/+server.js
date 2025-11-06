@@ -639,13 +639,12 @@ REQUIREMENTS:
 - Round all numeric scores to one decimal place
 - Include MAXIMUM 3 items in strengths array (top performing subjects)
 - Include 2-3 items in areasForGrowth array (subjects needing attention) - MINIMUM 2, MAXIMUM 3
-- Include MAXIMUM 4 items in actionPlan array, ordered by priority (high/medium/low)
+- Include MAXIMUM 5 items in actionPlan array, ordered by priority (high/medium/low)
 ${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '- CRITICAL: Thoroughly analyze the quarter-over-quarter comparison. This is valuable data!\n- Celebrate improvements enthusiastically. For declines, be supportive and solution-focused\n- Identify subjects that consistently perform well or poorly across quarters\n- ' : ''}- Be genuinely encouraging while staying honest
 - Use growth mindset language - frame weaknesses as opportunities
 - Avoid judgmental words like "poor", "bad", "failing" - use "developing", "emerging", "growing"
 - Make all recommendations feel achievable and supportive
 - Provide specific, actionable advice
-- DO NOT include a motivationalMessage field
 `;
     
     return prompt;
