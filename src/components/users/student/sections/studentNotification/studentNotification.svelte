@@ -8,12 +8,15 @@
   import { toastStore } from '../../../../common/js/toastStore.js';
   import { studentNotificationStore } from '../../../../../lib/stores/student/studentNotificationStore.js';
 
+  // Props - navigation callback
+  let { onnavigate } = $props();
+
   // State variables from store
-  $: notifications = $studentNotificationStore.notifications;
-  $: loading = $studentNotificationStore.isLoading;
-  $: error = $studentNotificationStore.error;
-  $: unreadCount = $studentNotificationStore.unreadCount;
-  $: totalCount = $studentNotificationStore.totalCount;
+  let notifications = $derived($studentNotificationStore.notifications);
+  let loading = $derived($studentNotificationStore.isLoading);
+  let error = $derived($studentNotificationStore.error);
+  let unreadCount = $derived($studentNotificationStore.unreadCount);
+  let totalCount = $derived($studentNotificationStore.totalCount);
 
   // Filter options
   const filterOptions = [
@@ -94,6 +97,18 @@
       },
       { size: 'small' }
     );
+  }
+
+  function handleNotificationClick(notification) {
+    // Navigate to document requests page for document request notifications
+    // Handle both 'document' and 'document_request' types (database can have either)
+    if (notification.type === 'document' || notification.type === 'document_request') {
+      const requestId = notification.metadata?.relatedId;
+      
+      if (onnavigate) {
+        onnavigate({ detail: { section: 'documents', requestId } });
+      }
+    }
   }
 
   // Helper functions
@@ -182,7 +197,7 @@
   });
 
   // Reactive statements
-  $: filteredNotifications = (() => {
+  let filteredNotifications = $derived((() => {
     // Ensure notifications is always an array
     if (!Array.isArray(notifications)) {
       return [];
@@ -195,21 +210,21 @@
     } else {
       return notifications.filter(n => n.type === selectedFilter);
     }
-  })();
+  })());
   
   // Animation key to trigger stagger animation on data change
-  let animationKey = 0;
-  let lastFilteredLength = 0;
-  let lastFilter = selectedFilter;
+  let animationKey = $state(0);
+  let lastFilteredLength = $state(0);
+  let lastFilter = $state(selectedFilter);
   
   // Only increment key when filter changes or notification count changes
-  $: {
+  $effect(() => {
     if (selectedFilter !== lastFilter || filteredNotifications.length !== lastFilteredLength) {
       animationKey++;
       lastFilter = selectedFilter;
       lastFilteredLength = filteredNotifications.length;
     }
-  }
+  });
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -297,11 +312,18 @@
           {#each filteredNotifications as notification, index (notification.id)}
             <div 
               class="notification-card {notification.isRead ? 'read' : 'unread'}"
+              class:clickable={notification.type === 'document' || notification.type === 'document_request'}
               style="--card-index: {index};"
+              on:click={() => handleNotificationClick(notification)}
+              on:keydown={(e) => e.key === 'Enter' && handleNotificationClick(notification)}
+              role={notification.type === 'document' || notification.type === 'document_request' ? 'button' : undefined}
+              tabindex={notification.type === 'document' || notification.type === 'document_request' ? 0 : undefined}
             >
               <!-- Notification Header -->
                <div class="notification-header-card">
-                 <h3 class="notification-title">{notification.title}</h3>
+                 <h3 class="notification-title">
+                   {notification.title}
+                 </h3>
                  <span class="notification-time">{formatTimestamp(notification.timestamp)}</span>
                </div>
               
@@ -311,7 +333,7 @@
                   <p class="notification-message">{notification.message}</p>
                   
                   <!-- Document Request Specific Info -->
-                  {#if notification.type === 'document_request'}
+                  {#if notification.type === 'document' || notification.type === 'document_request'}
                     {#if notification.adminNote}
                       <div class="admin-note">
                         <span class="material-symbols-outlined">note</span>
@@ -337,7 +359,7 @@
                 <div class="notification-actions">
                   <button 
                     class="action-btn-small read-toggle"
-                    on:click={() => toggleNotificationRead(notification.id)}
+                    on:click|stopPropagation={() => toggleNotificationRead(notification.id)}
                     title={notification.isRead ? 'Mark as unread' : 'Mark as read'}
                   >
                     <span class="material-symbols-outlined">
@@ -347,7 +369,7 @@
                   
                   <button 
                     class="action-btn-small delete-btn"
-                    on:click={() => deleteNotification(notification.id)}
+                    on:click|stopPropagation={() => deleteNotification(notification.id)}
                     title="Delete notification"
                   >
                     <span class="material-symbols-outlined">delete</span>

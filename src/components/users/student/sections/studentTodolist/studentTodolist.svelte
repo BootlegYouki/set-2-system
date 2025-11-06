@@ -508,10 +508,20 @@
 
   // Animation key to trigger re-render on filter/search changes
   let animationKey = 0;
+  let lastSearchQuery = '';
+  let lastCategoryFilter = selectedFilter;
+  let lastStatusFilter = selectedStatusFilter;
+  
   $: {
-    // Increment key whenever filtered todos change to trigger animation
-    filteredTodos;
-    animationKey++;
+    // Only increment key when filters change, not when todo items are toggled
+    if (searchQuery !== lastSearchQuery || 
+        selectedFilter !== lastCategoryFilter || 
+        selectedStatusFilter !== lastStatusFilter) {
+      animationKey++;
+      lastSearchQuery = searchQuery;
+      lastCategoryFilter = selectedFilter;
+      lastStatusFilter = selectedStatusFilter;
+    }
   }
 </script>
 

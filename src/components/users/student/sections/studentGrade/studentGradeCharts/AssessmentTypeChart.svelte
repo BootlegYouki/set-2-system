@@ -290,6 +290,7 @@
 		justify-content: center;
 		box-shadow: var(--elevation-1);
 		transition: all var(--transition-normal);
+		flex: 1;
 	}
 
 	.chart-container:hover {

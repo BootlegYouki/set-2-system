@@ -430,8 +430,7 @@
 
 	/* Charts Section */
 	.charts-section {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+		display: flex;
 		gap: var(--spacing-lg);
 		margin-top: var(--spacing-lg);
 	}

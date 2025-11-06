@@ -8,6 +8,9 @@
 	import { studentDocumentRequestStore } from '../../../../../lib/stores/student/studentDocumentRequestStore.js';
 	import './studentDocumentRequest.css';
 
+	// Props - request ID to open from notification
+	let { openRequestId = $bindable(null) } = $props();
+
 	// Document request state
 	let isRequestFormOpen = false;
 	let selectedDocumentType = '';
@@ -20,8 +23,12 @@
 	// Polling state
 	let pollingInterval;
 
-	// Subscribe to the store
-	$: ({ requestHistory, isLoading: loading, isRefreshing, error, lastUpdated } = $studentDocumentRequestStore);
+	// Subscribe to the store using $derived
+	let requestHistory = $derived($studentDocumentRequestStore.requestHistory);
+	let loading = $derived($studentDocumentRequestStore.isLoading);
+	let isRefreshing = $derived($studentDocumentRequestStore.isRefreshing);
+	let error = $derived($studentDocumentRequestStore.error);
+	let lastUpdated = $derived($studentDocumentRequestStore.lastUpdated);
 
 	// Close dropdown when clicking outside
 	function handleClickOutside(event) {
@@ -77,6 +84,22 @@
 					studentDocumentRequestStore.loadDocumentRequests(true); // Silent refresh
 				}
 			}, 30 * 1000); // 30 seconds
+		}
+	});
+
+	// Watch for openRequestId changes and open modal when provided
+	$effect(() => {
+		if (openRequestId && requestHistory.length > 0) {
+			// Find the request in the history
+			const request = requestHistory.find(req => req.requestId === openRequestId);
+			
+			if (request) {
+				// Open the modal for this request
+				openRequestModal(request);
+			}
+			
+			// Clear the openRequestId after attempting to open
+			openRequestId = null;
 		}
 	});
 

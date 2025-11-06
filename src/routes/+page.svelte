@@ -45,6 +45,9 @@
   // Current active section for student portal
   let activeSection = $state('grades');
   
+  // Request ID to open in document modal (when navigating from notification)
+  let documentRequestIdToOpen = $state(null);
+  
   // Current active section for teacher portal
   let teacherActiveSection = $state('students');
   
@@ -65,8 +68,16 @@
     // Handle both event objects (from menu) and direct strings (from navbar)
     if (typeof event === 'string') {
       activeSection = event;
+      documentRequestIdToOpen = null; // Clear any pending request ID
     } else {
       activeSection = event.detail.section;
+      
+      // If navigating to documents with a requestId, store it
+      if (event.detail.requestId) {
+        documentRequestIdToOpen = event.detail.requestId;
+      } else {
+        documentRequestIdToOpen = null;
+      }
     }
   }
   
@@ -182,9 +193,9 @@
         {:else if activeSection === 'schedule'}
           <StudentSchedule />
         {:else if activeSection === 'documents'}
-          <StudentDocument />
+          <StudentDocument openRequestId={documentRequestIdToOpen} />
         {:else if activeSection === 'notifications'}
-          <Notification />
+          <Notification onnavigate={handleNavigation} />
         {:else if activeSection === 'todo'}
           <StudentTodoList />
         {/if}
