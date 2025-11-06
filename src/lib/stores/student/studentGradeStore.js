@@ -553,7 +553,24 @@ function createStudentGradeStore() {
 				aiAnalysisError: null
 			}));
 
-			// Check localStorage cache first (unless force refresh)
+			// Determine previous quarter (but DON'T fetch - let API do it)
+			let previousQuarterInfo = null;
+			let prevQuarter = quarter - 1;
+			let prevSchoolYear = schoolYear;
+			
+			if (prevQuarter < 1) {
+				prevQuarter = 4;
+				const [startYear, endYear] = schoolYear.split('-').map(y => parseInt(y));
+				prevSchoolYear = `${startYear - 1}-${endYear - 1}`;
+			}
+			
+			// Just send the quarter/year info, let the API fetch the actual data
+			previousQuarterInfo = {
+				quarter: prevQuarter,
+				schoolYear: prevSchoolYear
+			};
+
+			// Check localStorage cache
 			if (!forceRefresh) {
 				const cachedAnalysis = getCachedAiAnalysis(studentId, quarter, schoolYear);
 				if (cachedAnalysis) {
@@ -585,7 +602,8 @@ function createStudentGradeStore() {
 						studentId,
 						quarter,
 						schoolYear,
-						forceRefresh
+						forceRefresh,
+						previousQuarterInfo
 					}),
 					signal: controller.signal
 				});

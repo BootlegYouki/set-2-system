@@ -39,11 +39,11 @@
 	// Calculate total number of sections
 	$: totalSections = analysisData ? 
 		1 + // Overview
+		(analysisData.quarterComparison ? 1 : 0) + // Quarter Comparison
 		1 + // Strengths
 		(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) +
 		1 + // Assessment Breakdown
-		(analysisData.actionPlan && analysisData.actionPlan.length > 0 ? 1 : 0) +
-		(analysisData.motivationalMessage ? 1 : 0)
+		(analysisData.actionPlan && analysisData.actionPlan.length > 0 ? 1 : 0)
 		: 0;
 
 	$: allSectionsVisible = visibleSections >= totalSections;
@@ -75,8 +75,47 @@
 			</div>
 		{/if}
 
-		<!-- Strengths (Section 2) -->
-		{#if visibleSections >= 2}
+		<!-- Quarter Comparison (Section 2, if exists) -->
+		{#if analysisData.quarterComparison && visibleSections >= 2}
+			<div class="analysis-section quarter-comparison" in:fly|local="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+				<div class="section-title">
+					<span class="material-symbols-outlined">
+						{#if analysisData.quarterComparison.overallTrend === 'improved'}
+							trending_up
+						{:else if analysisData.quarterComparison.overallTrend === 'declined'}
+							trending_down
+						{:else}
+							trending_flat
+						{/if}
+					</span>
+					<span>Progress from Last Quarter</span>
+					<span class="trend-badge {analysisData.quarterComparison.overallTrend}">
+						{analysisData.quarterComparison.changeAmount > 0 ? '+' : ''}{analysisData.quarterComparison.changeAmount}
+					</span>
+				</div>
+				<p class="section-text">{analysisData.quarterComparison.insight}</p>
+				
+				{#if analysisData.quarterComparison.notableChanges && analysisData.quarterComparison.notableChanges.length > 0}
+					<div class="notable-changes">
+						<h4 class="subsection-title">Notable Changes:</h4>
+						{#each analysisData.quarterComparison.notableChanges as change, index}
+							<div class="change-item" in:fly|local="{{ y: -10, duration: 350, delay: 100 + (index * 60), easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+								<div class="change-header">
+									<span class="change-subject">{change.subject}</span>
+									<span class="change-value {change.change > 0 ? 'positive' : change.change < 0 ? 'negative' : 'neutral'}">
+										{change.change > 0 ? '+' : ''}{change.change}
+									</span>
+								</div>
+								<p class="change-observation">{change.observation}</p>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Strengths (Section 3 or 2 if no quarter comparison) -->
+		{#if visibleSections >= (analysisData.quarterComparison ? 3 : 2)}
 			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">emoji_events</span>
@@ -94,9 +133,10 @@
 			</div>
 		{/if}
 
-		<!-- Areas for Growth (Section 3) -->
+		<!-- Areas for Growth (Section 4 or 3) -->
 		{#if analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0}
-			{#if visibleSections >= 3}
+			{@const sectionIndex = (analysisData.quarterComparison ? 4 : 3)}
+			{#if visibleSections >= sectionIndex}
 				<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<div class="section-title">
 						<span class="material-symbols-outlined">trending_up</span>
@@ -116,8 +156,14 @@
 			{/if}
 		{/if}
 
-		<!-- Assessment Breakdown (Section 4 or 3 if no areas for growth) -->
-		{#if visibleSections >= (analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 4 : 3)}
+		<!-- Assessment Breakdown (Section 5/4/3 depending on what came before) -->
+		{@const assessmentSectionIndex = 
+			(analysisData.quarterComparison ? 1 : 0) + 
+			2 + // Overview + Strengths
+			(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) + 
+			1 // This section
+		}
+		{#if visibleSections >= assessmentSectionIndex}
 			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 150, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">analytics</span>
@@ -163,9 +209,15 @@
 			</div>
 		{/if}
 
-		<!-- Action Plan (Section 5 or 4) -->
+		<!-- Action Plan (dynamic section index) -->
 		{#if analysisData.actionPlan && analysisData.actionPlan.length > 0}
-			{@const actionPlanIndex = (analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 5 : 4)}
+			{@const actionPlanIndex = 
+				(analysisData.quarterComparison ? 1 : 0) + 
+				2 + // Overview + Strengths
+				(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) + 
+				1 + // Assessment Breakdown
+				1 // This section
+			}
 			{#if visibleSections >= actionPlanIndex}
 				<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 200, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<div class="section-title">
@@ -181,13 +233,6 @@
 					{/each}
 				</div>
 			{/if}
-		{/if}
-
-		<!-- Motivational Message (Last Section) -->
-		{#if analysisData.motivationalMessage && visibleSections >= totalSections}
-			<div class="analysis-section motivational" in:fly|local="{{ y: -20, duration: 400, delay: 250, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
-				<p>{analysisData.motivationalMessage}</p>
-			</div>
 		{/if}
 
 		<!-- Show More / Show Less Buttons -->
@@ -378,19 +423,91 @@
 		color: var(--md-sys-color-on-surface);
 	}
 
-	/* Motivational */
-	.motivational {
-		background: var(--md-sys-color-primary-container);
-		border-color: var(--md-sys-color-primary);
-		text-align: center;
+	.trend-badge {
+		padding: var(--spacing-xs) var(--spacing-sm);
+		border-radius: var(--radius-sm);
+		font-size: 0.875rem;
+		font-weight: 700;
+		margin-left: auto;
 	}
 
-	.motivational p {
+	.trend-badge.improved {
+		background: var(--md-sys-color-tertiary-container);
+		color: var(--md-sys-color-on-tertiary-container);
+	}
+
+	.trend-badge.declined {
+		background: var(--md-sys-color-error-container);
+		color: var(--md-sys-color-on-error-container);
+	}
+
+	.trend-badge.stable {
+		background: var(--md-sys-color-surface-variant);
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.notable-changes {
+		margin-top: var(--spacing-md);
+	}
+
+	.subsection-title {
+		margin: 0 0 var(--spacing-sm) 0;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.change-item {
+		padding: var(--spacing-sm) var(--spacing-md);
+		background: var(--md-sys-color-surface);
+		border-radius: var(--radius-sm);
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.change-item:last-child {
+		margin-bottom: 0;
+	}
+
+	.change-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: var(--spacing-xs);
+	}
+
+	.change-subject {
+		font-weight: 600;
+		font-size: 0.9375rem;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.change-value {
+		font-weight: 700;
+		font-size: 0.875rem;
+		padding: 2px var(--spacing-xs);
+		border-radius: var(--radius-xs);
+	}
+
+	.change-value.positive {
+		color: var(--md-sys-color-tertiary);
+		background: var(--md-sys-color-tertiary-container);
+	}
+
+	.change-value.negative {
+		color: var(--md-sys-color-error);
+		background: var(--md-sys-color-error-container);
+	}
+
+	.change-value.neutral {
+		color: var(--md-sys-color-on-surface-variant);
+		background: var(--md-sys-color-surface-variant);
+	}
+
+	.change-observation {
 		margin: 0;
-		font-size: 1rem;
-		line-height: 1.6;
-		color: var(--md-sys-color-on-primary-container);
-		font-style: italic;
+		font-size: 0.875rem;
+		line-height: 1.5;
+		color: var(--md-sys-color-on-surface-variant);
 	}
 
 	/* Action Buttons */
@@ -435,6 +552,12 @@
 		margin-top: var(--spacing-lg);
 	}
 
+
+	@media (max-width: 1200px) {
+		.charts-section {
+			flex-direction: column;
+		}
+	}
 	/* Responsive */
 	@media (max-width: 768px) {
 		.assessment-row {
@@ -442,7 +565,7 @@
 		}
 
 		.charts-section {
-			grid-template-columns: 1fr;
+			flex-direction: column;
 		}
 	}
 </style>

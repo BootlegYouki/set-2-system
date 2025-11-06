@@ -23,8 +23,8 @@ export async function POST({ request }) {
     let cacheKey;
     
     try {
-        const { studentId, quarter, schoolYear, forceRefresh = false } = await request.json();
-        console.log('Request params:', { studentId, quarter, schoolYear, forceRefresh });
+        const { studentId, quarter, schoolYear, forceRefresh = false, previousQuarterInfo = null } = await request.json();
+        console.log('Request params:', { studentId, quarter, schoolYear, forceRefresh, hasPreviousQuarter: !!previousQuarterInfo });
 
         if (!studentId) {
             return json({ error: 'Missing student ID' }, { status: 400 });
@@ -85,8 +85,21 @@ export async function POST({ request }) {
             return json({ error: 'No grades found for this student' }, { status: 404 });
         }
 
+        // Fetch previous quarter grades if info provided
+        let previousQuarterGrades = null;
+        if (previousQuarterInfo && previousQuarterInfo.quarter && previousQuarterInfo.schoolYear) {
+            console.log(`Fetching previous quarter ${previousQuarterInfo.quarter} (${previousQuarterInfo.schoolYear}) for comparison...`);
+            previousQuarterGrades = await db.collection('grades').find({
+                student_id: new ObjectId(studentId),
+                quarter: previousQuarterInfo.quarter,
+                school_year: previousQuarterInfo.schoolYear,
+                verified: true
+            }).toArray();
+            console.log(`Found ${previousQuarterGrades.length} verified grades for previous quarter`);
+        }
+
         // Fetch grade configurations and subject/teacher details
-        const gradeAnalysisData = await prepareGradeDataFromDB(db, student, studentGrades);
+        const gradeAnalysisData = await prepareGradeDataFromDB(db, student, studentGrades, previousQuarterGrades, previousQuarterInfo);
 
         // Create the prompt for AI analysis
         const prompt = createAnalysisPrompt(gradeAnalysisData);
@@ -292,7 +305,7 @@ function streamCachedAnalysis(analysis) {
     });
 }
 
-async function prepareGradeDataFromDB(db, student, studentGrades) {
+async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarterGrades = null, previousQuarterInfo = null) {
     // Get section info
     const section = student.section_id 
         ? await db.collection('sections').findOne({ _id: new ObjectId(student.section_id) })
@@ -306,6 +319,71 @@ async function prepareGradeDataFromDB(db, student, studentGrades) {
     const sectionStudents = section 
         ? await db.collection('section_students').find({ section_id: new ObjectId(student.section_id) }).toArray()
         : [];
+
+    // Process previous quarter data if available
+    let previousQuarterAnalysis = null;
+    if (previousQuarterGrades && previousQuarterGrades.length > 0 && previousQuarterInfo) {
+        const prevGrades = previousQuarterGrades;
+        const prevTotalGrades = prevGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
+        const prevOverallAverage = prevGrades.length > 0 ? prevTotalGrades / prevGrades.length : 0;
+        
+        console.log(`Previous quarter average calculated: ${prevOverallAverage} (from ${prevGrades.length} grades)`);
+        
+        // Create subject-by-subject comparison
+        const subjectComparisons = [];
+        for (const currentGrade of studentGrades) {
+            const prevGrade = prevGrades.find(pg => 
+                pg.subject_id.toString() === currentGrade.subject_id.toString()
+            );
+            
+            if (prevGrade) {
+                const subject = await db.collection('subjects').findOne({ _id: new ObjectId(currentGrade.subject_id) });
+                const currentFinal = currentGrade.averages?.final_grade || 0;
+                const prevFinal = prevGrade.averages?.final_grade || 0;
+                const change = currentFinal - prevFinal;
+                
+                subjectComparisons.push({
+                    subjectName: subject?.name || 'Unknown',
+                    currentGrade: currentFinal,
+                    previousGrade: prevFinal,
+                    change: Math.round(change * 100) / 100,
+                    trend: change > 0 ? 'improved' : change < 0 ? 'declined' : 'stable',
+                    // Component comparisons
+                    writtenWork: {
+                        current: currentGrade.averages?.written_work || 0,
+                        previous: prevGrade.averages?.written_work || 0,
+                        change: (currentGrade.averages?.written_work || 0) - (prevGrade.averages?.written_work || 0)
+                    },
+                    performanceTasks: {
+                        current: currentGrade.averages?.performance_tasks || 0,
+                        previous: prevGrade.averages?.performance_tasks || 0,
+                        change: (currentGrade.averages?.performance_tasks || 0) - (prevGrade.averages?.performance_tasks || 0)
+                    },
+                    quarterlyAssessment: {
+                        current: currentGrade.averages?.quarterly_assessment || 0,
+                        previous: prevGrade.averages?.quarterly_assessment || 0,
+                        change: (currentGrade.averages?.quarterly_assessment || 0) - (prevGrade.averages?.quarterly_assessment || 0)
+                    }
+                });
+            }
+        }
+        
+        previousQuarterAnalysis = {
+            quarter: previousQuarterInfo.quarter,
+            schoolYear: previousQuarterInfo.schoolYear,
+            overallAverage: Math.round(prevOverallAverage * 100) / 100,
+            overallChange: Math.round((overallAverage - prevOverallAverage) * 100) / 100,
+            subjectComparisons
+        };
+        
+        console.log(`Previous quarter analysis prepared:`, {
+            quarter: previousQuarterAnalysis.quarter,
+            schoolYear: previousQuarterAnalysis.schoolYear,
+            overallAverage: previousQuarterAnalysis.overallAverage,
+            overallChange: previousQuarterAnalysis.overallChange,
+            comparisons: subjectComparisons.length
+        });
+    }
 
     // Prepare subject breakdown with detailed score analysis
     const subjectBreakdown = [];
@@ -368,7 +446,8 @@ async function prepareGradeDataFromDB(db, student, studentGrades) {
             totalSubjects: studentGrades.length,
             totalStudentsInSection: sectionStudents.length || 'N/A'
         },
-        subjects: subjectBreakdown
+        subjects: subjectBreakdown,
+        previousQuarter: previousQuarterAnalysis
     };
 }
 
@@ -401,7 +480,7 @@ function buildScoreDetails(scores, gradeItems, category) {
 }
 
 function createAnalysisPrompt(gradeData) {
-    const { studentInfo, academicPerformance, subjects } = gradeData;
+    const { studentInfo, academicPerformance, subjects, previousQuarter } = gradeData;
 
     let prompt = `As an educational AI assistant, analyze the academic performance of ${studentInfo.name} (Student ID: ${studentInfo.studentId}), a Grade ${studentInfo.gradeLevel}.
 
@@ -409,7 +488,40 @@ ACADEMIC OVERVIEW:
 - Overall Average: ${academicPerformance.overallAverage}
 - Total Subjects: ${academicPerformance.totalSubjects}
 - Section Size: ${academicPerformance.totalStudentsInSection} students
+`;
 
+    // Add previous quarter comparison if available
+    if (previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0) {
+        const trend = previousQuarter.overallChange > 0 ? '📈 IMPROVED' : 
+                     previousQuarter.overallChange < 0 ? '📉 DECLINED' : 
+                     '➡️ STABLE';
+        
+        prompt += `
+PREVIOUS QUARTER COMPARISON:
+- Previous Quarter: Quarter ${previousQuarter.quarter} (${previousQuarter.schoolYear})
+- Previous Overall Average: ${previousQuarter.overallAverage}
+- Change: ${previousQuarter.overallChange > 0 ? '+' : ''}${previousQuarter.overallChange} ${trend}
+
+SUBJECT-BY-SUBJECT COMPARISON:
+`;
+        
+        previousQuarter.subjectComparisons.forEach(comparison => {
+            const trendEmoji = comparison.trend === 'improved' ? '📈' : 
+                             comparison.trend === 'declined' ? '📉' : '➡️';
+            
+            prompt += `
+  ${trendEmoji} ${comparison.subjectName}:
+     Current: ${comparison.currentGrade} | Previous: ${comparison.previousGrade} | Change: ${comparison.change > 0 ? '+' : ''}${comparison.change}
+     - Written Work: ${comparison.writtenWork.current}% (was ${comparison.writtenWork.previous}%, change: ${comparison.writtenWork.change > 0 ? '+' : ''}${Math.round(comparison.writtenWork.change * 100) / 100})
+     - Performance Tasks: ${comparison.performanceTasks.current}% (was ${comparison.performanceTasks.previous}%, change: ${comparison.performanceTasks.change > 0 ? '+' : ''}${Math.round(comparison.performanceTasks.change * 100) / 100})
+     - Quarterly Assessment: ${comparison.quarterlyAssessment.current}% (was ${comparison.quarterlyAssessment.previous}%, change: ${comparison.quarterlyAssessment.change > 0 ? '+' : ''}${Math.round(comparison.quarterlyAssessment.change * 100) / 100})
+`;
+        });
+    } else {
+        console.log('No previous quarter data available for comparison');
+    }
+
+    prompt += `
 DETAILED SUBJECT BREAKDOWN:
 `;
 
@@ -457,24 +569,36 @@ Component Averages:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Analyze the grade data above and provide a supportive, empowering academic performance report.
-
+${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '\n⚠️ IMPORTANT: Include analysis of the previous quarter comparison data. Recognize improvements, acknowledge declines with encouragement, and identify patterns across quarters.\n' : ''}
 Return a JSON object with this EXACT structure:
 
 {
-  "overallInsight": "A 2-3 sentence warm, personalized opening that recognizes the student's overall performance and effort",
+  "overallInsight": "A 2-3 sentence warm, personalized opening that recognizes the student's overall performance and effort${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '. MUST mention their progress compared to the previous quarter (improved/declined/stable) with specific numbers' : ''}",
   "performanceLevel": "excellent|good|satisfactory|needs-improvement",
-  "strengths": [
+  ${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? `"quarterComparison": {
+    "overallTrend": "improved|declined|stable",
+    "changeAmount": ${previousQuarter.overallChange},
+    "insight": "2-3 sentences analyzing the trend. If improved, celebrate it! If declined, offer encouragement and identify possible causes. If stable, discuss consistency.",
+    "notableChanges": [
+      {
+        "subject": "Subject name with biggest change",
+        "change": 5.5,
+        "observation": "What this change might indicate"
+      }
+    ]
+  },
+  ` : ''}"strengths": [
     {
       "subject": "Subject name",
       "score": 95.5,
-      "reason": "Specific reason why this is a strength (mention specific assessment types and scores)"
+      "reason": "Specific reason why this is a strength (mention specific assessment types and scores${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? ', and note if this improved from last quarter' : ''})"
     }
   ],
   "areasForGrowth": [
     {
       "subject": "Subject name", 
       "score": 75.0,
-      "currentGap": "Brief description of the gap",
+      "currentGap": "Brief description of the gap${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? ' and how it changed from last quarter' : ''}",
       "potential": "Encouraging note about potential for improvement"
     }
   ],
@@ -482,46 +606,46 @@ Return a JSON object with this EXACT structure:
     "writtenWork": {
       "average": 85.5,
       "performance": "excellent|good|satisfactory|needs-improvement",
-      "insight": "Brief encouraging insight about written work performance"
+      "insight": "Brief encouraging insight about written work performance${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? ' (mention if improved from last quarter)' : ''}"
     },
     "performanceTasks": {
       "average": 82.3,
       "performance": "excellent|good|satisfactory|needs-improvement", 
-      "insight": "Brief encouraging insight about performance tasks"
+      "insight": "Brief encouraging insight about performance tasks${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? ' (mention if improved from last quarter)' : ''}"
     },
     "quarterlyAssessment": {
       "average": 88.0,
       "performance": "excellent|good|satisfactory|needs-improvement",
-      "insight": "Brief encouraging insight about quarterly assessments"
+      "insight": "Brief encouraging insight about quarterly assessments${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? ' (mention if improved from last quarter)' : ''}"
     }
   },
   "actionPlan": [
     {
       "priority": "high|medium|low",
       "title": "Short action title",
-      "description": "Specific, encouraging action step",
+      "description": "Specific, encouraging action step${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '. For subjects that declined, suggest specific strategies to recover. For improved subjects, suggest maintaining momentum' : ''}",
       "expectedImpact": "What improvement this could bring"
     }
   ],
   "studyRecommendations": {
     "timeManagement": "Specific time management tip",
     "focusAreas": ["Subject 1", "Subject 2"],
-    "strengthsToLeverage": "How to use their strengths to improve weaker areas"
-  },
-  "motivationalMessage": "A warm, personalized closing message that instills confidence and acknowledges their potential"
+    "strengthsToLeverage": "How to use their strengths to improve weaker areas${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '. Mention patterns observed across quarters' : ''}"
+  }
 }
 
 REQUIREMENTS:
 - Use warm, second-person perspective in all text fields ("you", "your")
 - Round all numeric scores to one decimal place
-- Include 3-5 items in strengths array (top performing subjects)
-- Include 2-4 items in areasForGrowth array (subjects needing attention)
-- Include 5-7 items in actionPlan array, ordered by priority (high/medium/low)
-- Be genuinely encouraging while staying honest
+- Include MAXIMUM 3 items in strengths array (top performing subjects)
+- Include 2-3 items in areasForGrowth array (subjects needing attention) - MINIMUM 2, MAXIMUM 3
+- Include MAXIMUM 4 items in actionPlan array, ordered by priority (high/medium/low)
+${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '- CRITICAL: Thoroughly analyze the quarter-over-quarter comparison. This is valuable data!\n- Celebrate improvements enthusiastically. For declines, be supportive and solution-focused\n- Identify subjects that consistently perform well or poorly across quarters\n- ' : ''}- Be genuinely encouraging while staying honest
 - Use growth mindset language - frame weaknesses as opportunities
 - Avoid judgmental words like "poor", "bad", "failing" - use "developing", "emerging", "growing"
 - Make all recommendations feel achievable and supportive
 - Provide specific, actionable advice
+- DO NOT include a motivationalMessage field
 `;
     
     return prompt;
