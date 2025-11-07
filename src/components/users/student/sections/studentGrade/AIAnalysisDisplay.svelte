@@ -5,26 +5,51 @@
 	import AssessmentTypeChart from './studentGradeCharts/AssessmentTypeChart.svelte';
 	import SubjectPerformanceChart from './studentGradeCharts/SubjectPerformanceChart.svelte';
 
-	export let analysisData = null;
-	export let isLoading = false;
-	export let error = null;
-	export let subjects = [];
+	let { analysisData = null, isLoading = false, error = null, subjects = [] } = $props();
 
-	let visibleSections = 0; // Start with no sections visible
+	let visibleSections = $state(0); // Start with no sections visible
+	let sectionRefs = $state([]); // Store references to section elements
+	let previousVisibleSections = $state(0);
 	
 	// Reset visibleSections when loading starts
-	$: if (isLoading) {
-		visibleSections = 0;
-	}
+	$effect(() => {
+		if (isLoading) {
+			visibleSections = 0;
+		}
+	});
 	
 	// Show first section when data loads (with delay for animation)
-	$: if (analysisData && !isLoading && visibleSections === 0) {
-		tick().then(() => {
-			setTimeout(() => {
-				visibleSections = 1;
-			}, 50);
-		});
-	}
+	$effect(() => {
+		if (analysisData && !isLoading && visibleSections === 0) {
+			tick().then(() => {
+				setTimeout(() => {
+					visibleSections = 1;
+				}, 50);
+			});
+		}
+	});
+
+	// Auto-scroll when a new section becomes visible
+	$effect(() => {
+		if (visibleSections > previousVisibleSections && visibleSections > 1) {
+			// Wait for transition to start
+			tick().then(() => {
+				setTimeout(() => {
+					const newSectionIndex = visibleSections - 1;
+					const targetSection = sectionRefs[newSectionIndex];
+					
+					if (targetSection) {
+						targetSection.scrollIntoView({ 
+							behavior: 'smooth', 
+							block: 'start',
+							inline: 'nearest'
+						});
+					}
+				}, 100); // Small delay to let the animation start
+			});
+		}
+		previousVisibleSections = visibleSections;
+	});
 
 	function showMoreSection() {
 		visibleSections++;
@@ -37,16 +62,16 @@
 	}
 
 	// Calculate total number of sections
-	$: totalSections = analysisData ? 
+	let totalSections = $derived(analysisData ? 
 		1 + // Overview
 		(analysisData.quarterComparison ? 1 : 0) + // Quarter Comparison
 		1 + // Strengths
 		(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) +
 		1 + // Assessment Breakdown
 		(analysisData.actionPlan && analysisData.actionPlan.length > 0 ? 1 : 0)
-		: 0;
+		: 0);
 
-	$: allSectionsVisible = visibleSections >= totalSections;
+	let allSectionsVisible = $derived(visibleSections >= totalSections);
 </script>
 
 <div class="ai-analysis-display">
@@ -66,7 +91,7 @@
 	{:else if analysisData}
 		<!-- Overview (Section 1) -->
 		{#if visibleSections >= 1}
-			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+			<div class="analysis-section" bind:this={sectionRefs[0]} in:fly|local="{{ y: -20, duration: 400, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">psychology</span>
 					<span>Overview</span>
@@ -77,7 +102,7 @@
 
 		<!-- Quarter Comparison (Section 2, if exists) -->
 		{#if analysisData.quarterComparison && visibleSections >= 2}
-			<div class="analysis-section quarter-comparison" in:fly|local="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+			<div class="analysis-section quarter-comparison" bind:this={sectionRefs[1]} in:fly|local="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">
 						{#if analysisData.quarterComparison.overallTrend === 'improved'}
@@ -116,7 +141,7 @@
 
 		<!-- Strengths (Section 3 or 2 if no quarter comparison) -->
 		{#if visibleSections >= (analysisData.quarterComparison ? 3 : 2)}
-			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+			<div class="analysis-section" bind:this={sectionRefs[analysisData.quarterComparison ? 2 : 1]} in:fly|local="{{ y: -20, duration: 400, delay: 50, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">emoji_events</span>
 					<span>Strengths</span>
@@ -136,8 +161,9 @@
 		<!-- Areas for Growth (Section 4 or 3) -->
 		{#if analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0}
 			{@const sectionIndex = (analysisData.quarterComparison ? 4 : 3)}
+			{@const refIndex = (analysisData.quarterComparison ? 3 : 2)}
 			{#if visibleSections >= sectionIndex}
-				<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+				<div class="analysis-section" bind:this={sectionRefs[refIndex]} in:fly|local="{{ y: -20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<div class="section-title">
 						<span class="material-symbols-outlined">trending_up</span>
 						<span>Areas for Growth</span>
@@ -163,8 +189,14 @@
 			(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) + 
 			1 // This section
 		}
+		{@const assessmentRefIndex = 
+			(analysisData.quarterComparison ? 1 : 0) + 
+			1 + // Overview + Strengths (Strengths is always index 1 or 2)
+			(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) + 
+			1 // This section
+		}
 		{#if visibleSections >= assessmentSectionIndex}
-			<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 150, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+			<div class="analysis-section" bind:this={sectionRefs[assessmentRefIndex]} in:fly|local="{{ y: -20, duration: 400, delay: 150, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 				<div class="section-title">
 					<span class="material-symbols-outlined">analytics</span>
 					<span>Assessment Breakdown</span>
@@ -218,8 +250,15 @@
 				1 + // Assessment Breakdown
 				1 // This section
 			}
+			{@const actionPlanRefIndex = 
+				(analysisData.quarterComparison ? 1 : 0) + 
+				1 + // Overview + Strengths
+				(analysisData.areasForGrowth && analysisData.areasForGrowth.length > 0 ? 1 : 0) + 
+				1 + // Assessment Breakdown
+				1 // This section
+			}
 			{#if visibleSections >= actionPlanIndex}
-				<div class="analysis-section" in:fly|local="{{ y: -20, duration: 400, delay: 200, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+				<div class="analysis-section" bind:this={sectionRefs[actionPlanRefIndex]} in:fly|local="{{ y: -20, duration: 400, delay: 200, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<div class="section-title">
 						<span class="material-symbols-outlined">checklist</span>
 						<span>Action Plan</span>
@@ -238,14 +277,14 @@
 		<!-- Show More / Show Less Buttons -->
 		<div class="ai-action-buttons">
 			{#if !allSectionsVisible}
-				<button class="show-more-btn" on:click={showMoreSection} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+				<button class="show-more-btn" onclick={showMoreSection} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<span class="material-symbols-outlined">expand_more</span>
 					<span>Show More</span>
 				</button>
 			{/if}
 			
 			{#if visibleSections > 1}
-				<button class="show-more-btn" on:click={showLess} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+				<button class="show-more-btn" onclick={showLess} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<span class="material-symbols-outlined">expand_less</span>
 					<span>Show Less</span>
 				</button>
