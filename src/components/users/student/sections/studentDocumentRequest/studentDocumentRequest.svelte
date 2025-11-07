@@ -12,13 +12,13 @@
 	let { openRequestId = $bindable(null) } = $props();
 
 	// Document request state
-	let isRequestFormOpen = false;
-	let selectedDocumentType = '';
-	let requestPurpose = '';
-	let isSubmitting = false;
+	let isRequestFormOpen = $state(false);
+	let selectedDocumentType = $state('');
+	let requestPurpose = $state('');
+	let isSubmitting = $state(false);
 	
 	// Custom dropdown state
-	let isDropdownOpen = false;
+	let isDropdownOpen = $state(false);
 
 	// Polling state
 	let pollingInterval;
@@ -287,7 +287,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="document-request-container" on:click={handleClickOutside} on:keydown={handleClickOutside}>
+<div class="document-request-container" onclick={handleClickOutside} onkeydown={handleClickOutside}>
 	<!-- Header Section -->
 	<div class="document-header">
 		<div class="header-content">
@@ -301,7 +301,7 @@
 		<div class="quick-actions-header">
 			<h2 class="quick-actions-title">Request a Document</h2>
 			<div style="display: flex; gap: 8px;">
-				<button class="request-new-button" on:click={toggleRequestForm} disabled={loading}>
+				<button class="request-new-button" onclick={toggleRequestForm} disabled={loading}>
 					<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>
 					{isRequestFormOpen ? 'Cancel' : 'New Document'}
 				</button>
@@ -327,7 +327,7 @@
 						
 						<!-- Custom Dropdown -->
 						<div class="custom-dropdown">
-							<button id="document-type-dropdown" class="dropdown-toggle" on:click={toggleDropdown}>
+							<button id="document-type-dropdown" class="dropdown-toggle" onclick={toggleDropdown}>
 								<span>
 									{#if selectedDocumentType}
 										{documentTypes.find(d => d.id === selectedDocumentType)?.name || 'Select Document Type'}
@@ -345,7 +345,7 @@
 									{#each documentTypes as docType}
 										<button 
 											class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''}"
-											on:click={() => selectDocumentType(docType)}
+											onclick={() => selectDocumentType(docType)}
 										>
 											<div class="doc-dropdown-item-content">
 												<span class="doc-dropdown-item-name">{docType.name}</span>
@@ -379,12 +379,12 @@
 				</div>
 					
 					<div class="document-form-actions">
-						<button class="document-cancel-button" on:click={toggleRequestForm} disabled={isSubmitting}>
+						<button class="document-cancel-button" onclick={toggleRequestForm} disabled={isSubmitting}>
 							Cancel
 						</button>
 						<button 
 							class="submit-button" 
-							on:click={handleSubmitRequest} 
+							onclick={handleSubmitRequest} 
 							disabled={!selectedDocumentType || !requestPurpose.trim() || isSubmitting}
 						>
 							{#if isSubmitting}
@@ -403,7 +403,7 @@
 	<div class="request-history-section">
 		<div class="request-history-header">
 			<h2 class="section-title">Request History</h2>
-			<button class="refresh-button" on:click={handleRefresh} disabled={loading} title="Refresh document requests">
+			<button class="refresh-button" onclick={handleRefresh} disabled={loading} title="Refresh document requests">
 				<span class="material-symbols-outlined">refresh</span>
 			</button>
 		</div>
@@ -430,7 +430,7 @@
 				{#each requestHistory as request, index (request.id)}
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="request-card {request.status}" style="--card-index: {index};" on:click={() => openRequestModal(request)}>
+					<div class="request-card {request.status}" style="--card-index: {index};" onclick={() => openRequestModal(request)}>
 						<div class="request-main-content">
 							<div class="request-status-icon">
 								<span class="material-symbols-outlined">{getStatusIcon(request.status)}</span>

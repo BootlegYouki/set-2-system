@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 	import { dashboardStore } from '../../../../../lib/stores/admin/dashboardStore.js';
-	import StudentsPerGradeLevelChart from './adminDashboardCharts/StudentsPerGradeLevelChart.svelte';
+	import DynamicDonutChart from './adminDashboardCharts/DynamicDonutChart.svelte';
 	import SectionsPerGradeLevelChart from './adminDashboardCharts/SectionsPerGradeLevelChart.svelte';
 
 	// Subscribe to dashboard store
@@ -224,7 +224,7 @@
 
 	<div class="graph-row">
 		<div class="accounts-stats-container">
-			<StudentsPerGradeLevelChart />
+			<DynamicDonutChart />
 		</div>
 		<div class="average-grades-stats-container">
 			<SectionsPerGradeLevelChart />

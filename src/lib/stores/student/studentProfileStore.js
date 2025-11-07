@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { toastStore } from '../../../components/common/js/toastStore.js';
+import { authenticatedFetch } from '../../../routes/api/helper/api-helper.js';
 
 // Cache configuration
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -90,55 +91,71 @@ function createStudentProfileStore() {
 				currentStudentId: studentId
 			}));
 
-			// Fetch student data from accounts API
-			const response = await fetch(`/api/accounts?type=student&limit=1000`);
+			// Fetch student profile data from API
+			const profileResponse = await authenticatedFetch(`/api/student-profile?studentId=${studentId}`);
 			
-			if (!response.ok) {
-				throw new Error('Failed to fetch student data');
+			if (!profileResponse.ok) {
+				throw new Error('Failed to fetch student profile data');
 			}
 
-			const result = await response.json();
+			const profileResult = await profileResponse.json();
 			
-			if (!result.success) {
-				throw new Error(result.message || 'Failed to fetch student data');
+			if (!profileResult.success) {
+				throw new Error(profileResult.error || 'Failed to fetch student profile data');
 			}
 
-			// Find the current student's data in the accounts list
-			const currentStudentData = result.accounts.find(account => 
-				account.id === studentId || 
-				account.number === studentId
-			);
+			const studentProfileData = profileResult.data;
 
-			if (!currentStudentData) {
-				throw new Error('Student data not found');
-			}
-
-			// Fetch additional student profile data if available
-			let studentProfileData = null;
+			// Fetch basic student data from users API
+			let currentStudentData = null;
 			try {
-				const profileResponse = await fetch(`/api/student-profile?studentId=${studentId}`);
-				if (profileResponse.ok) {
-					const profileResult = await profileResponse.json();
-					if (profileResult.success) {
-						studentProfileData = profileResult.data;
+				const userResponse = await authenticatedFetch(`/api/users?id=${studentId}`);
+				if (userResponse.ok) {
+					const userResult = await userResponse.json();
+					if (userResult.success && userResult.user) {
+						currentStudentData = {
+							id: userResult.user.id || studentId,
+							number: userResult.user.account_number,
+							name: userResult.user.full_name,
+							firstName: userResult.user.first_name,
+							lastName: userResult.user.last_name,
+							middleInitial: userResult.user.middle_initial || '',
+							email: userResult.user.email,
+							contactNumber: userResult.user.contact_number,
+							address: userResult.user.address,
+							birthdate: userResult.user.birth_date,
+							age: userResult.user.age,
+							guardian: userResult.user.guardian,
+							gender: userResult.user.gender,
+							gradeLevel: studentProfileData?.section?.gradeLevel || userResult.user.grade_level
+						};
 					}
 				}
 			} catch (err) {
-				// Don't throw error here as basic profile should still work
-				console.warn('Failed to fetch additional student profile data:', err);
+				console.warn('Failed to fetch basic student data:', err);
+			}
+
+			// If we don't have basic student data, create a minimal version from profile data
+			if (!currentStudentData) {
+				currentStudentData = {
+					id: studentId,
+					number: studentId,
+					name: 'Student',
+					gradeLevel: studentProfileData?.section?.gradeLevel || 'Not assigned'
+				};
 			}
 
 			// If student profile data doesn't have subjects or has empty subjects, fetch from grades API
 			if (!studentProfileData?.subjects || studentProfileData.subjects.length === 0) {
 				try {
 					// Get current quarter and school year
-					const currentQuarterResponse = await fetch('/api/current-quarter');
+					const currentQuarterResponse = await authenticatedFetch('/api/current-quarter');
 					const currentQuarterData = await currentQuarterResponse.json();
 					const currentQuarter = currentQuarterData.data?.currentQuarter || 2;
 					const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 
 					// Fetch subjects from grades API (similar to student grades page)
-					const gradesResponse = await fetch(`/api/student-grades?student_id=${studentId}&quarter=${currentQuarter}&school_year=${schoolYear}`);
+					const gradesResponse = await authenticatedFetch(`/api/student-grades?student_id=${studentId}&quarter=${currentQuarter}&school_year=${schoolYear}`);
 					if (gradesResponse.ok) {
 						const gradesResult = await gradesResponse.json();
 						if (gradesResult.success && gradesResult.data.grades) {
@@ -183,11 +200,11 @@ function createStudentProfileStore() {
 			// Fetch student sections if available
 			let studentSections = [];
 			try {
-				const currentQuarterResponse = await fetch('/api/current-quarter');
+				const currentQuarterResponse = await authenticatedFetch('/api/current-quarter');
 				const currentQuarterData = await currentQuarterResponse.json();
 				const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 
-				const sectionsResponse = await fetch(`/api/student-sections?studentId=${studentId}&schoolYear=${schoolYear}`);
+				const sectionsResponse = await authenticatedFetch(`/api/student-sections?studentId=${studentId}&schoolYear=${schoolYear}`);
 				if (sectionsResponse.ok) {
 					const sectionsResult = await sectionsResponse.json();
 					if (sectionsResult.success) {

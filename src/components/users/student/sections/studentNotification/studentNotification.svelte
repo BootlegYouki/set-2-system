@@ -27,8 +27,8 @@
   ];
 
   // State
-  let selectedFilter = 'all';
-  let isFilterDropdownOpen = false;
+  let selectedFilter = $state('all');
+  let isFilterDropdownOpen = $state(false);
 
 
   // Functions
@@ -215,7 +215,7 @@
   // Animation key to trigger stagger animation on data change
   let animationKey = $state(0);
   let lastFilteredLength = $state(0);
-  let lastFilter = $state(selectedFilter);
+  let lastFilter = $state('all');
   
   // Only increment key when filter changes or notification count changes
   $effect(() => {
@@ -227,7 +227,7 @@
   });
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} />
 
 <div class="notification-container">
   <!-- Header Section -->
@@ -245,7 +245,7 @@
   <div class="filter-actions-section">
     <div class="filter-section">
       <div class="filter-dropdown">
-        <button class="filter-toggle" on:click={toggleFilterDropdown}>
+        <button class="filter-toggle" onclick={toggleFilterDropdown}>
           <div class="filter-toggle-content">
             <span class="material-symbols-outlined filter-icon">{getFilterIcon(selectedFilter)}</span>
             <span class="filter-label">{getFilterLabel(selectedFilter)}</span>
@@ -259,7 +259,7 @@
               <button 
                 class="filter-dropdown-item" 
                 class:active={option.value === selectedFilter}
-                on:click={() => selectFilter(option.value)}
+                onclick={() => selectFilter(option.value)}
               >
                 <span class="material-symbols-outlined">{option.icon}</span>
                 <span>{option.label}</span>
@@ -275,13 +275,13 @@
 
     <div class="actions-section">
       {#if unreadCount > 0}
-        <button class="notifications-action-btn mark-all-read" on:click={markAllAsRead} title="Mark All Read">
+        <button class="notifications-action-btn mark-all-read" onclick={markAllAsRead} title="Mark All Read">
           <span class="material-symbols-outlined">done_all</span>
         </button>
       {/if}
       
       {#if notifications.some(n => n.isRead)}
-        <button class="notifications-action-btn clear-read" on:click={clearAllRead} title="Clear Read">
+        <button class="notifications-action-btn clear-read" onclick={clearAllRead} title="Clear Read">
           <span class="material-symbols-outlined">clear_all</span>
         </button>
       {/if}
@@ -302,7 +302,7 @@
         </div>
         <h3>Error Loading Notifications</h3>
         <p>{error}</p>
-        <button class="retry-btn" on:click={fetchNotifications}>
+        <button class="retry-btn" onclick={fetchNotifications}>
           Reload
         </button>
       </div>
@@ -310,30 +310,29 @@
       {#key animationKey}
         <div class="notifications-list">
           {#each filteredNotifications as notification, index (notification.id)}
-            <div 
-              class="notification-card {notification.isRead ? 'read' : 'unread'}"
-              class:clickable={notification.type === 'document' || notification.type === 'document_request'}
-              style="--card-index: {index};"
-              on:click={() => handleNotificationClick(notification)}
-              on:keydown={(e) => e.key === 'Enter' && handleNotificationClick(notification)}
-              role={notification.type === 'document' || notification.type === 'document_request' ? 'button' : undefined}
-              tabindex={notification.type === 'document' || notification.type === 'document_request' ? 0 : undefined}
-            >
-              <!-- Notification Header -->
-               <div class="notification-header-card">
-                 <h3 class="notification-title">
-                   {notification.title}
-                 </h3>
-                 <span class="notification-time">{formatTimestamp(notification.timestamp)}</span>
-               </div>
-              
-              <!-- Notification Details -->
-              <div class="notification-details">
-                <div class="notification-content">
-                  <p class="notification-message">{notification.message}</p>
-                  
-                  <!-- Document Request Specific Info -->
-                  {#if notification.type === 'document' || notification.type === 'document_request'}
+            {#if notification.type === 'document' || notification.type === 'document_request'}
+              <div 
+                class="notification-card {notification.isRead ? 'read' : 'unread'} clickable"
+                style="--card-index: {index};"
+                onclick={() => handleNotificationClick(notification)}
+                onkeydown={(e) => e.key === 'Enter' && handleNotificationClick(notification)}
+                role="button"
+                tabindex="0"
+              >
+                <!-- Notification Header -->
+                <div class="notification-header-card">
+                  <h3 class="notification-title">
+                    {notification.title}
+                  </h3>
+                  <span class="notification-time">{formatTimestamp(notification.timestamp)}</span>
+                </div>
+                
+                <!-- Notification Details -->
+                <div class="notification-details">
+                  <div class="notification-content">
+                    <p class="notification-message">{notification.message}</p>
+                    
+                    <!-- Document Request Specific Info -->
                     {#if notification.adminNote}
                       <div class="admin-note">
                         <span class="material-symbols-outlined">note</span>
@@ -352,31 +351,72 @@
                         </div>
                       </div>
                     {/if}
-                  {/if}
-                </div>
-                
-                <!-- Notification Actions -->
-                <div class="notification-actions">
-                  <button 
-                    class="action-btn-small read-toggle"
-                    on:click|stopPropagation={() => toggleNotificationRead(notification.id)}
-                    title={notification.isRead ? 'Mark as unread' : 'Mark as read'}
-                  >
-                    <span class="material-symbols-outlined">
-                      {notification.isRead ? 'mark_email_unread' : 'mark_email_read'}
-                    </span>
-                  </button>
+                  </div>
                   
-                  <button 
-                    class="action-btn-small delete-btn"
-                    on:click|stopPropagation={() => deleteNotification(notification.id)}
-                    title="Delete notification"
-                  >
-                    <span class="material-symbols-outlined">delete</span>
-                  </button>
+                  <!-- Notification Actions -->
+                  <div class="notification-actions">
+                    <button 
+                      class="action-btn-small read-toggle"
+                      onclick={(e) => { e.stopPropagation(); toggleNotificationRead(notification.id); }}
+                      title={notification.isRead ? 'Mark as unread' : 'Mark as read'}
+                    >
+                      <span class="material-symbols-outlined">
+                        {notification.isRead ? 'mark_email_unread' : 'mark_email_read'}
+                      </span>
+                    </button>
+                    
+                    <button 
+                      class="action-btn-small delete-btn"
+                      onclick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                      title="Delete notification"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            {:else}
+              <div 
+                class="notification-card {notification.isRead ? 'read' : 'unread'}"
+                style="--card-index: {index};"
+              >
+                <!-- Notification Header -->
+                <div class="notification-header-card">
+                  <h3 class="notification-title">
+                    {notification.title}
+                  </h3>
+                  <span class="notification-time">{formatTimestamp(notification.timestamp)}</span>
+                </div>
+                
+                <!-- Notification Details -->
+                <div class="notification-details">
+                  <div class="notification-content">
+                    <p class="notification-message">{notification.message}</p>
+                  </div>
+                  
+                  <!-- Notification Actions -->
+                  <div class="notification-actions">
+                    <button 
+                      class="action-btn-small read-toggle"
+                      onclick={(e) => { e.stopPropagation(); toggleNotificationRead(notification.id); }}
+                      title={notification.isRead ? 'Mark as unread' : 'Mark as read'}
+                    >
+                      <span class="material-symbols-outlined">
+                        {notification.isRead ? 'mark_email_unread' : 'mark_email_read'}
+                      </span>
+                    </button>
+                    
+                    <button 
+                      class="action-btn-small delete-btn"
+                      onclick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                      title="Delete notification"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {/if}
           {/each}
         </div>
       {/key}

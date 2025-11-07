@@ -5,9 +5,9 @@
 	// Register Chart.js components
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
-	export let subjects = [];
+	let { subjects = [] } = $props();
 
-	let chartCanvas;
+	let chartCanvas = $state();
 	let chartInstance;
 
 	function createChart() {
@@ -262,9 +262,11 @@
 	});
 
 	// Recreate chart when subjects change
-	$: if (subjects && chartCanvas) {
-		createChart();
-	}
+	$effect(() => {
+		if (subjects && chartCanvas) {
+			createChart();
+		}
+	});
 </script>
 
 <div class="chart-container">
@@ -298,8 +300,10 @@
 	}
 
 	canvas {
+		flex: 1;
 		max-height: 100%;
-		max-width: 100%;
+		max-width: 50rem;
+		margin: 0 auto;
 	}
 
 	.chart-empty {

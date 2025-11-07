@@ -1,10 +1,64 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
+import { ObjectId } from 'mongodb';
+import { verifyAuth } from '../helper/auth-helper.js';
 
 // GET /api/users - Handle user data requests
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
     const action = url.searchParams.get('action');
+    const userId = url.searchParams.get('id');
+    
+    // If requesting a specific user by ID
+    if (userId) {
+      // Verify authentication
+      const authResult = await verifyAuth(request, ['student', 'teacher', 'adviser', 'admin']);
+      if (!authResult.success) {
+        return json({ error: authResult.error }, { status: 401 });
+      }
+      
+      const currentUser = authResult.user;
+      
+      // Authorization check: users can only view their own data unless they're admin
+      if (currentUser.account_type !== 'admin' && currentUser.id !== userId) {
+        return json({ 
+          error: 'Unauthorized: You can only view your own data' 
+        }, { status: 403 });
+      }
+
+      const db = await connectToDatabase();
+      const user = await db.collection('users').findOne({
+        _id: new ObjectId(userId)
+      });
+      
+      if (!user) {
+        return json({ error: 'User not found' }, { status: 404 });
+      }
+      
+      // Return user data (excluding password hash)
+      const userData = {
+        id: user._id.toString(),
+        account_number: user.account_number,
+        full_name: user.full_name,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        middle_initial: user.middle_initial,
+        email: user.email,
+        contact_number: user.contact_number,
+        address: user.address,
+        birth_date: user.birth_date,
+        age: user.age,
+        guardian: user.guardian,
+        gender: user.gender,
+        grade_level: user.grade_level,
+        account_type: user.account_type,
+        status: user.status,
+        created_at: user.created_at,
+        updated_at: user.updated_at
+      };
+      
+      return json({ success: true, user: userData });
+    }
     
     switch (action) {
       case 'teachers':
@@ -37,7 +91,7 @@ export async function GET({ url }) {
         return json({ success: true, data: formattedTeachers });
         
       default:
-        return json({ error: 'Invalid action parameter' }, { status: 400 });
+        return json({ error: 'Invalid action parameter or missing id' }, { status: 400 });
     }
     
   } catch (error) {

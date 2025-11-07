@@ -6,23 +6,25 @@
 	// Register Chart.js components
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
-	let chartCanvas;
+	let chartCanvas = $state();
 	let chartInstance;
 
 	// Subscribe to store for this chart
-	$: chartState = $dashboardStore.charts.sectionsPerGrade;
-	$: loading = chartState.isLoading;
-	$: error = chartState.error;
-	$: chartData = chartState.data;
+	let chartState = $derived($dashboardStore.charts.sectionsPerGrade);
+	let loading = $derived(chartState.isLoading);
+	let error = $derived(chartState.error);
+	let chartData = $derived(chartState.data);
 
 	const gradeLevels = ['7', '8', '9', '10'];
 
 	// Create chart when data is available (always with animation since no cache)
-	$: if (chartData && !loading && chartCanvas) {
-		setTimeout(() => {
-			createChart(chartData);
-		}, 0);
-	}
+	$effect(() => {
+		if (chartData && !loading && chartCanvas) {
+			setTimeout(() => {
+				createChart(chartData);
+			}, 0);
+		}
+	});
 
 	function createChart(data) {
 		// Check if canvas is available
@@ -201,8 +203,10 @@
 	}
 
 	canvas {
+		flex: 1;
 		max-height: 100%;
-		max-width: 100%;
+		max-width: 50rem;
+		margin: 0 auto;
 	}
 
 	.chart-loading {
