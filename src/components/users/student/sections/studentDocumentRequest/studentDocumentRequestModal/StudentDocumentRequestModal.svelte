@@ -351,9 +351,6 @@
 <div class="student-docreq-modal-content">
 	<div 
 		class="student-docreq-modal-grid"
-		ontouchstart={handleTouchStart}
-		ontouchmove={handleTouchMove}
-		ontouchend={handleTouchEnd}
 	>
 		<!-- LEFT CONTAINER: Request Information -->
 		<div class="student-docreq-modal-left-container" class:mobile-hidden={currentPage !== 1}>

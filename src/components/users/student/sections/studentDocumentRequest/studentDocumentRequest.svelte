@@ -303,7 +303,7 @@
 			<div style="display: flex; gap: 8px;">
 				<button class="request-new-button" onclick={toggleRequestForm} disabled={loading}>
 					<span class="material-symbols-outlined">{isRequestFormOpen ? 'remove' : 'add'}</span>
-					{isRequestFormOpen ? 'Cancel' : 'New Document'}
+					<span class="request-new-button-text">{isRequestFormOpen ? 'Cancel' : 'New Document'}</span>
 				</button>
 			</div>
 		</div>
