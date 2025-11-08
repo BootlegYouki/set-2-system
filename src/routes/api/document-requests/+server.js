@@ -32,6 +32,196 @@ async function createDocumentRequestNotification(db, studentId, notificationData
 	}
 }
 
+// Helper function to send automated message to document request thread
+async function sendAutomatedStatusMessage(db, requestId, status, adminName, tentativeDate = null, paymentAmount = null, paymentStatus = null) {
+	try {
+		const statusNames = {
+			'on_hold': 'On Hold',
+			'verifying': 'Verifying',
+			'processing': 'For Processing',
+			'for_pickup': 'For Pick Up',
+			'released': 'Released',
+			'rejected': 'Rejected',
+			'cancelled': 'Cancelled'
+		};
+
+		const statusMessages = {
+			'on_hold': 'Your document request is currently on hold and awaiting review.',
+			'verifying': 'Your document request is now being verified. We will update you once verification is complete.',
+			'processing': 'Your document request is now being processed. We will notify you once it\'s ready.',
+			'for_pickup': 'Your document is ready for pickup! Please visit the office to collect your document.',
+			'released': 'Your document has been released. Thank you for using our services!',
+			'rejected': 'Your document request has been rejected. Please contact the office for more information.',
+			'cancelled': 'Your document request has been cancelled.'
+		};
+
+		let messageText = `Status Update: Your document request status has been changed to "${statusNames[status] || status}". ${statusMessages[status] || ''}`;
+		
+		// Add tentative date if available and status is processing
+		if (tentativeDate && status === 'processing') {
+			const date = new Date(tentativeDate);
+			const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+			messageText += ` Tentative completion date: ${formattedDate}.`;
+		}
+
+		// Add payment amount if available and payment status is not 'paid'
+		// (If payment is already paid, don't include amount in status message as it's redundant)
+		if (paymentAmount !== null && paymentAmount !== undefined && paymentStatus !== 'paid') {
+			messageText += ` Payment amount: ₱${paymentAmount}.`;
+		}
+
+		// Encrypt the message text
+		const encryptedText = encryptMessage(messageText.trim());
+
+		// Create the automated message
+		const automatedMessage = {
+			id: new ObjectId().toString(),
+			author: adminName || 'System',
+			authorId: null, // System message
+			authorRole: 'admin',
+			text: encryptedText,
+			attachments: [],
+			created_at: new Date(),
+			isAutomated: true // Flag to identify automated messages
+		};
+
+		// Add message to the document request
+		await db.collection('document_requests').updateOne(
+			{ request_id: requestId },
+			{
+				$push: { messages: automatedMessage },
+				$set: { updated_at: new Date() }
+			}
+		);
+
+		console.log(`Automated status message sent for request ${requestId}: ${status}`);
+	} catch (error) {
+		console.error('Error sending automated status message:', error);
+		// Don't fail the main operation if message sending fails
+	}
+}
+
+// Helper function to send automated payment confirmation message
+async function sendAutomatedPaymentMessage(db, requestId, paymentAmount, adminName) {
+	try {
+		const messageText = `Payment Confirmed: Your payment of ₱${paymentAmount} has been confirmed and recorded. Thank you for your payment!`;
+
+		// Encrypt the message text
+		const encryptedText = encryptMessage(messageText.trim());
+
+		// Create the automated message
+		const automatedMessage = {
+			id: new ObjectId().toString(),
+			author: adminName || 'System',
+			authorId: null, // System message
+			authorRole: 'admin',
+			text: encryptedText,
+			attachments: [],
+			created_at: new Date(),
+			isAutomated: true // Flag to identify automated messages
+		};
+
+		// Add message to the document request
+		await db.collection('document_requests').updateOne(
+			{ request_id: requestId },
+			{
+				$push: { messages: automatedMessage },
+				$set: { updated_at: new Date() }
+			}
+		);
+
+		console.log(`Automated payment message sent for request ${requestId}: ₱${paymentAmount}`);
+	} catch (error) {
+		console.error('Error sending automated payment message:', error);
+		// Don't fail the main operation if message sending fails
+	}
+}
+
+// Helper function to send automated payment amount set message
+async function sendAutomatedPaymentAmountMessage(db, requestId, paymentAmount, adminName, isFirstTime = false) {
+	try {
+		const messageText = isFirstTime 
+			? `Payment Amount Set: The payment amount for your document request has been set to ₱${paymentAmount}. Please proceed with the payment when ready.`
+			: `Payment Amount Updated: The payment amount for your document request has been updated to ₱${paymentAmount}. Please proceed with the payment when ready.`;
+
+		// Encrypt the message text
+		const encryptedText = encryptMessage(messageText.trim());
+
+		// Create the automated message
+		const automatedMessage = {
+			id: new ObjectId().toString(),
+			author: adminName || 'System',
+			authorId: null, // System message
+			authorRole: 'admin',
+			text: encryptedText,
+			attachments: [],
+			created_at: new Date(),
+			isAutomated: true // Flag to identify automated messages
+		};
+
+		// Add message to the document request
+		await db.collection('document_requests').updateOne(
+			{ request_id: requestId },
+			{
+				$push: { messages: automatedMessage },
+				$set: { updated_at: new Date() }
+			}
+		);
+
+		console.log(`Automated payment amount message sent for request ${requestId}: ₱${paymentAmount}`);
+	} catch (error) {
+		console.error('Error sending automated payment amount message:', error);
+		// Don't fail the main operation if message sending fails
+	}
+}
+
+// Helper function to send automated tentative date message
+async function sendAutomatedTentativeDateMessage(db, requestId, tentativeDate, adminName, currentStatus = 'processing') {
+	try {
+		const date = new Date(tentativeDate);
+		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+		
+		// Adjust message based on current status
+		let statusMessage = 'ready for pickup';
+		if (currentStatus === 'verifying') {
+			statusMessage = 'ready for processing';
+		} else if (currentStatus === 'processing') {
+			statusMessage = 'ready for pickup';
+		}
+		
+		const messageText = `Tentative Date Set: Your document request has a tentative completion date of ${formattedDate}. We will notify you once your document is ${statusMessage}.`;
+
+		// Encrypt the message text
+		const encryptedText = encryptMessage(messageText.trim());
+
+		// Create the automated message
+		const automatedMessage = {
+			id: new ObjectId().toString(),
+			author: adminName || 'System',
+			authorId: null, // System message
+			authorRole: 'admin',
+			text: encryptedText,
+			attachments: [],
+			created_at: new Date(),
+			isAutomated: true // Flag to identify automated messages
+		};
+
+		// Add message to the document request
+		await db.collection('document_requests').updateOne(
+			{ request_id: requestId },
+			{
+				$push: { messages: automatedMessage },
+				$set: { updated_at: new Date() }
+			}
+		);
+
+		console.log(`Automated tentative date message sent for request ${requestId}: ${formattedDate}`);
+	} catch (error) {
+		console.error('Error sending automated tentative date message:', error);
+		// Don't fail the main operation if message sending fails
+	}
+}
+
 // GET /api/document-requests - Fetch document requests
 export async function GET({ url, request }) {
 	try {
@@ -364,9 +554,11 @@ export async function POST({ request }) {
 				let statusChanged = false;
 				let paymentStatusChanged = false;
 				let paymentAmountChanged = false;
+				let tentativeDateChanged = false;
 				let oldStatus = existingRequest.status;
 				let oldPaymentStatus = existingRequest.payment_status;
 				let oldPaymentAmount = existingRequest.payment_amount;
+				let oldTentativeDate = existingRequest.tentative_date;
 
 				if (status) {
 					updateData.status = status;
@@ -378,17 +570,30 @@ export async function POST({ request }) {
 				}
 
 				if (tentativeDate !== undefined) {
-					updateData.tentative_date = tentativeDate ? new Date(tentativeDate) : null;
+					const newTentativeDate = tentativeDate ? new Date(tentativeDate) : null;
+					updateData.tentative_date = newTentativeDate;
+					// Track if tentative date changed (only if it's being set, not cleared)
+					// Compare dates by converting to ISO string for accurate comparison
+					const oldDateStr = oldTentativeDate ? new Date(oldTentativeDate).toISOString().split('T')[0] : null;
+					const newDateStr = newTentativeDate ? new Date(newTentativeDate).toISOString().split('T')[0] : null;
+					tentativeDateChanged = (newDateStr !== oldDateStr && newTentativeDate !== null);
 				}
 
-				if (paymentStatus) {
+				if (paymentStatus !== undefined) {
 					updateData.payment_status = paymentStatus;
-					paymentStatusChanged = (paymentStatus !== oldPaymentStatus && paymentStatus === 'paid');
+					// Check if payment status changed to 'paid' (handle null/undefined oldPaymentStatus)
+					const oldStatus = oldPaymentStatus || 'pending';
+					paymentStatusChanged = (paymentStatus !== oldStatus && paymentStatus === 'paid');
 				}
 
+				// Track if payment amount is being set for the first time
+				let isPaymentAmountFirstTime = false;
+				
 				if (paymentAmount !== undefined && paymentAmount !== null) {
 					const newPaymentAmount = parseFloat(paymentAmount);
 					updateData.payment_amount = newPaymentAmount;
+					// Track if payment amount changed (including first time set)
+					isPaymentAmountFirstTime = (oldPaymentAmount === null || oldPaymentAmount === undefined);
 					paymentAmountChanged = (newPaymentAmount !== oldPaymentAmount);
 				}
 
@@ -429,6 +634,23 @@ export async function POST({ request }) {
 						'cancelled': 'Your document request has been cancelled.'
 					};
 
+					// Send automated message to document request thread
+					// Use tentativeDate from input (if provided), and paymentAmount from input or existing
+					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : null;
+					const finalPaymentAmount = paymentAmount !== undefined && paymentAmount !== null ? paymentAmount : (existingRequest.payment_amount || null);
+					// Get current payment status (use new status if changed, otherwise existing status)
+					const finalPaymentStatus = updateData.payment_status || existingRequest.payment_status || null;
+					
+					await sendAutomatedStatusMessage(
+						db,
+						requestId,
+						status,
+						user.name || user.full_name,
+						finalTentativeDate,
+						finalPaymentAmount,
+						finalPaymentStatus
+					);
+
 					await createDocumentRequestNotification(db, existingRequest.student_id, {
 						title: `Document Request Status Updated`,
 						message: `Your request for "${existingRequest.document_type}" (${requestId}) status changed to: ${statusNames[status]}. ${statusMessages[status] || ''}`,
@@ -443,9 +665,19 @@ export async function POST({ request }) {
 
 				// 2. Notify on payment status change to 'paid'
 				if (paymentStatusChanged) {
+					const paymentAmount = updateData.payment_amount || existingRequest.payment_amount || 0;
+					
+					// Send automated message to document request thread
+					await sendAutomatedPaymentMessage(
+						db,
+						requestId,
+						paymentAmount,
+						user.name || user.full_name
+					);
+
 					await createDocumentRequestNotification(db, existingRequest.student_id, {
 						title: `Payment Confirmed`,
-						message: `Your payment for "${existingRequest.document_type}" (${requestId}) has been confirmed as paid. Amount: ₱${updateData.payment_amount || existingRequest.payment_amount || 0}`,
+						message: `Your payment for "${existingRequest.document_type}" (${requestId}) has been confirmed as paid. Amount: ₱${paymentAmount}`,
 						priority: 'normal',
 						requestId: requestId,
 						documentType: existingRequest.document_type,
@@ -453,6 +685,62 @@ export async function POST({ request }) {
 						adminName: user.name,
 						adminId: user.id
 					});
+				}
+
+				// 3. Notify on payment amount set/change (but not if payment is already paid)
+				if (paymentAmountChanged) {
+					const finalPaymentAmount = updateData.payment_amount || paymentAmount;
+					const currentPaymentStatus = updateData.payment_status || existingRequest.payment_status;
+					
+					// Only send message and notification if payment is not already paid (to avoid redundancy)
+					if (currentPaymentStatus !== 'paid' && finalPaymentAmount !== null && finalPaymentAmount !== undefined) {
+						// Send automated message to document request thread
+						await sendAutomatedPaymentAmountMessage(
+							db,
+							requestId,
+							finalPaymentAmount,
+							user.name || user.full_name,
+							isPaymentAmountFirstTime
+						);
+
+						// Create notification for student
+						const notificationTitle = isPaymentAmountFirstTime 
+							? `Payment Amount Set for Document Request`
+							: `Payment Amount Updated for Document Request`;
+						const notificationMessage = isPaymentAmountFirstTime
+							? `The payment amount for your "${existingRequest.document_type}" request (${requestId}) has been set to ₱${finalPaymentAmount}. Please proceed with the payment when ready.`
+							: `The payment amount for your "${existingRequest.document_type}" request (${requestId}) has been updated to ₱${finalPaymentAmount}. Please proceed with the payment when ready.`;
+
+						await createDocumentRequestNotification(db, existingRequest.student_id, {
+							title: notificationTitle,
+							message: notificationMessage,
+							priority: 'normal',
+							requestId: requestId,
+							documentType: existingRequest.document_type,
+							status: existingRequest.status,
+							adminName: user.name,
+							adminId: user.id
+						});
+					}
+				}
+
+				// 4. Notify on tentative date change
+				if (tentativeDateChanged) {
+					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
+					
+					if (finalTentativeDate) {
+						// Get current status (use new status if changed, otherwise existing status)
+						const currentStatus = updateData.status || existingRequest.status || 'processing';
+						
+						// Send automated message to document request thread
+						await sendAutomatedTentativeDateMessage(
+							db,
+							requestId,
+							finalTentativeDate,
+							user.name || user.full_name,
+							currentStatus
+						);
+					}
 				}
 
 				// Log activity with detailed information
@@ -517,6 +805,14 @@ export async function POST({ request }) {
 				if (rejectResult.matchedCount === 0) {
 					return json({ error: 'Request not found' }, { status: 404 });
 				}
+
+				// Send automated message to document request thread
+				await sendAutomatedStatusMessage(
+					db,
+					rejectRequestId,
+					'rejected',
+					user.name || user.full_name
+				);
 
 				// Notify student about rejection
 				await createDocumentRequestNotification(db, requestToReject.student_id, {

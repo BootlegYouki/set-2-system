@@ -17,8 +17,15 @@
 
 	const dispatch = createEventDispatcher();
 
-	// Local state for the modal
+	// Local state for the modal - sync with request prop
 	let selectedRequest = $state({ ...request });
+	
+	// Update selectedRequest when request prop changes
+	$effect(() => {
+		if (request && request.requestId) {
+			selectedRequest = { ...request };
+		}
+	});
 	let isModalStatusDropdownOpen = $state(false);
 	let dateInputEl = $state();
 	let newMessage = $state('');
@@ -36,10 +43,38 @@
 	// Get messages from the request
 	let messages = $derived(selectedRequest.messages || []);
 
-	// Check if chat should be disabled based on status
+	// Track the saved status (from database) separately from local edits
+	let savedStatus = $state(request.status || '');
+	
+	// Track the saved payment status (from database) separately from local edits
+	let savedPaymentStatus = $state(request.paymentStatus || 'pending');
+
+	// Update savedStatus when request prop changes
+	$effect(() => {
+		if (request && request.status) {
+			savedStatus = request.status;
+		}
+		if (request && request.paymentStatus) {
+			savedPaymentStatus = request.paymentStatus;
+		} else if (request) {
+			savedPaymentStatus = 'pending';
+		}
+	});
+
+	// Check if chat should be disabled based on saved status (not local changes)
 	let isChatDisabled = $derived(
-		selectedRequest.status === 'released' || selectedRequest.status === 'cancelled'
+		savedStatus === 'released' || savedStatus === 'cancelled'
 	);
+
+	// Initialize paymentStatus from request data when request changes
+	$effect(() => {
+		if (selectedRequest && selectedRequest.paymentStatus) {
+			paymentStatus = selectedRequest.paymentStatus;
+		} else if (selectedRequest) {
+			// Default to 'pending' if not set
+			paymentStatus = 'pending';
+		}
+	});
 
 	// Scroll to bottom of chat
 	function scrollToBottom() {
@@ -236,9 +271,41 @@
 			paymentAmount: selectedRequest.paymentAmount,
 			paymentStatus: paymentStatus
 		};
-		await onUpdate(selectedRequest.requestId, updateData);
+		const success = await onUpdate(selectedRequest.requestId, updateData);
 		showConfirmModal = false;
-		onClose();
+		
+		// If update was successful, refresh the request data but keep modal open
+		if (success) {
+			await refreshRequestData();
+		}
+	}
+
+	// Refresh request data from server
+	async function refreshRequestData() {
+		if (!selectedRequest || !selectedRequest.requestId) return;
+
+		try {
+			const response = await authenticatedFetch(`/api/document-requests?action=single&requestId=${selectedRequest.requestId}`);
+			const result = await response.json();
+
+			if (result.success && result.data) {
+				// Update selectedRequest with fresh data from server
+				selectedRequest = { ...result.data };
+				// Update savedStatus with the actual saved status from database
+				if (result.data.status) {
+					savedStatus = result.data.status;
+				}
+				// Update paymentStatus from refreshed data
+				if (result.data.paymentStatus) {
+					paymentStatus = result.data.paymentStatus;
+					savedPaymentStatus = result.data.paymentStatus;
+				} else {
+					savedPaymentStatus = 'pending';
+				}
+			}
+		} catch (error) {
+			console.error('Error refreshing request data:', error);
+		}
 	}
 
 	function cancelUpdate() {
@@ -340,6 +407,14 @@
 			}
 		}
 	}
+
+	// Watch for message changes and scroll to bottom (including automated messages)
+	$effect(() => {
+		// Scroll to bottom whenever messages change
+		if (messages.length > 0) {
+			scrollToBottom();
+		}
+	});
 
 	// Start polling when component mounts
 	$effect(() => {
@@ -487,7 +562,7 @@
 					{/if}
 					<div class="payment-actions">
 						<button 
-							class="payment-status-toggle {paymentStatus}" 
+							class="payment-status-toggle {paymentStatus === 'paid' ? 'pending' : 'paid'}" 
 							onclick={togglePaymentStatus}
 							title={
 								(selectedRequest.paymentAmount === null || selectedRequest.paymentAmount === undefined) 
@@ -496,14 +571,15 @@
 							}
 							aria-label={paymentStatus === 'paid' ? 'Mark as pending' : 'Mark as paid'}
 							disabled={
-								request?.status === 'cancelled' || 
-								request?.status === 'rejected' || 
+								savedStatus === 'cancelled' || 
+								savedStatus === 'rejected' || 
+								savedStatus === 'released' ||
 								selectedRequest.paymentAmount === null || 
 								selectedRequest.paymentAmount === undefined
 							}
 						>
 							<span class="material-symbols-outlined">
-								{paymentStatus === 'paid' ? 'check_circle' : 'cancel'}
+								{paymentStatus === 'paid' ? 'cancel' : 'check_circle'}
 							</span>
 						</button>
 						<button 
@@ -511,7 +587,7 @@
 							onclick={togglePaymentEdit}
 							title={isPaymentEditable ? 'Save' : 'Edit payment amount'}
 							aria-label={isPaymentEditable ? 'Save' : 'Edit payment amount'}
-							disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
+							disabled={savedStatus === 'cancelled' || savedStatus === 'rejected' || savedStatus === 'released' || savedPaymentStatus === 'paid'}
 						>
 							<span class="material-symbols-outlined">
 								{isPaymentEditable ? 'check' : 'edit'}
@@ -553,7 +629,7 @@
 				<button 
 					class="docreq-reject-button" 
 					onclick={handleReject}
-					disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
+					disabled={savedStatus === 'cancelled' || savedStatus === 'rejected' || savedStatus === 'released'}
 				>
 					<span class="material-symbols-outlined">cancel</span>
 					Reject Request
@@ -666,7 +742,7 @@
 						{#if isChatDisabled}
 							<div class="chat-disabled-notice">
 								<span class="material-symbols-outlined">block</span>
-								<span>Chat is disabled for {selectedRequest.status === 'released' ? 'released' : 'cancelled'} requests</span>
+								<span>Chat is disabled for {savedStatus === 'released' ? 'released' : 'cancelled'} requests</span>
 							</div>
 						{:else}
 							<input 
