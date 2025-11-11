@@ -1592,6 +1592,7 @@ const options = {
 		<meta name="apple-mobile-web-app-status-bar-style" content="default" />\r
 		<meta name="apple-mobile-web-app-title" content="SET-2 System" />\r
 		<link rel="apple-touch-icon" href="/pwa-192x192.png" />\r
+		<link rel="manifest" href="/manifest.json" />\r
 		\r
 		<!-- Preload critical resources -->\r
 		<link rel="preconnect" href="https://fonts.googleapis.com" />\r
@@ -1885,7 +1886,7 @@ const options = {
 		<div class="error">
 			<span class="status">` + status + '</span>\n			<div class="message">\n				<h1>' + message + "</h1>\n			</div>\n		</div>\n	</body>\n</html>\n"
   },
-  version_hash: "zoaad8"
+  version_hash: "6rq07r"
 };
 async function get_hooks() {
   let handle;

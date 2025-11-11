@@ -23,24 +23,36 @@ export default defineConfig({
 				theme_color: '#1565c0',
 				background_color: '#ffffff',
 				display: 'standalone',
+				display_override: ['window-controls-overlay', 'standalone'],
 				orientation: 'portrait-primary',
+				scope: '/',
 				start_url: '/',
+				categories: ['education', 'productivity'],
+				prefer_related_applications: false,
 				icons: [
 					{
 						src: 'pwa-192x192.png',
 						sizes: '192x192',
-						type: 'image/png'
+						type: 'image/png',
+						purpose: 'any'
 					},
 					{
-						src: 'pwa-512x512.png',
-						sizes: '512x512',
-						type: 'image/png'
+						src: 'pwa-192x192.png',
+						sizes: '192x192',
+						type: 'image/png',
+						purpose: 'maskable'
 					},
 					{
 						src: 'pwa-512x512.png',
 						sizes: '512x512',
 						type: 'image/png',
-						purpose: 'any maskable'
+						purpose: 'any'
+					},
+					{
+						src: 'pwa-512x512.png',
+						sizes: '512x512',
+						type: 'image/png',
+						purpose: 'maskable'
 					}
 				]
 			},

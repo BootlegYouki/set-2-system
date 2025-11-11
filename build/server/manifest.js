@@ -10,11 +10,11 @@ return {
 	assets: new Set([".well-known/appspecific/com.chrome.devtools.json","icon.svg","manifest.json","pwa-192x192.png","pwa-512x512.png","robots.txt"]),
 	mimeTypes: {".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".txt":"text/plain"},
 	_: {
-		client: {start:"_app/immutable/entry/start.DZZZWzMC.js",app:"_app/immutable/entry/app.D7vwvS1-.js",imports:["_app/immutable/entry/start.DZZZWzMC.js","_app/immutable/chunks/D0EWnybm.js","_app/immutable/chunks/BrR45Eif.js","_app/immutable/entry/app.D7vwvS1-.js","_app/immutable/chunks/BrR45Eif.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/CsvhCkDi.js","_app/immutable/chunks/vM_StVem.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.DtcNGlrL.js",app:"_app/immutable/entry/app.v1lLjWZs.js",imports:["_app/immutable/entry/start.DtcNGlrL.js","_app/immutable/chunks/CMGJVHyi.js","_app/immutable/chunks/BrR45Eif.js","_app/immutable/entry/app.v1lLjWZs.js","_app/immutable/chunks/BrR45Eif.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/CsvhCkDi.js","_app/immutable/chunks/vM_StVem.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
-			__memo(() => import('./chunks/0-DgWFx4w9.js')),
-			__memo(() => import('./chunks/1-D4QM96Ca.js')),
-			__memo(() => import('./chunks/2-Bs_wQvqD.js'))
+			__memo(() => import('./chunks/0-CUrArFRl.js')),
+			__memo(() => import('./chunks/1-B-soYAuP.js')),
+			__memo(() => import('./chunks/2-DN057mQ2.js'))
 		],
 		remotes: {
 			
@@ -32,7 +32,7 @@ return {
 				pattern: /^\/api\/accounts\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-Ba_6m1UT.js'))
+				endpoint: __memo(() => import('./chunks/_server-mw15yEgJ.js'))
 			},
 			{
 				id: "/api/accounts/check-email",
@@ -77,11 +77,11 @@ return {
 				endpoint: __memo(() => import('./chunks/_server-DdCIwo49.js'))
 			},
 			{
-				id: "/api/archived-students",
-				pattern: /^\/api\/archived-students\/?$/,
+				id: "/api/archived-accounts",
+				pattern: /^\/api\/archived-accounts\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CM6eXdUH.js'))
+				endpoint: __memo(() => import('./chunks/_server-DhwKxLjA.js'))
 			},
 			{
 				id: "/api/auth",
@@ -298,7 +298,7 @@ return {
 				pattern: /^\/api\/users\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-DWiPBar7.js'))
+				endpoint: __memo(() => import('./chunks/_server-BPUjYu2n.js'))
 			}
 		],
 		prerendered_routes: new Set([]),
