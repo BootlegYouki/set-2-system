@@ -23,6 +23,8 @@
 	let selectedFiles = $state([]);
 	let pollingInterval;
 	let showCancelModal = $state(false);
+	let showStatusHistory = $state(false);
+	let showPaymentInstructions = $state(false);
 	// Mobile pagination state
 	let currentPage = $state(1); // 1 = left container, 2 = right container
 	
@@ -32,6 +34,9 @@
 
 	// Get messages from the request
 	let messages = $derived(selectedRequest.messages || []);
+
+	// Get status history from the request
+	let statusHistory = $derived(selectedRequest.statusHistory || []);
 
 	// Check if chat should be disabled based on status
 	let isChatDisabled = $derived(
@@ -131,6 +136,24 @@
 
 	function closeProcessFlowModal() {
 		isProcessFlowOpen = false;
+	}
+
+	// Open/close status history sidebar
+	function openStatusHistory() {
+		showStatusHistory = true;
+	}
+
+	function closeStatusHistory() {
+		showStatusHistory = false;
+	}
+
+	// Open/close payment instructions modal
+	function openPaymentInstructions() {
+		showPaymentInstructions = true;
+	}
+
+	function closePaymentInstructions() {
+		showPaymentInstructions = false;
 	}
 
 	// Send a new message with optimistic UI update
@@ -303,6 +326,11 @@
 					selectedRequest.messages = [...serverMessages, ...pendingMessages];
 					scrollToBottom();
 				}
+				
+				// Update status history if available
+				if (result.data.statusHistory) {
+					selectedRequest.statusHistory = result.data.statusHistory;
+				}
 			}
 		} catch (error) {
 			console.error('Error fetching latest messages:', error);
@@ -366,9 +394,14 @@
 						<div class="card-label">
 							<span class="material-symbols-outlined">info</span> Status:
 						</div>
-						<span class="status-badge status-{selectedRequest.status}">
+						<button
+							class="status-badge status-{selectedRequest.status}"
+							onclick={openStatusHistory}
+							title="Click to view status history"
+							aria-label="View status history timeline"
+						>
 							{getStatusDisplayName(selectedRequest.status)}
-						</span>
+						</button>
 					</div>
 					<button
 						class="status-info-button"
@@ -404,9 +437,21 @@
 		<div class="card-value payment-value">
 			{#if selectedRequest.paymentAmount === 0}
 				<span class="payment-amount free">Free</span>
+			{:else if selectedRequest.paymentStatus === 'pending'}
+				<!-- svelte-ignore a11y_invalid_attribute -->
+				<a
+					href="javascript:void(0)"
+					class="payment-amount pending clickable"
+					onclick={(e) => { e.preventDefault(); openPaymentInstructions(); }}
+					title="Click to view payment instructions"
+					aria-label="View payment instructions"
+					role="button"
+				>
+					₱{selectedRequest.paymentAmount} (Pending)
+				</a>
 			{:else}
-				<span class="payment-amount {selectedRequest.paymentStatus === 'paid' ? 'paid' : 'pending'}">
-					₱{selectedRequest.paymentAmount} ({selectedRequest.paymentStatus === 'paid' ? 'Paid' : 'Pending'})
+				<span class="payment-amount paid">
+					₱{selectedRequest.paymentAmount} (Paid)
 				</span>
 			{/if}
 		</div>
@@ -620,6 +665,94 @@
 	</div>
 </div>
 
+<!-- Status History Sidebar Modal -->
+{#if showStatusHistory}
+	<div 
+		class="status-history-backdrop" 
+		onclick={closeStatusHistory}
+		onkeydown={(e) => e.key === 'Escape' && closeStatusHistory()}
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+	>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div 
+			class="status-history-sidebar"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+		>
+			<div class="status-history-header">
+				<div class="status-history-title">
+					<span class="material-symbols-outlined">history</span>
+					<h3>Status History</h3>
+				</div>
+				<button class="status-history-close-btn" aria-label="Close" onclick={closeStatusHistory}>
+					<span class="material-symbols-outlined">close</span>
+				</button>
+			</div>
+
+			<div class="status-history-body">
+				{#if statusHistory && statusHistory.length > 0}
+					<div class="status-timeline">
+						{#each statusHistory as entry, index (entry.timestamp || index)}
+							<div class="timeline-item">
+								<div class="timeline-marker status-{entry.status}">
+									<span class="material-symbols-outlined">
+										{#if entry.status === 'on_hold'}
+											pause_circle
+										{:else if entry.status === 'verifying'}
+											fact_check
+										{:else if entry.status === 'processing'}
+											sync
+										{:else if entry.status === 'for_pickup'}
+											inventory
+										{:else if entry.status === 'released'}
+											check_circle
+										{:else if entry.status === 'rejected'}
+											cancel
+										{:else if entry.status === 'cancelled'}
+											block
+										{:else}
+											circle
+										{/if}
+									</span>
+								</div>
+								<div class="timeline-content">
+									<div class="timeline-header">
+										<h4>{getStatusDisplayName(entry.status)}</h4>
+										<span class="timeline-date">
+											{new Date(entry.timestamp).toLocaleDateString('en-US', { 
+												month: 'short', 
+												day: 'numeric', 
+												year: 'numeric',
+												hour: '2-digit',
+												minute: '2-digit'
+											})}
+										</span>
+									</div>
+									{#if entry.changedBy}
+										<p class="timeline-user">
+											<span class="material-symbols-outlined">person</span>
+											{entry.changedBy}
+										</p>
+									{/if}
+									<p class="timeline-note">{entry.note || 'No additional details'}</p>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<div class="no-history">
+						<span class="material-symbols-outlined">history_toggle_off</span>
+						<p>No status history available</p>
+						<p class="subtitle">Status changes will appear here</p>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
+
 <!-- Process Status Flow Modal -->
 {#if isProcessFlowOpen}
 	<div 
@@ -757,6 +890,54 @@
 			</div>
 		</div>
 	</Modal>
+{/if}
+
+<!-- Payment Instructions Modal -->
+{#if showPaymentInstructions}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div 
+		class="payment-instructions-backdrop" 
+		onclick={closePaymentInstructions}
+		onkeydown={(e) => e.key === 'Escape' && closePaymentInstructions()}
+		role="dialog"
+		aria-modal="true"
+		tabindex="-1"
+	>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div 
+			class="payment-instructions-container" 
+			onclick={(e) => e.stopPropagation()}
+		>
+			<div class="payment-instructions-header">
+				<h2>Payment Instructions</h2>
+				<button class="payment-instructions-close-btn" onclick={closePaymentInstructions}>
+					<span class="material-symbols-outlined">close</span>
+				</button>
+			</div>
+
+			<div class="payment-instructions-body">
+				<p>You can pay once your document is ready for pick-up.</p>
+				<p>Please follow these steps to complete your payment and claim your document:</p>
+
+				<ol class="payment-instructions-steps">
+					<li>Wait until your request status shows "Ready for Pick-Up."</li>
+					<li>Go to the Cashier's Office.</li>
+					<li>Inform the cashier that you are paying for your approved document request.</li>
+					<li>Provide your Request Reference Number or Student ID.</li>
+					<li>Pay the required amount for your document.</li>
+					<li>Get your Official Receipt.</li>
+					<li>Proceed to the Registrar's Office (or releasing area) and present your receipt to claim your document.</li>
+				</ol>
+			</div>
+
+			<div class="payment-instructions-footer">
+				<button class="payment-instructions-got-it-btn" onclick={closePaymentInstructions}>
+					Got it
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
 
 <style>
@@ -925,6 +1106,23 @@
 		color: var(--status-pending-text);
 	}
 
+	.payment-amount.clickable {
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		color: var(--status-pending-text);
+		display: inline-block;
+		text-decoration: none;
+	}
+
+	.payment-amount.clickable:hover {
+		transform: scale(1.02);
+		opacity: 0.8;
+	}
+
+	.payment-amount.clickable:active {
+		transform: scale(0.98);
+	}
+
 	.status-badge {
 		display: inline-block;
 		padding: 6px 12px;
@@ -932,6 +1130,18 @@
 		font-size: 0.875rem;
 		font-weight: 600;
 		text-transform: capitalize;
+		border: none;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.status-badge:hover {
+		transform: scale(1.05);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
+
+	.status-badge:active {
+		transform: scale(0.98);
 	}
 
 	.status-badge.on_hold {
@@ -994,11 +1204,7 @@
 	.status-card-horizontal.status-card-rejected {
 		border-color: var(--status-rejected-bg);
 	}
-
-	.status-card-horizontal.status-card-cancelled {
-		border-color: var(--status-cancelled-bg);
-	}
-
+	
 	.date-display {
 		display: inline-block;
 		color: var(--md-sys-color-on-surface);
@@ -1028,7 +1234,7 @@
 		line-height: 1.6;
 		color: var(--md-sys-color-on-surface);
 		font-size: 0.95rem;
-		min-height: 60px;
+		min-height: 100px;
 		word-wrap: break-word;
 		word-break: break-word;
 		overflow-wrap: break-word;
@@ -1497,7 +1703,7 @@
 
 	.flow-close-btn {
 		background: var(--md-sys-color-surface-container-highest);
-		border: 1px solid var(--md-sys-color-outline-variant);
+		border: none;
 		padding: 8px;
 		border-radius: 50%;
 		cursor: pointer;
@@ -1512,7 +1718,6 @@
 
 	.flow-close-btn:hover {
 		background: var(--md-sys-color-surface-container-highest);
-		transform: scale(1.1);
 	}
 
 	.flow-close-btn:active {
@@ -2055,6 +2260,471 @@
 		background: var(--md-sys-color-surface-container-high);
 		border-color: var(--md-sys-color-outline-variant);
 		color: var(--md-sys-color-on-surface);
+	}
+
+	/* Status History Sidebar Modal */
+	.status-history-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		z-index: 10003;
+		animation: fadeIn 0.2s ease-out;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	.status-history-sidebar {
+		position: fixed;
+		top: 0;
+		right: 0;
+		width: 100%;
+		max-width: 480px;
+		height: 100vh;
+		background: var(--md-sys-color-surface-container-high);
+		box-shadow: var(--shadow-xl);
+		display: flex;
+		flex-direction: column;
+		animation: slideInRight 0.3s ease-out;
+		z-index: 10004;
+	}
+
+	@keyframes slideInRight {
+		from {
+			transform: translateX(100%);
+		}
+		to {
+			transform: translateX(0);
+		}
+	}
+
+	.status-history-header {
+		padding: var(--spacing-lg);
+		border-bottom: 1px solid var(--md-sys-color-outline-variant);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: var(--md-sys-color-surface-container);
+		flex-shrink: 0;
+	}
+
+	.status-history-title {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+	}
+
+	.status-history-title h3 {
+		margin: 0;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.status-history-title .material-symbols-outlined {
+		font-size: 28px;
+		color: var(--md-sys-color-primary);
+	}
+
+	.status-history-close-btn {
+		background: var(--md-sys-color-surface-container-highest);
+		border: none;
+		padding: 8px;
+		border-radius: 50%;
+		cursor: pointer;
+		color: var(--md-sys-color-on-surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all var(--transition-fast);
+		width: 40px;
+		height: 40px;
+	}
+
+
+	.status-history-close-btn .material-symbols-outlined {
+		font-size: 22px;
+	}
+
+	.status-history-body {
+		flex: 1;
+		overflow-y: auto;
+		padding: var(--spacing-lg);
+		background: var(--md-sys-color-surface-container);
+	}
+
+	/* Timeline Styles */
+	.status-timeline {
+		position: relative;
+		padding-left: var(--spacing-md);
+	}
+
+	.timeline-item {
+		position: relative;
+		padding-left: var(--spacing-xl);
+		padding-bottom: var(--spacing-lg);
+		display: flex;
+		gap: var(--spacing-md);
+	}
+
+	.timeline-item::before {
+		content: '';
+		position: absolute;
+		left: 5px;
+		top: 40px;
+		bottom: 0;
+		width: 2px;
+		background: var(--md-sys-color-outline-variant);
+		opacity: 0.3;
+	}
+
+	.timeline-item:last-child {
+		padding-bottom: 0;
+	}
+
+	.timeline-item:last-child::before {
+		display: none;
+	}
+
+	.timeline-marker {
+		position: absolute;
+		left: -15px;
+		top: 0;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		border: 3px solid var(--md-sys-color-surface-container);
+		background: var(--md-sys-color-surface-container-highest);
+		z-index: 100;
+	}
+
+	.timeline-marker .material-symbols-outlined {
+		font-size: 22px;
+		font-weight: 600;
+	}
+
+	.timeline-marker.status-on_hold {
+		background: #fbc02d;
+		color: #ffffff;
+		border-color: #f57f17;
+	}
+
+	.timeline-marker.status-verifying {
+		background: #5c6bc0;
+		color: #ffffff;
+		border-color: #3949ab;
+	}
+
+	.timeline-marker.status-processing {
+		background: #ff9800;
+		color: #ffffff;
+		border-color: #f57c00;
+	}
+
+	.timeline-marker.status-for_pickup {
+		background: #00bcd4;
+		color: #ffffff;
+		border-color: #0097a7;
+	}
+
+	.timeline-marker.status-released {
+		background: #4caf50;
+		color: #ffffff;
+		border-color: #388e3c;
+	}
+
+	.timeline-marker.status-rejected {
+		background: #f44336;
+		color: #ffffff;
+		border-color: #d32f2f;
+	}
+
+	.timeline-marker.status-cancelled {
+		background: #757575;
+		color: #ffffff;
+		border-color: #616161;
+	}
+
+	.timeline-content {
+		flex: 1;
+		background: var(--md-sys-color-surface-container-highest);
+		padding: var(--spacing-md);
+		border-radius: var(--radius-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.timeline-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		margin-bottom: var(--spacing-xs);
+		gap: var(--spacing-sm);
+	}
+
+	.timeline-header h4 {
+		margin: 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.timeline-date {
+		font-size: 0.75rem;
+		color: var(--md-sys-color-on-surface-variant);
+		white-space: nowrap;
+	}
+
+	.timeline-user {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 0.875rem;
+		color: var(--md-sys-color-on-surface-variant);
+		margin: var(--spacing-xs) 0;
+	}
+
+	.timeline-user .material-symbols-outlined {
+		font-size: 16px;
+	}
+
+	.timeline-note {
+		margin: var(--spacing-xs) 0 0 0;
+		font-size: 0.875rem;
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.5;
+		padding: var(--spacing-xs);
+	}
+
+	.no-history {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: var(--spacing-xl);
+		color: var(--md-sys-color-on-surface-variant);
+		text-align: center;
+		min-height: 300px;
+	}
+
+	.no-history .material-symbols-outlined {
+		font-size: 64px;
+		opacity: 0.3;
+		margin-bottom: var(--spacing-md);
+	}
+
+	.no-history p {
+		margin: 4px 0;
+		font-size: 1rem;
+	}
+
+	.no-history .subtitle {
+		font-size: 0.875rem;
+		opacity: 0.7;
+	}
+
+	/* Responsive for status history sidebar */
+	@media (max-width: 768px) {
+		.status-history-sidebar {
+			max-width: 100%;
+		}
+
+		.status-history-header {
+			padding: var(--spacing-md);
+		}
+
+		.status-history-title h3 {
+			font-size: 1.125rem;
+		}
+
+		.status-history-body {
+			padding: var(--spacing-md);
+		}
+
+		.timeline-item {
+			padding-left: var(--spacing-lg);
+		}
+
+		.timeline-marker {
+			width: 36px;
+			height: 36px;
+		}
+
+		.timeline-marker .material-symbols-outlined {
+			font-size: 20px;
+		}
+
+		.timeline-content {
+			padding: var(--spacing-sm);
+		}
+
+		.timeline-header h4 {
+			font-size: 0.95rem;
+		}
+	}
+
+	/* Payment Instructions Modal */
+	.payment-instructions-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 10005;
+		padding: var(--spacing-lg);
+	}
+
+	.payment-instructions-container {
+		width: 100%;
+		max-width: 500px;
+		background: var(--md-sys-color-surface-container-high);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-lg);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		max-height: 90vh;
+	}
+
+	.payment-instructions-header {
+		padding: var(--spacing-lg);
+		border-bottom: 1px solid var(--md-sys-color-outline-variant);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: var(--md-sys-color-surface-container);
+	}
+
+	.payment-instructions-header h2 {
+		margin: 0;
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface);
+	}
+
+	.payment-instructions-close-btn {
+		background: transparent;
+		border: none;
+		padding: 4px;
+		cursor: pointer;
+		color: var(--md-sys-color-on-surface);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius-sm);
+		transition: all var(--transition-fast);
+	}
+
+	.payment-instructions-close-btn:hover {
+		background: var(--md-sys-color-surface-container-highest);
+	}
+
+	.payment-instructions-close-btn .material-symbols-outlined {
+		font-size: 24px;
+	}
+
+	.payment-instructions-body {
+		padding: var(--spacing-lg);
+		overflow-y: auto;
+		background: var(--md-sys-color-surface-container);
+	}
+
+	.payment-instructions-body p {
+		margin: 0 0 var(--spacing-md) 0;
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.6;
+	}
+
+	.payment-instructions-body p:last-of-type {
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.payment-instructions-steps {
+		list-style: decimal;
+		padding-left: var(--spacing-xl);
+		margin: 0;
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.8;
+	}
+
+	.payment-instructions-steps li {
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.payment-instructions-steps li:last-child {
+		margin-bottom: 0;
+	}
+
+	.payment-instructions-footer {
+		padding: var(--spacing-lg);
+		border-top: 1px solid var(--md-sys-color-outline-variant);
+		background: var(--md-sys-color-surface-container);
+		display: flex;
+		justify-content: flex-end;
+	}
+
+	.payment-instructions-got-it-btn {
+		padding: var(--spacing-sm) var(--spacing-xl);
+		border-radius: var(--radius-md);
+		background: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+		border: none;
+		font-weight: 600;
+		font-size: 1rem;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+	}
+
+	.payment-instructions-got-it-btn:hover {
+		background: var(--md-sys-color-primary-container);
+		color: var(--md-sys-color-on-primary-container);
+		box-shadow: var(--shadow-sm);
+		transform: translateY(-1px);
+	}
+
+	.payment-instructions-got-it-btn:active {
+		transform: translateY(0);
+	}
+
+	.payment-instructions-got-it-btn:focus-visible {
+		outline: 2px solid var(--md-sys-color-primary);
+		outline-offset: 2px;
+	}
+
+	@media (max-width: 768px) {
+		.payment-instructions-backdrop {
+			padding: var(--spacing-md);
+		}
+
+		.payment-instructions-container {
+			max-width: 100%;
+		}
+
+		.payment-instructions-header,
+		.payment-instructions-body,
+		.payment-instructions-footer {
+			padding: var(--spacing-md);
+		}
+
+		.payment-instructions-got-it-btn {
+			width: 100%;
+		}
 	}
 </style>
 

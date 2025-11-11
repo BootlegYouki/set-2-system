@@ -785,3 +785,18 @@
 		gap: var(--spacing-md);
 	}
 }
+
+/* Disable all hover effects on mobile */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+	.schedule-container::-webkit-scrollbar-thumb:hover,
+	.schedule-refresh-btn:hover,
+	.day-btn:hover,
+	.refresh-button:hover:not(:disabled),
+	.retry-button:hover,
+	.class-card:hover,
+	.schedule-dropdown-toggle-date:hover,
+	.schedule-dropdown-item:hover,
+	.schedule-dropdown-item.selected:hover {
+		/* Reset hover styles to default */
+	}
+}

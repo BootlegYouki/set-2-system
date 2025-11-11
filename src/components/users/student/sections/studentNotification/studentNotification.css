@@ -740,3 +740,21 @@
     transform: translateY(0);
   }
 }
+
+/* Disable all hover effects on mobile */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+	.retry-btn:hover,
+	.notification-container::-webkit-scrollbar-thumb:hover,
+	.filter-toggle:hover,
+	.filter-dropdown-item:hover,
+	.mark-all-read:hover,
+	.clear-read:hover,
+	.notification-card:hover,
+	.notification-card.clickable:hover,
+	.action-btn-small:hover::before,
+	.read-toggle:hover,
+	.delete-btn:hover,
+	.action-btn:hover {
+		/* Reset hover styles to default */
+	}
+}

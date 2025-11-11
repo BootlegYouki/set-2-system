@@ -1129,3 +1129,26 @@
     transform: none;
   }
 }
+
+/* Disable all hover effects on mobile */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+	.retry-btn:hover,
+	.clear-search-btn:hover,
+	.filter-toggle:hover,
+	.filter-dropdown-item:hover,
+	.todo-container::-webkit-scrollbar-thumb:hover,
+	.todo-refresh-button:hover:not(:disabled),
+	.add-todo-toggle-btn:hover,
+	.dropdown-toggle:hover,
+	.dropdown-item:hover,
+	.date-picker-toggle:hover,
+	.clear-date-btn:hover,
+	.nav-btn:hover,
+	.day-cell:hover,
+	.add-todo-btn:hover:not(:disabled),
+	.todo-card:hover,
+	.todo-delete-btn:hover,
+	.action-btn:hover {
+		/* Reset hover styles to default */
+	}
+}

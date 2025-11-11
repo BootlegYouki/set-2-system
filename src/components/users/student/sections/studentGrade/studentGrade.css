@@ -1938,3 +1938,25 @@
     padding: var(--spacing-sm);
   }
 }
+
+/* Disable all hover effects on mobile */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .grades-container::-webkit-scrollbar-thumb:hover,
+  .dropdown-button:hover,
+  .retry-btn:hover,
+  .dropdown-item-quarter:hover,
+  .dropdown-item-quarter.active:hover,
+  .refresh-data-btn:hover:not(:disabled),
+  .grade-stat-item:hover,
+  .ai-analysis-container:hover,
+  .refresh-analysis-btn:hover,
+  .ai-analysis-toggle-btn:hover,
+  .ai-analysis-toggle-btn.loading:hover,
+  .retry-analysis-btn:hover,
+  .subject-card.clickable:hover,
+  .score-item:hover,
+  .ai-refresh-btn:hover,
+  .toggle-analysis-btn:hover {
+    /* Reset hover styles to default */
+  }
+}

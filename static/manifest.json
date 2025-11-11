@@ -1,0 +1,25 @@
+{
+	"name": "SET-2 System",
+	"short_name": "SET-2",
+	"description": "Student Enrollment and Tracking System",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#ffffff",
+	"theme_color": "#1565c0",
+	"orientation": "portrait-primary",
+	"icons": [
+		{
+			"src": "/pwa-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/pwa-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any maskable"
+		}
+	]
+}
+

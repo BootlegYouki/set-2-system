@@ -794,3 +794,18 @@
 		transform: translateY(0);
 	}
 }
+
+/* Disable all hover effects on mobile */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+	.rankings-container::-webkit-scrollbar-thumb:hover,
+	.dropdown-button:hover,
+	.dropdown-item-quarter:hover,
+	.dropdown-item-quarter.active:hover,
+	.retry-btn:hover,
+	.refresh-data-btn:hover:not(:disabled),
+	.ranking-card:hover::before,
+	.ranking-card:hover,
+	.ranking-card.my-rank:hover {
+		/* Reset hover styles to default */
+	}
+}

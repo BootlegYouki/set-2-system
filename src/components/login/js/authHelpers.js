@@ -10,6 +10,36 @@ const simulateAPICall = (delay) => {
   return new Promise(resolve => setTimeout(resolve, delay));
 };
 
+/**
+ * Detect if the user is on a mobile device
+ * @returns {boolean} True if the device is a mobile device
+ */
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  
+  // Check user agent for mobile devices
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  
+  // Common mobile device patterns
+  const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|tablet/i;
+  
+  // Check user agent
+  if (mobileRegex.test(userAgent)) {
+    return true;
+  }
+  
+  // Check screen width (mobile devices typically have smaller screens)
+  // This is a fallback check
+  if (window.innerWidth <= 768) {
+    // Additional check: touch support (most mobile devices have touch)
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 // Predefined test accounts
 const testAccounts = {
   'student@school.edu': {
@@ -65,6 +95,12 @@ export const handleLogin = async ({ accountNumber, password }) => {
     const data = await response.json();
 
     if (data.success) {
+      // Check if admin is trying to access from mobile device
+      if (data.user.accountType === 'admin' && isMobileDevice()) {
+        const error = new Error('Admin access is restricted to desktop devices only. Please use a PC to access the admin portal.');
+        throw error;
+      }
+      
       // Store user data in localStorage
       const userData = {
         id: data.user.id,
@@ -86,15 +122,24 @@ export const handleLogin = async ({ accountNumber, password }) => {
       
       return userData;
     } else {
-      throw new Error(data.error || 'Invalid credentials. Please try again.');
+      // Create error object with additional properties
+      const error = new Error(data.error || 'Invalid credentials. Please try again.');
+      error.attemptsLeft = data.attemptsLeft;
+      error.isLocked = data.isLocked;
+      throw error;
     }
   } catch (error) {
     // Check if it's a network/fetch error
     if (error.message === 'Failed to fetch' || error instanceof TypeError) {
       throw new Error('Connection failed. Please check your internet connection and try again.');
     }
-    const errorMessage = error.message || 'Network error. Please try again.';
-    throw new Error(errorMessage);
+    
+    // Preserve error properties if they exist
+    const enhancedError = new Error(error.message || 'Network error. Please try again.');
+    if (error.attemptsLeft !== undefined) enhancedError.attemptsLeft = error.attemptsLeft;
+    if (error.isLocked !== undefined) enhancedError.isLocked = error.isLocked;
+    
+    throw enhancedError;
   }
 };
 

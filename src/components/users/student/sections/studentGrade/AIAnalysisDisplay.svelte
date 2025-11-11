@@ -58,7 +58,53 @@
 	function showLess() {
 		if (visibleSections > 1) {
 			visibleSections--;
+			
+			// Scroll to the section that becomes the last visible one
+			tick().then(() => {
+				setTimeout(() => {
+					const newLastSectionIndex = visibleSections - 1;
+					const targetSection = sectionRefs[newLastSectionIndex];
+					
+					if (targetSection) {
+						targetSection.scrollIntoView({ 
+							behavior: 'smooth', 
+							block: 'start',
+							inline: 'nearest'
+						});
+					}
+				}, 100); // Small delay to let the animation start
+			});
 		}
+	}
+
+	function closeAll() {
+		visibleSections = 1;
+		
+		// Scroll up to the "AI Performance Insights" container
+		tick().then(() => {
+			setTimeout(() => {
+				// Find the parent ai-analysis-section container
+				const aiSection = document.querySelector('.ai-analysis-section');
+				
+				if (aiSection) {
+					aiSection.scrollIntoView({ 
+						behavior: 'smooth', 
+						block: 'start',
+						inline: 'nearest'
+					});
+				} else {
+					// Fallback: scroll to the first section
+					const firstSection = sectionRefs[0];
+					if (firstSection) {
+						firstSection.scrollIntoView({ 
+							behavior: 'smooth', 
+							block: 'start',
+							inline: 'nearest'
+						});
+					}
+				}
+			}, 100); // Small delay to let the animation start
+		});
 	}
 
 	// Calculate total number of sections
@@ -276,17 +322,24 @@
 
 		<!-- Show More / Show Less Buttons -->
 		<div class="ai-action-buttons">
+			{#if visibleSections > 1}
+				{#if allSectionsVisible}
+					<button class="show-more-btn" onclick={closeAll} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+						<span class="material-symbols-outlined">close</span>
+						<span>Close All</span>
+					</button>
+				{:else}
+					<button class="show-more-btn" onclick={showLess} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
+						<span class="material-symbols-outlined">expand_less</span>
+						<span>Show Less</span>
+					</button>
+				{/if}
+			{/if}
+			
 			{#if !allSectionsVisible}
 				<button class="show-more-btn" onclick={showMoreSection} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
 					<span class="material-symbols-outlined">expand_more</span>
 					<span>Show More</span>
-				</button>
-			{/if}
-			
-			{#if visibleSections > 1}
-				<button class="show-more-btn" onclick={showLess} in:fly|local="{{ y: 20, duration: 400, delay: 100, easing: quintOut }}" out:fade|local="{{ duration: 200 }}">
-					<span class="material-symbols-outlined">expand_less</span>
-					<span>Show Less</span>
 				</button>
 			{/if}
 		</div>

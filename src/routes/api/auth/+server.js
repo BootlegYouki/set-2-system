@@ -2,6 +2,58 @@ import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
 import bcrypt from 'bcrypt';
 
+// Global login attempts tracking
+// Structure: { attempts: number, lockedUntil: Date | null }
+let globalLoginAttempts = { attempts: 0, lockedUntil: null };
+
+// Constants
+const MAX_LOGIN_ATTEMPTS = 3;
+const LOCKOUT_DURATION_MS = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+/**
+ * Check if login is currently locked out globally
+ * @returns {Object} { isLocked: boolean, remainingTime: number, attemptsLeft: number }
+ */
+function checkLoginAttempts() {
+  // Check if lockout period has expired
+  if (globalLoginAttempts.lockedUntil && new Date() >= globalLoginAttempts.lockedUntil) {
+    // Reset attempts after lockout expires
+    globalLoginAttempts = { attempts: 0, lockedUntil: null };
+    return { isLocked: false, remainingTime: 0, attemptsLeft: MAX_LOGIN_ATTEMPTS };
+  }
+  
+  // If still locked
+  if (globalLoginAttempts.lockedUntil) {
+    const remainingTime = Math.ceil((globalLoginAttempts.lockedUntil - new Date()) / 1000); // in seconds
+    return { isLocked: true, remainingTime, attemptsLeft: 0 };
+  }
+  
+  // Not locked but has attempts
+  const attemptsLeft = MAX_LOGIN_ATTEMPTS - globalLoginAttempts.attempts;
+  return { isLocked: false, remainingTime: 0, attemptsLeft };
+}
+
+/**
+ * Record a failed login attempt globally
+ */
+function recordFailedAttempt() {
+  globalLoginAttempts.attempts += 1;
+  
+  // Lock login if max attempts reached
+  if (globalLoginAttempts.attempts >= MAX_LOGIN_ATTEMPTS) {
+    globalLoginAttempts.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS);
+  }
+  
+  return MAX_LOGIN_ATTEMPTS - globalLoginAttempts.attempts;
+}
+
+/**
+ * Clear global login attempts (called on successful login)
+ */
+function clearLoginAttempts() {
+  globalLoginAttempts = { attempts: 0, lockedUntil: null };
+}
+
 // POST /api/auth - Authenticate user with account number and password
 export async function POST({ request, getClientAddress }) {
   try {
@@ -28,6 +80,22 @@ export async function POST({ request, getClientAddress }) {
       return json({ error: 'Password too long' }, { status: 400 });
     }
     
+    // Check if login is locked globally due to too many failed attempts
+    const attemptStatus = checkLoginAttempts();
+    if (attemptStatus.isLocked) {
+      const minutes = Math.floor(attemptStatus.remainingTime / 60);
+      const seconds = attemptStatus.remainingTime % 60;
+      const timeString = minutes > 0 
+        ? `${minutes} minute${minutes > 1 ? 's' : ''} and ${seconds} second${seconds > 1 ? 's' : ''}`
+        : `${seconds} second${seconds > 1 ? 's' : ''}`;
+      
+      return json({ 
+        error: `Login temporarily unavailable due to too many failed attempts. Please try again in ${timeString}.`,
+        isLocked: true,
+        remainingTime: attemptStatus.remainingTime
+      }, { status: 429 });
+    }
+    
     // Query user by account number from MongoDB
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
@@ -39,15 +107,46 @@ export async function POST({ request, getClientAddress }) {
     });
     
     if (!user) {
-      return json({ error: 'Invalid account number or password' }, { status: 401 });
+      // Record failed attempt globally
+      const attemptsLeft = recordFailedAttempt();
+      
+      if (attemptsLeft > 0) {
+        return json({ 
+          error: 'Invalid account number or password',
+          attemptsLeft
+        }, { status: 401 });
+      } else {
+        return json({ 
+          error: 'Invalid account number or password. Login has been locked for 10 minutes due to too many failed attempts.',
+          isLocked: true,
+          attemptsLeft: 0
+        }, { status: 429 });
+      }
     }
     
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     
     if (!isPasswordValid) {
-      return json({ error: 'Invalid account number or password' }, { status: 401 });
+      // Record failed attempt globally
+      const attemptsLeft = recordFailedAttempt();
+      
+      if (attemptsLeft > 0) {
+        return json({ 
+          error: 'Invalid account number or password',
+          attemptsLeft
+        }, { status: 401 });
+      } else {
+        return json({ 
+          error: 'Invalid account number or password. Login has been locked for 10 minutes due to too many failed attempts.',
+          isLocked: true,
+          attemptsLeft: 0
+        }, { status: 429 });
+      }
     }
+    
+    // Clear global login attempts on successful authentication
+    clearLoginAttempts();
     
     // Return user data (excluding password hash)
     const userData = {

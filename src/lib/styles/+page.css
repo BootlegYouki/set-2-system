@@ -114,10 +114,6 @@
 
 /* Mobile layout adjustments */
 @media (max-width: 768px) {
-  .app-container {
-    height: 90vh;
-  }
-
   .content-area > *::-webkit-scrollbar {
     width: 4px;
   }
@@ -135,6 +131,19 @@
   /* Adjust padding for mobile */
   .content-area > * {
     padding: var(--spacing-lg);
+  }
+  
+  /* Disable all hover effects on mobile - override hover states */
+  .content-area > *::-webkit-scrollbar-thumb:hover {
+    background: var(--md-sys-color-outline-variant) !important;
+  }
+}
+
+/* Disable hover effects on touch devices (mobile/tablet) */
+@media (hover: none) and (pointer: coarse), (max-width: 768px) {
+  /* Override scrollbar hover effect on touch devices */
+  .content-area > *::-webkit-scrollbar-thumb:hover {
+    background: var(--md-sys-color-outline-variant) !important;
   }
 }
 

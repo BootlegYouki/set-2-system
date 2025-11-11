@@ -1404,3 +1404,14 @@
 		flex-wrap: wrap;
 	}
 }
+
+/* Disable all hover effects on mobile */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+	.document-request-container::-webkit-scrollbar-thumb:hover,
+	.refresh-button:hover,
+	.request-card:hover,
+	.doc-dropdown-item:hover:not(.selected),
+	.chat-indicator-btn:hover {
+		/* Reset hover styles to default */
+	}
+}

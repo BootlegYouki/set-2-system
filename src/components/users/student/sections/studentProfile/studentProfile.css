@@ -827,3 +827,16 @@
 		display: block !important;
 	}
 }
+
+/* Disable all hover effects on mobile */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+	.student-refresh-btn:hover:not(:disabled),
+	.contact-card:hover,
+	.info-card:hover,
+	.subject-card:hover,
+	.security-action-button:hover,
+	.student-profile-password-toggle:hover,
+	.section-header-mobile:hover {
+		/* Reset hover styles to default */
+	}
+}

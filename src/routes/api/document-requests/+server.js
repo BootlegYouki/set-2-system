@@ -3,6 +3,7 @@ import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/auth-helper.js';
 import { encryptMessage, decryptMessages } from '../helper/encryption-helper.js';
+import PDFDocument from 'pdfkit';
 
 // Helper function to create notifications for document request updates
 async function createDocumentRequestNotification(db, studentId, notificationData) {
@@ -300,7 +301,8 @@ export async function GET({ url, request }) {
 					processedBy: req.processed_by,
 					processedById: req.processed_by_id,
 					messages: decryptMessages(req.messages || []),
-					lastReadAt: req.last_read_at || null
+					lastReadAt: req.last_read_at || null,
+					statusHistory: req.status_history || []
 				}));
 
 				return json({ success: true, data: formattedRequests });
@@ -330,7 +332,8 @@ export async function GET({ url, request }) {
 				processedBy: req.processed_by,
 				isUrgent: req.is_urgent || false,
 				messages: decryptMessages(req.messages || []),
-				lastReadAt: req.last_read_at || null
+				lastReadAt: req.last_read_at || null,
+				statusHistory: req.status_history || []
 			}));
 
 				return json({ success: true, data: formattedStudentRequests });
@@ -409,10 +412,41 @@ export async function GET({ url, request }) {
 					processedBy: request.processed_by,
 					processedById: request.processed_by_id,
 					messages: decryptMessages(request.messages || []),
-					lastReadAt: request.last_read_at || null
+					lastReadAt: request.last_read_at || null,
+					statusHistory: request.status_history || []
 				};
 
 				return json({ success: true, data: formattedRequest });
+
+			case 'generateReceipt':
+				// Only admins and teachers can generate receipts
+				if (authResult.user.account_type !== 'admin' && authResult.user.account_type !== 'teacher') {
+					return json({ error: 'Access denied. Only admins and teachers can generate receipts.' }, { status: 403 });
+				}
+
+				const receiptRequestId = url.searchParams.get('requestId');
+				if (!receiptRequestId) {
+					return json({ error: 'Request ID is required' }, { status: 400 });
+				}
+
+				const receiptRequest = await db.collection('document_requests').findOne({ request_id: receiptRequestId });
+				if (!receiptRequest) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
+
+				// Generate PDF receipt
+				try {
+					const pdfBuffer = await generateReceiptPDF(receiptRequest);
+					return new Response(pdfBuffer, {
+						headers: {
+							'Content-Type': 'application/pdf',
+							'Content-Disposition': `attachment; filename="receipt-${receiptRequestId}.pdf"`
+						}
+					});
+				} catch (pdfError) {
+					console.error('Error generating PDF receipt:', pdfError);
+					return json({ error: 'Failed to generate receipt PDF' }, { status: 500 });
+				}
 
 			default:
 				return json({ error: 'Invalid action parameter' }, { status: 400 });
@@ -503,6 +537,14 @@ export async function POST({ request }) {
 						processed_by: null,
 						processed_by_id: null,
 						messages: [],
+						status_history: [
+							{
+								status: 'on_hold',
+								timestamp: new Date(),
+								changedBy: 'System',
+								note: 'Request submitted and awaiting review'
+							}
+						],
 						created_at: new Date(),
 						updated_at: new Date()
 					};
@@ -567,6 +609,31 @@ export async function POST({ request }) {
 					if (status !== 'processing') {
 						updateData.tentative_date = null;
 					}
+					
+					// Add to status history if status changed
+					if (statusChanged) {
+						// Get appropriate note based on status
+						const statusNotes = {
+							'on_hold': 'Request is on hold and awaiting admin review',
+							'verifying': 'Admin is verifying the request details and requirements',
+							'processing': 'Document is being prepared and processed',
+							'for_pickup': 'Document is ready and available for pickup at the office',
+							'released': 'Document has been successfully released to the student',
+							'rejected': 'Request has been rejected by admin',
+							'cancelled': 'Request was cancelled'
+						};
+						
+						const statusHistoryEntry = {
+							status: status,
+							timestamp: new Date(),
+							changedBy: user.name || user.full_name || 'Admin',
+							note: statusNotes[status] || 'Status updated'
+						};
+						
+						// Push to status_history array
+						updateData.$push = updateData.$push || {};
+						updateData.$push.status_history = statusHistoryEntry;
+					}
 				}
 
 				if (tentativeDate !== undefined) {
@@ -603,9 +670,16 @@ export async function POST({ request }) {
 					updateData.processed_by_id = user.id;
 				}
 
+				// Build the update operation
+				const updateOperation = { $set: updateData };
+				if (updateData.$push) {
+					updateOperation.$push = updateData.$push;
+					delete updateData.$push;
+				}
+
 				const updateResult = await db
 					.collection('document_requests')
-					.updateOne({ request_id: requestId }, { $set: updateData });
+					.updateOne({ request_id: requestId }, updateOperation);
 
 				if (updateResult.matchedCount === 0) {
 					return json({ error: 'Request not found' }, { status: 404 });
@@ -798,6 +872,14 @@ export async function POST({ request }) {
 								processed_by: user.name,
 								processed_by_id: user.id,
 								updated_at: new Date()
+							},
+							$push: {
+								status_history: {
+									status: 'rejected',
+									timestamp: new Date(),
+									changedBy: user.name || user.full_name || 'Admin',
+									note: 'Request has been rejected. Please contact the office for more information.'
+								}
 							}
 						}
 					);
@@ -877,6 +959,14 @@ export async function POST({ request }) {
 								status: 'cancelled',
 								cancelled_date: new Date(),
 								updated_at: new Date()
+							},
+							$push: {
+								status_history: {
+									status: 'cancelled',
+									timestamp: new Date(),
+									changedBy: user.name || user.full_name || 'Student',
+									note: 'Student cancelled the request. You may submit a new request if needed.'
+								}
 							}
 						}
 					);
@@ -1070,5 +1160,309 @@ function formatDateDisplay(dateString) {
 	const date = new Date(dateString);
 	const options = { year: 'numeric', month: 'long', day: 'numeric' };
 	return date.toLocaleDateString('en-US', options);
+}
+
+// Helper function to format date for receipt (Month DD, YYYY)
+function formatReceiptDate(dateString) {
+	if (!dateString) return 'N/A';
+	const date = new Date(dateString);
+	const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+		'July', 'August', 'September', 'October', 'November', 'December'];
+	return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+// Generate PDF receipt
+async function generateReceiptPDF(request) {
+	return new Promise((resolve, reject) => {
+		try {
+			const doc = new PDFDocument({ 
+				size: 'LEGAL',
+				margins: { top: 50, bottom: 50, left: 50, right: 50 }
+			});
+
+			const chunks = [];
+			doc.on('data', chunk => chunks.push(chunk));
+			doc.on('end', () => resolve(Buffer.concat(chunks)));
+			doc.on('error', reject);
+
+			// Colors
+			const lightGray = '#F5F5F5';
+			const lightGreen = '#E8F5E9';
+			const lightBlue = '#E3F2FD';
+			const darkGray = '#424242';
+			const black = '#000000';
+
+			// Page width and starting position
+			const pageWidth = 612; // Letter size width in points
+			const margin = 50;
+			const contentWidth = pageWidth - (margin * 2);
+			let yPos = margin;
+
+			// Header: "For Cashier Processing"
+			doc.fontSize(14)
+				.fillColor(darkGray)
+				.text('For Cashier Processing', 0, yPos, { align: 'center', width: pageWidth });
+			yPos += 25;
+
+			// Status badge: "Ready for Pick Up"
+			const statusText = 'Ready for Pick Up';
+			const statusWidth = doc.widthOfString(statusText, { fontSize: 12 });
+			const statusX = (pageWidth - statusWidth) / 2 - 20;
+			doc.roundedRect(statusX, yPos, statusWidth + 40, 25, 5)
+				.fill(lightGreen);
+			doc.fontSize(12)
+				.fillColor('#2E7D32')
+				.text(statusText, statusX + 28, yPos + 7, { width: statusWidth });
+			yPos += 40;
+
+			// Dashed line
+			doc.moveTo(margin, yPos)
+				.lineTo(pageWidth - margin, yPos)
+				.dash(5, { space: 5 })
+				.strokeColor(black)
+				.stroke();
+			doc.undash();
+			yPos += 20;
+
+			// Receipt Number
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.text('Receipt Number', 0, yPos, { align: 'center', width: pageWidth });
+			doc.fontSize(18)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(request.request_id, 0, yPos + 15, { align: 'center', width: pageWidth });
+			yPos += 50;
+
+			// Student Information Section
+			const studentInfoY = yPos;
+			const studentInfoHeight = 120;
+			doc.roundedRect(margin, studentInfoY, contentWidth, studentInfoHeight, 8)
+				.fill(lightGray);
+			
+			doc.fontSize(12)
+				.fillColor(darkGray)
+				.font('Helvetica-Bold')
+				.text('Student Information', margin + 15, studentInfoY + 15);
+			
+			// Horizontal line under title
+			doc.moveTo(margin + 15, studentInfoY + 35)
+				.lineTo(pageWidth - margin - 15, studentInfoY + 35)
+				.strokeColor(black)
+				.stroke();
+			
+			// Student details
+			const leftColX = margin + 15;
+			const rightColX = pageWidth / 2 + 20;
+			const detailY = studentInfoY + 50;
+
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Student ID', leftColX, detailY);
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(request.account_number || 'N/A', leftColX, detailY + 15);
+
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Grade & Section', leftColX, detailY + 35);
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(`Grade ${request.grade_level}${request.section ? '-' + request.section : ''}`, leftColX, detailY + 50);
+
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Full Name', rightColX, detailY);
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(request.full_name || 'N/A', rightColX, detailY + 15);
+
+			yPos = studentInfoY + studentInfoHeight + 20;
+
+			// Document Details Section
+			const docDetailsY = yPos;
+			doc.roundedRect(margin, docDetailsY, contentWidth, 120, 8)
+				.fill(lightGray);
+			
+			doc.fontSize(12)
+				.fillColor(darkGray)
+				.font('Helvetica-Bold')
+				.text('Document Details', margin + 15, docDetailsY + 15);
+			
+			// Horizontal line under title
+			doc.moveTo(margin + 15, docDetailsY + 35)
+				.lineTo(pageWidth - margin - 15, docDetailsY + 35)
+				.strokeColor(black)
+				.stroke();
+			
+			// Document details
+			const docDetailY = docDetailsY + 50;
+
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Document Type', leftColX, docDetailY);
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(request.document_type || 'N/A', leftColX, docDetailY + 15);
+
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Processed By', leftColX, docDetailY + 35);
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(request.processed_by || 'N/A', leftColX, docDetailY + 50);
+
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Request Date', rightColX, docDetailY);
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(formatReceiptDate(request.submitted_date), rightColX, docDetailY + 15);
+
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Pick Up Date', rightColX, docDetailY + 35);
+			const pickupDate = request.tentative_date ? formatReceiptDate(request.tentative_date) : formatReceiptDate(new Date());
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text(pickupDate, rightColX, docDetailY + 50);
+
+			yPos = docDetailsY + 120 + 20;
+
+			// Fee Breakdown
+			const documentFee = request.payment_amount || 0;
+			const processingFee = 0;
+			const totalAmount = documentFee + processingFee;
+
+			doc.fontSize(11)
+				.fillColor(black)
+				.font('Helvetica')
+				.text('Document Fee:', margin, yPos);
+			doc.text(`P${documentFee.toFixed(2)}`, pageWidth - margin - 100, yPos, { width: 100, align: 'right' });
+			yPos += 20;
+
+			doc.text('Processing Fee:', margin, yPos);
+			doc.text(`P${processingFee.toFixed(2)}`, pageWidth - margin - 100, yPos, { width: 100, align: 'right' });
+			yPos += 25;
+
+			// Horizontal line
+			doc.moveTo(margin, yPos)
+				.lineTo(pageWidth - margin, yPos)
+				.strokeColor(black)
+				.stroke();
+			yPos += 15;
+
+			doc.fontSize(12)
+				.fillColor(black)
+				.font('Helvetica-Bold')
+				.text('Total Amount', margin, yPos);
+			doc.text(`P${totalAmount.toFixed(2)}`, pageWidth - margin - 100, yPos, { width: 100, align: 'right' });
+			yPos += 40;
+
+			// Payment Status badge
+			const statusBoxWidth = 150;
+			const statusBoxHeight = 55;
+			const statusBoxX = (pageWidth - statusBoxWidth) / 2;
+			const statusBoxY = yPos;
+			
+			// Light brown/beige background
+			doc.roundedRect(statusBoxX, statusBoxY, statusBoxWidth, statusBoxHeight, 5)
+				.fill('#D7CCC8');
+			
+			// Border
+			doc.roundedRect(statusBoxX, statusBoxY, statusBoxWidth, statusBoxHeight, 5)
+				.strokeColor('#8D6E63')
+				.lineWidth(1)
+				.stroke();
+			
+			// "Payment Status" label
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica-Bold')
+				.text('Payment Status', statusBoxX + 10, statusBoxY + 10, { width: statusBoxWidth - 20, align: 'center' });
+			
+			// Horizontal line under label
+			doc.moveTo(statusBoxX + 10, statusBoxY + 45)
+				.lineTo(statusBoxX + statusBoxWidth - 10, statusBoxY + 45)
+				.strokeColor('#8D6E63')
+				.stroke();
+			
+			yPos += statusBoxHeight + 30;
+
+			// Instructions for Cashier
+			const instructionsY = yPos;
+			doc.roundedRect(margin, instructionsY, contentWidth, 120, 8)
+				.fill(lightBlue);
+			
+			// Blue vertical line on left
+			doc.rect(margin, instructionsY, 5, 120)
+				.fill('#2196F3');
+			
+			doc.fontSize(12)
+				.fillColor(darkGray)
+				.font('Helvetica-Bold')
+				.text('Instructions for Cashier:', margin + 20, instructionsY + 15);
+			
+			const instructions = [
+				'Verify student ID matches the name on this receipt',
+				'Confirm payment status before releasing document',
+				'Have student sign the release form',
+				'Stamp this receipt as "RELEASED" after document handover',
+				'File this receipt in the completed transactions folder'
+			];
+
+			let instructionY = instructionsY + 40;
+			doc.fontSize(10)
+				.fillColor(black)
+				.font('Helvetica');
+			
+			instructions.forEach((instruction, index) => {
+				doc.text(`${index + 1}. ${instruction}`, margin + 20, instructionY);
+				instructionY += 15;
+			});
+
+			yPos = instructionsY + 120 + 30;
+
+			// Signature Lines
+			const signatureY = yPos + 10;
+			const signatureWidth = (contentWidth - 40) / 2;
+
+			// Student Signature
+			doc.moveTo(margin, signatureY)
+				.lineTo(margin + signatureWidth, signatureY)
+				.strokeColor(black)
+				.stroke();
+			doc.fontSize(10)
+				.fillColor(darkGray)
+				.font('Helvetica')
+				.text('Student Signature', margin, signatureY + 5);
+
+			// Cashier Signature
+			doc.moveTo(margin + signatureWidth + 40, signatureY)
+				.lineTo(pageWidth - margin, signatureY)
+				.strokeColor(black)
+				.stroke();
+			doc.text('Cashier Signature', margin + signatureWidth + 40, signatureY + 5);
+
+			// Finalize PDF
+			doc.end();
+		} catch (error) {
+			reject(error);
+		}
+	});
 }
 

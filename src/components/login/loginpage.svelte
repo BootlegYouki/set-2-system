@@ -13,6 +13,8 @@
   let isLoading = $state(false);
   let showPassword = $state(false);
   let errors = $state({ idNumber: '', password: '', general: '' });
+  let loginAttemptsLeft = $state(null); // Track remaining login attempts
+  let isAccountLocked = $state(false); // Track if account is locked
   
   // Forgot password state
   let showForgotPassword = $state(false);
@@ -31,10 +33,62 @@
   // Theme state (sync with already-set theme from app.html)
   let isDarkMode = $state(false);
 
-  // Sync component state with the theme set in app.html
+  // Forgot password state persistence
+  const FORGOT_PASSWORD_STORAGE_KEY = 'forgotPasswordState';
+
+  function saveForgotPasswordState() {
+    if (typeof window === 'undefined') return;
+    try {
+      const state = {
+        showForgotPassword,
+        forgotPasswordStep,
+        email,
+        resetToken,
+        verificationCode,
+        codeDigits,
+        attemptsRemaining
+      };
+      sessionStorage.setItem(FORGOT_PASSWORD_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn('Failed to save forgot password state:', e);
+    }
+  }
+
+  function loadForgotPasswordState() {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = sessionStorage.getItem(FORGOT_PASSWORD_STORAGE_KEY);
+      if (saved) {
+        const state = JSON.parse(saved);
+        showForgotPassword = state.showForgotPassword || false;
+        forgotPasswordStep = state.forgotPasswordStep || 1;
+        email = state.email || '';
+        resetToken = state.resetToken || '';
+        verificationCode = state.verificationCode || '';
+        codeDigits = state.codeDigits || ['', '', '', '', '', ''];
+        attemptsRemaining = state.attemptsRemaining || 5;
+      }
+    } catch (e) {
+      console.warn('Failed to load forgot password state:', e);
+    }
+  }
+
+  function clearForgotPasswordState() {
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.removeItem(FORGOT_PASSWORD_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Failed to clear forgot password state:', e);
+    }
+  }
+
+  // Sync component state with the theme set in app.html and restore forgot password state
   onMount(() => {
     const currentTheme = getCurrentTheme();
     isDarkMode = currentTheme === 'dark';
+    
+    // Restore forgot password state if it exists
+    loadForgotPasswordState();
   });
 
   // Toggle theme mode
@@ -47,8 +101,10 @@
   const handleSubmit = async (event) => {
     event.preventDefault();
     
-    // Reset errors
+    // Reset errors and attempts
     errors = { idNumber: '', password: '', general: '' };
+    loginAttemptsLeft = null;
+    isAccountLocked = false;
     
     // Validate inputs
     const idNumberError = validateIdNumber(idNumber);
@@ -62,9 +118,21 @@
     isLoading = true;
     
     try {
-      await handleLogin({ accountNumber: idNumber, password });
+      const result = await handleLogin({ accountNumber: idNumber, password });
+      // Login successful - attempts tracking is handled in authHelpers
     } catch (error) {
       errors = { ...errors, general: error.message };
+      
+      // Check if error contains attempts info
+      if (error.attemptsLeft !== undefined) {
+        loginAttemptsLeft = error.attemptsLeft;
+      }
+      
+      // Check if account is locked
+      if (error.isLocked) {
+        isAccountLocked = true;
+        loginAttemptsLeft = 0;
+      }
     } finally {
       isLoading = false;
     }
@@ -108,6 +176,11 @@
       errors = { idNumber: '', password: '', general: '' };
       successMessage = '';
       attemptsRemaining = 5;
+      // Clear saved state when going back to login
+      clearForgotPasswordState();
+    } else {
+      // Save state when entering forgot password mode
+      saveForgotPasswordState();
     }
   }
 
@@ -243,6 +316,8 @@
       resetToken = data.resetToken;
       successMessage = 'A verification code has been sent to your email address.';
       forgotPasswordStep = 2;
+      // Save state after successful code request
+      saveForgotPasswordState();
     } catch (error) {
       errors = { ...errors, general: error.message };
     } finally {
@@ -282,8 +357,12 @@
 
       successMessage = 'Code verified! Please enter your new password.';
       forgotPasswordStep = 3;
+      // Save state after successful code verification
+      saveForgotPasswordState();
     } catch (error) {
       errors = { ...errors, general: error.message };
+      // Save state even on error to preserve attemptsRemaining
+      saveForgotPasswordState();
     } finally {
       isLoading = false;
     }
@@ -322,6 +401,9 @@
       }
 
       successMessage = 'Password reset successfully! Redirecting to login...';
+      
+      // Clear saved state after successful password reset
+      clearForgotPasswordState();
       
       // Redirect to login after 2 seconds
       setTimeout(() => {
@@ -445,6 +527,11 @@
               {#if errors.general}
                 <div class="error-message-item">{errors.general}</div>
               {/if}
+              {#if loginAttemptsLeft !== null && loginAttemptsLeft > 0 && !isAccountLocked}
+                <div class="error-message-item" style="color: #ff9800; font-weight: 500;">
+                  {loginAttemptsLeft} attempt{loginAttemptsLeft !== 1 ? 's' : ''} remaining before login lockout
+                </div>
+              {/if}
             </div>
           </div>
         {/if}
@@ -454,11 +541,13 @@
           id="login-submit-btn"
           type="submit" 
           class="custom-filled-button login-submit"
-          disabled={isLoading}
+          disabled={isLoading || isAccountLocked}
           aria-label="Sign in"
         >
           {#if isLoading}
             <div class="login-loading-spinner"></div>
+          {:else if isAccountLocked}
+            <span>Login Locked</span>
           {:else}
             <span>Login</span>
           {/if}

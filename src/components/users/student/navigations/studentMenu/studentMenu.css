@@ -190,20 +190,21 @@
 .nav-container {
   display: flex;
   justify-content: space-around;
-  align-items: center;
+  align-items: start;
   padding: var(--spacing-sm) var(--spacing-md);
   max-width: 600px;
   margin: 0 auto;
-  height: 64px;
+  height: 80px;
 }
 
 .nav-item {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: var(--spacing-sm);
+  padding: 12px;
   border: none;
   background: transparent;
   border-radius: var(--radius-md);

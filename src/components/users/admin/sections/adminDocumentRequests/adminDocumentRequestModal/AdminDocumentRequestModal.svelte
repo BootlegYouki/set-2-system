@@ -37,6 +37,7 @@
 	let pollingInterval;
 	let showConfirmModal = $state(false);
 	let showRejectModal = $state(false);
+	let showReceiptModal = $state(false);
 	let isPaymentEditable = $state(false);
 	let paymentStatus = $state('pending'); // 'paid' or 'pending'
 
@@ -327,6 +328,114 @@
 		showRejectModal = false;
 	}
 
+	// Show receipt generation confirmation modal
+	function generateReceipt() {
+		if (!selectedRequest || !selectedRequest.requestId) return;
+		showReceiptModal = true;
+	}
+
+	// Convert blob to base64
+	async function blobToBase64(blob) {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result);
+			reader.onerror = reject;
+			reader.readAsDataURL(blob);
+		});
+	}
+
+	// Confirm and generate receipt, then send to chat
+	async function confirmGenerateReceipt() {
+		if (!selectedRequest || !selectedRequest.requestId) return;
+		
+		showReceiptModal = false;
+		isSendingMessage = true;
+		
+		try {
+			// Generate receipt PDF
+			const response = await authenticatedFetch(`/api/document-requests?action=generateReceipt&requestId=${selectedRequest.requestId}`, {
+				method: 'GET'
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				toastStore.error(result.error || 'Failed to generate receipt');
+				isSendingMessage = false;
+				return;
+			}
+
+			const blob = await response.blob();
+
+			// Convert blob to base64 for sending to chat
+			const base64Data = await blobToBase64(blob);
+			const attachments = [{
+				name: `receipt-${selectedRequest.requestId}.pdf`,
+				type: 'application/pdf',
+				size: blob.size,
+				data: base64Data
+			}];
+
+			// Create optimistic message
+			const tempId = `temp-${Date.now()}`;
+			const messageText = `Receipt generated for ${selectedRequest.requestId}`;
+			const optimisticMessage = {
+				id: tempId,
+				text: messageText,
+				author: $authStore.userData?.name || 'Admin',
+				authorRole: 'admin',
+				created_at: new Date().toISOString(),
+				attachments: attachments,
+				isPending: true
+			};
+
+			// Add message to UI immediately
+			selectedRequest.messages = [...(selectedRequest.messages || []), optimisticMessage];
+			scrollToBottom();
+
+			// Send to server
+			try {
+				const sendResponse = await authenticatedFetch('/api/document-requests', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						action: 'sendMessage',
+						requestId: selectedRequest.requestId,
+						message: messageText,
+						attachments: attachments
+					})
+				});
+
+				const result = await sendResponse.json();
+
+				if (result.success) {
+					// Replace optimistic message with actual message from server
+					selectedRequest.messages = selectedRequest.messages.map(msg => 
+						msg.id === tempId ? { ...result.data, id: tempId, isPending: false } : msg
+					);
+					toastStore.success('Receipt generated and sent to chat successfully');
+				} else {
+					// Remove optimistic message on failure
+					selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
+					toastStore.error(result.error || 'Failed to send receipt to chat');
+				}
+			} catch (error) {
+				console.error('Error sending receipt to chat:', error);
+				// Remove optimistic message on error
+				selectedRequest.messages = selectedRequest.messages.filter(msg => msg.id !== tempId);
+				toastStore.error('Receipt generated but failed to send to chat');
+			}
+		} catch (error) {
+			console.error('Error generating receipt:', error);
+			toastStore.error('An error occurred while generating the receipt');
+		} finally {
+			isSendingMessage = false;
+		}
+	}
+
+	function cancelGenerateReceipt() {
+		showReceiptModal = false;
+	}
+
 	// Get current status name
 	let modalCurrentStatusName = $derived(
 		selectedRequest
@@ -443,10 +552,20 @@
 	<div class="docreq-modal-grid">
 		<!-- LEFT CONTAINER: Request Information -->
 		<div class="docreq-modal-left-container">
-			<header class="docreq-modal-title">
-				<h2>Request Details</h2>
-				<div class="docreq-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
-			</header>
+		<header class="docreq-modal-title">
+			<div class="docreq-modal-title-row">
+				<div>
+					<h2>Request Details</h2>
+					<div class="docreq-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
+				</div>
+				{#if selectedRequest.status === 'for_pickup'}
+					<button class="generate-receipt-btn" onclick={generateReceipt} title="Generate Receipt">
+						<span class="material-symbols-outlined">receipt</span>
+						<span>Generate Receipt</span>
+					</button>
+				{/if}
+			</div>
+		</header>
 
 
 
@@ -879,6 +998,48 @@
 	</Modal>
 {/if}
 
+<!-- Confirmation Modal for Generate Receipt -->
+{#if showReceiptModal}
+	<Modal 
+		title="Generate Receipt" 
+		size="small" 
+		closable={true}
+		onClose={cancelGenerateReceipt}
+	>
+		<div class="modal-confirm-content">
+			<div class="modal-message">
+				<p>Generate receipt for this document request?</p>
+				<div class="confirm-details">
+					<div class="confirm-detail-row">
+						<span class="detail-label">Request ID:</span>
+						<span class="detail-value">{selectedRequest.requestId}</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">Student:</span>
+						<span class="detail-value">{selectedRequest.studentName}</span>
+					</div>
+					<div class="confirm-detail-row">
+						<span class="detail-label">Document Type:</span>
+						<span class="detail-value">{selectedRequest.documentType}</span>
+					</div>
+					<div class="reject-notice" style="background: rgba(33, 150, 243, 0.1); border-color: #2196F3;">
+						<span class="material-symbols-outlined" style="color: #2196F3;">info</span>
+						<span>The receipt will be generated and automatically sent to the chat.</span>
+					</div>
+				</div>
+			</div>
+			<div class="modal-actions">
+				<button class="modal-btn modal-btn-secondary" onclick={cancelGenerateReceipt}>
+					Cancel
+				</button>
+				<button class="modal-btn modal-btn-primary" onclick={confirmGenerateReceipt} disabled={isSendingMessage}>
+					{isSendingMessage ? 'Generating...' : 'Generate Receipt'}
+				</button>
+			</div>
+		</div>
+	</Modal>
+{/if}
+
 <style>
 	.docreq-modal-content {
 		width: 100%;
@@ -932,6 +1093,13 @@
 		height: 100%;
 	}
 
+	.docreq-modal-title-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: var(--spacing-md);
+	}
+
 	.docreq-modal-title h2 {
 		margin: 0 0 6px 0;
 		font-size: 1.5rem;
@@ -942,6 +1110,44 @@
 		color: var(--md-sys-color-on-surface-variant);
 		font-size: 0.875rem;
 		margin-top: 6px;
+	}
+
+	.generate-receipt-btn {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: 10px var(--spacing-md);
+		border-radius: var(--radius-md);
+		background: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+		border: none;
+		cursor: pointer;
+		font-weight: 600;
+		font-size: 0.9rem;
+		transition: all var(--transition-fast);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+		white-space: nowrap;
+	}
+
+	.generate-receipt-btn .material-symbols-outlined {
+		font-size: 20px;
+	}
+
+	.generate-receipt-btn:hover {
+		background: var(--md-sys-color-primary);
+		opacity: 0.9;
+		box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+		transform: translateY(-1px);
+	}
+
+	.generate-receipt-btn:active {
+		transform: translateY(0);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.generate-receipt-btn:focus-visible {
+		outline: 2px solid var(--md-sys-color-primary);
+		outline-offset: 2px;
 	}
 
 	.docreq-cards {
