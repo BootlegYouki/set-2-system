@@ -350,8 +350,8 @@
 			if (formData.subjectId) {
 				const selectedSubject = subjects.find((s) => s.id === formData.subjectId);
 				if (selectedSubject && selectedSubject.department_id) {
-					// Only show teachers from the same department as the selected subject
-					if (teacher.department_id !== selectedSubject.department_id) {
+					// Only show teachers whose department_ids array includes the selected subject's department
+					if (!teacher.department_ids || !teacher.department_ids.includes(selectedSubject.department_id)) {
 						return false;
 					}
 				}
@@ -632,7 +632,7 @@
 		// (in case the current teacher is not in the new subject's department)
 		if (previousSubjectId !== subject.id && formData.teacherId) {
 			const selectedTeacher = teachers.find((t) => t.id === formData.teacherId);
-			if (selectedTeacher && selectedTeacher.department_id !== subject.department_id) {
+			if (selectedTeacher && (!selectedTeacher.department_ids || !selectedTeacher.department_ids.includes(subject.department_id))) {
 				formData.teacherId = '';
 			}
 		}

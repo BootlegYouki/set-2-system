@@ -61,18 +61,33 @@ export async function GET({ url, request }) {
     }
     
     switch (action) {
-      case 'teachers':
+      case 'teachers': {
         // Connect to MongoDB
         const db = await connectToDatabase();
         
-        // Fetch all active teachers
-        const teachers = await db.collection('users').find({
-          account_type: 'teacher',
-          $or: [
-            { status: { $exists: false } },
-            { status: 'active' }
-          ]
-        }).sort({ first_name: 1, last_name: 1 }).toArray();
+        // Fetch all active teachers with their department information using aggregation
+        const teachers = await db.collection('users').aggregate([
+          {
+            $match: {
+              account_type: 'teacher',
+              $or: [
+                { status: { $exists: false } },
+                { status: 'active' }
+              ]
+            }
+          },
+          {
+            $lookup: {
+              from: 'teacher_departments',
+              localField: '_id',
+              foreignField: 'teacher_id',
+              as: 'teacher_departments'
+            }
+          },
+          {
+            $sort: { first_name: 1, last_name: 1 }
+          }
+        ]).toArray();
         
         // Format the data to match frontend expectations
         const formattedTeachers = teachers.map(teacher => ({
@@ -85,10 +100,15 @@ export async function GET({ url, request }) {
           email: teacher.email,
           accountType: teacher.account_type,
           createdAt: teacher.created_at,
-          updatedAt: teacher.updated_at
+          updatedAt: teacher.updated_at,
+          // Include all department_ids as an array if the teacher has departments assigned
+          department_ids: teacher.teacher_departments && teacher.teacher_departments.length > 0 
+            ? teacher.teacher_departments.map(td => td.department_id?.toString()) 
+            : []
         }));
         
         return json({ success: true, data: formattedTeachers });
+      }
         
       default:
         return json({ error: 'Invalid action parameter or missing id' }, { status: 400 });
