@@ -10,6 +10,8 @@ const staticDir = join(rootDir, 'static');
 const iconSvg = join(staticDir, 'icon.svg');
 
 const sizes = [192, 512];
+// Padding percentage (0.1 = 10% padding on each side, so icon takes 80% of canvas)
+const paddingPercent = 0.12; 
 
 async function generateIcons() {
 	try {
@@ -17,13 +19,37 @@ async function generateIcons() {
 		
 		for (const size of sizes) {
 			const outputPath = join(staticDir, `pwa-${size}x${size}.png`);
-			await sharp(svgBuffer)
-				.resize(size, size, {
-					background: { r: 255, g: 255, b: 255, alpha: 1 }
+			
+			// Calculate the icon size accounting for padding
+			const iconSize = Math.floor(size * (1 - paddingPercent * 2));
+			
+			// Resize the SVG to fit within the padded area
+			const resizedIcon = await sharp(svgBuffer)
+				.resize(iconSize, iconSize, {
+					fit: 'contain',
+					background: { r: 255, g: 255, b: 255, alpha: 0 } // Transparent background
 				})
 				.png()
+				.toBuffer();
+			
+			// Create a new image with the target size and composite the icon in the center
+			await sharp({
+				create: {
+					width: size,
+					height: size,
+					channels: 4,
+					background: { r: 255, g: 255, b: 255, alpha: 1 }
+				}
+			})
+				.composite([{
+					input: resizedIcon,
+					top: Math.floor((size - iconSize) / 2),
+					left: Math.floor((size - iconSize) / 2)
+				}])
+				.png()
 				.toFile(outputPath);
-			console.log(`✓ Generated ${outputPath}`);
+			
+			console.log(`✓ Generated ${outputPath} (with ${(paddingPercent * 100).toFixed(0)}% padding)`);
 		}
 		
 		console.log('\n✅ PWA icons generated successfully!');
