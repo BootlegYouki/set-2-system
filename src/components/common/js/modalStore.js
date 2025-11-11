@@ -50,7 +50,8 @@ function createModalStore() {
         onConfirm,
         onCancel,
         onDelete: options.onDelete,
-        deleteText: options.deleteText
+        deleteText: options.deleteText,
+        variant: options.variant || 'default' // 'default' or 'danger'
       }, {
         size: options.size || 'small',
         closable: options.closable !== false

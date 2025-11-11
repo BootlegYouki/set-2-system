@@ -500,6 +500,17 @@
   font-size: 0.875rem;
 }
 
+/* Account Type Badge */
+.account-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
 /* No Results */
 .aas-no-results {
   display: flex;

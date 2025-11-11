@@ -60,14 +60,20 @@
 			type: 'item'
 		},
 		{
+			id: 'teacher-masterlist',
+			label: 'Teacher Masterlist',
+			icon: 'school',
+			type: 'item'
+		},
+		{
 			id: 'student-grades-list',
 			label: 'Student Grades List',
 			icon: 'grade',
 			type: 'item'
 		},
 		{
-			id: 'archived-students',
-			label: 'Archived Students',
+			id: 'archived-accounts',
+			label: 'Archived Accounts',
 			icon: 'archive',
 			type: 'item'
 		}

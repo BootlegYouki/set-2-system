@@ -237,16 +237,57 @@ export async function GET({ url, request }) {
       filter.account_type = type;
     }
     
-    let query = usersCollection
-      .find(filter)
-      .sort({ created_at: -1 });
+    let accounts;
     
-    // Only apply limit if explicitly provided
-    if (limit && !isNaN(parseInt(limit))) {
-      query = query.limit(parseInt(limit));
+    // For teacher accounts, use aggregation to get department info
+    if (type === 'teacher') {
+      const pipeline = [
+        { $match: filter },
+        {
+          $lookup: {
+            from: 'teacher_departments',
+            localField: '_id',
+            foreignField: 'teacher_id',
+            as: 'teacher_departments'
+          }
+        },
+        {
+          $lookup: {
+            from: 'departments',
+            localField: 'teacher_departments.department_id',
+            foreignField: '_id',
+            as: 'departments'
+          }
+        },
+        {
+          $addFields: {
+            // Get the first department name if available
+            department_name: { 
+              $arrayElemAt: ['$departments.name', 0] 
+            }
+          }
+        },
+        { $sort: { created_at: -1 } }
+      ];
+      
+      // Only apply limit if explicitly provided
+      if (limit && !isNaN(parseInt(limit))) {
+        pipeline.push({ $limit: parseInt(limit) });
+      }
+      
+      accounts = await usersCollection.aggregate(pipeline).toArray();
+    } else {
+      let query = usersCollection
+        .find(filter)
+        .sort({ created_at: -1 });
+      
+      // Only apply limit if explicitly provided
+      if (limit && !isNaN(parseInt(limit))) {
+        query = query.limit(parseInt(limit));
+      }
+      
+      accounts = await query.toArray();
     }
-    
-    const accounts = await query.toArray();
     
     // Get all sections to check for advisory assignments (for teachers)
     const sectionsCollection = db.collection('sections');
@@ -285,6 +326,7 @@ export async function GET({ url, request }) {
         age: account.age,
         guardian: account.guardian,
         contactNumber: account.contact_number,
+        department: account.department_name || null, // Add department field for teachers
         advisorySection: advisorySection ? `${advisorySection.name} (Grade ${advisorySection.grade_level})` : null,
         createdDate: new Date(account.created_at).toLocaleDateString('en-US'),
         updatedDate: new Date(account.updated_at).toLocaleDateString('en-US'),
@@ -581,7 +623,7 @@ async function generateAccountNumber(accountType) {
   return `${prefix}-${year}-${nextNumber.toString().padStart(4, '0')}`;
 }
 
-// PATCH /api/accounts - Archive a student account by ID
+// PATCH /api/accounts - Archive an account (student or teacher) by ID
 export async function PATCH({ request, getClientAddress }) {
   try {
     // Verify authentication - only admins can archive accounts
@@ -604,18 +646,18 @@ export async function PATCH({ request, getClientAddress }) {
     const db = client.db(process.env.MONGODB_DB_NAME);
     const usersCollection = db.collection('users');
     
-    // Check if account exists and is a student
+    // Check if account exists and is a student or teacher
     const account = await usersCollection.findOne({ _id: new ObjectId(id) });
     
     if (!account) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
     
-    if (account.account_type !== 'student') {
-      return json({ error: 'Only student accounts can be archived' }, { status: 400 });
+    if (account.account_type !== 'student' && account.account_type !== 'teacher') {
+      return json({ error: 'Only student and teacher accounts can be archived' }, { status: 400 });
     }
     
-    // Archive the student
+    // Archive the account
     const updateResult = await usersCollection.updateOne(
       { _id: new ObjectId(id) },
       { 
@@ -631,6 +673,10 @@ export async function PATCH({ request, getClientAddress }) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
     
+    // Determine activity type based on account type
+    const activityType = account.account_type === 'student' ? 'student_archived' : 'teacher_archived';
+    const accountTypeLabel = account.account_type === 'student' ? 'Student' : 'Teacher';
+    
     // Log the account archiving activity with user information
     try {
       const user = await getUserFromRequest(request);
@@ -640,7 +686,7 @@ export async function PATCH({ request, getClientAddress }) {
       // Create activity log with proper structure
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
-        activity_type: 'student_archived',
+        activity_type: activityType,
         user_id: user?.id ? new ObjectId(user.id) : null,
         user_account_number: user?.account_number || null,
         activity_data: {
@@ -659,7 +705,7 @@ export async function PATCH({ request, getClientAddress }) {
     
     return json({
       success: true,
-      message: `Student "${account.full_name}" has been archived successfully`
+      message: `${accountTypeLabel} "${account.full_name}" has been archived successfully`
     });
     
   } catch (error) {

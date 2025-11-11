@@ -202,6 +202,9 @@
 			},
 			() => {
 				// User cancelled - do nothing
+			},
+			{
+				variant: 'danger'
 			}
 		);
 	}

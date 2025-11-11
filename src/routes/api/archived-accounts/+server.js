@@ -3,7 +3,7 @@ import { connectToDatabase } from '../../database/db.js';
 import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
-// GET /api/archived-students - Fetch archived students
+// GET /api/archived-students - Fetch archived accounts (students and teachers)
 export async function GET({ url, request }) {
   try {
     // Authenticate user first
@@ -21,16 +21,22 @@ export async function GET({ url, request }) {
     const search = url.searchParams.get('search') || '';
     const gradeLevel = url.searchParams.get('gradeLevel') || '';
     const gender = url.searchParams.get('gender') || '';
+    const accountType = url.searchParams.get('type') || ''; // Filter by account type
     
     // Connect to MongoDB
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
     
-    // Build MongoDB query for archived students
+    // Build MongoDB query for archived accounts (both students and teachers)
     const query = {
-      account_type: 'student',
+      account_type: { $in: ['student', 'teacher'] },
       status: 'archived'
     };
+    
+    // Add account type filter if specified
+    if (accountType && (accountType === 'student' || accountType === 'teacher')) {
+      query.account_type = accountType;
+    }
     
     // Add search filter
     if (search) {
@@ -62,34 +68,62 @@ export async function GET({ url, request }) {
       queryBuilder = queryBuilder.limit(parseInt(limit));
     }
     
-    const archivedStudents = await queryBuilder.toArray();
+    const archivedAccounts = await queryBuilder.toArray();
+    
+    // For teachers, we need to get department information
+    const accountsWithDepartments = await Promise.all(
+      archivedAccounts.map(async (account) => {
+        if (account.account_type === 'teacher') {
+          // Get department info for teachers
+          const teacherDepartmentsCollection = db.collection('teacher_departments');
+          const departmentsCollection = db.collection('departments');
+          
+          const teacherDept = await teacherDepartmentsCollection.findOne({
+            teacher_id: account._id
+          });
+          
+          let departmentName = null;
+          if (teacherDept) {
+            const department = await departmentsCollection.findOne({
+              _id: teacherDept.department_id
+            });
+            departmentName = department ? department.name : null;
+          }
+          
+          return { ...account, department_name: departmentName };
+        }
+        return account;
+      })
+    );
     
     // Format the data to match frontend expectations
-    const formattedStudents = archivedStudents.map(student => ({
-      id: student._id.toString(),
-      name: student.full_name,
-      firstName: student.first_name,
-      lastName: student.last_name,
-      middleInitial: student.middle_initial,
-      email: student.email,
-      number: student.account_number,
-      gradeLevel: student.grade_level,
-      birthdate: student.birthdate,
-      address: student.address,
-      age: student.age,
-      guardian: student.guardian,
-      contactNumber: student.contact_number,
-      gender: student.gender,
-      archivedDate: student.archived_at ? new Date(student.archived_at).toLocaleDateString('en-US') : '',
-      createdDate: new Date(student.created_at).toLocaleDateString('en-US'),
-      updatedDate: new Date(student.updated_at).toLocaleDateString('en-US'),
+    const formattedAccounts = accountsWithDepartments.map(account => ({
+      id: account._id.toString(),
+      name: account.full_name,
+      firstName: account.first_name,
+      lastName: account.last_name,
+      middleInitial: account.middle_initial,
+      email: account.email,
+      number: account.account_number,
+      accountType: account.account_type,
+      gradeLevel: account.grade_level,
+      department: account.department_name || null,
+      birthdate: account.birthdate,
+      address: account.address,
+      age: account.age,
+      guardian: account.guardian,
+      contactNumber: account.contact_number,
+      gender: account.gender,
+      archivedDate: account.archived_at ? new Date(account.archived_at).toLocaleDateString('en-US') : '',
+      createdDate: new Date(account.created_at).toLocaleDateString('en-US'),
+      updatedDate: new Date(account.updated_at).toLocaleDateString('en-US'),
       status: 'archived'
     }));
     
-    return json({ students: formattedStudents });
+    return json({ accounts: formattedAccounts });
     
   } catch (error) {
-    console.error('Error fetching archived students:', error);
+    console.error('Error fetching archived accounts:', error);
     
     // Authentication/Authorization errors
     if (error.message === 'Authentication required' || error.message === 'Admin access required') {
@@ -101,11 +135,11 @@ export async function GET({ url, request }) {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
     
-    return json({ error: 'Failed to fetch archived students' }, { status: 500 });
+    return json({ error: 'Failed to fetch archived accounts' }, { status: 500 });
   }
 }
 
-// PUT /api/archived-students - Restore a student from archive
+// PUT /api/archived-students - Restore an account (student or teacher) from archive
 export async function PUT({ request, getClientAddress }) {
   try {
     // Authenticate user first
@@ -123,28 +157,28 @@ export async function PUT({ request, getClientAddress }) {
     
     // Validate required fields
     if (!id) {
-      return json({ error: 'Student ID is required' }, { status: 400 });
+      return json({ error: 'Account ID is required' }, { status: 400 });
     }
     
     // Connect to MongoDB
     const db = await connectToDatabase();
     const usersCollection = db.collection('users');
     
-    // Check if student exists and is archived
-    const student = await usersCollection.findOne({ 
+    // Check if account exists and is archived
+    const account = await usersCollection.findOne({ 
       _id: new ObjectId(id),
-      account_type: 'student'
+      account_type: { $in: ['student', 'teacher'] }
     });
     
-    if (!student) {
-      return json({ error: 'Student not found' }, { status: 404 });
+    if (!account) {
+      return json({ error: 'Account not found' }, { status: 404 });
     }
     
-    if (student.status !== 'archived') {
-      return json({ error: 'Student is not archived' }, { status: 400 });
+    if (account.status !== 'archived') {
+      return json({ error: 'Account is not archived' }, { status: 400 });
     }
     
-    // Restore student by updating status to active and clearing archived_at
+    // Restore account by updating status to active and clearing archived_at
     const updateResult = await usersCollection.updateOne(
       { _id: new ObjectId(id) },
       { 
@@ -159,13 +193,17 @@ export async function PUT({ request, getClientAddress }) {
     );
     
     if (updateResult.matchedCount === 0) {
-      return json({ error: 'Student not found' }, { status: 404 });
+      return json({ error: 'Account not found' }, { status: 404 });
     }
     
-    // Get updated student data
-    const restoredStudent = await usersCollection.findOne({ _id: new ObjectId(id) });
+    // Get updated account data
+    const restoredAccount = await usersCollection.findOne({ _id: new ObjectId(id) });
     
-    // Log the student restoration activity
+    // Determine account type label
+    const accountTypeLabel = restoredAccount.account_type === 'student' ? 'Student' : 'Teacher';
+    const activityType = restoredAccount.account_type === 'student' ? 'student_restored' : 'teacher_restored';
+    
+    // Log the account restoration activity
     try {
       // Get client IP and user agent
       const ip_address = getClientAddress();
@@ -174,35 +212,36 @@ export async function PUT({ request, getClientAddress }) {
       // Create activity log with proper structure
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
-        activity_type: 'student_restored',
+        activity_type: activityType,
         user_id: user?.id ? new ObjectId(user.id) : null,
         user_account_number: user?.account_number || null,
         activity_data: {
-          account_type: 'student',
-          full_name: restoredStudent.full_name,
-          account_number: restoredStudent.account_number
+          account_type: restoredAccount.account_type,
+          full_name: restoredAccount.full_name,
+          account_number: restoredAccount.account_number
         },
         ip_address: ip_address,
         user_agent: user_agent,
         created_at: new Date()
       });
     } catch (logError) {
-      console.error('Error logging student restoration activity:', logError);
+      console.error('Error logging account restoration activity:', logError);
       // Don't fail the restoration if logging fails
     }
     
     return json({ 
       success: true, 
-      message: `Student ${restoredStudent.full_name} (${restoredStudent.account_number}) has been restored from archive`,
-      student: {
-        id: restoredStudent._id.toString(),
-        name: restoredStudent.full_name,
-        number: restoredStudent.account_number
+      message: `${accountTypeLabel} ${restoredAccount.full_name} (${restoredAccount.account_number}) has been restored from archive`,
+      account: {
+        id: restoredAccount._id.toString(),
+        name: restoredAccount.full_name,
+        number: restoredAccount.account_number,
+        type: restoredAccount.account_type
       }
     });
     
   } catch (error) {
-    console.error('Error restoring student:', error);
+    console.error('Error restoring account:', error);
     
     // Authentication/Authorization errors
     if (error.message === 'Authentication required' || error.message === 'Admin access required') {
@@ -214,6 +253,6 @@ export async function PUT({ request, getClientAddress }) {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
     
-    return json({ error: 'Failed to restore student from archive' }, { status: 500 });
+    return json({ error: 'Failed to restore account from archive' }, { status: 500 });
   }
 }

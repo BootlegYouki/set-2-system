@@ -49,7 +49,7 @@
       <!-- Handle string-based component names -->
       {#if modal.component === 'ConfirmModal'}
         <div class="modal-confirm-content">
-          <div class="modal-message">{@html modal.props.message}</div>
+          <div class="modal-message" class:danger-message={modal.props.variant === 'danger'}>{@html modal.props.message}</div>
           <div class="modal-actions">
             <button 
               class="modal-btn modal-btn-secondary" 
@@ -61,7 +61,7 @@
               Cancel
             </button>
             <button 
-              class="modal-btn modal-btn-primary" 
+              class="modal-btn {modal.props.variant === 'danger' ? 'modal-btn-danger' : 'modal-btn-primary'}" 
               onclick={() => {
                 if (modal.props.onConfirm) modal.props.onConfirm();
                 handleModalClose(modal.id);
@@ -246,6 +246,12 @@
     line-height: 1.6;
     max-width: none;
     word-wrap: break-word;
+  }
+
+  /* Danger variant for modal message */
+  .danger-message {
+    font-weight: 700;
+    color: var(--md-sys-color-error);
   }
 
   /* Enhanced styling for HTML content in messages */

@@ -22,7 +22,8 @@
   import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
   import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
   import AdminStudentMasterlist from '../components/users/admin/sections/adminStudentMasterlist/adminStudentMasterlist.svelte';
-  import AdminArchivedStudents from '../components/users/admin/sections/adminArchivedStudents/adminArchivedStudents.svelte';
+  import AdminTeacherMasterlist from '../components/users/admin/sections/adminTeacherMasterlist/adminTeacherMasterlist.svelte';
+  import AdminArchivedAccounts from '../components/users/admin/sections/adminArchivedAccounts/adminArchivedAccounts.svelte';
   import AdminStudentGradesList from '../components/users/admin/sections/adminStudentGradesList/adminStudentGradesList.svelte';
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
   import AdminSubjectsAndActivities from '../components/users/admin/sections/adminSubjectsAndActivities/adminSubjectsAndActivities.svelte';
@@ -257,8 +258,10 @@
           <AdminAccountCreation />
         {:else if adminActiveSection === 'student-masterlist'}
           <AdminStudentMasterlist />
-        {:else if adminActiveSection === 'archived-students'}
-          <AdminArchivedStudents />
+        {:else if adminActiveSection === 'teacher-masterlist'}
+          <AdminTeacherMasterlist />
+        {:else if adminActiveSection === 'archived-accounts'}
+          <AdminArchivedAccounts />
         {:else if adminActiveSection === 'student-grades-list'}
           <AdminStudentGradesList />
         {:else if adminActiveSection === 'schedule-management'}

@@ -40,6 +40,7 @@
 		'rgb(255, 235, 59)', // Yellow
 		'rgb(121, 85, 72)' // Brown
 	];
+	const notAssignedColor = 'rgb(158, 158, 158)'; // Gray for "Not Assigned"
 
 	// Fetch teachers data when view changes to teachers
 	async function fetchTeachersData() {
@@ -47,13 +48,39 @@
 			teachersLoading = true;
 			teachersError = null;
 
-			const response = await api.get('/api/departments?action=departments');
+			// Fetch both departments and total teachers count
+			const [departmentsResponse, teachersResponse] = await Promise.all([
+				api.get('/api/departments?action=departments'),
+				api.get('/api/departments?action=teachers')
+			]);
 
-			if (response.success) {
+			if (departmentsResponse.success && teachersResponse.success) {
 				// Filter out departments with no teachers
-				teachersData = response.data.filter((dept) => dept.teacher_count > 0);
+				const departmentsWithTeachers = departmentsResponse.data.filter((dept) => dept.teacher_count > 0);
+				
+				// Calculate total assigned teachers
+				const totalAssignedTeachers = departmentsResponse.data.reduce(
+					(sum, dept) => sum + (dept.teacher_count || 0),
+					0
+				);
+				
+				// Calculate unassigned teachers
+				const totalTeachers = teachersResponse.data.length;
+				const unassignedTeachers = totalTeachers - totalAssignedTeachers;
+				
+				// Build final data array
+				teachersData = [...departmentsWithTeachers];
+				
+				// Add "Not Assigned" category if there are unassigned teachers
+				if (unassignedTeachers > 0) {
+					teachersData.push({
+						name: 'Not Assigned',
+						teacher_count: unassignedTeachers,
+						isNotAssigned: true
+					});
+				}
 			} else {
-				throw new Error(response.error || 'Failed to fetch teachers data');
+				throw new Error(departmentsResponse.error || teachersResponse.error || 'Failed to fetch teachers data');
 			}
 		} catch (error) {
 			console.error('Error fetching teachers data:', error);
@@ -195,7 +222,9 @@
 		// Transform data into chart format
 		const labels = data.map((dept) => dept.name.replace(' Department', ''));
 		const counts = data.map((dept) => dept.teacher_count);
-		const colors = data.map((_, index) => departmentColors[index % departmentColors.length]);
+		const colors = data.map((dept, index) => 
+			dept.isNotAssigned ? notAssignedColor : departmentColors[index % departmentColors.length]
+		);
 
 		const ctx = chartCanvas.getContext('2d');
 		chartInstance = new Chart(ctx, {
@@ -344,7 +373,7 @@
 			? gradeLevels.map((grade, index) => ({ label: `Grade ${grade}`, color: gradeColors[index] }))
 			: teachersData.map((dept, index) => ({
 					label: dept.name.replace(' Department', ''),
-					color: departmentColors[index % departmentColors.length]
+					color: dept.isNotAssigned ? notAssignedColor : departmentColors[index % departmentColors.length]
 				}))
 	);
 </script>
