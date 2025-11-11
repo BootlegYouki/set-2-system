@@ -38,7 +38,7 @@ async function generateIcons() {
 					width: size,
 					height: size,
 					channels: 4,
-					background: { r: 255, g: 255, b: 255, alpha: 1 }
+					background: { r: 255, g: 255, b: 255, alpha: 0 }
 				}
 			})
 				.composite([{
