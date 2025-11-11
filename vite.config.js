@@ -20,7 +20,7 @@ export default defineConfig({
 				name: 'SET-2 System',
 				short_name: 'SET-2',
 				description: 'Student Enrollment and Tracking System',
-				theme_color: '#1565c0',
+				theme_color: '#FFFFFF',
 				background_color: '#ffffff',
 				display: 'standalone',
 				display_override: ['window-controls-overlay', 'standalone'],

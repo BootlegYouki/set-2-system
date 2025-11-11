@@ -109,10 +109,25 @@
 		if (isDarkMode) {
 			document.documentElement.setAttribute('data-theme', 'dark');
 			localStorage.setItem('theme', 'dark');
+			// Update theme-color for PWA
+			updateThemeColor('#121212');
 		} else {
 			document.documentElement.setAttribute('data-theme', 'light');
 			localStorage.setItem('theme', 'light');
+			// Update theme-color for PWA
+			updateThemeColor('#FFFFFF');
 		}
+	}
+
+	// Update theme-color meta tag for PWA
+	function updateThemeColor(color) {
+		let metaThemeColor = document.querySelector('meta[name="theme-color"]:not([media])');
+		if (!metaThemeColor) {
+			metaThemeColor = document.createElement('meta');
+			metaThemeColor.setAttribute('name', 'theme-color');
+			document.head.appendChild(metaThemeColor);
+		}
+		metaThemeColor.setAttribute('content', color);
 	}
 
 	// Get initials for avatar

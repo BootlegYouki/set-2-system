@@ -5,11 +5,13 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
 		
 		<!-- PWA Meta Tags -->
-		<meta name="theme-color" content="#1565c0" />
+		<!-- Dynamic theme color based on light/dark mode -->
+		<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
 		<meta name="description" content="Student Enrollment and Tracking System" />
 		<meta name="mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<meta name="apple-mobile-web-app-title" content="SET-2 System" />
 		<link rel="apple-touch-icon" href="/pwa-192x192.png" />
 		<link rel="manifest" href="/manifest.json" />
@@ -180,9 +182,23 @@
 					// Default to light mode if no saved preference
 					const theme = savedTheme === 'dark' ? 'dark' : 'light';
 					document.documentElement.setAttribute('data-theme', theme);
+					
+					// Update theme-color meta tag dynamically
+					const themeColor = theme === 'dark' ? '#121212' : '#FFFFFF';
+					let metaThemeColor = document.querySelector('meta[name="theme-color"]:not([media])');
+					if (!metaThemeColor) {
+						metaThemeColor = document.createElement('meta');
+						metaThemeColor.setAttribute('name', 'theme-color');
+						document.head.appendChild(metaThemeColor);
+					}
+					metaThemeColor.setAttribute('content', themeColor);
 				} catch (e) {
 					// Fallback to light mode if localStorage is not available
 					document.documentElement.setAttribute('data-theme', 'light');
+					const metaThemeColor = document.querySelector('meta[name="theme-color"]:not([media])');
+					if (metaThemeColor) {
+						metaThemeColor.setAttribute('content', '#FFFFFF');
+					}
 				}
 			})();
 			
