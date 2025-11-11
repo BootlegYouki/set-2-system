@@ -763,7 +763,7 @@
 	transform: rotate(180deg);
 }
 
-.dropdown-menu {
+.room-dropdown-menu {
 	position: absolute;
 	top: 110%;
 	left: 0;
@@ -773,7 +773,7 @@
 	border-radius: var(--radius-md);
 	box-shadow: var(--shadow-lg);
 	z-index: 1000;
-	max-height: 200px;
+	max-height: 300px;
 	overflow-y: auto;
 	opacity: 0;
 	visibility: hidden;
@@ -781,10 +781,76 @@
 	transition: all var(--transition-normal);
 }
 
-.custom-dropdown.open .dropdown-menu {
+.custom-dropdown.open .room-dropdown-menu {
 	opacity: 1;
 	visibility: visible;
 	transform: translateY(0);
+}
+
+/* Search Container in Dropdown */
+.dropdown-search-container {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	background-color: var(--md-sys-color-surface-container);
+	padding: var(--spacing-sm);
+	border-bottom: 1px solid var(--md-sys-color-outline-variant);
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+}
+
+.dropdown-search-input {
+	width: 100%;
+	padding: var(--spacing-sm) var(--spacing-md);
+	padding-left: 32px;
+	border: 1px solid var(--md-sys-color-outline);
+	border-radius: var(--radius-sm);
+	background-color: var(--md-sys-color-surface);
+	color: var(--md-sys-color-on-surface);
+	font-size: var(--md-sys-typescale-body-small-size);
+	transition: all var(--transition-normal);
+	box-sizing: border-box;
+	position: relative;
+}
+
+.dropdown-search-input:focus {
+	outline: none;
+	border-color: var(--md-sys-color-primary);
+	box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.dropdown-search-input::placeholder {
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.dropdown-search-icon {
+	position: absolute;
+	left: var(--spacing-xs);
+	font-size: 16px;
+	color: var(--md-sys-color-on-surface-variant);
+	pointer-events: none;
+	padding: var(--spacing-md);
+}
+
+/* Dropdown Empty State */
+.dropdown-empty-state {
+	text-align: center;
+	padding: var(--spacing-xl) var(--spacing-md);
+	color: var(--md-sys-color-on-surface-variant);
+}
+
+.dropdown-empty-state .empty-icon {
+	display: block;
+	font-size: 32px;
+	margin-bottom: var(--spacing-sm);
+}
+
+.dropdown-empty-state .empty-text {
+	display: block;
+	font-family: var(--md-sys-typescale-body-small-font);
+	font-size: var(--md-sys-typescale-body-small-size);
+	color: var(--md-sys-color-on-surface-variant);
 }
 
 .dropdown-option {

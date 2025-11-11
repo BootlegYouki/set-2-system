@@ -35,6 +35,7 @@
 	let assignSelectedSection = '';
 	let isAssigningInline = false;
 	let isAssignSectionDropdownOpen = false;
+	let assignSectionSearchTerm = '';
 
 	// Load rooms data from API
 	async function loadRooms(silent = false) {
@@ -285,6 +286,7 @@
 	function selectAssignSection(section) {
 		assignSelectedSection = section.id || section._id?.toString();
 		isAssignSectionDropdownOpen = false;
+		assignSectionSearchTerm = ''; // Clear search term
 	}
 
 	async function handleInlineAssignRoom() {
@@ -329,6 +331,14 @@
 			room.name.toLowerCase().includes(roomsSearchTerm.toLowerCase()) ||
 			room.building.toLowerCase().includes(roomsSearchTerm.toLowerCase()) ||
 			room.floor.toLowerCase().includes(roomsSearchTerm.toLowerCase());
+
+		return matchesSearchTerm;
+	});
+
+	$: filteredAvailableSections = availableSections.filter((section) => {
+		const matchesSearchTerm =
+			section.name.toLowerCase().includes(assignSectionSearchTerm.toLowerCase()) ||
+			(`Grade ${section.grade_level}`).toLowerCase().includes(assignSectionSearchTerm.toLowerCase());
 
 		return matchesSearchTerm;
 	});
@@ -697,24 +707,43 @@
 														<span class="material-symbols-outlined dropdown-arrow">expand_more</span
 														>
 													</button>
-													<div class="dropdown-menu">
-														{#each availableSections as section (section.id || section._id)}
-															<button
-																type="button"
-																class="dropdown-option"
-																class:selected={assignSelectedSection ===
-																	(section.id || section._id?.toString())}
-																on:click|stopPropagation={() => selectAssignSection(section)}
-															>
-																<span class="material-symbols-outlined option-icon">group</span>
-																<div class="option-content">
-																	<span class="option-name">{section.name}</span>
-																	<span class="option-description"
-																		>Grade {section.grade_level} Section</span
-																	>
-																</div>
-															</button>
-														{/each}
+													<div class="room-dropdown-menu">
+														<!-- Search Container -->
+														<div class="dropdown-search-container">
+															<input
+																type="text"
+																class="dropdown-search-input"
+																placeholder="Search sections..."
+																bind:value={assignSectionSearchTerm}
+															/>
+															<span class="material-icons dropdown-search-icon">search</span>
+														</div>
+														{#if filteredAvailableSections.length > 0}
+															{#each filteredAvailableSections as section (section.id || section._id)}
+																<button
+																	type="button"
+																	class="dropdown-option"
+																	class:selected={assignSelectedSection ===
+																		(section.id || section._id?.toString())}
+																	on:click|stopPropagation={() => selectAssignSection(section)}
+																>
+																	<span class="material-symbols-outlined option-icon">group</span>
+																	<div class="option-content">
+																		<span class="option-name">{section.name}</span>
+																		<span class="option-description"
+																			>Grade {section.grade_level} Section</span
+																		>
+																	</div>
+																</button>
+															{/each}
+														{:else}
+															<div class="dropdown-empty-state">
+																<span class="material-symbols-outlined empty-icon">inbox</span>
+																<span class="empty-text">
+																	{assignSectionSearchTerm ? 'No sections found' : 'No sections available'}
+																</span>
+															</div>
+														{/if}
 													</div>
 												</div>
 											</div>
