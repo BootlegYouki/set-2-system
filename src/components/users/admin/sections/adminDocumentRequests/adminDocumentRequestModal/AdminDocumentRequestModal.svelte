@@ -558,12 +558,12 @@
 					<h2>Request Details</h2>
 					<div class="docreq-modal-sub">ID: <span>{selectedRequest.requestId}</span></div>
 				</div>
-				<!-- {#if selectedRequest.status === 'for_pickup'}
+				{#if selectedRequest.status === 'for_pickup'}
 					<button class="generate-receipt-btn" onclick={generateReceipt} title="Generate Receipt">
 						<span class="material-symbols-outlined">receipt</span>
 						<span>Generate Receipt</span>
 					</button>
-				{/if} -->
+				{/if}
 			</div>
 		</header>
 
