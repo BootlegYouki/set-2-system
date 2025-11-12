@@ -110,15 +110,6 @@
 	<div class="navbar-container">
 		<!-- Left section - Hamburger menu and Logo/Title -->
 		<div class="navbar-left">
-			<!-- Hamburger menu button (desktop only) -->
-			<button
-				class="icon-button hamburger-menu"
-				onclick={onToggleNavRail}
-				aria-label="Toggle navigation menu"
-			>
-				<span class="material-symbols-outlined">menu</span>
-			</button>
-
 			<div class="logo-section">
 				<span class="material-symbols-outlined logo-icon">admin_panel_settings</span>
 				<span class="app-title">Welcome, {displayName}</span>

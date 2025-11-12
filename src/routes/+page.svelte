@@ -44,7 +44,7 @@
   });
 
   // Current active section for student portal
-  let activeSection = $state('grades');
+  let activeSection = $state('documents');
   
   // Request ID to open in document modal (when navigating from notification)
   let documentRequestIdToOpen = $state(null);
@@ -53,7 +53,7 @@
   let teacherActiveSection = $state('students');
   
   // Current active section for admin portal
-  let adminActiveSection = $state('dashboard');
+  let adminActiveSection = $state('document-requests');
 
   // Navigation rail visibility state (false = collapsed/icons only, true = expanded/with labels)
   let isNavRailVisible = $state(false);
@@ -142,9 +142,9 @@
   // Handle logout
   async function handleLogout() {
     await authStore.logout();
-    activeSection = 'grades'; // Reset to default section
+    activeSection = 'documents'; // Reset to default section
     teacherActiveSection = 'students'; // Reset teacher section
-    adminActiveSection = 'dashboard'; // Reset admin section
+    adminActiveSection = 'document-requests'; // Reset admin section
   }
 
   // Reactive title based on auth state
@@ -201,8 +201,6 @@
           <StudentTodoList />
         {/if}
       </main>
-
-      <StudentMenu {activeSection} {isNavRailVisible} onnavigate={handleNavigation} />
     </div>
   {:else if authState.userType === 'teacher'}
     <!-- Teacher Portal -->
@@ -252,32 +250,8 @@
       />
       
       <main class="content-area">
-        {#if adminActiveSection === 'dashboard'}
-          <AdminDashboard />
-        {:else if adminActiveSection === 'account-creation'}
-          <AdminAccountCreation />
-        {:else if adminActiveSection === 'student-masterlist'}
-          <AdminStudentMasterlist />
-        {:else if adminActiveSection === 'teacher-masterlist'}
-          <AdminTeacherMasterlist />
-        {:else if adminActiveSection === 'archived-accounts'}
-          <AdminArchivedAccounts />
-        {:else if adminActiveSection === 'student-grades-list'}
-          <AdminStudentGradesList />
-        {:else if adminActiveSection === 'schedule-management'}
-          <AdminScheduleManagement />
-        {:else if adminActiveSection === 'department-management'}
-          <AdminDepartmentManagement />
-        {:else if adminActiveSection === 'subjects-and-activities'}
-          <AdminSubjectsAndActivities />
-        {:else if adminActiveSection === 'document-requests'}
-          <AdminDocumentRequests />
-        {:else if adminActiveSection === 'settings'}
-          <AdminSettings />
-        {/if}
+        <AdminDocumentRequests />
       </main>
-
-      <AdminMenu {adminActiveSection} {adminNavRailVisible} onnavigate={handleAdminNavigation} />
     </div>
   {/if}
 </div>

@@ -145,19 +145,14 @@
 	<div class="navbar-container">
 		<!-- Left section - Hamburger menu and Logo/Title -->
 		<div class="navbar-left">
-			<!-- Hamburger menu button (desktop only) -->
 			<button 
-				class="icon-button hamburger-menu" 
-				onclick={onToggleNavRail}
-				aria-label="Toggle navigation menu"
+				class="logo-section" 
+				onclick={() => onnavigate('documents')}
+				aria-label="Go to document requests"
 			>
-				<span class="material-symbols-outlined">menu</span>
-			</button>
-			
-			<div class="logo-section">
 				<span class="material-symbols-outlined logo-icon">school</span>
 				<span class="app-title">Welcome, {displayName}</span>
-			</div>
+			</button>
 		</div>
 
 		<!-- Right section - User info and controls -->

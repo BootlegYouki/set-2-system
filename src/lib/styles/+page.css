@@ -37,7 +37,6 @@
   left: 0;
   right: 0;
   padding: 0;
-  border-top-left-radius: 20px;
   background-color: var(--md-sys-color-surface);
   transition: left 150ms cubic-bezier(.2,.9,.2,1), background-color var(--transition-normal) !important;
   overflow: visible;
@@ -99,7 +98,7 @@
   .student-portal.nav-rail-collapsed .content-area, 
   .teacher-portal.nav-rail-collapsed .content-area,
   .admin-portal.nav-rail-collapsed .content-area {
-    left: 73px;
+    left: 0;
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
 
