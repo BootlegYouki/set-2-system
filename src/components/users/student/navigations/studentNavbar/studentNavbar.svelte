@@ -204,10 +204,6 @@
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
 					<div class="user-dropdown-menu">
-						<button class="dropdown-item" onclick={() => { closeDropdown(); onnavigate('profile'); }}>
-							<span class="material-symbols-outlined">person</span>
-							Profile
-						</button>
 						<button class="dropdown-item" onclick={async () => { closeDropdown(); await onlogout(); showSuccess('Logged out successfully. See you next time!'); }}>
 							<span class="material-symbols-outlined">logout</span>
 							Logout
