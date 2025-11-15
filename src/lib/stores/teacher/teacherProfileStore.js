@@ -142,8 +142,7 @@ function createTeacherProfileStore() {
 				// Fetch teacher sections
 				try {
 					// Fetch current school year from admin settings
-					const currentQuarterResponse = await fetch('/api/current-quarter');
-					const currentQuarterData = await currentQuarterResponse.json();
+					const currentQuarterData = await api.get('/api/current-quarter');
 					const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 
 					const sectionsResponse = await api.get(`/api/teacher-sections?teacherId=${teacherIdStr}&schoolYear=${schoolYear}`);

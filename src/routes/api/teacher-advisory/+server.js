@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
+import { verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 import { createGradeVerificationNotification, createBulkGradeVerificationNotifications, formatTeacherName } from '../helper/notification-helper.js';
 
@@ -18,12 +19,24 @@ async function getCurrentSchoolYear(db) {
 
 export async function GET({ request, url }) {
     try {
+        // Verify authentication - only teachers and admins can access
+        const authResult = await verifyAuth(request, ['teacher', 'admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+
+        const user = authResult.user;
         const db = await connectToDatabase();
         
         // Get query parameters
-        const teacherId = url.searchParams.get('teacher_id');
+        const teacherId = url.searchParams.get('teacher_id') || user.id;
         const schoolYear = url.searchParams.get('school_year') || await getCurrentSchoolYear(db);
         const quarter = parseInt(url.searchParams.get('quarter')) || 1;
+
+        // Teachers can only view their own advisory section, admins can view any
+        if (user.account_type === 'teacher' && String(user.id) !== String(teacherId)) {
+            return json({ error: 'Access denied. You can only view your own advisory section.' }, { status: 403 });
+        }
 
         if (!teacherId) {
             return json({ error: 'Teacher ID is required' }, { status: 400 });

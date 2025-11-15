@@ -74,7 +74,7 @@
 			// Fallback to empty array on error
 			accounts = [];
 		} finally {
-			isLoading = true;
+			isLoading = false;
 		}
 	}
 

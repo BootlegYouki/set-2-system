@@ -38,7 +38,6 @@
 			}
 
 			const data = await api.get('/api/accounts?type=teacher');
-			console.log('Teacher data received:', data);
 			if (!data.success) {
 				throw new Error('Failed to load teachers');
 			}
@@ -56,8 +55,6 @@
 				status: account.status || 'active',
 				subjects: account.subjects || []
 			}));
-
-			console.log('Transformed teachers:', transformedTeachers);
 			teacherMasterlistStore.updateTeachers(transformedTeachers);
 		} catch (error) {
 			console.error('Error loading teachers:', error);
@@ -103,7 +100,6 @@
 
 			return matchesSearch && matchesDepartment;
 		});
-		console.log('Filtered teachers:', filteredTeachers.length, 'out of', teachers.length);
 	}
 
 	// Dropdown functions

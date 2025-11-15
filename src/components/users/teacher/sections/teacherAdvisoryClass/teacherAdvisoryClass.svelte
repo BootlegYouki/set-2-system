@@ -85,13 +85,11 @@
 	// Fetch current quarter from the database based on system date
 	async function fetchCurrentQuarter() {
 		try {
-			const response = await fetch('/api/current-quarter');
-			const result = await response.json();
+			const result = await api.get('/api/current-quarter');
 
 			if (result.success && result.data) {
 				currentQuarter = result.data.currentQuarter;
 				currentQuarterName = result.data.quarterName;
-				console.log(`Current quarter set to: ${currentQuarterName} (Quarter ${currentQuarter})`);
 			} else {
 				// Default to 1st quarter if API fails
 				currentQuarter = 1;
