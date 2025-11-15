@@ -578,54 +578,55 @@
 				<div class="admin-card-value">{selectedRequest.documentType}</div>
 			</div>
 
+			
+			<!-- Status card with dropdown -->
+			<div class="docreq-card">
+				<div class="card-label">
+					<span class="material-symbols-outlined">info</span> Status
+				</div>
+				<div class="admin-card-value">
+					<div
+						class="docreq-status-dropdown"
+						class:open={isModalStatusDropdownOpen}
+						aria-haspopup="listbox"
+						aria-expanded={isModalStatusDropdownOpen}
+					>
+						<button
+							class="docreq-status-dropdown-trigger"
+							onclick={toggleModalStatusDropdown}
+							aria-label="Change status"
+							disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
+						>
+							<span class="docreq-status-dropdown-label">{modalCurrentStatusName}</span>
+							<span class="material-symbols-outlined docreq-status-dropdown-caret">
+								{isModalStatusDropdownOpen ? 'expand_less' : 'expand_more'}
+							</span>
+						</button>
+
+						<div class="docreq-status-dropdown-menu" role="listbox" aria-label="Select status">
+							{#each modalStatuses as st (st.id)}
+								<button
+									type="button"
+									class="docreq-status-item"
+									onclick={() => selectModalStatus(st.id)}
+									role="option"
+									aria-selected={selectedRequest.status === st.id}
+								>
+									<span class="status-dot {st.id}"></span>
+									<span class="status-text">{st.name}</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<div class="docreq-card">
 				<div class="card-label">
 					<span class="material-symbols-outlined">account_circle</span> Processed By
 				</div>
 				<div class="admin-card-value">{selectedRequest.processedBy ?? '—'}</div>
 			</div>
-
-			<!-- Status card with dropdown -->
-				<div class="docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">info</span> Status
-					</div>
-					<div class="admin-card-value">
-						<div
-							class="docreq-status-dropdown"
-							class:open={isModalStatusDropdownOpen}
-							aria-haspopup="listbox"
-							aria-expanded={isModalStatusDropdownOpen}
-						>
-							<button
-								class="docreq-status-dropdown-trigger"
-								onclick={toggleModalStatusDropdown}
-								aria-label="Change status"
-								disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
-							>
-								<span class="docreq-status-dropdown-label">{modalCurrentStatusName}</span>
-								<span class="material-symbols-outlined docreq-status-dropdown-caret">
-									{isModalStatusDropdownOpen ? 'expand_less' : 'expand_more'}
-								</span>
-							</button>
-
-							<div class="docreq-status-dropdown-menu" role="listbox" aria-label="Select status">
-								{#each modalStatuses as st (st.id)}
-									<button
-										type="button"
-										class="docreq-status-item"
-										onclick={() => selectModalStatus(st.id)}
-										role="option"
-										aria-selected={selectedRequest.status === st.id}
-									>
-										<span class="status-dot {st.id}"></span>
-										<span class="status-text">{st.name}</span>
-									</button>
-								{/each}
-							</div>
-						</div>
-					</div>
-				</div>
 
 		<!-- Tentative Date card -->
 		{#if selectedRequest.tentativeDate}
@@ -640,6 +641,16 @@
 			</div>
 		</div>
 		{/if}
+
+		<!-- Quantity card -->
+		<div class="docreq-card">
+			<div class="card-label">
+				<span class="material-symbols-outlined">numbers</span> Quantity
+			</div>
+			<div class="admin-card-value">
+				{selectedRequest.quantity + ` Copies` ?? '—'} 
+			</div>
+		</div>
 
 		<!-- Payment Amount card -->
 		<div class="docreq-card">
@@ -1130,16 +1141,18 @@
 		min-width: 250px;
 	}
 
-	/* First row: 2 cards (Document Type, Processed By) */
+	/* First row: 3 cards (Document Type, Status, Processed By) */
 	.docreq-card:nth-child(1),
-	.docreq-card:nth-child(2) {
-		flex: 1 1 calc(50% - var(--spacing-md) / 2);
+	.docreq-card:nth-child(2),
+	.docreq-card:nth-child(3) {
+		flex: 1 1 calc(33.333% - var(--spacing-md) * 2 / 3);
+		min-width: 200px;
 	}
 
-	/* Second row: 3 cards (Status, Tentative Date if shown, Payment Amount) */
-	.docreq-card:nth-child(3),
+	/* Second row: Tentative Date (when shown), Quantity, and Payment Amount - 3 cards */
 	.docreq-card:nth-child(4),
-	.docreq-card:nth-child(5) {
+	.docreq-card:nth-child(5),
+	.docreq-card:nth-child(6) {
 		flex: 1 1 calc(33.333% - var(--spacing-md) * 2 / 3);
 		min-width: 200px;
 	}

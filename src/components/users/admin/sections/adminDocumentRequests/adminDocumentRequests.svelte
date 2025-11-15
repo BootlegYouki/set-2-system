@@ -32,7 +32,7 @@
 	];
 
 	const documentTypes = [
-		{ id: 'tor', name: 'Transcript of Records (TOR)', description: 'Official academic record' },
+		{ id: 'tor', name: 'Transcript of Records', description: 'Official academic record' },
 		{ id: 'enrollment', name: 'Enrollment Certificate', description: 'Proof of enrollment' },
 		{ id: 'grade-report', name: 'Grade Report', description: 'Semester grade report' },
 		{ id: 'diploma', name: 'Diploma', description: 'Official graduation certificate' },

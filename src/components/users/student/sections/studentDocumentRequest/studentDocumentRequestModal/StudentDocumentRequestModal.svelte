@@ -413,26 +413,33 @@
 					</button>
 				</div>
 
-		<!-- Second Row: Document Type and Processed By -->
-		<div class="student-docreq-card half-width">
+		<!-- Second Row: Document Type, Quantity, and Processed By -->
+		<div class="student-docreq-card third-row">
 			<div class="card-label">
 				<span class="material-symbols-outlined">description</span> Document Type
 			</div>
 			<div class="card-value">{selectedRequest.type}</div>
 		</div>
 
-		<div class="student-docreq-card half-width">
+		<div class="student-docreq-card third-row">
+			<div class="card-label">
+				<span class="material-symbols-outlined">numbers</span> Quantity
+			</div>
+			<div class="card-value">{selectedRequest.quantity || 1} {(selectedRequest.quantity || 1) === 1 ? 'copy' : 'copies'}</div>
+		</div>
+
+		<div class="student-docreq-card third-row">
 			<div class="card-label">
 				<span class="material-symbols-outlined">account_circle</span> Processed By
 			</div>
 			<div class="card-value">{selectedRequest.processedBy ?? '—'}</div>
 		</div>
 
-	<!-- Third Row: Payment, Requested Date, and Cancelled/Tentative Date -->
+	<!-- Third Row: Payment and Dates -->
 	{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
 	<div class="student-docreq-card third-row">
 		<div class="card-label">
-			<span class="material-symbols-outlined">payments</span> Payment
+			<span class="material-symbols-outlined">payments</span> Total Payment
 		</div>
 		<div class="card-value payment-value">
 			{#if selectedRequest.paymentAmount === 0}
@@ -447,11 +454,11 @@
 					aria-label="View payment instructions"
 					role="button"
 				>
-					₱{selectedRequest.paymentAmount} (Pending)
+					₱{(selectedRequest.paymentAmount || 0).toFixed(2)} (Pending)
 				</a>
 			{:else}
 				<span class="payment-amount paid">
-					₱{selectedRequest.paymentAmount} (Paid)
+					₱{(selectedRequest.paymentAmount || 0).toFixed(2)} (Paid)
 				</span>
 			{/if}
 		</div>
@@ -1314,17 +1321,17 @@
 		padding: var(--spacing-md);
 		border: 1px solid var(--md-sys-color-outline-variant);
 		overflow-y: auto;
-		margin-bottom: var(--spacing-sm);
-		max-height: 510px;
+		max-height: 530px;
 		min-height: 330px;
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xs);
+		justify-content: end;
 	}
 
 	/* Reduce chat messages height when files are selected */
 	.chat-container:has(.selected-files-preview) .student-chat-messages {
-		max-height: 460px;
+		max-height: 480px;
 	}
 
 	.no-chat {
@@ -1936,6 +1943,7 @@
 		.student-docreq-modal-left-container,
 		.student-docreq-modal-right-container {
 			padding: var(--spacing-md);
+			gap: var(--spacing-sm);
 			overflow-y: auto;
 			max-height: 80vh;
 		}
@@ -2127,6 +2135,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xs);
+		margin-top: auto;
+		flex-shrink: 0;
 	}
 
 	.selected-files-preview {
@@ -2708,6 +2718,21 @@
 	}
 
 	@media (max-width: 768px) {
+		.student-chat-messages{
+			margin-bottom: var(--spacing-md);
+			min-height: 460px;
+		}
+
+		.card-value, .payment-amount{
+			font-size: 13px;
+		}
+
+		.student-docreq-purpose {
+			margin: 0;
+		}
+		.student-docreq-cards{
+			gap: var(--spacing-sm);
+		}
 		.payment-instructions-backdrop {
 			padding: var(--spacing-md);
 		}
@@ -2719,7 +2744,7 @@
 		.payment-instructions-header,
 		.payment-instructions-body,
 		.payment-instructions-footer {
-			padding: var(--spacing-md);
+			padding: var(--spacing-xs);
 		}
 
 		.payment-instructions-got-it-btn {

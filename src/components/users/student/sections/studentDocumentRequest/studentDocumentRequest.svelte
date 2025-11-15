@@ -14,11 +14,23 @@
 	// Document request state
 	let isRequestFormOpen = $state(false);
 	let selectedDocumentType = $state('');
+	let selectedQuantity = $state(1);
 	let requestPurpose = $state('');
 	let isSubmitting = $state(false);
 	
 	// Custom dropdown state
 	let isDropdownOpen = $state(false);
+	let isQuantityDropdownOpen = $state(false);
+
+	// Quantity options (1-3)
+	const quantityOptions = Array.from({ length: 3 }, (_, i) => i + 1);
+
+	// Calculate total price
+	let totalPrice = $derived.by(() => {
+		if (!selectedDocumentType) return 0;
+		const docType = documentTypes.find(d => d.id === selectedDocumentType);
+		return docType ? docType.price * selectedQuantity : 0;
+	});
 
 	// Polling state
 	let pollingInterval;
@@ -35,6 +47,9 @@
 		if (!event.target.closest('.custom-dropdown')) {
 			isDropdownOpen = false;
 		}
+		if (!event.target.closest('.quantity-dropdown')) {
+			isQuantityDropdownOpen = false;
+		}
 	}
 
 	// Toggle dropdown
@@ -48,9 +63,20 @@
 		isDropdownOpen = false;
 	}
 
+	// Toggle quantity dropdown
+	function toggleQuantityDropdown() {
+		isQuantityDropdownOpen = !isQuantityDropdownOpen;
+	}
+
+	// Select quantity and close dropdown
+	function selectQuantity(quantity) {
+		selectedQuantity = quantity;
+		isQuantityDropdownOpen = false;
+	}
+
 	// Document types - aligned with admin system
 	const documentTypes = [
-		{ id: 'Transcript of Records (TOR)', name: 'Transcript of Records (TOR)', description: 'Official academic record', price: 300.00 },
+		{ id: 'Transcript of Records', name: 'Transcript of Records', description: 'Official academic record', price: 300.00 },
 		{ id: 'Enrollment Certificate', name: 'Enrollment Certificate', description: 'Proof of enrollment', price: 150.00 },
 		{ id: 'Grade Report', name: 'Grade Report', description: 'Semester grade report', price: 50.00 },
 		{ id: 'Diploma', name: 'Diploma', description: 'Official graduation certificate', price: 800.00 },
@@ -145,7 +171,8 @@
 
 			const result = await studentDocumentRequestStore.submitRequest(
 				docTypeName || selectedDocumentType,
-				requestPurpose
+				requestPurpose,
+				selectedQuantity
 			);
 
 			if (result.success) {
@@ -194,8 +221,10 @@
 		if (!isRequestFormOpen) {
 			// Reset form when closing
 			selectedDocumentType = '';
+			selectedQuantity = 1;
 			requestPurpose = '';
 			isDropdownOpen = false;
+			isQuantityDropdownOpen = false;
 		} else {
 			// Scroll to form when opening
 			setTimeout(() => {
@@ -319,47 +348,89 @@
 				</div>
 				
 				<div class="form-content">
-					<div class="form-group">
-						<label class="form-label" for="document-type-dropdown">
-							<span class="material-symbols-outlined form-icon">description</span>
-							Document Type
-						</label>
-						
-						<!-- Custom Dropdown -->
-						<div class="custom-dropdown">
-							<button id="document-type-dropdown" class="dropdown-toggle" onclick={toggleDropdown}>
-								<span>
-									{#if selectedDocumentType}
-										{documentTypes.find(d => d.id === selectedDocumentType)?.name || 'Select Document Type'}
-									{:else}
-										Choose the document you need
-									{/if}
-								</span>
-								<span class="material-symbols-outlined dropdown-icon {isDropdownOpen ? 'open' : ''}">
-									expand_more
-								</span>
-							</button>
+					<div class="student-form-row">
+						<div class="student form-group">
+							<label class="form-label" for="document-type-dropdown">
+								<span class="material-symbols-outlined form-icon">description</span>
+								Document Type
+							</label>
 							
-							{#if isDropdownOpen}
-								<div class="dropdown-menu-document">
-									{#each documentTypes as docType}
-										<button 
-											class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''}"
-											onclick={() => selectDocumentType(docType)}
-										>
-											<div class="doc-dropdown-item-content">
-												<div class="doc-dropdown-item-main">
-													<span class="doc-dropdown-item-name">{docType.name}</span>
-													<span class="doc-dropdown-item-desc">{docType.description}</span>
+							<!-- Custom Dropdown -->
+							<div class="custom-dropdown">
+								<button id="document-type-dropdown" class="dropdown-toggle" onclick={toggleDropdown}>
+									<span>
+										{#if selectedDocumentType}
+											{documentTypes.find(d => d.id === selectedDocumentType)?.name || 'Select Document Type'}
+										{:else}
+											Choose the document you need
+										{/if}
+									</span>
+									<span class="material-symbols-outlined dropdown-icon {isDropdownOpen ? 'open' : ''}">
+										expand_more
+									</span>
+								</button>
+								
+								{#if isDropdownOpen}
+									<div class="dropdown-menu-document">
+										{#each documentTypes as docType}
+											<button 
+												class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''}"
+												onclick={() => selectDocumentType(docType)}
+											>
+												<div class="doc-dropdown-item-content">
+													<div class="doc-dropdown-item-main">
+														<span class="doc-dropdown-item-name">{docType.name}</span>
+														<span class="doc-dropdown-item-desc">{docType.description}</span>
+													</div>
+													<span class="doc-dropdown-item-price">₱{docType.price.toFixed(2)}</span>
 												</div>
-												<span class="doc-dropdown-item-price">₱{docType.price.toFixed(2)}</span>
-											</div>
-										</button>
-									{/each}
-								</div>
-							{/if}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						</div>
+
+						<!-- Quantity Dropdown -->
+						<div class="form-group">
+							<label class="form-label" for="quantity-dropdown">
+								<span class="material-symbols-outlined form-icon">numbers</span>
+								Quantity
+							</label>
+							
+							<div class="quantity-dropdown">
+								<button id="quantity-dropdown" class="dropdown-toggle quantity-toggle" onclick={toggleQuantityDropdown}>
+									<span>{selectedQuantity} {selectedQuantity === 1 ? 'copy' : 'copies'}</span>
+									<span class="material-symbols-outlined dropdown-icon {isQuantityDropdownOpen ? 'open' : ''}">
+										expand_more
+									</span>
+								</button>
+								
+								{#if isQuantityDropdownOpen}
+									<div class="dropdown-menu-quantity">
+										{#each quantityOptions as qty}
+											<button 
+												class="quantity-dropdown-item {qty === selectedQuantity ? 'selected' : ''}"
+												onclick={() => selectQuantity(qty)}
+											>
+												{qty} {qty === 1 ? 'copy' : 'copies'}
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
 						</div>
 					</div>
+					
+				{#if selectedDocumentType}
+					<div class="total-price-section">
+						<div class="total-price-label">
+							<span class="material-symbols-outlined">payments</span>
+							Total Amount
+						</div>
+						<div class="total-price-amount">₱{(totalPrice || 0).toFixed(2)}</div>
+					</div>
+				{/if}
 					
 				<div class="form-group">
 					<label class="form-label" for="description">

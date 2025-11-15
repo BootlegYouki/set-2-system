@@ -311,10 +311,45 @@
   gap: var(--spacing-lg);
 }
 
-.form-row {
+.student-form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 3fr 1fr;
   gap: var(--spacing-md);
+}
+
+/* Total Price Section */
+.total-price-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, var(--md-sys-color-surface));
+  border: 2px solid var(--md-sys-color-primary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-md);
+  animation: slideDown 0.3s cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+.total-price-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--md-sys-typescale-title-medium-font);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: var(--md-sys-typescale-title-medium-weight);
+  color: var(--md-sys-color-on-surface);
+}
+
+.total-price-label .material-symbols-outlined {
+  font-size: 24px;
+  color: var(--md-sys-color-primary);
+}
+
+.total-price-amount {
+  font-family: var(--md-sys-typescale-headline-medium-font);
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  font-weight: var(--md-sys-typescale-headline-medium-weight);
+  color: var(--md-sys-color-primary);
 }
 
 
@@ -591,7 +626,7 @@
 }
 
 /* Enhanced Form Styles */
-.form-group {
+.student .form-group {
   margin-bottom: var(--spacing-sm);
 }
 
@@ -754,6 +789,84 @@
 }
 
 .doc-dropdown-item.selected .doc-dropdown-item-price {
+  color: var(--md-sys-color-primary);
+}
+
+/* Quantity Dropdown Styles */
+.quantity-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.quantity-toggle {
+  width: 100%;
+  background: var(--md-sys-color-surface);
+  border: 2px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.quantity-toggle:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 15%, transparent),
+              0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.quantity-toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu-quantity {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--md-sys-color-surface);
+  border: 2px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.quantity-dropdown-item {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  cursor: pointer;
+  transition: all var(--spacing-fast);
+  text-align: left;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface);
+}
+
+.quantity-dropdown-item:hover:not(.selected) {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, var(--md-sys-color-surface));
+}
+
+.quantity-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.quantity-dropdown-item.selected {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, var(--md-sys-color-surface));
   color: var(--md-sys-color-primary);
 }
 

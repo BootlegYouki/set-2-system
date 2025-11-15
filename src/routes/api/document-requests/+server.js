@@ -7,7 +7,7 @@ import PDFDocument from 'pdfkit';
 
 // Document type price mapping
 const DOCUMENT_PRICES = {
-	'Transcript of Records (TOR)': 300.00,
+	'Transcript of Records': 300.00,
 	'Enrollment Certificate': 150.00,
 	'Grade Report': 50.00,
 	'Diploma': 800.00,
@@ -301,6 +301,7 @@ export async function GET({ url, request }) {
 					section: req.section,
 					studentName: req.full_name,
 					documentType: req.document_type,
+					quantity: req.quantity || 1,
 					requestId: req.request_id,
 					submittedDate: formatDate(req.submitted_date),
 					cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
@@ -335,6 +336,7 @@ export async function GET({ url, request }) {
 				id: req._id.toString(),
 				requestId: req.request_id,
 				documentType: req.document_type,
+				quantity: req.quantity || 1,
 				purpose: req.purpose,
 				status: req.status,
 				submittedDate: formatDate(req.submitted_date),
@@ -412,6 +414,7 @@ export async function GET({ url, request }) {
 					section: request.section,
 					studentName: request.full_name,
 					documentType: request.document_type,
+					quantity: request.quantity || 1,
 					requestId: request.request_id,
 					submittedDate: formatDate(request.submitted_date),
 					cancelledDate: request.cancelled_date ? formatDate(request.cancelled_date) : null,
@@ -536,6 +539,8 @@ export async function POST({ request }) {
 
 					// Get the fixed price for the document type
 					const documentPrice = getDocumentPrice(data.documentType);
+					const quantity = data.quantity || 1;
+					const totalPayment = documentPrice ? documentPrice * quantity : null;
 
 					const newRequest = {
 						student_id: student._id.toString(),
@@ -545,9 +550,10 @@ export async function POST({ request }) {
 						section: sectionName,
 						birthdate: student.birthdate,
 						document_type: data.documentType,
+						quantity: quantity,
 						request_id: requestId,
 						submitted_date: new Date(),
-						payment_amount: documentPrice,
+						payment_amount: totalPayment,
 						payment_status: 'pending',
 						status: 'on_hold',
 						tentative_date: null,
@@ -592,7 +598,7 @@ export async function POST({ request }) {
 					return json({ error: 'Permission denied' }, { status: 403 });
 				}
 
-				const { requestId, status, tentativeDate, paymentStatus } = data;
+				const { requestId, status, tentativeDate, paymentStatus, paymentAmount } = data;
 
 				if (!requestId) {
 					return json({ error: 'Request ID is required' }, { status: 400 });
