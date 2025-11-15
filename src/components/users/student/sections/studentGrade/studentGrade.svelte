@@ -453,7 +453,7 @@
 	<div class="grades-header">
 		<div class="header-content">
 			<h1 class="page-title">My Grades</h1>
-			<p class="page-subtitle">Academic Performance Overview</p>
+			<p class="page-subtitle">Performance Overview</p>
 		</div>
 		<div class="quarter-selector">
 			<div class="custom-dropdown">

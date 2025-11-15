@@ -1921,6 +1921,7 @@
   .analysis-section-header {
     gap: var(--spacing-md);
     align-items: stretch;
+    margin-bottom: var(--spacing-md);
   }
 
   .analysis-title-group {
@@ -2064,6 +2065,14 @@
   .stat-pagination-dot:hover:not(.active) {
     background-color: var(--md-sys-color-outline);
     transform: scale(1.2);
+  }
+
+  .performance-card{
+    margin-bottom: var(--spacing-md);
+  }
+
+  .ai-analysis-section{
+    margin: 0;
   }
 }
 
