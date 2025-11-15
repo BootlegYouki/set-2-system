@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import { client } from '../../database/db.js';
 import bcrypt from 'bcrypt';
 import { getUserFromRequest, logActivityWithUser, verifyAuth } from '../helper/auth-helper.js';
-import { sendAccountCreationEmail } from '../helper/email-helper.js';
+import { sendAccountCreationEmail } from '../helper/account-creation-email.js';
 import { ObjectId } from 'mongodb';
 
 // Email validation regex - standard email format validation
