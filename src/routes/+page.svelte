@@ -17,19 +17,6 @@
   import TeacherClassSelection from '../components/users/teacher/sections/teacherClassManagement/teacherClassSelection/teacherClassSelection.svelte';
   import TeacherClassList from '../components/users/teacher/sections/teacherClassManagement/teacherClassList/teacherClassList.svelte';
   import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
-  import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
-  import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
-  import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
-  import AdminAccountCreation from '../components/users/admin/sections/adminAccountCreation/adminAccountCreation.svelte';
-  import AdminStudentMasterlist from '../components/users/admin/sections/adminStudentMasterlist/adminStudentMasterlist.svelte';
-  import AdminTeacherMasterlist from '../components/users/admin/sections/adminTeacherMasterlist/adminTeacherMasterlist.svelte';
-  import AdminArchivedAccounts from '../components/users/admin/sections/adminArchivedAccounts/adminArchivedAccounts.svelte';
-  import AdminStudentGradesList from '../components/users/admin/sections/adminStudentGradesList/adminStudentGradesList.svelte';
-  import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
-  import AdminSubjectsAndActivities from '../components/users/admin/sections/adminSubjectsAndActivities/adminSubjectsAndActivities.svelte';
-  import AdminDepartmentManagement from '../components/users/admin/sections/adminDepartmentManagement/adminDepartmentManagement.svelte';
-  import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
-  import AdminSettings from '../components/users/admin/sections/adminSettings/adminSettings.svelte';
   import '../lib/styles/+page.css';
 
   // Subscribe to auth store using Svelte 5 runes
@@ -51,18 +38,12 @@
   
   // Current active section for teacher portal
   let teacherActiveSection = $state('students');
-  
-  // Current active section for admin portal
-  let adminActiveSection = $state('dashboard');
 
   // Navigation rail visibility state (false = collapsed/icons only, true = expanded/with labels)
   let isNavRailVisible = $state(false);
   
   // Teacher navigation rail visibility state
   let teacherNavRailVisible = $state(false);
-  
-  // Admin navigation rail visibility state
-  let adminNavRailVisible = $state(false);
 
   // Handle navigation from student menu
   function handleNavigation(event) {
@@ -113,16 +94,6 @@
   
   // Store selected class information
   let selectedClass = $state(null);
-  
-  // Handle navigation from admin menu
-  function handleAdminNavigation(event) {
-    adminActiveSection = event.detail.section;
-  }
-  
-  // Handle navigation to settings from admin navbar
-  function handleAdminNavigateToSettings() {
-    adminActiveSection = 'settings';
-  }
 
   // Handle navigation rail toggle
   function handleToggleNavRail() {
@@ -236,48 +207,6 @@
       </main>
 
       <TeacherMenu {teacherActiveSection} {teacherNavRailVisible} onnavigate={handleTeacherNavigation} teacherId={authState.userData?.id} />
-    </div>
-  {:else if authState.userType === 'admin'}
-    <!-- Admin Portal -->
-    <div class="admin-portal" class:nav-rail-collapsed={!adminNavRailVisible}>
-      <AdminNavbar 
-        adminName={authState.userData?.name || 'Admin'}
-        firstName={authState.userData?.firstName || 'Admin'}
-        gender={authState.userData?.gender || 'male'}
-        accountNumber={authState.userData?.accountNumber || 'N/A'}
-        profileImage={authState.userData?.profileImage}
-        onlogout={handleLogout}
-        onToggleNavRail={handleAdminToggleNavRail}
-        onNavigateToSettings={handleAdminNavigateToSettings}
-      />
-      
-      <main class="content-area">
-        {#if adminActiveSection === 'dashboard'}
-          <AdminDashboard />
-        {:else if adminActiveSection === 'account-creation'}
-          <AdminAccountCreation />
-        {:else if adminActiveSection === 'student-masterlist'}
-          <AdminStudentMasterlist />
-        {:else if adminActiveSection === 'teacher-masterlist'}
-          <AdminTeacherMasterlist />
-        {:else if adminActiveSection === 'archived-accounts'}
-          <AdminArchivedAccounts />
-        {:else if adminActiveSection === 'student-grades-list'}
-          <AdminStudentGradesList />
-        {:else if adminActiveSection === 'schedule-management'}
-          <AdminScheduleManagement />
-        {:else if adminActiveSection === 'department-management'}
-          <AdminDepartmentManagement />
-        {:else if adminActiveSection === 'subjects-and-activities'}
-          <AdminSubjectsAndActivities />
-        {:else if adminActiveSection === 'document-requests'}
-          <AdminDocumentRequests />
-        {:else if adminActiveSection === 'settings'}
-          <AdminSettings />
-        {/if}
-      </main>
-
-      <AdminMenu {adminActiveSection} {adminNavRailVisible} onnavigate={handleAdminNavigation} />
     </div>
   {/if}
 </div>

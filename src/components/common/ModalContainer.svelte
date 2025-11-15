@@ -1,7 +1,6 @@
 <script>
   import { modalStore } from './js/modalStore.js';
   import Modal from './Modal.svelte';
-  import DocumentRequestModal from '../users/admin/sections/adminDocumentRequests/adminDocumentRequestModal/AdminDocumentRequestModal.svelte';
 
   // Subscribe to modal store
   let modals = $state([]);

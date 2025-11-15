@@ -78,7 +78,7 @@ p {
   }
 }
 
-.system-loader{
+.system-loader {
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -89,19 +89,19 @@ p {
   margin: var(--spacing-md);
 }
 
-@keyframes system-load {
-	0% {
-		background-color: #FFF2;
-		box-shadow: 32px 0 #FFF2, -32px 0 #FFF;
-	}
-	50% {
-		background-color: #FFF;
-		box-shadow: 32px 0 #FFF2, -32px 0 #FFF2;
-	}
-	100% {
-		background-color: #FFF2;
-		box-shadow: 32px 0 #FFF, -32px 0 #FFF2;
-	}
+@keyframes dashboard-flash {
+  0% {
+    background-color: var(--md-sys-color-primary-container);
+    box-shadow: 32px 0 var(--md-sys-color-primary-container), -32px 0 var(--md-sys-color-primary);
+  }
+  50% {
+    background-color: var(--md-sys-color-primary);
+    box-shadow: 32px 0 var(--md-sys-color-primary-container), -32px 0 var(--md-sys-color-primary-container);
+  }
+  100% {
+    background-color: var(--md-sys-color-primary-container);
+    box-shadow: 32px 0 var(--md-sys-color-primary), -32px 0 var(--md-sys-color-primary-container);
+  }
 }
 
 
