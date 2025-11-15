@@ -48,12 +48,6 @@
 			type: 'item'
 		},
 		{
-			id: 'document-requests',
-			label: 'Document Requests',
-			icon: 'description',
-			type: 'item'
-		},
-		{
 			id: 'student-masterlist',
 			label: 'Student Masterlist',
 			icon: 'groups',

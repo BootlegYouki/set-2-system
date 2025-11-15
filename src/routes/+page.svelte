@@ -39,7 +39,7 @@
   let documentRequestIdToOpen = $state(null);
   
   // Current active section for teacher portal
-  let teacherActiveSection = $state('students');
+  let teacherActiveSection = $state('schedule');
   
   // Current active section for admin portal
   let adminActiveSection = $state('dashboard');
@@ -132,7 +132,7 @@
   async function handleLogout() {
     await authStore.logout();
     activeSection = 'schedule'; // Reset to default section
-    teacherActiveSection = 'students'; // Reset teacher section
+    teacherActiveSection = 'schedule'; // Reset teacher section
     adminActiveSection = 'dashboard'; // Reset admin section
   }
 
@@ -207,8 +207,7 @@
           <TeacherClassSelection onNavigateToClassList={handleNavigateToClassList} />
         {/if}
       </main>
-
-      <TeacherMenu {teacherActiveSection} {teacherNavRailVisible} onnavigate={handleTeacherNavigation} teacherId={authState.userData?.id} />
+      
     </div>
   {:else if authState.userType === 'admin'}
     <!-- Admin Portal -->
@@ -243,8 +242,6 @@
           <AdminDepartmentManagement />
         {:else if adminActiveSection === 'subjects-and-activities'}
           <AdminSubjectsAndActivities />
-        {:else if adminActiveSection === 'document-requests'}
-          <AdminDocumentRequests />
         {:else if adminActiveSection === 'settings'}
           <AdminSettings />
         {/if}

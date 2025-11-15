@@ -145,15 +145,6 @@
 	<div class="navbar-container">
 		<!-- Left section - Hamburger menu and Logo/Title -->
 		<div class="navbar-left">
-			<!-- Hamburger menu button (desktop only) -->
-			<button 
-				class="icon-button hamburger-menu" 
-				onclick={onToggleNavRail}
-				aria-label="Toggle navigation menu"
-			>
-				<span class="material-symbols-outlined">menu</span>
-			</button>
-			
 			<div class="logo-section">
 				<span class="material-symbols-outlined logo-icon">school</span>
 				<span class="app-title">Welcome, {displayName}</span>
@@ -209,10 +200,6 @@
 				<!-- Dropdown menu -->
 				{#if isDropdownOpen}
 					<div class="user-dropdown-menu">
-						<button class="dropdown-item" onclick={() => { closeDropdown(); onnavigate('profile'); }}>
-							<span class="material-symbols-outlined">person</span>
-							Profile
-						</button>
 						<button class="dropdown-item" onclick={async () => { closeDropdown(); await onlogout(); showSuccess('Logged out successfully. See you next time!'); }}>
 							<span class="material-symbols-outlined">logout</span>
 							Logout

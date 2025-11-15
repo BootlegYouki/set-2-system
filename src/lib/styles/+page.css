@@ -37,7 +37,6 @@
   left: 0;
   right: 0;
   padding: 0;
-  border-top-left-radius: 20px;
   background-color: var(--md-sys-color-surface);
   transition: left 150ms cubic-bezier(.2,.9,.2,1), background-color var(--transition-normal) !important;
   overflow: visible;
@@ -88,16 +87,21 @@
     background-color: var(--md-sys-color-surface-container-low);
   }
 
-  .content-area {
+  .admin-portal .content-area {
     left: 230px;
+    border-top-left-radius: 20px;
     top: 64px; /* Account for navbar height */
     bottom: 0; /* No bottom menu on desktop */
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
   }
 
+  .student-portal .content-area, 
+  .teacher-portal .content-area{
+    top: 64px; /* Account for navbar height */
+    bottom: 0; /* No bottom menu on desktop */
+  }
+
   /* Adjust content area when navigation rail is expanded */
-  .student-portal.nav-rail-collapsed .content-area, 
-  .teacher-portal.nav-rail-collapsed .content-area,
   .admin-portal.nav-rail-collapsed .content-area {
     left: 73px;
     transition: left 150ms cubic-bezier(.2,.9,.2,1);
