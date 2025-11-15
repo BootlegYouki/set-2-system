@@ -310,6 +310,7 @@ export async function GET({ url, request }) {
 						: 'Tentative',
 					paymentAmount: req.payment_amount,
 					paymentStatus: req.payment_status,
+					isFirstTime: req.is_first_time || false,
 					status: req.status,
 					tentativeDate: req.tentative_date ? formatDateForInput(req.tentative_date) : null,
 					isUrgent: req.is_urgent || false,
@@ -347,6 +348,7 @@ export async function GET({ url, request }) {
 					: 'Tentative',
 				paymentAmount: req.payment_amount,
 				paymentStatus: req.payment_status,
+				isFirstTime: req.is_first_time || false,
 				processedBy: req.processed_by,
 				isUrgent: req.is_urgent || false,
 				messages: decryptMessages(req.messages || []),
@@ -423,6 +425,7 @@ export async function GET({ url, request }) {
 						: 'Tentative',
 					paymentAmount: request.payment_amount,
 					paymentStatus: request.payment_status,
+					isFirstTime: request.is_first_time || false,
 					status: request.status,
 					tentativeDate: request.tentative_date ? formatDateForInput(request.tentative_date) : null,
 					isUrgent: request.is_urgent || false,
@@ -537,10 +540,26 @@ export async function POST({ request }) {
 						}
 					}
 
+					// Check if this is the student's first request for this document type
+					const previousRequests = await db
+						.collection('document_requests')
+						.find({
+							student_id: student._id.toString(),
+							document_type: data.documentType,
+							status: { $in: ['released', 'for_pickup', 'processing', 'verifying'] } // Only count completed or in-progress requests
+						})
+						.toArray();
+
+					const isFirstTime = previousRequests.length === 0;
+
 					// Get the fixed price for the document type
 					const documentPrice = getDocumentPrice(data.documentType);
 					const quantity = data.quantity || 1;
-					const totalPayment = documentPrice ? documentPrice * quantity : null;
+					// First-time requests: only the first copy is free, additional copies are charged
+					// Non-first-time requests: all copies are charged
+					const totalPayment = isFirstTime 
+						? (documentPrice ? documentPrice * (quantity - 1) : null) 
+						: (documentPrice ? documentPrice * quantity : null);
 
 					const newRequest = {
 						student_id: student._id.toString(),
@@ -554,7 +573,8 @@ export async function POST({ request }) {
 						request_id: requestId,
 						submitted_date: new Date(),
 						payment_amount: totalPayment,
-						payment_status: 'pending',
+						payment_status: totalPayment === 0 ? 'paid' : 'pending', // Free requests are automatically marked as paid
+						is_first_time: isFirstTime,
 						status: 'on_hold',
 						tentative_date: null,
 						is_urgent: data.isUrgent || false,
@@ -567,7 +587,11 @@ export async function POST({ request }) {
 								status: 'on_hold',
 								timestamp: new Date(),
 								changedBy: 'System',
-								note: 'Request submitted and awaiting review'
+								note: isFirstTime 
+									? (quantity === 1 
+										? 'Request submitted and awaiting review (First-time request - Free)' 
+										: `Request submitted and awaiting review (First-time request - 1st copy free, ${quantity - 1} additional ${quantity - 1 === 1 ? 'copy' : 'copies'} charged)`)
+									: 'Request submitted and awaiting review'
 							}
 						],
 						created_at: new Date(),

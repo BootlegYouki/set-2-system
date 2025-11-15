@@ -29,7 +29,19 @@
 	let totalPrice = $derived.by(() => {
 		if (!selectedDocumentType) return 0;
 		const docType = documentTypes.find(d => d.id === selectedDocumentType);
-		return docType ? docType.price * selectedQuantity : 0;
+		if (!docType) return 0;
+		
+		const isFirstTimeRequest = !isDocumentTypeRequested(selectedDocumentType);
+		
+		// First-time requests: only the first copy is free, additional copies are charged
+		// Non-first-time requests: all copies are charged
+		if (isFirstTimeRequest) {
+			// First copy is free, additional copies are charged
+			return docType.price * (selectedQuantity - 1);
+		} else {
+			// All copies are charged
+			return docType.price * selectedQuantity;
+		}
 	});
 
 	// Polling state
@@ -84,6 +96,24 @@
 		{ id: 'Good Moral', name: 'Good Moral', description: 'Certificate of good moral character', price: 300.00 },
 		{ id: 'Grade Slip', name: 'Grade Slip', description: 'Grade slip for specific period', price: 170.00 }
 	];
+
+	// Check if a document type has been requested before (not first time)
+	function isDocumentTypeRequested(documentType) {
+		if (!requestHistory || requestHistory.length === 0) return false;
+		return requestHistory.some(req => 
+			req.type === documentType && 
+			['released', 'for_pickup', 'processing', 'verifying'].includes(req.status)
+		);
+	}
+
+	// Check if a document type has an on-hold request
+	function hasOnHoldRequest(documentType) {
+		if (!requestHistory || requestHistory.length === 0) return false;
+		return requestHistory.some(req => 
+			req.type === documentType && 
+			req.status === 'on_hold'
+		);
+	}
 
 	// Handle refresh functionality
 	async function handleRefresh() {
@@ -350,7 +380,7 @@
 				<div class="form-content">
 					<div class="student-form-row">
 						<div class="student form-group">
-							<label class="form-label" for="document-type-dropdown">
+							<label class="student-form-label" for="document-type-dropdown">
 								<span class="material-symbols-outlined form-icon">description</span>
 								Document Type
 							</label>
@@ -362,7 +392,7 @@
 										{#if selectedDocumentType}
 											{documentTypes.find(d => d.id === selectedDocumentType)?.name || 'Select Document Type'}
 										{:else}
-											Choose the document you need
+											Choose the document
 										{/if}
 									</span>
 									<span class="material-symbols-outlined dropdown-icon {isDropdownOpen ? 'open' : ''}">
@@ -370,30 +400,49 @@
 									</span>
 								</button>
 								
-								{#if isDropdownOpen}
-									<div class="dropdown-menu-document">
-										{#each documentTypes as docType}
-											<button 
-												class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''}"
-												onclick={() => selectDocumentType(docType)}
-											>
-												<div class="doc-dropdown-item-content">
-													<div class="doc-dropdown-item-main">
-														<span class="doc-dropdown-item-name">{docType.name}</span>
-														<span class="doc-dropdown-item-desc">{docType.description}</span>
-													</div>
-													<span class="doc-dropdown-item-price">₱{docType.price.toFixed(2)}</span>
+							{#if isDropdownOpen}
+								<div class="dropdown-menu-document">
+									{#each documentTypes as docType}
+										{@const isOnHold = hasOnHoldRequest(docType.id)}
+										<button 
+											class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''} {isOnHold ? 'disabled' : ''}"
+											onclick={() => !isOnHold && selectDocumentType(docType)}
+											disabled={isOnHold}
+										>
+											<div class="doc-dropdown-item-content">
+												<div class="doc-dropdown-item-main">
+													<span class="doc-dropdown-item-name">{docType.name}</span>
+													<span class="doc-dropdown-item-desc">
+														{#if isOnHold}
+															Pending request exists
+														{:else}
+															{docType.description}
+														{/if}
+													</span>
 												</div>
-											</button>
-										{/each}
-									</div>
-								{/if}
+												{#if isOnHold}
+													<span class="doc-dropdown-item-price on-hold-badge">
+														<span class="material-symbols-outlined">schedule</span>
+													</span>
+												{:else if !isDocumentTypeRequested(docType.id)}
+													<span class="doc-dropdown-item-price free-price">
+														<span class="free-badge">1st copy FREE</span>
+														<span class="original-price">₱{docType.price.toFixed(2)}/copy</span>
+													</span>
+												{:else}
+													<span class="doc-dropdown-item-price">₱{docType.price.toFixed(2)}</span>
+												{/if}
+											</div>
+										</button>
+									{/each}
+								</div>
+							{/if}
 							</div>
 						</div>
 
 						<!-- Quantity Dropdown -->
 						<div class="form-group">
-							<label class="form-label" for="quantity-dropdown">
+							<label class="student-form-label" for="quantity-dropdown">
 								<span class="material-symbols-outlined form-icon">numbers</span>
 								Quantity
 							</label>
@@ -430,10 +479,22 @@
 						</div>
 						<div class="total-price-amount">₱{(totalPrice || 0).toFixed(2)}</div>
 					</div>
+					{@const isFirstTimeRequest = !isDocumentTypeRequested(selectedDocumentType)}
+					{#if isFirstTimeRequest && selectedQuantity > 1}
+						<div class="pricing-info">
+							<span class="material-symbols-outlined">info</span>
+							<span>First copy is free. You're being charged for {selectedQuantity - 1} additional {selectedQuantity - 1 === 1 ? 'copy' : 'copies'}.</span>
+						</div>
+					{:else if isFirstTimeRequest && selectedQuantity === 1}
+						<div class="pricing-info free-info">
+							<span class="material-symbols-outlined">celebration</span>
+							<span>This is your first request for this document type - it's free!</span>
+						</div>
+					{/if}
 				{/if}
 					
 				<div class="form-group">
-					<label class="form-label" for="description">
+					<label class="student-form-label" for="description">
 						<span class="material-symbols-outlined form-icon">edit_note</span>
 						Purpose & Details
 					</label>
@@ -512,10 +573,10 @@
 							
 							<div class="request-content">
 								<div class="request-header">
-									<div class="request-info">
-										<h3 class="request-title">{request.type}</h3>
-										<p class="request-date">Requested on {request.requestedDate}</p>
-									</div>
+								<div class="request-info">
+									<h3 class="request-title">{request.type}</h3>
+									<p class="request-date">Requested on {request.requestedDate}</p>
+								</div>
 									<div class="request-header-actions">
 										<div class="student-status-badge status-{request.status}">
 											{getStatusDisplayName(request.status)}

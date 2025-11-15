@@ -308,7 +308,7 @@
 .form-content {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .student-form-row {
@@ -326,7 +326,6 @@
   background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, var(--md-sys-color-surface));
   border: 2px solid var(--md-sys-color-primary);
   border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-md);
   animation: slideDown 0.3s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
@@ -352,7 +351,41 @@
   color: var(--md-sys-color-primary);
 }
 
+/* Pricing Info Section */
+.pricing-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  border: 1px solid var(--md-sys-color-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-md);
+  font-family: var(--md-sys-typescale-body-medium-font);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  color: var(--md-sys-color-on-secondary-container);
+  animation: slideDown 0.3s cubic-bezier(0.2, 0, 0.2, 1);
+}
 
+.pricing-info.free-info {
+  background-color: var(--md-sys-color-tertiary-container);
+  border: 1px solid var(--md-sys-color-secondary);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.pricing-info .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--md-sys-color-on-secondary-container);
+  flex-shrink: 0;
+}
+
+.pricing-info.free-info .material-symbols-outlined {
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.pricing-info span:last-child {
+  flex: 1;
+  line-height: 1.5;
+}
 
 /* Request History Section */
 .request-history-section {
@@ -630,14 +663,14 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.form-label {
+.student-form-label {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
   font-size: 15px;
   font-weight: 600;
   color: var(--md-sys-color-on-surface);
-  margin-bottom: var(--spacing-sm);
+  /* margin-bottom: var(--spacing-sm); */
   letter-spacing: 0.01em;
 }
 
@@ -731,7 +764,7 @@
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
-.doc-dropdown-item:hover:not(.selected) {
+.doc-dropdown-item:hover:not(.selected):not(.disabled) {
   background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, var(--md-sys-color-surface));
 }
 
@@ -742,6 +775,17 @@
 .doc-dropdown-item.selected {
   background-color: color-mix(in srgb, var(--md-sys-color-primary) 12%, var(--md-sys-color-surface));
   color: var(--md-sys-color-primary);
+}
+
+.doc-dropdown-item.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--md-sys-color-surface-variant);
+}
+
+.doc-dropdown-item.disabled .doc-dropdown-item-name,
+.doc-dropdown-item.disabled .doc-dropdown-item-desc {
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .doc-dropdown-item-content {
@@ -786,6 +830,42 @@
   color: var(--md-sys-color-primary);
   white-space: nowrap;
   padding-left: 8px;
+}
+
+.doc-dropdown-item-price.free-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.free-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  background: var(--success);
+  padding: 2px 8px;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+}
+
+.original-price {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.on-hold-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.on-hold-badge .material-symbols-outlined {
+  font-size: 20px;
 }
 
 .doc-dropdown-item.selected .doc-dropdown-item-price {
@@ -1538,15 +1618,41 @@
 	.request-header-actions {
 		flex-wrap: wrap;
 	}
+
+  .student-form-row{
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-direction: column;
+  }
+
+  .form-label{
+    display: flex;
+  }
 }
 
 /* Disable all hover effects on mobile */
 @media (max-width: 768px), (hover: none) and (pointer: coarse) {
-	.document-request-container::-webkit-scrollbar-thumb:hover,
-	.refresh-button:hover,
-	.request-card:hover,
-	.doc-dropdown-item:hover:not(.selected),
+	.document-request-container::-webkit-scrollbar-thumb:hover {
+		background: var(--md-sys-color-outline-variant);
+	}
+	
+	.refresh-button:hover {
+		background-color: var(--md-sys-color-surface-container-highest);
+		transform: none;
+		box-shadow: none;
+	}
+	
+	.request-card:hover {
+		box-shadow: var(--shadow-sm);
+		transform: none;
+	}
+	
+	.doc-dropdown-item:hover:not(.selected) {
+		background: none;
+	}
+	
 	.chat-indicator-btn:hover {
-		/* Reset hover styles to default */
+		background: transparent;
+		transform: none;
 	}
 }
