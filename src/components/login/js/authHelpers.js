@@ -95,6 +95,12 @@ export const handleLogin = async ({ accountNumber, password }) => {
     const data = await response.json();
 
     if (data.success) {
+      // Check if teacher login is disabled
+      if (data.user.accountType === 'teacher') {
+        const error = new Error('Teacher login is currently disabled. Please contact your administrator.');
+        throw error;
+      }
+      
       // Check if admin is trying to access from mobile device
       if (data.user.accountType === 'admin' && isMobileDevice()) {
         const error = new Error('Admin access is restricted to desktop devices only. Please use a PC to access the admin portal.');
