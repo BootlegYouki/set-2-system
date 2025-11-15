@@ -584,7 +584,7 @@
 		<div class="advisory-students-grid">
 			{#if loading}
 				<div class="students-loading">
-					<div class="dashboard-loader"></div>
+					<div class="system-loader"></div>
 					<p>Loading students and grades...</p>
 				</div>
 			{:else if error}

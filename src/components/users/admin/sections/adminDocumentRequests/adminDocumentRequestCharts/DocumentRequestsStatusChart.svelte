@@ -210,7 +210,7 @@
 <div class="chart-container">
 	{#if loading}
 		<div class="chart-loading">
-			<div class="chart-loader"></div>
+			<div class="system-loader"></div>
 			<p>Loading chart data...</p>
 		</div>
 	{:else if error}

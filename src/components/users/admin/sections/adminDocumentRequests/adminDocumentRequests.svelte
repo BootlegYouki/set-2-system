@@ -725,10 +725,10 @@
 		{/if}
 
 		{#if isLoading}
-			<div style="padding: 40px; text-align: center; color: #666;">
-				<span class="material-symbols-outlined" style="font-size: 48px; animation: spin 1s linear infinite;">sync</span>
-				<p>Loading document requests...</p>
-			</div>
+				<div class="dept-mgmt-loading">
+					<span class="system-loader"></span>
+					<p>Loading departments...</p>
+				</div>
 		{:else if documentRequests.length === 0}
 			<div style="padding: 40px; text-align: center; color: #999;">
 				<span class="material-symbols-outlined" style="font-size: 48px;">description</span>

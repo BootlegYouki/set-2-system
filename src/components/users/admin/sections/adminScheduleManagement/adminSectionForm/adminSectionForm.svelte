@@ -763,7 +763,7 @@
 								</div>
 								{#if isLoadingAdvisers}
 									<div class="admin-section-loading">
-										<span class="section-loader"></span>
+										<span class="system-loader"></span>
 										<p>Loading teachers...</p>
 									</div>
 								{:else if filteredAdvisers.length === 0}
@@ -832,7 +832,7 @@
 						<div class="sectionmgmt-student-list">
 							{#if isLoadingStudents}
 								<div class="admin-section-loading">
-									<span class="section-loader"></span>
+									<span class="system-loader"></span>
 									<p>Loading students...</p>
 								</div>
 							{:else if filteredStudents.length === 0}
@@ -975,7 +975,7 @@
 		<div class="sectionmgmt-sections-grid">
 			{#if isLoading}
 				<div class="admin-section-loading">
-					<span class="section-loader"></span>
+					<span class="system-loader"></span>
 					<p>Loading sections...</p>
 				</div>
 			{:else}

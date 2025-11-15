@@ -1249,7 +1249,7 @@
 		<div class="accounts-grid">
 			{#if isLoadingAccounts}
 				<div class="loading-container">
-					<span class="account-loader"></span>
+					<span class="system-loader"></span>
 					<p class="loading-text">Loading accounts...</p>
 				</div>
 			{:else if filteredAccounts.length === 0}

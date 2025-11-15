@@ -698,7 +698,7 @@
 		<div class="dept-mgmt-departments-grid">
 			{#if isLoadingDepartments}
 				<div class="dept-mgmt-loading">
-					<span class="dept-loader"></span>
+					<span class="system-loader"></span>
 					<p>Loading departments...</p>
 				</div>
 			{:else if filteredDepartments.length === 0}
