@@ -240,18 +240,24 @@
 	function selectModalStatus(statusId) {
 		if (!selectedRequest) return;
 		selectedRequest.status = statusId;
-		// Reset tentative date when status changes
-		selectedRequest.tentativeDate = null;
+		
+		// Automatically set tentative date to 5 days from now when status is verifying or processing
+		if (statusId === 'verifying' || statusId === 'processing') {
+			const tentativeDate = new Date();
+			tentativeDate.setDate(tentativeDate.getDate() + 5);
+			const year = tentativeDate.getFullYear();
+			const month = String(tentativeDate.getMonth() + 1).padStart(2, '0');
+			const day = String(tentativeDate.getDate()).padStart(2, '0');
+			selectedRequest.tentativeDate = `${year}-${month}-${day}`;
+		} else {
+			// Reset tentative date for other statuses
+			selectedRequest.tentativeDate = null;
+		}
+		
 		isModalStatusDropdownOpen = false;
 	}
 
 	// Date handling
-	function onTentativeDateChange(event) {
-		const val = event.target.value;
-		if (!selectedRequest) return;
-		selectedRequest.tentativeDate = val ? val : null;
-	}
-
 	function formatTentativeDateForDisplay(dateStr) {
 		if (!dateStr) return '--/--/----';
 		const [y, m, d] = dateStr.split('-');
@@ -628,25 +634,15 @@
 				</div>
 
 		<!-- Tentative Date card -->
-		{#if ['verifying', 'processing'].includes(selectedRequest.status) || selectedRequest.tentativeDate}
+		{#if selectedRequest.tentativeDate}
 		<div class="docreq-card">
 			<div class="card-label">
 				<span class="material-symbols-outlined">event</span> Tentative Date
 			</div>
 			<div class="admin-card-value">
-				{#if ['verifying', 'processing'].includes(selectedRequest.status)}
-					<input
-						type="date"
-						class="date-input editable"
-						bind:this={dateInputEl}
-						value={selectedRequest.tentativeDate || ''}
-						onchange={onTentativeDateChange}
-					/>
-				{:else}
-					<div class="date-box readonly">
-						{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}
-					</div>
-				{/if}
+				<div class="date-box readonly">
+					{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}
+				</div>
 			</div>
 		</div>
 		{/if}

@@ -144,14 +144,48 @@
 			const result = await response.json();
 
 			if (result.success) {
-				// Update modal with fresh data
-				docReqModalStore.open(
-					result.data,
-					requestStatuses,
-					modalStatuses,
-					updateRequestAPI,
-					rejectRequestAPI
-				);
+				// If status is "on_hold", automatically change it to "verifying"
+				if (result.data.status === 'on_hold') {
+					// Calculate tentative date (5 days from now)
+					const tentativeDate = new Date();
+					tentativeDate.setDate(tentativeDate.getDate() + 5);
+					const year = tentativeDate.getFullYear();
+					const month = String(tentativeDate.getMonth() + 1).padStart(2, '0');
+					const day = String(tentativeDate.getDate()).padStart(2, '0');
+					const tentativeDateStr = `${year}-${month}-${day}`;
+
+					// Update the status to verifying with auto-calculated tentative date
+					await updateRequestAPI(request.requestId, {
+						status: 'verifying',
+						tentativeDate: tentativeDateStr,
+						paymentAmount: result.data.paymentAmount,
+						paymentStatus: result.data.paymentStatus
+					});
+
+					// Fetch the updated request data
+					const updatedResponse = await authenticatedFetch(`/api/document-requests?action=single&requestId=${request.requestId}`);
+					const updatedResult = await updatedResponse.json();
+
+					if (updatedResult.success) {
+						// Update modal with fresh data that now has verifying status
+						docReqModalStore.open(
+							updatedResult.data,
+							requestStatuses,
+							modalStatuses,
+							updateRequestAPI,
+							rejectRequestAPI
+						);
+					}
+				} else {
+					// Update modal with fresh data
+					docReqModalStore.open(
+						result.data,
+						requestStatuses,
+						modalStatuses,
+						updateRequestAPI,
+						rejectRequestAPI
+					);
+				}
 
 				// Mark messages as read when modal is opened
 				await markMessagesAsRead(request.requestId);
