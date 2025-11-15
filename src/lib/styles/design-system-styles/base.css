@@ -79,14 +79,14 @@ p {
 }
 
 .system-loader{
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
-	background-color: #fff;
-	box-shadow: 32px 0 #fff, -32px 0 #fff;
-	position: relative;
-	animation: system-load 0.5s ease-out infinite alternate;
-	margin: var(--spacing-md);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--md-sys-color-primary);
+  box-shadow: 32px 0 var(--md-sys-color-primary), -32px 0 var(--md-sys-color-primary);
+  position: relative;
+  animation: dashboard-flash 0.5s ease-out infinite alternate;
+  margin: var(--spacing-md);
 }
 
 @keyframes system-load {
