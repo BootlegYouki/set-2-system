@@ -1926,6 +1926,145 @@
   .toggle-analysis-btn span:not(.material-symbols-outlined) {
     display: inline;
   }
+  
+  /* Mobile Carousel Styles for Subject Cards */
+  .subjects-grid {
+    display: flex;
+    overflow: hidden;
+    gap: 0;
+    padding: 0;
+    touch-action: pan-x;
+    position: relative;
+    width: 100%;
+    grid-template-columns: unset;
+  }
+  
+  .subject-accordion {
+    flex: 0 0 100%;
+    min-width: 100%;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  
+  /* Position cards based on current subject page */
+  .subject-accordion {
+    transform: translateX(calc(-100% * var(--current-subject-page, 0)));
+  }
+  
+  .subject-accordion.mobile-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  /* Mobile Pagination Dots for Subjects */
+  .mobile-subject-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-xs) 0;
+  }
+  
+  .subject-pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--md-sys-color-outline-variant);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: 0;
+  }
+  
+  .subject-pagination-dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background-color: var(--md-sys-color-primary);
+  }
+  
+  .subject-pagination-dot:hover:not(.active) {
+    background-color: var(--md-sys-color-outline);
+    transform: scale(1.2);
+  }
+  
+  /* Mobile Carousel Styles for Grade Stats */
+  .performance-stats {
+    display: flex;
+    overflow: hidden;
+    gap: 0;
+    padding: 0;
+    touch-action: pan-x;
+    position: relative;
+    width: 100%;
+  }
+  
+  .grade-stat-item {
+    flex: 0 0 100%;
+    min-width: 100%;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  
+  /* Position cards based on current page */
+  .grade-stat-item:nth-child(1) {
+    transform: translateX(calc(-100% * var(--current-page, 0)));
+  }
+  
+  .grade-stat-item:nth-child(2) {
+    transform: translateX(calc(-100% * var(--current-page, 0)));
+  }
+  
+  .grade-stat-item:nth-child(3) {
+    transform: translateX(calc(-100% * var(--current-page, 0)));
+  }
+  
+  .grade-stat-item.mobile-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  /* Mobile Pagination Dots */
+  .mobile-stat-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-xs) 0;
+  }
+  
+  .stat-pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--md-sys-color-outline-variant);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: 0;
+  }
+  
+  .stat-pagination-dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background-color: var(--md-sys-color-primary);
+  }
+  
+  .stat-pagination-dot:hover:not(.active) {
+    background-color: var(--md-sys-color-outline);
+    transform: scale(1.2);
+  }
+}
+
+/* Hide pagination dots on desktop */
+@media (min-width: 769px) {
+  .mobile-stat-pagination,
+  .mobile-subject-pagination {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1956,7 +2095,8 @@
   .subject-card.clickable:hover,
   .score-item:hover,
   .ai-refresh-btn:hover,
-  .toggle-analysis-btn:hover {
-    /* Reset hover styles to default */
+  .toggle-analysis-btn:hover,
+  .subject-pagination-dot:hover {
+    all:none;
   }
 }
