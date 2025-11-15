@@ -2,11 +2,9 @@
   import { authStore } from '../components/login/js/auth.js';
   import Login from '../components/login/loginpage.svelte';
   import StudentNavbar from '../components/users/student/navigations/studentNavbar/studentNavbar.svelte';
-  import StudentMenu from '../components/users/student/navigations/studentMenu/studentMenu.svelte';
   import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
   import Notification from '../components/users/student/sections/studentNotification/studentNotification.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
-  import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
   import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
   import '../lib/styles/+page.css';
 
