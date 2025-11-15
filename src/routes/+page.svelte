@@ -3,20 +3,10 @@
   import Login from '../components/login/loginpage.svelte';
   import StudentNavbar from '../components/users/student/navigations/studentNavbar/studentNavbar.svelte';
   import StudentMenu from '../components/users/student/navigations/studentMenu/studentMenu.svelte';
-  import StudentProfile from '../components/users/student/sections/studentProfile/studentProfile.svelte';
-  import StudentGrade from '../components/users/student/sections/studentGrade/studentGrade.svelte';
-  import StudentClassRanking from '../components/users/student/sections/studentClassRanking/studentClassRanking.svelte';
   import StudentSchedule from '../components/users/student/sections/studentSchedule/studentSchedule.svelte';
-  import StudentDocument from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequest.svelte';
-  import Notification from '../components/users/student/sections/studentNotification/studentNotification.svelte';
-  import StudentTodoList from '../components/users/student/sections/studentTodolist/studentTodolist.svelte';
   import TeacherNavbar from '../components/users/teacher/navigations/teacherNavbar/teacherNavbar.svelte';
   import TeacherMenu from '../components/users/teacher/navigations/teacherMenu/teacherMenu.svelte';
-  import TeacherProfile from '../components/users/teacher/sections/teacherProfile/teacherProfile.svelte';
   import TeacherSchedule from '../components/users/teacher/sections/teacherSchedule/teacherSchedule.svelte';
-  import TeacherClassSelection from '../components/users/teacher/sections/teacherClassManagement/teacherClassSelection/teacherClassSelection.svelte';
-  import TeacherClassList from '../components/users/teacher/sections/teacherClassManagement/teacherClassList/teacherClassList.svelte';
-  import TeacherAdvisoryClass from '../components/users/teacher/sections/teacherAdvisoryClass/teacherAdvisoryClass.svelte';
   import AdminNavbar from '../components/users/admin/navigations/adminNavbar/adminNavbar.svelte';
   import AdminMenu from '../components/users/admin/navigations/adminMenu/adminMenu.svelte';
   import AdminDashboard from '../components/users/admin/sections/adminDashboard/adminDashboard.svelte';
@@ -28,7 +18,6 @@
   import AdminScheduleManagement from '../components/users/admin/sections/adminScheduleManagement/adminScheduleManagement.svelte';
   import AdminSubjectsAndActivities from '../components/users/admin/sections/adminSubjectsAndActivities/adminSubjectsAndActivities.svelte';
   import AdminDepartmentManagement from '../components/users/admin/sections/adminDepartmentManagement/adminDepartmentManagement.svelte';
-  import AdminDocumentRequests from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequests.svelte';
   import AdminSettings from '../components/users/admin/sections/adminSettings/adminSettings.svelte';
   import '../lib/styles/+page.css';
 
@@ -44,7 +33,7 @@
   });
 
   // Current active section for student portal
-  let activeSection = $state('grades');
+  let activeSection = $state('schedule');
   
   // Request ID to open in document modal (when navigating from notification)
   let documentRequestIdToOpen = $state(null);
@@ -142,7 +131,7 @@
   // Handle logout
   async function handleLogout() {
     await authStore.logout();
-    activeSection = 'grades'; // Reset to default section
+    activeSection = 'schedule'; // Reset to default section
     teacherActiveSection = 'students'; // Reset teacher section
     adminActiveSection = 'dashboard'; // Reset admin section
   }
@@ -185,24 +174,8 @@
       />
       
       <main class="content-area">
-        {#if activeSection === 'profile'}
-          <StudentProfile />
-        {:else if activeSection === 'grades'}
-          <StudentGrade />
-        {:else if activeSection === 'ranking'}
-          <StudentClassRanking />
-        {:else if activeSection === 'schedule'}
-          <StudentSchedule />
-        {:else if activeSection === 'documents'}
-          <StudentDocument openRequestId={documentRequestIdToOpen} />
-        {:else if activeSection === 'notifications'}
-          <Notification onnavigate={handleNavigation} />
-        {:else if activeSection === 'todo'}
-          <StudentTodoList />
-        {/if}
+        <StudentSchedule />
       </main>
-
-      <StudentMenu {activeSection} {isNavRailVisible} onnavigate={handleNavigation} />
     </div>
   {:else if authState.userType === 'teacher'}
     <!-- Teacher Portal -->

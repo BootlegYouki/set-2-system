@@ -6,8 +6,6 @@
 	import '../lib/styles/design-system.css';
 	import ToastContainer from '../components/common/ToastContainer.svelte';
 	import ModalContainer from '../components/common/ModalContainer.svelte';
-	import DocumentRequestModalContainer from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequestModal/AdminDocumentRequestModalContainer.svelte';
-	import StudentDocumentRequestModalContainer from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequestModal/StudentDocumentRequestModalContainer.svelte';
 	import { authStore } from '../components/login/js/auth.js';
 	import { onMount } from 'svelte';
 	import { tick } from 'svelte';
@@ -72,9 +70,3 @@
 
 <!-- Global modal container -->
 <ModalContainer />
-
-<!-- Admin Document Request Modal Container -->
-<DocumentRequestModalContainer />
-
-<!-- Student Document Request Modal Container -->
-<StudentDocumentRequestModalContainer />
