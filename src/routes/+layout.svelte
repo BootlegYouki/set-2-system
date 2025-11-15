@@ -8,6 +8,7 @@
 	import ModalContainer from '../components/common/ModalContainer.svelte';
 	import DocumentRequestModalContainer from '../components/users/admin/sections/adminDocumentRequests/adminDocumentRequestModal/AdminDocumentRequestModalContainer.svelte';
 	import StudentDocumentRequestModalContainer from '../components/users/student/sections/studentDocumentRequest/studentDocumentRequestModal/StudentDocumentRequestModalContainer.svelte';
+	import StudentGradeModalContainer from '../components/users/student/sections/studentGrade/studentGradeModal/StudentGradeModalContainer.svelte';
 	import { authStore } from '../components/login/js/auth.js';
 	import { onMount } from 'svelte';
 	import { tick } from 'svelte';
@@ -78,3 +79,6 @@
 
 <!-- Student Document Request Modal Container -->
 <StudentDocumentRequestModalContainer />
+
+<!-- Student Grade Modal Container -->
+<StudentGradeModalContainer />

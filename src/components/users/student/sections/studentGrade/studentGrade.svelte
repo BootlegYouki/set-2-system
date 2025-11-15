@@ -6,11 +6,11 @@
 	import CountUp from '../../../../common/CountUp.svelte';
 	import AIAnalysisDisplay from './AIAnalysisDisplay.svelte';
 	import { studentGradeStore } from '../../../../../lib/stores/student/studentGradeStore.js';
+	import { studentGradeModalStore } from './studentGradeModal/studentGradeModalStore.js';
 	
 	// Local UI state
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
 	let isDropdownOpen = $state(false);
-	let expandedGrades = $state(new Set());
 	
 	// AI Analysis state
 	let showAiAnalysis = $state(false);
@@ -367,38 +367,6 @@
 	// Animation key to trigger re-render on quarter changes
 	let animationKey = $derived(currentQuarterNum || 0);
 
-	// Grade breakdown accordion functions (similar to todo list)
-	function toggleGradeBreakdown(subjectId) {
-		if (expandedGrades.has(subjectId)) {
-			expandedGrades.delete(subjectId);
-		} else {
-			expandedGrades.add(subjectId);
-		}
-		expandedGrades = new Set(expandedGrades); // Trigger reactivity
-	}
-
-	function isGradeExpanded(subjectId) {
-		return expandedGrades.has(subjectId);
-	}
-
-	// Helper functions for breakdown display
-	function hasDetailedScores(subject) {
-		return subject.verified && (
-			(subject.writtenWorkScores && subject.writtenWorkScores.length > 0) ||
-			(subject.performanceTasksScores && subject.performanceTasksScores.length > 0) ||
-			(subject.quarterlyAssessmentScores && subject.quarterlyAssessmentScores.length > 0)
-		);
-	}
-
-	function formatScoreLabel(index, type) {
-		const types = {
-			written: 'Quiz',
-			performance: 'Project', 
-			quarterly: 'Exam'
-		};
-		return `${types[type] || 'Task'} ${index + 1}`;
-	}
-
 	// Function to get AI analysis
 	async function getAiAnalysis(forceRefresh = false) {
 		if (aiAnalysisLoading || !subjects.length || !$authStore.userData?.id) return;
@@ -448,6 +416,11 @@
 		} else {
 			showAiAnalysis = !showAiAnalysis;
 		}
+	}
+
+	// Function to open grade details modal
+	function openGradeModal(subject) {
+		studentGradeModalStore.open(subject, currentQuarter, currentSchoolYear);
 	}
 
 	// Load data when component mounts
@@ -742,18 +715,16 @@
 						ontouchend={handleSubjectTouchEnd}>
 						{#each subjects as subject, index (subject.subject_id || subject.id)}
 							{@const cardColors = getCardColorClasses(index)}
-						{@const hasBreakdown = hasDetailedScores(subject)}
-						{@const isExpanded = isGradeExpanded(subject.id)}
 						
 						<div class="subject-accordion" style="--card-index: {index};" class:mobile-active={currentSubjectPage === index}>
-							<!-- Main Subject Card (clickable if has breakdown) -->
+							<!-- Main Subject Card (clickable to open modal) -->
 							<div 
-								class="subject-card" 
-								class:clickable={hasBreakdown}
+								class="subject-card clickable" 
 								style="border: 2px solid {cardColors.border};"
-								onclick={hasBreakdown ? () => toggleGradeBreakdown(subject.id) : undefined}
-								role={hasBreakdown ? 'button' : undefined}
-								onkeydown={hasBreakdown ? (e) => e.key === 'Enter' && toggleGradeBreakdown(subject.id) : undefined}>
+								onclick={() => openGradeModal(subject)}
+								role="button"
+								tabindex="0"
+								onkeydown={(e) => e.key === 'Enter' && openGradeModal(subject)}>
 								
 								<!-- Column 1: Icon -->
 								<div class="subject-icon-column">
@@ -804,83 +775,6 @@
 								</div>
 							</div>
 							</div>
-
-							<!-- Collapsible Breakdown Section -->
-							{#if expandedGrades.has(subject.id)}
-								<div class="grade-breakdown-section">
-									<div class="breakdown-container">
-										
-										<!-- Written Work Section -->
-										{#if subject.writtenWorkScores && subject.writtenWorkScores.length > 0}
-											<div class="breakdown-category">
-												<div class="category-header">
-													<div class="category-title">
-														<span class="material-symbols-outlined">edit</span>
-														<span>Written Work</span>
-													</div>
-													<div class="category-average" style="color: {getGradeColor(subject.writtenWork)}">
-														{formatGradeDisplay(subject.writtenWork)}
-													</div>
-												</div>
-												<div class="scores-list">
-													{#each subject.writtenWorkScores as score, i}
-														<div class="score-item">
-															<span class="score-label">{formatScoreLabel(i, 'written')}</span>
-															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
-														</div>
-													{/each}
-												</div>
-											</div>
-										{/if}
-
-										<!-- Performance Tasks Section -->
-										{#if subject.performanceTasksScores && subject.performanceTasksScores.length > 0}
-											<div class="breakdown-category">
-												<div class="category-header">
-													<div class="category-title">
-														<span class="material-symbols-outlined">assignment</span>
-														<span>Performance Tasks</span>
-													</div>
-													<div class="category-average" style="color: {getGradeColor(subject.performanceTasks)}">
-														{formatGradeDisplay(subject.performanceTasks)}
-													</div>
-												</div>
-												<div class="scores-list">
-													{#each subject.performanceTasksScores as score, i}
-														<div class="score-item">
-															<span class="score-label">{formatScoreLabel(i, 'performance')}</span>
-															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
-														</div>
-													{/each}
-												</div>
-											</div>
-										{/if}
-
-										<!-- Quarterly Assessment Section -->
-										{#if subject.quarterlyAssessmentScores && subject.quarterlyAssessmentScores.length > 0}
-											<div class="breakdown-category quarterly-assessment-category">
-												<div class="category-header">
-													<div class="category-title">
-														<span class="material-symbols-outlined">quiz</span>
-														<span>Quarterly Assessment</span>
-													</div>
-													<div class="category-average" style="color: {getGradeColor(subject.quarterlyAssessment)}">
-														{formatGradeDisplay(subject.quarterlyAssessment)}
-													</div>
-												</div>
-												<div class="scores-list">
-													{#each subject.quarterlyAssessmentScores as score, i}
-														<div class="score-item">
-															<span class="score-label">{formatScoreLabel(i, 'quarterly')}</span>
-															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
-														</div>
-													{/each}
-												</div>
-											</div>
-										{/if}
-									</div>
-								</div>
-							{/if}
 						</div>
 					{/each}
 				</div>
