@@ -63,7 +63,7 @@ export async function POST({ request }) {
     );
     
     // Import and send email (async, don't wait)
-    import('../helper/email-helper.js').then(({ sendPasswordResetEmail }) => {
+    import('../helper/password-reset-email.js').then(({ sendPasswordResetEmail }) => {
       sendPasswordResetEmail({
         email: user.email,
         fullName: user.full_name,
