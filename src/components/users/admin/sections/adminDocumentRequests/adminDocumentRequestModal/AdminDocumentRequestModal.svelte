@@ -38,7 +38,6 @@
 	let showConfirmModal = $state(false);
 	let showRejectModal = $state(false);
 	let showReceiptModal = $state(false);
-	let isPaymentEditable = $state(false);
 	let paymentStatus = $state('pending'); // 'paid' or 'pending'
 
 	// Get messages from the request
@@ -463,11 +462,6 @@
 		}
 	}
 
-	// Toggle payment edit mode
-	function togglePaymentEdit() {
-		isPaymentEditable = !isPaymentEditable;
-	}
-
 	// Toggle payment status
 	function togglePaymentStatus() {
 		paymentStatus = paymentStatus === 'paid' ? 'pending' : 'paid';
@@ -654,27 +648,13 @@
 			</div>
 			<div class="admin-card-value">
 				<div class="payment-display-container">
-					{#if isPaymentEditable}
-						<div class="payment-input-wrapper">
-							<span class="currency-symbol">₱</span>
-							<input
-								type="number"
-								class="payment-input"
-								bind:value={selectedRequest.paymentAmount}
-								min="0"
-								step="0.01"
-								placeholder="Set fee amount..."
-							/>
-						</div>
-					{:else}
-						<div class="payment-readonly {(request?.status !== 'cancelled' && request?.status !== 'rejected' && selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined) ? paymentStatus : ''}">
-							{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
-								₱{selectedRequest.paymentAmount}
-							{:else}
-								<span class="not-set">Not set</span>
-							{/if}
-						</div>
-					{/if}
+					<div class="payment-readonly {(request?.status !== 'cancelled' && request?.status !== 'rejected' && selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined) ? paymentStatus : ''}">
+						{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
+							₱{selectedRequest.paymentAmount.toFixed(2)}
+						{:else}
+							<span class="not-set">Not set</span>
+						{/if}
+					</div>
 					<div class="payment-actions">
 						<button 
 							class="payment-status-toggle {paymentStatus === 'paid' ? 'pending' : 'paid'}" 
@@ -695,17 +675,6 @@
 						>
 							<span class="material-symbols-outlined">
 								{paymentStatus === 'paid' ? 'cancel' : 'check_circle'}
-							</span>
-						</button>
-						<button 
-							class="payment-edit-btn" 
-							onclick={togglePaymentEdit}
-							title={isPaymentEditable ? 'Save' : 'Edit payment amount'}
-							aria-label={isPaymentEditable ? 'Save' : 'Edit payment amount'}
-							disabled={savedStatus === 'cancelled' || savedStatus === 'rejected' || savedStatus === 'released' || savedPaymentStatus === 'paid'}
-						>
-							<span class="material-symbols-outlined">
-								{isPaymentEditable ? 'check' : 'edit'}
 							</span>
 						</button>
 					</div>
@@ -1999,118 +1968,6 @@
 	.payment-status-toggle:disabled:hover {
 		transform: none;
 		box-shadow: none;
-	}
-
-	/* Payment Edit Button */
-	.payment-edit-btn {
-		background: var(--md-sys-color-surface);
-		border: 1px solid var(--md-sys-color-outline-variant);
-		padding: 8px;
-		border-radius: var(--radius-md);
-		color: var(--md-sys-color-on-primary-container);
-		cursor: pointer;
-		transition: all var(--transition-fast);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 40px;
-		min-height: 40px;
-		flex-shrink: 0;
-	}
-
-	.payment-edit-btn:hover {
-		background: var(--md-sys-color-surface-container);
-		color: var(--md-sys-color-on-surface);
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-	}
-
-	.payment-edit-btn:active {
-		transform: scale(0.95);
-	}
-
-	.payment-edit-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		background: var(--md-sys-color-surface-variant);
-		color: var(--md-sys-color-on-surface-variant);
-	}
-
-	.payment-edit-btn:disabled:hover {
-		transform: none;
-		box-shadow: none;
-	}
-
-	.payment-edit-btn .material-symbols-outlined {
-		font-size: 20px;
-	}
-
-	/* Payment Input */
-	.payment-input-wrapper {
-		display: flex;
-		align-items: center;
-		background: var(--md-sys-color-surface);
-		border: 1px solid var(--md-sys-color-primary);
-		border-radius: var(--radius-md);
-		padding: 8px 12px;
-		flex: 1;
-		transition: all var(--transition-fast);
-	}
-
-	.payment-input-wrapper:hover {
-		background: var(--md-sys-color-surface-container);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	}
-
-	.payment-input-wrapper:focus-within {
-		border-color: var(--md-sys-color-primary);
-		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-		background: var(--md-sys-color-surface);
-	}
-
-	.currency-symbol {
-		font-weight: 600;
-		color: var(--md-sys-color-on-surface);
-		font-size: 0.95rem;
-		line-height: 1.5;
-		margin-right: 0;
-		display: flex;
-		align-items: center;
-	}
-
-	.payment-input {
-		flex: 1;
-		border: none;
-		background: transparent;
-		color: var(--md-sys-color-on-surface);
-		font-weight: 600;
-		font-family: inherit;
-		padding: 0;
-		margin: 0;
-		outline: none;
-		width: 100%;
-		min-width: 0;
-		height: auto;
-		font-size: 0.95rem;
-		line-height: 1.5;
-		vertical-align: baseline;
-	}
-
-	.payment-input::placeholder {
-		color: var(--md-sys-color-on-surface-variant);
-		opacity: 0.5;
-	}
-
-	/* Remove number input arrows */
-	.payment-input::-webkit-outer-spin-button,
-	.payment-input::-webkit-inner-spin-button {
-		-webkit-appearance: none;
-		appearance: none;
-		margin: 0;
-	}
-
-	.payment-input[type=number] {
-		-moz-appearance: textfield;
-		appearance: textfield;
 	}
 
 	/* Responsive */

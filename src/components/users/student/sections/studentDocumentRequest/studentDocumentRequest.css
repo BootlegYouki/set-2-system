@@ -711,8 +711,18 @@
 
 .doc-dropdown-item-content {
   display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.doc-dropdown-item-main {
+  display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
 }
 
 .doc-dropdown-item-name {
@@ -733,6 +743,18 @@
 
 .doc-dropdown-item.selected .doc-dropdown-item-desc {
   color: color-mix(in srgb, var(--md-sys-color-primary) 70%, var(--md-sys-color-on-surface-variant));
+}
+
+.doc-dropdown-item-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  white-space: nowrap;
+  padding-left: 8px;
+}
+
+.doc-dropdown-item.selected .doc-dropdown-item-price {
+  color: var(--md-sys-color-primary);
 }
 
 .form-select.enhanced,

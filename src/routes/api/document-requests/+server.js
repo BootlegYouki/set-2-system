@@ -5,6 +5,22 @@ import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/a
 import { encryptMessage, decryptMessages } from '../helper/encryption-helper.js';
 import PDFDocument from 'pdfkit';
 
+// Document type price mapping
+const DOCUMENT_PRICES = {
+	'Transcript of Records (TOR)': 300.00,
+	'Enrollment Certificate': 150.00,
+	'Grade Report': 50.00,
+	'Diploma': 800.00,
+	'Certificate': 100.00,
+	'Good Moral': 300.00,
+	'Grade Slip': 170.00
+};
+
+// Helper function to get document price
+function getDocumentPrice(documentType) {
+	return DOCUMENT_PRICES[documentType] || null;
+}
+
 // Helper function to create notifications for document request updates
 async function createDocumentRequestNotification(db, studentId, notificationData) {
 	try {
@@ -518,6 +534,9 @@ export async function POST({ request }) {
 						}
 					}
 
+					// Get the fixed price for the document type
+					const documentPrice = getDocumentPrice(data.documentType);
+
 					const newRequest = {
 						student_id: student._id.toString(),
 						account_number: student.account_number,
@@ -528,7 +547,7 @@ export async function POST({ request }) {
 						document_type: data.documentType,
 						request_id: requestId,
 						submitted_date: new Date(),
-						payment_amount: data.paymentAmount !== undefined && data.paymentAmount !== null ? data.paymentAmount : null,
+						payment_amount: documentPrice,
 						payment_status: 'pending',
 						status: 'on_hold',
 						tentative_date: null,
@@ -573,7 +592,7 @@ export async function POST({ request }) {
 					return json({ error: 'Permission denied' }, { status: 403 });
 				}
 
-				const { requestId, status, tentativeDate, paymentStatus, paymentAmount } = data;
+				const { requestId, status, tentativeDate, paymentStatus } = data;
 
 				if (!requestId) {
 					return json({ error: 'Request ID is required' }, { status: 400 });
@@ -595,7 +614,6 @@ export async function POST({ request }) {
 				// Track what changed for notifications and logging
 				let statusChanged = false;
 				let paymentStatusChanged = false;
-				let paymentAmountChanged = false;
 				let tentativeDateChanged = false;
 				let oldStatus = existingRequest.status;
 				let oldPaymentStatus = existingRequest.payment_status;
@@ -651,17 +669,6 @@ export async function POST({ request }) {
 					// Check if payment status changed to 'paid' (handle null/undefined oldPaymentStatus)
 					const oldStatus = oldPaymentStatus || 'pending';
 					paymentStatusChanged = (paymentStatus !== oldStatus && paymentStatus === 'paid');
-				}
-
-				// Track if payment amount is being set for the first time
-				let isPaymentAmountFirstTime = false;
-				
-				if (paymentAmount !== undefined && paymentAmount !== null) {
-					const newPaymentAmount = parseFloat(paymentAmount);
-					updateData.payment_amount = newPaymentAmount;
-					// Track if payment amount changed (including first time set)
-					isPaymentAmountFirstTime = (oldPaymentAmount === null || oldPaymentAmount === undefined);
-					paymentAmountChanged = (newPaymentAmount !== oldPaymentAmount);
 				}
 
 				// Set processed by if not already set
@@ -739,7 +746,7 @@ export async function POST({ request }) {
 
 				// 2. Notify on payment status change to 'paid'
 				if (paymentStatusChanged) {
-					const paymentAmount = updateData.payment_amount || existingRequest.payment_amount || 0;
+					const paymentAmount = existingRequest.payment_amount || 0;
 					
 					// Send automated message to document request thread
 					await sendAutomatedPaymentMessage(
@@ -761,44 +768,7 @@ export async function POST({ request }) {
 					});
 				}
 
-				// 3. Notify on payment amount set/change (but not if payment is already paid)
-				if (paymentAmountChanged) {
-					const finalPaymentAmount = updateData.payment_amount || paymentAmount;
-					const currentPaymentStatus = updateData.payment_status || existingRequest.payment_status;
-					
-					// Only send message and notification if payment is not already paid (to avoid redundancy)
-					if (currentPaymentStatus !== 'paid' && finalPaymentAmount !== null && finalPaymentAmount !== undefined) {
-						// Send automated message to document request thread
-						await sendAutomatedPaymentAmountMessage(
-							db,
-							requestId,
-							finalPaymentAmount,
-							user.name || user.full_name,
-							isPaymentAmountFirstTime
-						);
-
-						// Create notification for student
-						const notificationTitle = isPaymentAmountFirstTime 
-							? `Payment Amount Set for Document Request`
-							: `Payment Amount Updated for Document Request`;
-						const notificationMessage = isPaymentAmountFirstTime
-							? `The payment amount for your "${existingRequest.document_type}" request (${requestId}) has been set to ₱${finalPaymentAmount}. Please proceed with the payment when ready.`
-							: `The payment amount for your "${existingRequest.document_type}" request (${requestId}) has been updated to ₱${finalPaymentAmount}. Please proceed with the payment when ready.`;
-
-						await createDocumentRequestNotification(db, existingRequest.student_id, {
-							title: notificationTitle,
-							message: notificationMessage,
-							priority: 'normal',
-							requestId: requestId,
-							documentType: existingRequest.document_type,
-							status: existingRequest.status,
-							adminName: user.name,
-							adminId: user.id
-						});
-					}
-				}
-
-				// 4. Notify on tentative date change
+				// 3. Notify on tentative date change
 				if (tentativeDateChanged) {
 					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
 					
@@ -829,9 +799,6 @@ export async function POST({ request }) {
 						new_status: status || oldStatus,
 						student_name: existingRequest.full_name,
 						student_id: existingRequest.account_number,
-						old_payment_amount: oldPaymentAmount,
-						new_payment_amount: updateData.payment_amount || existingRequest.payment_amount,
-						payment_amount_changed: paymentAmountChanged,
 						old_payment_status: oldPaymentStatus,
 						new_payment_status: updateData.payment_status || existingRequest.payment_status,
 						payment_status_changed: paymentStatusChanged,

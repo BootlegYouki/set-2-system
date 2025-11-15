@@ -50,13 +50,13 @@
 
 	// Document types - aligned with admin system
 	const documentTypes = [
-		{ id: 'Transcript of Records (TOR)', name: 'Transcript of Records (TOR)', description: 'Official academic record' },
-		{ id: 'Enrollment Certificate', name: 'Enrollment Certificate', description: 'Proof of enrollment' },
-		{ id: 'Grade Report', name: 'Grade Report', description: 'Semester grade report' },
-		{ id: 'Diploma', name: 'Diploma', description: 'Official graduation certificate' },
-		{ id: 'Certificate', name: 'Certificate', description: 'Academic achievement certificate' },
-		{ id: 'Good Moral', name: 'Good Moral', description: 'Certificate of good moral character' },
-		{ id: 'Grade Slip', name: 'Grade Slip', description: 'Grade slip for specific period' }
+		{ id: 'Transcript of Records (TOR)', name: 'Transcript of Records (TOR)', description: 'Official academic record', price: 300.00 },
+		{ id: 'Enrollment Certificate', name: 'Enrollment Certificate', description: 'Proof of enrollment', price: 150.00 },
+		{ id: 'Grade Report', name: 'Grade Report', description: 'Semester grade report', price: 50.00 },
+		{ id: 'Diploma', name: 'Diploma', description: 'Official graduation certificate', price: 800.00 },
+		{ id: 'Certificate', name: 'Certificate', description: 'Academic achievement certificate', price: 100.00 },
+		{ id: 'Good Moral', name: 'Good Moral', description: 'Certificate of good moral character', price: 300.00 },
+		{ id: 'Grade Slip', name: 'Grade Slip', description: 'Grade slip for specific period', price: 170.00 }
 	];
 
 	// Handle refresh functionality
@@ -348,8 +348,11 @@
 											onclick={() => selectDocumentType(docType)}
 										>
 											<div class="doc-dropdown-item-content">
-												<span class="doc-dropdown-item-name">{docType.name}</span>
-												<span class="doc-dropdown-item-desc">{docType.description}</span>
+												<div class="doc-dropdown-item-main">
+													<span class="doc-dropdown-item-name">{docType.name}</span>
+													<span class="doc-dropdown-item-desc">{docType.description}</span>
+												</div>
+												<span class="doc-dropdown-item-price">₱{docType.price.toFixed(2)}</span>
 											</div>
 										</button>
 									{/each}
