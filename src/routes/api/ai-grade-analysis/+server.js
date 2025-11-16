@@ -9,10 +9,10 @@ dotenv.config();
 // Constants
 const GEMINI_MODEL = "gemini-2.5-flash";
 
-// Extend timeout for AI generation (60 seconds)
+// Extend timeout for AI generation (120 seconds)
 export const config = {
     runtime: 'nodejs18',
-    maxDuration: 60
+    maxDuration: 360
 };
 
 export async function POST({ request }) {
