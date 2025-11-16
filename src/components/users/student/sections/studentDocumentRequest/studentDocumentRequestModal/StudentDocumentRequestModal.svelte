@@ -804,7 +804,7 @@
 						</div>
 						<div class="flow-content">
 							<h3>Verifying</h3>
-							<p>The document request is currently being verified.</p>
+							<p>The document request is currently being verified. (Takes up to 5 days)</p>
 						</div>
 					</div>
 
