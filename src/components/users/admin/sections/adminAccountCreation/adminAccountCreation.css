@@ -133,6 +133,7 @@
 	display: flex;
 	gap: var(--spacing-md);
 	align-items: end;
+  margin-bottom: var(--spacing-md);
 }
 
 .form-group {
@@ -145,6 +146,7 @@
 	grid-template-columns: 1fr 1fr 100px;
 	gap: var(--spacing-md);
 	align-items: end;
+  margin-bottom: var(--spacing-md);
 }
 
 #middle-initial {

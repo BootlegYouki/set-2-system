@@ -1321,7 +1321,7 @@
 		padding: var(--spacing-md);
 		border: 1px solid var(--md-sys-color-outline-variant);
 		overflow-y: auto;
-		max-height: 530px;
+		max-height: 500px;
 		min-height: 330px;
 		display: flex;
 		flex-direction: column;
@@ -1331,7 +1331,7 @@
 
 	/* Reduce chat messages height when files are selected */
 	.chat-container:has(.selected-files-preview) .student-chat-messages {
-		max-height: 480px;
+		max-height: 448px;
 	}
 
 	.no-chat {
@@ -2147,6 +2147,7 @@
 		background: var(--md-sys-color-surface-container);
 		border-radius: var(--radius-md);
 		border: 1px solid var(--md-sys-color-outline-variant);
+		margin-bottom: var(--spacing-xs);
 	}
 
 	.file-preview-item {
@@ -2719,7 +2720,7 @@
 
 	@media (max-width: 768px) {
 		.student-chat-messages{
-			margin-bottom: var(--spacing-md);
+			margin-bottom: var(--spacing-sm);
 			min-height: 460px;
 		}
 

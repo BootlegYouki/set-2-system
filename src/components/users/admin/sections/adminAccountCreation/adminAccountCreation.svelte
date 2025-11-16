@@ -815,7 +815,7 @@
 				<!-- Account Type and Gender Selection Row -->
 				<div class="account-type-gender-row">
 					<!-- Account Type Selection -->
-					<div class="form-group">
+					<div class="form-group admin">
 						<label class="form-label" for="account-type">Account Type *</label>
 						<div class="custom-dropdown" class:open={isDropdownOpen}>
 							<button
