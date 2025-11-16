@@ -1952,7 +1952,6 @@
     flex: 0 0 100%;
     min-width: 100%;
     transition: transform 0.3s ease, opacity 0.3s ease;
-    opacity: 0.4;
     pointer-events: none;
   }
   
@@ -1965,7 +1964,14 @@
     opacity: 1;
     pointer-events: auto;
   }
+
+  .grade-stat-item:hover{
+    background-color: var(--md-sys-color-surface);
+  }
   
+  .subject-card:hover, .subject-card.clickable:hover{
+    background-color: transparent;
+  }
   /* Mobile Pagination Dots for Subjects */
   .mobile-subject-pagination {
     display: flex;
