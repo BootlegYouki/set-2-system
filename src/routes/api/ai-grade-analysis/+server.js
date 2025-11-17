@@ -23,8 +23,8 @@ export async function POST({ request }) {
     let cacheKey;
     
     try {
-        const { studentId, quarter, schoolYear, forceRefresh = false, previousQuarterInfo = null } = await request.json();
-        console.log('Request params:', { studentId, quarter, schoolYear, forceRefresh, hasPreviousQuarter: !!previousQuarterInfo });
+        const { studentId, quarter, schoolYear, forceRefresh = false, previousQuarterInfo = null, cacheOnly = false } = await request.json();
+        console.log('Request params:', { studentId, quarter, schoolYear, forceRefresh, cacheOnly, hasPreviousQuarter: !!previousQuarterInfo });
 
         if (!studentId) {
             return json({ error: 'Missing student ID' }, { status: 400 });
@@ -45,6 +45,24 @@ export async function POST({ request }) {
             quarter: quarter,
             school_year: schoolYear
         };
+
+        // If cacheOnly is true, ONLY check cache and return 404 if not found
+        if (cacheOnly) {
+            const cachedAnalysis = await db.collection('ai_grade_analysis_cache').findOne(cacheKey);
+            
+            if (cachedAnalysis && cachedAnalysis.analysis) {
+                const isValidJSON = typeof cachedAnalysis.analysis === 'object' && cachedAnalysis.analysis.overallInsight;
+                
+                if (isValidJSON) {
+                    console.log('Cache-only mode: Serving cached AI analysis');
+                    return streamCachedAnalysis(cachedAnalysis.analysis);
+                }
+            }
+            
+            // No cache found in cache-only mode - return 404
+            console.log('Cache-only mode: No cached analysis found');
+            return json({ error: 'No cached analysis available' }, { status: 404 });
+        }
 
         if (!forceRefresh) {
             const cachedAnalysis = await db.collection('ai_grade_analysis_cache').findOne(cacheKey);

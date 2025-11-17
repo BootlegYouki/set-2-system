@@ -61,6 +61,8 @@
 	let error = $derived($studentGradeStore.error);
 	let previousQuarterAverage = $derived($studentGradeStore.previousQuarterAverage);
 	let averageChange = $derived($studentGradeStore.averageChange);
+	let isPreloading = $derived($studentGradeStore.isPreloading);
+	let preloadProgress = $derived($studentGradeStore.preloadProgress);
 
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -381,7 +383,7 @@
 				toastStore.success('AI Analysis generated successfully');
 			}
 		} catch (error) {
-			console.error('AI Analysis Error:', error);
+			// AI Analysis error
 			toastStore.error('Failed to generate AI analysis');
 		}
 	}
@@ -392,7 +394,7 @@
 			await getAiAnalysis(true);
 			toastStore.success('Analysis refreshed successfully');
 		} catch (error) {
-			console.error('Error refreshing analysis:', error);
+			// Error refreshing analysis
 		}
 	}
 
@@ -431,6 +433,17 @@
 			
 			// Load fresh data (silent if we have cached data)
 			await studentGradeStore.loadGrades($authStore.userData.id, null, null, hasCachedData);
+			
+			// Start background preloading of all quarters after a short delay
+			setTimeout(async () => {
+				try {
+					const currentQuarter = $studentGradeStore.currentQuarter;
+					const currentYear = $studentGradeStore.currentSchoolYear;
+					await studentGradeStore.preloadAllQuarters($authStore.userData.id, currentQuarter, currentYear);					
+				} catch (error) {
+					// Error during background preload
+				}
+			}, 1000); // Wait 1 second after initial load before starting background preload
 		}
 		
 		// Cleanup on component destroy

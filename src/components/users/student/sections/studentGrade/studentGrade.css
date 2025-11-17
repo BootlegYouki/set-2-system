@@ -56,6 +56,24 @@
   margin: 0;
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
 .quarter-selector {
   display: flex;
   width: 10rem;
@@ -1849,7 +1867,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  /* margin-bottom: var(--spacing-lg); */
   padding: var(--spacing-md);
   background: var(--md-sys-color-surface-container);
   border-radius: var(--radius-lg);
@@ -1913,7 +1931,7 @@
 }
 
 .analysis-display-container {
-  margin-top: var(--spacing-lg);
+  margin-top: var(--spacing-md);
 }
 
 /* Responsive adjustments for analysis section */
@@ -1921,7 +1939,7 @@
   .analysis-section-header {
     gap: var(--spacing-md);
     align-items: stretch;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
   }
 
   .analysis-title-group {

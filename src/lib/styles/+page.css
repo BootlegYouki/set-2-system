@@ -131,6 +131,7 @@
   /* Adjust padding for mobile */
   .content-area > * {
     padding: var(--spacing-lg);
+    padding-top: var(--spacing-md);
   }
   
   /* Disable all hover effects on mobile - override hover states */

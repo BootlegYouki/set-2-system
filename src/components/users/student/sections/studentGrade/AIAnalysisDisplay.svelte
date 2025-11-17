@@ -350,7 +350,8 @@
 	.ai-analysis-display {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-lg);
+		gap: var(--spacing-md);
+		margin-bottom: var(--spacing-sm);
 	}
 
 	/* Loading & Error */
@@ -653,6 +654,10 @@
 
 		.charts-section {
 			flex-direction: column;
+		}
+
+		.show-more-btn{
+			width: 100%;
 		}
 	}
 </style>
