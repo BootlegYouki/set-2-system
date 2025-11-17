@@ -2,12 +2,18 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title } from 'chart.js';
 	import { dashboardStore } from '../../../../../../lib/stores/admin/dashboardStore.js';
+	import { api } from '../../../../../../routes/api/helper/api-helper.js';
 
 	// Register Chart.js components
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Title);
 
 	let chartCanvas = $state();
 	let chartInstance;
+	let aiAnalysis = $state('');
+	let displayedText = $state('');
+	let aiLoading = $state(false);
+	let aiError = $state(null);
+	let typingInterval;
 
 	// Subscribe to store for this chart
 	let chartState = $derived($dashboardStore.charts.sectionsPerGrade);
@@ -16,15 +22,87 @@
 	let chartData = $derived(chartState.data);
 
 	const gradeLevels = ['7', '8', '9', '10'];
+	const CACHE_KEY = 'sectionsPerGrade_aiAnalysis';
+	const CACHE_DATA_KEY = 'sectionsPerGrade_cachedData';
 
 	// Create chart when data is available (always with animation since no cache)
 	$effect(() => {
 		if (chartData && !loading && chartCanvas) {
 			setTimeout(() => {
 				createChart(chartData);
+				generateAIAnalysis(chartData);
 			}, 0);
 		}
 	});
+
+	// Generate AI analysis
+	async function generateAIAnalysis(data) {
+		// Check if data has changed
+		const cachedData = localStorage.getItem(CACHE_DATA_KEY);
+		const currentData = JSON.stringify(data);
+		
+		if (cachedData === currentData) {
+			// Data hasn't changed, load cached analysis with typing animation
+			const cached = localStorage.getItem(CACHE_KEY);
+			if (cached) {
+				aiAnalysis = cached;
+				startTypingAnimation(cached);
+				return;
+			}
+		}
+
+		try {
+			aiLoading = true;
+			aiError = null;
+
+			// Transform data for analysis
+			const transformedData = gradeLevels.map((level) => {
+				const sectionData = data.find(d => d.grade_level === level);
+				return { grade: level, sections: sectionData ? sectionData.section_count : 0 };
+			});
+
+			const response = await api.post('/api/ai-analysis', {
+				data: transformedData,
+				type: 'sectionsPerGrade'
+			});
+
+			if (response.success) {
+				const analysis = response.analysis;
+				
+				// Cache the analysis and data
+				localStorage.setItem(CACHE_KEY, analysis);
+				localStorage.setItem(CACHE_DATA_KEY, currentData);
+				
+				aiAnalysis = analysis;
+				// Start typing animation
+				startTypingAnimation(analysis);
+			} else {
+				throw new Error(response.error || 'Failed to generate AI analysis');
+			}
+		} catch (err) {
+			console.error('AI Analysis Error:', err);
+			aiError = 'Unable to generate insights';
+		} finally {
+			aiLoading = false;
+		}
+	}
+
+	// Typing animation function
+	function startTypingAnimation(text) {
+		if (typingInterval) clearInterval(typingInterval);
+		displayedText = '';
+		let index = 0;
+		const speed = 5; // milliseconds per character
+		
+		typingInterval = setInterval(() => {
+			if (index < text.length) {
+				displayedText += text[index];
+				index++;
+			} else {
+				clearInterval(typingInterval);
+			}
+		}, speed);
+	}
 
 	function createChart(data) {
 		// Check if canvas is available
@@ -170,6 +248,9 @@
 		if (chartInstance) {
 			chartInstance.destroy();
 		}
+		if (typingInterval) {
+			clearInterval(typingInterval);
+		}
 	});
 </script>
 
@@ -186,6 +267,26 @@
 		</div>
 	{:else}
 		<canvas bind:this={chartCanvas}></canvas>
+	{/if}
+</div>
+
+<!-- AI Insights Section -->
+<div class="ai-insights-container">
+	{#if aiLoading}
+		<div class="ai-loading">
+			<div class="ai-loader"></div>
+			<p>Generating insights...</p>
+		</div>
+	{:else if aiError}
+		<div class="ai-error">
+			<p>{aiError}</p>
+		</div>
+	{:else if aiAnalysis}
+		<div class="ai-content">
+			<div class="ai-header">
+			</div>
+			<p class="ai-text">{displayedText}</p>
+		</div>
 	{/if}
 </div>
 
@@ -250,5 +351,63 @@
 	.chart-error .material-symbols-outlined {
 		font-size: 48px;
 		color: var(--md-sys-color-error);
+	}
+
+	.ai-insights-container {
+		margin-top: var(--spacing-md);
+		min-height: 60px;
+	}
+
+	.ai-loading,
+	.ai-error {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-md);
+		background-color: var(--md-sys-color-surface-container-high);
+		border-radius: var(--radius-md);
+		color: var(--md-sys-color-on-surface-variant);
+		border: 2px solid var(--md-sys-color-outline-variant);
+		min-height: 180px;
+		max-height: 180px;
+	}
+
+	.ai-loading .ai-loader {
+		width: 20px;
+		height: 20px;
+		border: 2px solid var(--md-sys-color-outline-variant);
+		border-top: 2px solid var(--md-sys-color-primary);
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	.ai-error {
+		color: var(--md-sys-color-error);
+	}
+
+	.ai-content {
+		padding: var(--spacing-md);
+		background-color: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+		box-shadow: var(--elevation-1);
+		min-height: 180px;
+		max-height: 180px;
+	}
+
+	.ai-header {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.ai-text {
+		margin: 0;
+		font-family: var(--md-sys-typescale-body-medium-font);
+		font-size: var(--md-sys-typescale-body-medium-size);
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.5;
 	}
 </style>
