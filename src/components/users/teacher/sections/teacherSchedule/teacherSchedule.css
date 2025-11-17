@@ -226,7 +226,8 @@
 	border-color: var(--accent, var(--md-sys-color-primary));
 	outline: 3px solid rgba(0,0,0,0);
 	box-shadow: 0 0 0 3px var(--accent, var(--md-sys-color-primary)), 0 6px 18px rgba(0, 0, 0, 0.12);
-	animation: currentPulse 2s infinite;
+	animation: slideInUp 0.5s ease-out backwards, currentPulse 2s infinite;
+	animation-delay: calc(var(--card-index) * 0.1s), 0.5s;
 }
 
 /* Increase font-weight for highlighted teacher cards */
