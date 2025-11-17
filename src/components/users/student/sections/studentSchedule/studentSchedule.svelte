@@ -26,6 +26,9 @@
 	const todayIndex = today.getDay();
 	let selectedDay = dayIndexToAbbrev[todayIndex] || 'Mon'; // Default to Monday if weekend
 
+	let currentTime = new Date();
+	let timeInterval;
+
 	// Subscribe to the store
 	$: ({ scheduleData, isLoading, isRefreshing, error, lastUpdated } = $studentScheduleStore);
 
@@ -55,9 +58,15 @@
 				}
 			}, 5 * 60 * 1000); // 5 minutes
 
-			// Cleanup interval on component destroy
+			// Set up time update every minute
+			timeInterval = setInterval(() => {
+				currentTime = new Date();
+			}, 60000); // 1 minute
+
+			// Cleanup intervals on component destroy
 			return () => {
 				clearInterval(refreshInterval);
+				clearInterval(timeInterval);
 			};
 		}
 	});
@@ -83,6 +92,9 @@
 	// Reactive statements
 	$: currentClasses = scheduleData[selectedDay] || [];
 	$: fullDayName = dayNameMap[selectedDay] || 'Monday';
+	// Use the live currentTime (updates every minute) to compute whether the selected day is today
+	$: currentWeekdayAbbrev = dayIndexToAbbrev[currentTime.getDay()];
+	$: isToday = currentWeekdayAbbrev === selectedDay;
 	
 	// Add animation key to trigger re-render on day change
 	let animationKey = 0;
@@ -111,6 +123,48 @@
 	function selectDay(day) {
 		selectedDay = day;
 		isDropdownOpen = false;
+	}
+
+	// Check if current time is within class time
+	function isCurrentClass(timeString) {
+		if (!isToday || !timeString) return false;
+		// Normalize common dash types and NBSPs, then extract start/end
+		const normalized = timeString.replace(/\u00A0/g, ' ').trim();
+		const dashMatch = normalized.match(/(.*?)\s*[-–—]\s*(.*)/);
+		let startStr, endStr;
+		if (dashMatch) {
+			startStr = dashMatch[1];
+			endStr = dashMatch[2];
+		} else {
+			// Fallback: try splitting on simple hyphen with spaces
+			const parts = normalized.split(' - ');
+			if (parts.length === 2) {
+				startStr = parts[0];
+				endStr = parts[1];
+			} else {
+				return false;
+			}
+		}
+		startStr = startStr.trim();
+		endStr = endStr.trim();
+		if (!startStr || !endStr) return false;
+		const startMinutes = parseTimeToMinutes(startStr);
+		const endMinutes = parseTimeToMinutes(endStr);
+		const now = currentTime;
+		const nowMinutes = now.getHours() * 60 + now.getMinutes();
+		return nowMinutes >= startMinutes && nowMinutes < endMinutes;
+	}
+
+	// Parse time string to minutes since midnight
+	function parseTimeToMinutes(timeStr) {
+		const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+		if (!match) return 0;
+		let hours = parseInt(match[1]);
+		const minutes = parseInt(match[2]);
+		const ampm = match[3].toUpperCase();
+		if (ampm === 'PM' && hours !== 12) hours += 12;
+		if (ampm === 'AM' && hours === 12) hours = 0;
+		return hours * 60 + minutes;
 	}
 </script>
 
@@ -196,7 +250,7 @@
 			{#key animationKey}
 				<div class="classes-list">
 					{#each currentClasses as classItem, index}
-						<div class="class-card {classItem.color}" style="--card-index: {index};">
+						<div class="class-card {classItem.color} {isCurrentClass(classItem.time) ? 'current' : ''}" style="--card-index: {index};">
 							<div class="class-header">
 								<h3 class="class-name">{classItem.name}</h3>
 								<span class="class-time">{classItem.time}</span>
