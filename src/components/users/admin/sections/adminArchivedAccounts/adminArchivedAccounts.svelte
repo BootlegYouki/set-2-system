@@ -12,10 +12,13 @@
 	let searchQuery = '';
 	let selectedGradeLevel = '';
 	let selectedAccountType = ''; // New filter for account type
+	let selectedDepartment = ''; // New filter for department
+	let departmentOptions = []; // Departments loaded from database
 
 	// Dropdown states
 	let isGradeLevelDropdownOpen = false;
 	let isAccountTypeDropdownOpen = false; // New dropdown state
+	let isDepartmentDropdownOpen = false; // New dropdown state for departments
 
 	// Account type options
 	const accountTypeOptions = [
@@ -36,6 +39,7 @@
 	// Computed values
 	$: selectedAccountTypeObj = accountTypeOptions.find((type) => type.id === selectedAccountType);
 	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
+	$: selectedDepartmentObj = departmentOptions.find((dept) => dept.id === selectedDepartment);
 
 	// Load archived accounts data
 	async function loadArchivedAccounts() {
@@ -74,7 +78,27 @@
 		}
 	}
 
-	// Filter accounts based on search query, account type, grade level, and section
+	// Load departments from database
+	async function loadDepartments() {
+		try {
+			const data = await api.get('/api/departments');
+			if (data.success && data.data) {
+				departmentOptions = [
+					{ id: '', name: 'All Departments', icon: 'corporate_fare' },
+					...data.data.map((dept) => ({
+						id: dept.id,
+						name: dept.name,
+						icon: 'corporate_fare'
+					}))
+				];
+			}
+		} catch (error) {
+			console.error('Error loading departments:', error);
+			toastStore.error('Failed to load departments.');
+		}
+	}
+
+	// Filter accounts based on search query, account type, grade level, and department
 	function filterAccounts() {
 		filteredAccounts = accounts.filter((account) => {
 			const matchesSearch =
@@ -87,7 +111,40 @@
 
 			const matchesGradeLevel = !selectedGradeLevel || account.gradeLevel === selectedGradeLevel;
 
-			return matchesSearch && matchesAccountType && matchesGradeLevel;
+			// For departments, match against account.department field using the selected department's name
+			let matchesDepartment = true;
+			if (selectedDepartment && selectedDepartmentObj) {
+				// Match account department with the selected department name
+				const matches = account.department === selectedDepartmentObj.name;
+				console.log(`Comparing account dept "${account.department}" with selected dept "${selectedDepartmentObj.name}": ${matches}`);
+				matchesDepartment = matches;
+			}
+
+			return matchesSearch && matchesAccountType && matchesGradeLevel && matchesDepartment;
+		});
+	}
+
+	// Filter accounts with a specific department object (used when selecting from dropdown)
+	function filterAccountsWithDepartment(departmentObj) {
+		filteredAccounts = accounts.filter((account) => {
+			const matchesSearch =
+				!searchQuery ||
+				account.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				account.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(account.number && account.number.toLowerCase().includes(searchQuery.toLowerCase()));
+
+			const matchesAccountType = !selectedAccountType || account.accountType === selectedAccountType;
+
+			const matchesGradeLevel = !selectedGradeLevel || account.gradeLevel === selectedGradeLevel;
+
+			// For departments, match against account.department field using the passed department object
+			let matchesDepartment = true;
+			if (departmentObj.id) {
+				// Match account department with the selected department name
+				matchesDepartment = account.department === departmentObj.name;
+			}
+
+			return matchesSearch && matchesAccountType && matchesGradeLevel && matchesDepartment;
 		});
 	}
 
@@ -95,16 +152,27 @@
 	function toggleAccountTypeDropdown() {
 		isAccountTypeDropdownOpen = !isAccountTypeDropdownOpen;
 		isGradeLevelDropdownOpen = false;
+		isDepartmentDropdownOpen = false;
 	}
 
 	function toggleGradeLevelDropdown() {
 		isGradeLevelDropdownOpen = !isGradeLevelDropdownOpen;
 		isAccountTypeDropdownOpen = false;
+		isDepartmentDropdownOpen = false;
+	}
+
+	function toggleDepartmentDropdown() {
+		isDepartmentDropdownOpen = !isDepartmentDropdownOpen;
+		isAccountTypeDropdownOpen = false;
+		isGradeLevelDropdownOpen = false;
 	}
 
 	function selectAccountType(accountType) {
 		selectedAccountType = accountType.id;
 		isAccountTypeDropdownOpen = false;
+		// Reset grade level and department when switching account types
+		selectedGradeLevel = '';
+		selectedDepartment = '';
 		filterAccounts();
 	}
 
@@ -112,6 +180,13 @@
 		selectedGradeLevel = gradeLevel.id;
 		isGradeLevelDropdownOpen = false;
 		filterAccounts();
+	}
+
+	function selectDepartment(department) {
+		selectedDepartment = department.id;
+		isDepartmentDropdownOpen = false;
+		// Call filterAccounts with the department object to ensure correct comparison
+		filterAccountsWithDepartment(department);
 	}
 
 	// Calculate age from birthdate
@@ -180,6 +255,7 @@
 		searchQuery = '';
 		selectedAccountType = '';
 		selectedGradeLevel = '';
+		selectedDepartment = '';
 		filterAccounts();
 	}
 
@@ -191,11 +267,13 @@
 		if (!event.target.closest('.aas-custom-dropdown')) {
 			isAccountTypeDropdownOpen = false;
 			isGradeLevelDropdownOpen = false;
+			isDepartmentDropdownOpen = false;
 		}
 	}
 
 	onMount(() => {
 		loadArchivedAccounts();
+		loadDepartments();
 		document.addEventListener('click', handleClickOutside);
 
 		return () => {
@@ -276,48 +354,93 @@
 						</div>
 					</div>
 				</div>
-				<!-- Grade Level Filter -->
-				<div class="filter-group">
-					<label class="filter-label" for="archived-grade-level-dropdown">Grade Level</label>
-					<div class="aas-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
-						<button
-							type="button"
-							id="archived-grade-level-dropdown"
-							class="aas-dropdown-trigger aas-filter-trigger"
-							on:click={toggleGradeLevelDropdown}
-						>
-							{#if selectedGradeLevelObj && selectedGradeLevel}
-								<div class="aas-selected-option">
-									<span class="material-symbols-outlined aas-option-icon"
-										>{selectedGradeLevelObj.icon}</span
-									>
-									<span class="aas-option-name">{selectedGradeLevelObj.name}</span>
-								</div>
-							{:else}
-								<span class="aas-placeholder">All Grade Levels</span>
-							{/if}
-							<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
-						</button>
-						<div class="aas-dropdown-menu">
-							{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
-								<button
-									type="button"
-									class="aas-dropdown-option"
-									class:selected={selectedGradeLevel === gradeLevel.id}
-									on:click={() => selectGradeLevel(gradeLevel)}
-								>
-									<span class="material-symbols-outlined aas-option-icon">{gradeLevel.icon}</span>
-									<div class="aas-option-content">
-										<span class="aas-option-name">{gradeLevel.name}</span>
+
+				<!-- Grade Level Filter (only show for students) -->
+				{#if selectedAccountType === 'student'}
+					<div class="filter-group">
+						<label class="filter-label" for="archived-grade-level-dropdown">Grade Level</label>
+						<div class="aas-custom-dropdown" class:open={isGradeLevelDropdownOpen}>
+							<button
+								type="button"
+								id="archived-grade-level-dropdown"
+								class="aas-dropdown-trigger aas-filter-trigger"
+								on:click={toggleGradeLevelDropdown}
+							>
+								{#if selectedGradeLevelObj && selectedGradeLevel}
+									<div class="aas-selected-option">
+										<span class="material-symbols-outlined aas-option-icon"
+											>{selectedGradeLevelObj.icon}</span
+										>
+										<span class="aas-option-name">{selectedGradeLevelObj.name}</span>
 									</div>
-								</button>
-							{/each}
+								{:else}
+									<span class="aas-placeholder">All Grade Levels</span>
+								{/if}
+								<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
+							</button>
+							<div class="aas-dropdown-menu">
+								{#each gradeLevelOptions as gradeLevel (gradeLevel.id)}
+									<button
+										type="button"
+										class="aas-dropdown-option"
+										class:selected={selectedGradeLevel === gradeLevel.id}
+										on:click={() => selectGradeLevel(gradeLevel)}
+									>
+										<span class="material-symbols-outlined aas-option-icon">{gradeLevel.icon}</span>
+										<div class="aas-option-content">
+											<span class="aas-option-name">{gradeLevel.name}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
 						</div>
 					</div>
-				</div>
+				{/if}
+
+				<!-- Department Filter (only show for teachers) -->
+				{#if selectedAccountType === 'teacher'}
+					<div class="filter-group">
+						<label class="filter-label" for="archived-department-dropdown">Department</label>
+						<div class="aas-custom-dropdown" class:open={isDepartmentDropdownOpen}>
+							<button
+								type="button"
+								id="archived-department-dropdown"
+								class="aas-dropdown-trigger aas-filter-trigger"
+								on:click={toggleDepartmentDropdown}
+							>
+								{#if selectedDepartmentObj && selectedDepartment}
+									<div class="aas-selected-option">
+										<span class="material-symbols-outlined aas-option-icon"
+											>{selectedDepartmentObj.icon}</span
+										>
+										<span class="aas-option-name">{selectedDepartmentObj.name}</span>
+									</div>
+								{:else}
+									<span class="aas-placeholder">All Departments</span>
+								{/if}
+								<span class="material-symbols-outlined aas-dropdown-arrow">expand_more</span>
+							</button>
+							<div class="aas-dropdown-menu">
+								{#each departmentOptions as department (department.id)}
+									<button
+										type="button"
+										class="aas-dropdown-option"
+										class:selected={selectedDepartment === department.id}
+										on:click={() => selectDepartment(department)}
+									>
+										<span class="material-symbols-outlined aas-option-icon">{department.icon}</span>
+										<div class="aas-option-content">
+											<span class="aas-option-name">{department.name}</span>
+										</div>
+									</button>
+								{/each}
+							</div>
+						</div>
+					</div>
+				{/if}
 
 				<!-- Clear Filters Button -->
-				{#if searchQuery || selectedAccountType || selectedGradeLevel}
+				{#if searchQuery || selectedAccountType || selectedGradeLevel || selectedDepartment}
 					<button type="button" class="clear-filters-button" on:click={clearFilters}>
 						<span class="material-symbols-outlined">filter_alt_off</span>
 					</button>
