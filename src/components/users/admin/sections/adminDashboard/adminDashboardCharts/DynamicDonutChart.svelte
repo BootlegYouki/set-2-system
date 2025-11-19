@@ -752,5 +752,31 @@
 		color: var(--md-sys-color-on-surface);
 		line-height: 1.5;
 	}
+
+	.system-loader {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--md-sys-color-primary);
+  box-shadow: 32px 0 var(--md-sys-color-primary), -32px 0 var(--md-sys-color-primary);
+  position: relative;
+  animation: system-load 0.5s ease-out infinite alternate;
+  margin: var(--spacing-md);
+}
+
+@keyframes system-load {
+  0% {
+    background-color: var(--md-sys-color-primary-container);
+    box-shadow: 32px 0 var(--md-sys-color-primary-container), -32px 0 var(--md-sys-color-primary);
+  }
+  50% {
+    background-color: var(--md-sys-color-primary);
+    box-shadow: 32px 0 var(--md-sys-color-primary-container), -32px 0 var(--md-sys-color-primary-container);
+  }
+  100% {
+    background-color: var(--md-sys-color-primary-container);
+    box-shadow: 32px 0 var(--md-sys-color-primary), -32px 0 var(--md-sys-color-primary-container);
+  }
+}
 </style>
 
