@@ -113,7 +113,6 @@
     await authStore.logout();
     activeSection = 'grades'; // Reset to default section
     teacherActiveSection = 'students'; // Reset teacher section
-    adminActiveSection = 'dashboard'; // Reset admin section
   }
 
   // Reactive title based on auth state
