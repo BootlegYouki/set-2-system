@@ -91,49 +91,63 @@ function createTeacherProfileStore() {
 					error: null
 				}));
 
-				// Fetch teacher data from accounts API
-				const response = await api.get(`/api/accounts?type=teacher&limit=1000`);
-				
-				if (!response.success) {
-					throw new Error(response.message || 'Failed to fetch teacher data');
-				}
+				// Ensure teacherId is a string for comparison
+				const teacherIdStr = String(teacherId);
+				console.log('Loading teacher profile for ID:', teacherIdStr);
 
-				// Find the current user's data in the accounts list
-				const currentUserData = response.accounts.find(account => 
-					account.id === teacherId || 
-					account.number === teacherId
-				);
-
-				if (!currentUserData) {
-					throw new Error('Teacher data not found');
-				}
-
-				// Fetch additional teacher profile data
+				let currentUserData = null;
 				let teacherProfileData = null;
-				try {
-					const profileResponse = await api.get(`/api/teacher-profile?teacherId=${teacherId}`);
-					if (profileResponse.success) {
-						teacherProfileData = profileResponse.data;
-					}
-				} catch (err) {
-					// Don't throw error here as basic profile should still work
-					console.warn('Failed to fetch teacher profile data:', err);
+				let teacherSections = [];
+
+				// Fetch teacher profile data which includes basic info
+				const profileResponse = await api.get(`/api/teacher-profile?teacherId=${teacherIdStr}`);
+				
+				console.log('Profile response:', profileResponse);
+				
+				if (!profileResponse.success || !profileResponse.data) {
+					throw new Error(profileResponse.error || 'Failed to fetch teacher profile');
 				}
 
+				const profileData = profileResponse.data;
+
+				// Extract basic teacher data from the profile response
+				currentUserData = {
+					id: profileData.teacher.id,
+					name: profileData.teacher.full_name,
+					firstName: profileData.teacher.full_name.split(' ')[0],
+					lastName: profileData.teacher.full_name.split(' ').slice(1).join(' '),
+					middleInitial: '',
+					email: profileData.teacher.email,
+					type: 'Teacher',
+					number: teacherIdStr,
+					position: profileData.teacher.position || 'Teacher',
+					department: profileData.teacher.department || 'Not assigned',
+					contactNumber: 'Not available',
+					address: 'Not available',
+					birthdate: null,
+					age: 'Not available',
+					gender: 'Not available',
+					createdDate: 'Not available',
+					updatedDate: 'Not available',
+					status: 'active'
+				};
+
+				// Use the profile data for subjects
+				teacherProfileData = {
+					subjects: profileData.subjects || [],
+					classes: [],
+					sections: profileData.sections || []
+				};
+				
 				// Fetch teacher sections
-				let teacherSections = [];
 				try {
 					// Fetch current school year from admin settings
-					const currentQuarterResponse = await fetch('/api/current-quarter');
-					const currentQuarterData = await currentQuarterResponse.json();
+					const currentQuarterData = await api.get('/api/current-quarter');
 					const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 
-					const sectionsResponse = await fetch(`/api/teacher-sections?teacherId=${teacherId}&schoolYear=${schoolYear}`);
-					if (sectionsResponse.ok) {
-						const result = await sectionsResponse.json();
-						if (result.success) {
-							teacherSections = result.data.classData || [];
-						}
+					const sectionsResponse = await api.get(`/api/teacher-sections?teacherId=${teacherIdStr}&schoolYear=${schoolYear}`);
+					if (sectionsResponse.success) {
+						teacherSections = sectionsResponse.data?.classData || [];
 					}
 				} catch (err) {
 					// Don't throw error here as basic profile should still work

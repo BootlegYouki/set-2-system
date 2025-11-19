@@ -38,7 +38,6 @@
 	let showConfirmModal = $state(false);
 	let showRejectModal = $state(false);
 	let showReceiptModal = $state(false);
-	let isPaymentEditable = $state(false);
 	let paymentStatus = $state('pending'); // 'paid' or 'pending'
 
 	// Get messages from the request
@@ -463,11 +462,6 @@
 		}
 	}
 
-	// Toggle payment edit mode
-	function togglePaymentEdit() {
-		isPaymentEditable = !isPaymentEditable;
-	}
-
 	// Toggle payment status
 	function togglePaymentStatus() {
 		paymentStatus = paymentStatus === 'paid' ? 'pending' : 'paid';
@@ -584,54 +578,55 @@
 				<div class="admin-card-value">{selectedRequest.documentType}</div>
 			</div>
 
+			
+			<!-- Status card with dropdown -->
+			<div class="docreq-card">
+				<div class="card-label">
+					<span class="material-symbols-outlined">info</span> Status
+				</div>
+				<div class="admin-card-value">
+					<div
+						class="docreq-status-dropdown"
+						class:open={isModalStatusDropdownOpen}
+						aria-haspopup="listbox"
+						aria-expanded={isModalStatusDropdownOpen}
+					>
+						<button
+							class="docreq-status-dropdown-trigger"
+							onclick={toggleModalStatusDropdown}
+							aria-label="Change status"
+							disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
+						>
+							<span class="docreq-status-dropdown-label">{modalCurrentStatusName}</span>
+							<span class="material-symbols-outlined docreq-status-dropdown-caret">
+								{isModalStatusDropdownOpen ? 'expand_less' : 'expand_more'}
+							</span>
+						</button>
+
+						<div class="docreq-status-dropdown-menu" role="listbox" aria-label="Select status">
+							{#each modalStatuses as st (st.id)}
+								<button
+									type="button"
+									class="docreq-status-item"
+									onclick={() => selectModalStatus(st.id)}
+									role="option"
+									aria-selected={selectedRequest.status === st.id}
+								>
+									<span class="status-dot {st.id}"></span>
+									<span class="status-text">{st.name}</span>
+								</button>
+							{/each}
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<div class="docreq-card">
 				<div class="card-label">
 					<span class="material-symbols-outlined">account_circle</span> Processed By
 				</div>
 				<div class="admin-card-value">{selectedRequest.processedBy ?? '—'}</div>
 			</div>
-
-			<!-- Status card with dropdown -->
-				<div class="docreq-card">
-					<div class="card-label">
-						<span class="material-symbols-outlined">info</span> Status
-					</div>
-					<div class="admin-card-value">
-						<div
-							class="docreq-status-dropdown"
-							class:open={isModalStatusDropdownOpen}
-							aria-haspopup="listbox"
-							aria-expanded={isModalStatusDropdownOpen}
-						>
-							<button
-								class="docreq-status-dropdown-trigger"
-								onclick={toggleModalStatusDropdown}
-								aria-label="Change status"
-								disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
-							>
-								<span class="docreq-status-dropdown-label">{modalCurrentStatusName}</span>
-								<span class="material-symbols-outlined docreq-status-dropdown-caret">
-									{isModalStatusDropdownOpen ? 'expand_less' : 'expand_more'}
-								</span>
-							</button>
-
-							<div class="docreq-status-dropdown-menu" role="listbox" aria-label="Select status">
-								{#each modalStatuses as st (st.id)}
-									<button
-										type="button"
-										class="docreq-status-item"
-										onclick={() => selectModalStatus(st.id)}
-										role="option"
-										aria-selected={selectedRequest.status === st.id}
-									>
-										<span class="status-dot {st.id}"></span>
-										<span class="status-text">{st.name}</span>
-									</button>
-								{/each}
-							</div>
-						</div>
-					</div>
-				</div>
 
 		<!-- Tentative Date card -->
 		{#if selectedRequest.tentativeDate}
@@ -647,6 +642,16 @@
 		</div>
 		{/if}
 
+		<!-- Quantity card -->
+		<div class="docreq-card">
+			<div class="card-label">
+				<span class="material-symbols-outlined">numbers</span> Quantity
+			</div>
+			<div class="admin-card-value">
+				{selectedRequest.quantity + ` Copies` ?? '—'} 
+			</div>
+		</div>
+
 		<!-- Payment Amount card -->
 		<div class="docreq-card">
 			<div class="card-label">
@@ -654,27 +659,13 @@
 			</div>
 			<div class="admin-card-value">
 				<div class="payment-display-container">
-					{#if isPaymentEditable}
-						<div class="payment-input-wrapper">
-							<span class="currency-symbol">₱</span>
-							<input
-								type="number"
-								class="payment-input"
-								bind:value={selectedRequest.paymentAmount}
-								min="0"
-								step="0.01"
-								placeholder="Set fee amount..."
-							/>
-						</div>
-					{:else}
-						<div class="payment-readonly {(request?.status !== 'cancelled' && request?.status !== 'rejected' && selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined) ? paymentStatus : ''}">
-							{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
-								₱{selectedRequest.paymentAmount}
-							{:else}
-								<span class="not-set">Not set</span>
-							{/if}
-						</div>
-					{/if}
+					<div class="payment-readonly {(request?.status !== 'cancelled' && request?.status !== 'rejected' && selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined) ? paymentStatus : ''}">
+						{#if selectedRequest.paymentAmount !== null && selectedRequest.paymentAmount !== undefined}
+							₱{selectedRequest.paymentAmount.toFixed(2)}
+						{:else}
+							<span class="not-set">Not set</span>
+						{/if}
+					</div>
 					<div class="payment-actions">
 						<button 
 							class="payment-status-toggle {paymentStatus === 'paid' ? 'pending' : 'paid'}" 
@@ -695,17 +686,6 @@
 						>
 							<span class="material-symbols-outlined">
 								{paymentStatus === 'paid' ? 'cancel' : 'check_circle'}
-							</span>
-						</button>
-						<button 
-							class="payment-edit-btn" 
-							onclick={togglePaymentEdit}
-							title={isPaymentEditable ? 'Save' : 'Edit payment amount'}
-							aria-label={isPaymentEditable ? 'Save' : 'Edit payment amount'}
-							disabled={savedStatus === 'cancelled' || savedStatus === 'rejected' || savedStatus === 'released' || savedPaymentStatus === 'paid'}
-						>
-							<span class="material-symbols-outlined">
-								{isPaymentEditable ? 'check' : 'edit'}
 							</span>
 						</button>
 					</div>
@@ -1161,16 +1141,18 @@
 		min-width: 250px;
 	}
 
-	/* First row: 2 cards (Document Type, Processed By) */
+	/* First row: 3 cards (Document Type, Status, Processed By) */
 	.docreq-card:nth-child(1),
-	.docreq-card:nth-child(2) {
-		flex: 1 1 calc(50% - var(--spacing-md) / 2);
+	.docreq-card:nth-child(2),
+	.docreq-card:nth-child(3) {
+		flex: 1 1 calc(33.333% - var(--spacing-md) * 2 / 3);
+		min-width: 200px;
 	}
 
-	/* Second row: 3 cards (Status, Tentative Date if shown, Payment Amount) */
-	.docreq-card:nth-child(3),
+	/* Second row: Tentative Date (when shown), Quantity, and Payment Amount - 3 cards */
 	.docreq-card:nth-child(4),
-	.docreq-card:nth-child(5) {
+	.docreq-card:nth-child(5),
+	.docreq-card:nth-child(6) {
 		flex: 1 1 calc(33.333% - var(--spacing-md) * 2 / 3);
 		min-width: 200px;
 	}
@@ -1999,118 +1981,6 @@
 	.payment-status-toggle:disabled:hover {
 		transform: none;
 		box-shadow: none;
-	}
-
-	/* Payment Edit Button */
-	.payment-edit-btn {
-		background: var(--md-sys-color-surface);
-		border: 1px solid var(--md-sys-color-outline-variant);
-		padding: 8px;
-		border-radius: var(--radius-md);
-		color: var(--md-sys-color-on-primary-container);
-		cursor: pointer;
-		transition: all var(--transition-fast);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 40px;
-		min-height: 40px;
-		flex-shrink: 0;
-	}
-
-	.payment-edit-btn:hover {
-		background: var(--md-sys-color-surface-container);
-		color: var(--md-sys-color-on-surface);
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-	}
-
-	.payment-edit-btn:active {
-		transform: scale(0.95);
-	}
-
-	.payment-edit-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-		background: var(--md-sys-color-surface-variant);
-		color: var(--md-sys-color-on-surface-variant);
-	}
-
-	.payment-edit-btn:disabled:hover {
-		transform: none;
-		box-shadow: none;
-	}
-
-	.payment-edit-btn .material-symbols-outlined {
-		font-size: 20px;
-	}
-
-	/* Payment Input */
-	.payment-input-wrapper {
-		display: flex;
-		align-items: center;
-		background: var(--md-sys-color-surface);
-		border: 1px solid var(--md-sys-color-primary);
-		border-radius: var(--radius-md);
-		padding: 8px 12px;
-		flex: 1;
-		transition: all var(--transition-fast);
-	}
-
-	.payment-input-wrapper:hover {
-		background: var(--md-sys-color-surface-container);
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	}
-
-	.payment-input-wrapper:focus-within {
-		border-color: var(--md-sys-color-primary);
-		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-		background: var(--md-sys-color-surface);
-	}
-
-	.currency-symbol {
-		font-weight: 600;
-		color: var(--md-sys-color-on-surface);
-		font-size: 0.95rem;
-		line-height: 1.5;
-		margin-right: 0;
-		display: flex;
-		align-items: center;
-	}
-
-	.payment-input {
-		flex: 1;
-		border: none;
-		background: transparent;
-		color: var(--md-sys-color-on-surface);
-		font-weight: 600;
-		font-family: inherit;
-		padding: 0;
-		margin: 0;
-		outline: none;
-		width: 100%;
-		min-width: 0;
-		height: auto;
-		font-size: 0.95rem;
-		line-height: 1.5;
-		vertical-align: baseline;
-	}
-
-	.payment-input::placeholder {
-		color: var(--md-sys-color-on-surface-variant);
-		opacity: 0.5;
-	}
-
-	/* Remove number input arrows */
-	.payment-input::-webkit-outer-spin-button,
-	.payment-input::-webkit-inner-spin-button {
-		-webkit-appearance: none;
-		appearance: none;
-		margin: 0;
-	}
-
-	.payment-input[type=number] {
-		-moz-appearance: textfield;
-		appearance: textfield;
 	}
 
 	/* Responsive */

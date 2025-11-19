@@ -210,7 +210,7 @@
 <div class="chart-container">
 	{#if loading}
 		<div class="chart-loading">
-			<div class="chart-loader"></div>
+			<div class="system-loader"></div>
 			<p>Loading chart data...</p>
 		</div>
 	{:else if error}
@@ -267,15 +267,6 @@
 
 	.chart-error p {
 		color: var(--md-sys-color-on-surface);
-	}
-
-	.chart-loader {
-		width: 40px;
-		height: 40px;
-		border: 4px solid var(--md-sys-color-outline-variant);
-		border-top: 4px solid var(--md-sys-color-primary);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
 	}
 
 	@keyframes spin {

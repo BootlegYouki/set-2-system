@@ -96,7 +96,7 @@ export async function POST({ request, getClientAddress }) {
     }
     
     // Send confirmation email (async, don't wait)
-    import('../../helper/email-helper.js').then(({ sendPasswordResetConfirmationEmail }) => {
+    import('../../helper/password-reset-email.js').then(({ sendPasswordResetConfirmationEmail }) => {
       sendPasswordResetConfirmationEmail({
         email: user.email,
         fullName: user.full_name,

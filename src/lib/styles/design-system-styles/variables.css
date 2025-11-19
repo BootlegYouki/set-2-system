@@ -77,23 +77,23 @@
   --md-sys-color-on-error-container: #b71c1c;
   
   /* Typography Scale */
-  --md-sys-typescale-display-large-font: 'Roboto', sans-serif;
+  --md-sys-typescale-display-large-font: 'Poppins', sans-serif;
   --md-sys-typescale-display-large-size: 57px;
   --md-sys-typescale-display-large-weight: 400;
   
-  --md-sys-typescale-headline-large-font: 'Roboto', sans-serif;
+  --md-sys-typescale-headline-large-font: 'Poppins', sans-serif;
   --md-sys-typescale-headline-large-size: 32px;
   --md-sys-typescale-headline-large-weight: 400;
   
-  --md-sys-typescale-title-large-font: 'Roboto', sans-serif;
+  --md-sys-typescale-title-large-font: 'Poppins', sans-serif;
   --md-sys-typescale-title-large-size: 22px;
   --md-sys-typescale-title-large-weight: 500;
   
-  --md-sys-typescale-body-large-font: 'Roboto', sans-serif;
+  --md-sys-typescale-body-large-font: 'Poppins', sans-serif;
   --md-sys-typescale-body-large-size: 16px;
   --md-sys-typescale-body-large-weight: 400;
   
-  --md-sys-typescale-label-large-font: 'Roboto', sans-serif;
+  --md-sys-typescale-label-large-font: 'Poppins', sans-serif;
   --md-sys-typescale-label-large-size: 14px;
   --md-sys-typescale-label-large-weight: 500;
   
