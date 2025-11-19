@@ -126,7 +126,7 @@ export async function POST({ request, getClientAddress }) {
     
     // Block admin login by account type
     if (user.account_type === 'admin') {
-      return json({ error: 'Admin login is not allowed' }, { status: 403 });
+      return json({ error: 'Invalid Account' }, { status: 403 });
     }
     
     // Verify password
