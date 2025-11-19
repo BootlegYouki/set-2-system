@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { authStore } from '../../../../../login/js/auth.js';
+  import { api } from '../../../../../../routes/api/helper/api-helper.js';
   import './teacherClassSelection.css';
   import CountUp from '../../../../../common/CountUp.svelte';
   
@@ -82,12 +83,11 @@
       const teacherId = authState.userData.id;
       
       // Fetch current school year from admin settings
-      const currentQuarterResponse = await fetch('/api/current-quarter');
-      const currentQuarterData = await currentQuarterResponse.json();
+      const currentQuarterData = await api.get('/api/current-quarter');
       const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
 
-      const response = await fetch(`/api/teacher-sections?teacherId=${teacherId}&schoolYear=${schoolYear}`);
-      const result = await response.json();
+      // Use api helper to include authentication headers
+      const result = await api.get(`/api/teacher-sections?teacherId=${teacherId}&schoolYear=${schoolYear}`);
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch teacher sections');

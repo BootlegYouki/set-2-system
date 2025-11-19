@@ -7,6 +7,11 @@
 	// Navigation items
 	const allNavigationItems = [
 		{
+			id: 'schedule',
+			label: 'Schedule',
+			icon: 'schedule'
+		},
+		{
 			id: 'students',
 			label: 'Class Management',
 			icon: 'group'

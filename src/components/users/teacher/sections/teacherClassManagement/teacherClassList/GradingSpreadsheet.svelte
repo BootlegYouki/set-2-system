@@ -1588,7 +1588,7 @@
   {#if isSpreadsheetLoading}
     <div class="spreadsheet-loading-overlay">
       <div class="spreadsheet-loader">
-        <div class="loader-spinner"></div>
+        <div class="system-loader"></div>
         <p>Loading grading spreadsheet...</p>
       </div>
     </div>

@@ -8,38 +8,37 @@
 	import { teacherProfileStore } from '../../../../../lib/stores/teacher/teacherProfileStore.js';
 	import { onMount } from 'svelte';
 
-	// Get basic auth data
-	let authState = $state();
+	// Use derived to get auth state reactively
+	let authState = $derived($authStore);
 	
 	// Subscribe to the profile store
 	let { teacherData, teacherProfileData, teacherSections, isLoading, isRefreshing, error, lastUpdated } = $derived($teacherProfileStore);
 	
-	// Subscribe to auth store changes
+	// Track if we've initialized to prevent double loading
+	let hasInitialized = $state(false);
+
+	// Load profile data when auth state changes
 	$effect(() => {
-		const unsubscribe = authStore.subscribe(value => {
-			authState = value;
-		});
-		return unsubscribe;
+		if (authState?.userData?.id && !hasInitialized) {
+			hasInitialized = true;
+			const teacherId = authState.userData.id;
+			
+			console.log('Loading teacher profile for ID:', teacherId);
+			
+			// Try to initialize with cached data first
+			const hasCachedData = teacherProfileStore.init(teacherId);
+			
+			// Always load fresh data (silently if we have cached data)
+			teacherProfileStore.loadProfile(teacherId, hasCachedData);
+		}
 	});
 
-	// Load profile data when component mounts or auth state changes
-	onMount(async () => {
-		if (!authState?.userData?.id) {
-			console.error('User not authenticated');
-			return;
-		}
-
-		const teacherId = authState.userData.id;
-		
-		// Try to initialize with cached data first
-		const hasCachedData = teacherProfileStore.init(teacherId);
-		
-		// Always load fresh data (silently if we have cached data)
-		await teacherProfileStore.loadProfile(teacherId, hasCachedData);
-		
-		// Set up periodic refresh every 5 minutes
+	// Set up periodic refresh
+	onMount(() => {
 		const refreshInterval = setInterval(async () => {
-			await teacherProfileStore.loadProfile(teacherId, true); // Silent refresh
+			if (authState?.userData?.id) {
+				await teacherProfileStore.loadProfile(authState.userData.id, true); // Silent refresh
+			}
 		}, 5 * 60 * 1000); // 5 minutes
 
 		// Cleanup interval on component destroy
@@ -50,8 +49,7 @@
 
 	// Manual refresh function
 	async function handleRefresh() {
-		const authState = $authStore;
-		if (!authState.isAuthenticated || !authState.userData?.id) {
+		if (!authState?.isAuthenticated || !authState?.userData?.id) {
 			console.error('User not authenticated');
 			return;
 		}
@@ -59,17 +57,6 @@
 		const teacherId = authState.userData.id;
 		await teacherProfileStore.forceRefresh(teacherId);
 	}
-
-	// Load profile data when auth state changes
-	$effect(() => {
-		if (authState?.userData?.id) {
-			const teacherId = authState.userData.id;
-			const hasCachedData = teacherProfileStore.init(teacherId);
-			if (!hasCachedData) {
-				teacherProfileStore.loadProfile(teacherId, false);
-			}
-		}
-	});
 
 	// Dynamic teacher profile data based on fetched data
 	let teacherProfile = $derived({
@@ -336,7 +323,7 @@
 			<div class="teacher-section-content" class:collapsed={isTeacherInfoCollapsed}>
 				{#if isLoading}
 					<div class="teacher-profile-loading-container">
-						<span class="teacher-profile-loader"></span>
+						<span class="system-loader"></span>
 						<p class="teacher-profile-loading-text">Loading teacher information...</p>
 					</div>
 				{:else}
@@ -429,7 +416,7 @@
 			<div class="teacher-section-content" class:collapsed={isSectionsCollapsed}>
 				{#if isLoading}
 					<div class="teacher-profile-loading-container">
-						<span class="teacher-profile-loader"></span>
+						<span class="system-loader"></span>
 						<p class="teacher-profile-loading-text">Loading teaching sections...</p>
 					</div>
 				{:else if teacherSections.length > 0}
@@ -471,7 +458,7 @@
 			<div class="teacher-section-content" class:collapsed={isTeachingAssignmentsCollapsed}>
 				{#if isLoading}
 					<div class="teacher-profile-loading-container">
-						<span class="teacher-profile-loader"></span>
+						<span class="system-loader"></span>
 						<p class="teacher-profile-loading-text">Loading teaching assignments...</p>
 					</div>
 				{:else if teacherProfile.subjects.length > 0}

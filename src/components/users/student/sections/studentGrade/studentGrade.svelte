@@ -6,51 +6,63 @@
 	import CountUp from '../../../../common/CountUp.svelte';
 	import AIAnalysisDisplay from './AIAnalysisDisplay.svelte';
 	import { studentGradeStore } from '../../../../../lib/stores/student/studentGradeStore.js';
+	import { studentGradeModalStore } from './studentGradeModal/studentGradeModalStore.js';
 	
 	// Local UI state
 	let quarters = ['1st Quarter', '2nd Quarter', '3rd Quarter', '4th Quarter'];
-	let isDropdownOpen = false;
-	let expandedGrades = new Set();
+	let isDropdownOpen = $state(false);
 	
 	// AI Analysis state
-	let showAiAnalysis = false;
+	let showAiAnalysis = $state(false);
 	let lastStudentId = null;
 	
+	// Mobile carousel state for grade stats
+	let currentStatPage = $state(0); // 0 = Quarter Average, 1 = Total Subjects, 2 = Class Rank
+	let touchStartX = $state(0);
+	let touchEndX = $state(0);
+	
+	// Mobile carousel state for subject cards
+	let currentSubjectPage = $state(0);
+	let subjectTouchStartX = $state(0);
+	let subjectTouchEndX = $state(0);
+	
 	// Reactive AI Analysis from store
-	$: aiAnalysisData = $studentGradeStore.aiAnalysis;
-	$: aiAnalysisLoading = $studentGradeStore.aiAnalysisLoading;
-	$: aiAnalysisError = $studentGradeStore.aiAnalysisError;
+	let aiAnalysisData = $derived($studentGradeStore.aiAnalysis);
+	let aiAnalysisLoading = $derived($studentGradeStore.aiAnalysisLoading);
+	let aiAnalysisError = $derived($studentGradeStore.aiAnalysisError);
 	
-	// Reset showAiAnalysis when switching accounts
-	$: if ($authStore.userData?.id && lastStudentId && lastStudentId !== $authStore.userData.id) {
-		showAiAnalysis = false;
-	}
-	
-	// Track current student ID
-	$: if ($authStore.userData?.id) {
-		lastStudentId = $authStore.userData.id;
-	}
+	// Reset showAiAnalysis when switching accounts and track current student ID
+	$effect(() => {
+		if ($authStore.userData?.id) {
+			if (lastStudentId && lastStudentId !== $authStore.userData.id) {
+				showAiAnalysis = false;
+			}
+			lastStudentId = $authStore.userData.id;
+		}
+	});
 	
 	// Progress bar color animation state
-	let progressBarColors = {}; // Store current color for each subject
-	let progressBarAnimations = {}; // Store animation frame IDs
+	let progressBarColors = $state({}); // Store current color for each subject
+	let progressBarAnimations = $state({}); // Store animation frame IDs
 
 	// Reactive store values
-	$: grades = $studentGradeStore.grades;
-	$: subjects = grades; // Alias for template
-	$: statistics = $studentGradeStore.statistics;
-	$: overallAverage = statistics.overallAverage;
-	$: totalSubjects = statistics.totalSubjects;
-	$: sectionInfo = $studentGradeStore.sectionInfo;
-	$: classRank = $studentGradeStore.classRank;
-	$: totalStudentsInSection = $studentGradeStore.totalStudentsInSection;
-	$: currentQuarterNum = $studentGradeStore.currentQuarter;
-	$: currentQuarter = $studentGradeStore.currentQuarterName;
-	$: currentSchoolYear = $studentGradeStore.currentSchoolYear;
-	$: loading = $studentGradeStore.isLoading;
-	$: error = $studentGradeStore.error;
-	$: previousQuarterAverage = $studentGradeStore.previousQuarterAverage;
-	$: averageChange = $studentGradeStore.averageChange;
+	let grades = $derived($studentGradeStore.grades);
+	let subjects = $derived(grades); // Alias for template
+	let statistics = $derived($studentGradeStore.statistics);
+	let overallAverage = $derived(statistics.overallAverage);
+	let totalSubjects = $derived(statistics.totalSubjects);
+	let sectionInfo = $derived($studentGradeStore.sectionInfo);
+	let classRank = $derived($studentGradeStore.classRank);
+	let totalStudentsInSection = $derived($studentGradeStore.totalStudentsInSection);
+	let currentQuarterNum = $derived($studentGradeStore.currentQuarter);
+	let currentQuarter = $derived($studentGradeStore.currentQuarterName);
+	let currentSchoolYear = $derived($studentGradeStore.currentSchoolYear);
+	let loading = $derived($studentGradeStore.isLoading);
+	let error = $derived($studentGradeStore.error);
+	let previousQuarterAverage = $derived($studentGradeStore.previousQuarterAverage);
+	let averageChange = $derived($studentGradeStore.averageChange);
+	let isPreloading = $derived($studentGradeStore.isPreloading);
+	let preloadProgress = $derived($studentGradeStore.preloadProgress);
 
 	// Quarter to grading period mapping
 	const quarterToGradingPeriod = {
@@ -61,35 +73,37 @@
 	};
 	
 	// Watch for grade changes and trigger progress bar animations
-	$: if (grades && grades.length > 0) {
-		// Initialize progress bar colors with starting color BEFORE animation
-		const needsInit = grades.some(subject => 
-			subject.numericGrade > 0 && 
-			subject.teacher !== "No teacher" && 
-			subject.verified && 
-			!progressBarColors[subject.id]
-		);
-		
-		if (needsInit) {
-			grades.forEach(subject => {
-				if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
-					if (!progressBarColors[subject.id]) {
-						progressBarColors[subject.id] = getGradeColor(65); // Start with "needs improvement" color
-					}
-				}
-			});
-			progressBarColors = { ...progressBarColors }; // Trigger reactivity
+	$effect(() => {
+		if (grades && grades.length > 0) {
+			// Initialize progress bar colors with starting color BEFORE animation
+			const needsInit = grades.some(subject => 
+				subject.numericGrade > 0 && 
+				subject.teacher !== "No teacher" && 
+				subject.verified && 
+				!progressBarColors[subject.id]
+			);
 			
-			// Start progress bar color animations for each subject
-			setTimeout(() => {
+			if (needsInit) {
 				grades.forEach(subject => {
 					if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
-						animateProgressBarColor(subject.id, subject.numericGrade);
+						if (!progressBarColors[subject.id]) {
+							progressBarColors[subject.id] = getGradeColor(65); // Start with "needs improvement" color
+						}
 					}
 				});
-			}, 100); // Small delay to ensure DOM is ready
+				progressBarColors = { ...progressBarColors }; // Trigger reactivity
+				
+				// Start progress bar color animations for each subject
+				setTimeout(() => {
+					grades.forEach(subject => {
+						if (subject.numericGrade > 0 && subject.teacher !== "No teacher" && subject.verified) {
+							animateProgressBarColor(subject.id, subject.numericGrade);
+						}
+					});
+				}, 100); // Small delay to ensure DOM is ready
+			}
 		}
-	}
+	});
 
 	function toggleDropdown() {
 		isDropdownOpen = !isDropdownOpen;
@@ -101,6 +115,9 @@
 		// Clear AI analysis from store when quarter changes
 		studentGradeStore.clearAiAnalysis();
 		showAiAnalysis = false;
+		
+		// Reset subject carousel
+		currentSubjectPage = 0;
 		
 		// Cancel and reset progress bar animations
 		Object.values(progressBarAnimations).forEach(animationId => {
@@ -262,6 +279,73 @@
 		}
 	}
 
+	// Mobile carousel functions for grade stats
+	function handleStatTouchStart(e) {
+		touchStartX = e.touches[0].clientX;
+	}
+
+	function handleStatTouchMove(e) {
+		touchEndX = e.touches[0].clientX;
+	}
+
+	function handleStatTouchEnd() {
+		if (!touchStartX || !touchEndX) return;
+		
+		const swipeDistance = touchStartX - touchEndX;
+		const minSwipeDistance = 50; // Minimum distance for a swipe
+		
+		if (Math.abs(swipeDistance) > minSwipeDistance) {
+			if (swipeDistance > 0) {
+				// Swiped left - go to next page (wrap to first if at end)
+				currentStatPage = (currentStatPage + 1) % 3;
+			} else {
+				// Swiped right - go to previous page (wrap to last if at start)
+				currentStatPage = (currentStatPage - 1 + 3) % 3;
+			}
+		}
+		
+		// Reset
+		touchStartX = 0;
+		touchEndX = 0;
+	}
+
+	function goToStatPage(page) {
+		currentStatPage = page;
+	}
+
+	// Mobile carousel functions for subject cards
+	function handleSubjectTouchStart(e) {
+		subjectTouchStartX = e.touches[0].clientX;
+	}
+
+	function handleSubjectTouchMove(e) {
+		subjectTouchEndX = e.touches[0].clientX;
+	}
+
+	function handleSubjectTouchEnd() {
+		if (!subjectTouchStartX || !subjectTouchEndX) return;
+		
+		const swipeDistance = subjectTouchStartX - subjectTouchEndX;
+		const minSwipeDistance = 50;
+		
+		if (Math.abs(swipeDistance) > minSwipeDistance) {
+			if (swipeDistance > 0) {
+				// Swiped left - go to next subject (wrap to first if at end)
+				currentSubjectPage = (currentSubjectPage + 1) % subjects.length;
+			} else {
+				// Swiped right - go to previous subject (wrap to last if at start)
+				currentSubjectPage = (currentSubjectPage - 1 + subjects.length) % subjects.length;
+			}
+		}
+		
+		subjectTouchStartX = 0;
+		subjectTouchEndX = 0;
+	}
+
+	function goToSubjectPage(page) {
+		currentSubjectPage = page;
+	}
+
 	// Get verified grades count
 	function getVerifiedGradesCount(gradesList) {
 		if (!gradesList || gradesList.length === 0) return { verified: 0, total: 0 };
@@ -274,52 +358,16 @@
 	}
 
 	// Reactive calculation for verified grades - explicitly depend on grades and quarter
-	$: verifiedGrades = getVerifiedGradesCount(grades);
-	
-	// Force recalculation when quarter changes
-	$: if (currentQuarterNum) {
-		verifiedGrades = getVerifiedGradesCount(grades);
-	}
+	let verifiedGrades = $derived.by(() => {
+		// Depend on both grades and currentQuarterNum to force recalculation
+		if (currentQuarterNum && grades) {
+			return getVerifiedGradesCount(grades);
+		}
+		return { verified: 0, total: 0 };
+	});
 
 	// Animation key to trigger re-render on quarter changes
-	let animationKey = 0;
-	$: {
-		// Increment key whenever quarter changes to trigger animation
-		currentQuarterNum;
-		animationKey++;
-	}
-
-	// Grade breakdown accordion functions (similar to todo list)
-	function toggleGradeBreakdown(subjectId) {
-		if (expandedGrades.has(subjectId)) {
-			expandedGrades.delete(subjectId);
-		} else {
-			expandedGrades.add(subjectId);
-		}
-		expandedGrades = new Set(expandedGrades); // Trigger reactivity
-	}
-
-	function isGradeExpanded(subjectId) {
-		return expandedGrades.has(subjectId);
-	}
-
-	// Helper functions for breakdown display
-	function hasDetailedScores(subject) {
-		return subject.verified && (
-			(subject.writtenWorkScores && subject.writtenWorkScores.length > 0) ||
-			(subject.performanceTasksScores && subject.performanceTasksScores.length > 0) ||
-			(subject.quarterlyAssessmentScores && subject.quarterlyAssessmentScores.length > 0)
-		);
-	}
-
-	function formatScoreLabel(index, type) {
-		const types = {
-			written: 'Quiz',
-			performance: 'Project', 
-			quarterly: 'Exam'
-		};
-		return `${types[type] || 'Task'} ${index + 1}`;
-	}
+	let animationKey = $derived(currentQuarterNum || 0);
 
 	// Function to get AI analysis
 	async function getAiAnalysis(forceRefresh = false) {
@@ -335,7 +383,7 @@
 				toastStore.success('AI Analysis generated successfully');
 			}
 		} catch (error) {
-			console.error('AI Analysis Error:', error);
+			// AI Analysis error
 			toastStore.error('Failed to generate AI analysis');
 		}
 	}
@@ -346,7 +394,7 @@
 			await getAiAnalysis(true);
 			toastStore.success('Analysis refreshed successfully');
 		} catch (error) {
-			console.error('Error refreshing analysis:', error);
+			// Error refreshing analysis
 		}
 	}
 
@@ -372,6 +420,11 @@
 		}
 	}
 
+	// Function to open grade details modal
+	function openGradeModal(subject) {
+		studentGradeModalStore.open(subject, currentQuarter, currentSchoolYear);
+	}
+
 	// Load data when component mounts
 	onMount(async () => {
 		if ($authStore.userData?.id) {
@@ -380,6 +433,17 @@
 			
 			// Load fresh data (silent if we have cached data)
 			await studentGradeStore.loadGrades($authStore.userData.id, null, null, hasCachedData);
+			
+			// Start background preloading of all quarters after a short delay
+			setTimeout(async () => {
+				try {
+					const currentQuarter = $studentGradeStore.currentQuarter;
+					const currentYear = $studentGradeStore.currentSchoolYear;
+					await studentGradeStore.preloadAllQuarters($authStore.userData.id, currentQuarter, currentYear);					
+				} catch (error) {
+					// Error during background preload
+				}
+			}, 1000); // Wait 1 second after initial load before starting background preload
 		}
 		
 		// Cleanup on component destroy
@@ -402,11 +466,11 @@
 	<div class="grades-header">
 		<div class="header-content">
 			<h1 class="page-title">My Grades</h1>
-			<p class="page-subtitle">Academic Performance Overview</p>
+			<p class="page-subtitle">Performance Overview</p>
 		</div>
 		<div class="quarter-selector">
 			<div class="custom-dropdown">
-				<button class="dropdown-button" on:click={toggleDropdown}>
+				<button class="dropdown-button" onclick={toggleDropdown}>
 					<span class="material-symbols-outlined">calendar_today</span>
 					<span class="dropdown-text">{currentQuarter}</span>
 					<span class="material-symbols-outlined dropdown-arrow" class:rotated={isDropdownOpen}>expand_more</span>
@@ -414,7 +478,7 @@
 				{#if isDropdownOpen}
 					<div class="dropdown-menu-quarter">
 						{#each quarters as quarter}
-							<button class="dropdown-item-quarter" class:active={quarter === currentQuarter} on:click={() => selectQuarter(quarter)}>
+							<button class="dropdown-item-quarter" class:active={quarter === currentQuarter} onclick={() => selectQuarter(quarter)}>
 								{quarter}
 							</button>
 						{/each}
@@ -430,7 +494,7 @@
 		<div class="error-container">
 			<span class="material-symbols-outlined error-icon">error</span>
 			<p>Error: {error}</p>
-			<button class="retry-btn" on:click={() => studentGradeStore.loadGrades($authStore.userData.id)}>
+			<button class="retry-btn" onclick={() => studentGradeStore.loadGrades($authStore.userData.id)}>
 				<span class="material-symbols-outlined">refresh</span>
 				Try Again
 			</button>
@@ -448,7 +512,7 @@
 				</div>
 				<button 
 					class="refresh-data-btn" 
-					on:click={() => studentGradeStore.forceRefresh($authStore.userData.id, currentQuarterNum, currentSchoolYear)}
+					onclick={() => studentGradeStore.forceRefresh($authStore.userData.id, currentQuarterNum, currentSchoolYear)}
 					title="Refresh data from database"
 					disabled={loading}>
 					<span class="material-symbols-outlined">refresh</span>
@@ -457,8 +521,13 @@
 		</div>
 			
 			{#key `stats-${currentQuarterNum}-${currentSchoolYear}`}
-				<div class="performance-stats">
-				<div class="grade-stat-item primary" style="--stat-index: 0;">
+				<div 
+					class="performance-stats"
+					style="--current-page: {currentStatPage};"
+					ontouchstart={handleStatTouchStart}
+					ontouchmove={handleStatTouchMove}
+					ontouchend={handleStatTouchEnd}>
+				<div class="grade-stat-item primary" style="--stat-index: 0;" class:mobile-active={currentStatPage === 0}>
 					<div class="stat-header">
 						<div class="stat-label">Quarter Average</div>
 						<div class="stat-icon">
@@ -520,7 +589,7 @@
 			{/key}
 		</div>
 			
-			<div class="grade-stat-item secondary" style="--stat-index: 1;">
+			<div class="grade-stat-item secondary" style="--stat-index: 1;" class:mobile-active={currentStatPage === 1}>
 				<div class="stat-header">
 					<div class="stat-label">Total Subjects</div>
 					<div class="stat-icon">
@@ -544,7 +613,7 @@
 			</div>
 			</div>
 
-			<div class="grade-stat-item tertiary" style="--stat-index: 2;">
+			<div class="grade-stat-item tertiary" style="--stat-index: 2;" class:mobile-active={currentStatPage === 2}>
 				<div class="stat-header">
 					<div class="stat-label">Class Rank</div>
 					<div class="stat-icon">
@@ -567,6 +636,28 @@
 			</div>
 			</div>
 			{/key}
+			
+			<!-- Mobile Pagination Dots -->
+			<div class="mobile-stat-pagination">
+				<button 
+					class="stat-pagination-dot" 
+					class:active={currentStatPage === 0}
+					onclick={() => goToStatPage(0)}
+					aria-label="Go to quarter average">
+				</button>
+				<button 
+					class="stat-pagination-dot" 
+					class:active={currentStatPage === 1}
+					onclick={() => goToStatPage(1)}
+					aria-label="Go to total subjects">
+				</button>
+				<button 
+					class="stat-pagination-dot" 
+					class:active={currentStatPage === 2}
+					onclick={() => goToStatPage(2)}
+					aria-label="Go to class rank">
+				</button>
+			</div>
 
 		</div>
 
@@ -581,14 +672,14 @@
 					{#if aiAnalysisData && !aiAnalysisLoading}
 						<button 
 							class="ai-refresh-btn" 
-							on:click={refreshAiAnalysis}
+							onclick={refreshAiAnalysis}
 							title="Refresh analysis">
 							<span class="material-symbols-outlined">refresh</span>
 						</button>
 					{/if}
 					<button 
 						class="toggle-analysis-btn" 
-						on:click={toggleAiAnalysis}
+						onclick={toggleAiAnalysis}
 						class:active={showAiAnalysis}
 						title={showAiAnalysis ? 'Hide Analysis' : 'Get AI Analysis'}>
 						{#if showAiAnalysis}
@@ -629,21 +720,24 @@
 				</div>
 			{:else}
 				{#key animationKey}
-					<div class="subjects-grid">
+					<div 
+						class="subjects-grid"
+						style="--current-subject-page: {currentSubjectPage};"
+						ontouchstart={handleSubjectTouchStart}
+						ontouchmove={handleSubjectTouchMove}
+						ontouchend={handleSubjectTouchEnd}>
 						{#each subjects as subject, index (subject.subject_id || subject.id)}
 							{@const cardColors = getCardColorClasses(index)}
-							{@const hasBreakdown = hasDetailedScores(subject)}
-							{@const isExpanded = isGradeExpanded(subject.id)}
-							
-							<div class="subject-accordion" style="--card-index: {index};">
-							<!-- Main Subject Card (clickable if has breakdown) -->
+						
+						<div class="subject-accordion" style="--card-index: {index};" class:mobile-active={currentSubjectPage === index}>
+							<!-- Main Subject Card (clickable to open modal) -->
 							<div 
-								class="subject-card" 
-								class:clickable={hasBreakdown}
+								class="subject-card clickable" 
 								style="border: 2px solid {cardColors.border};"
-								on:click={hasBreakdown ? () => toggleGradeBreakdown(subject.id) : undefined}
-								role={hasBreakdown ? 'button' : undefined}
-								on:keydown={hasBreakdown ? (e) => e.key === 'Enter' && toggleGradeBreakdown(subject.id) : undefined}>
+								onclick={() => openGradeModal(subject)}
+								role="button"
+								tabindex="0"
+								onkeydown={(e) => e.key === 'Enter' && openGradeModal(subject)}>
 								
 								<!-- Column 1: Icon -->
 								<div class="subject-icon-column">
@@ -694,87 +788,24 @@
 								</div>
 							</div>
 							</div>
-
-							<!-- Collapsible Breakdown Section -->
-							{#if expandedGrades.has(subject.id)}
-								<div class="grade-breakdown-section">
-									<div class="breakdown-container">
-										
-										<!-- Written Work Section -->
-										{#if subject.writtenWorkScores && subject.writtenWorkScores.length > 0}
-											<div class="breakdown-category">
-												<div class="category-header">
-													<div class="category-title">
-														<span class="material-symbols-outlined">edit</span>
-														<span>Written Work</span>
-													</div>
-													<div class="category-average" style="color: {getGradeColor(subject.writtenWork)}">
-														{formatGradeDisplay(subject.writtenWork)}
-													</div>
-												</div>
-												<div class="scores-list">
-													{#each subject.writtenWorkScores as score, i}
-														<div class="score-item">
-															<span class="score-label">{formatScoreLabel(i, 'written')}</span>
-															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
-														</div>
-													{/each}
-												</div>
-											</div>
-										{/if}
-
-										<!-- Performance Tasks Section -->
-										{#if subject.performanceTasksScores && subject.performanceTasksScores.length > 0}
-											<div class="breakdown-category">
-												<div class="category-header">
-													<div class="category-title">
-														<span class="material-symbols-outlined">assignment</span>
-														<span>Performance Tasks</span>
-													</div>
-													<div class="category-average" style="color: {getGradeColor(subject.performanceTasks)}">
-														{formatGradeDisplay(subject.performanceTasks)}
-													</div>
-												</div>
-												<div class="scores-list">
-													{#each subject.performanceTasksScores as score, i}
-														<div class="score-item">
-															<span class="score-label">{formatScoreLabel(i, 'performance')}</span>
-															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
-														</div>
-													{/each}
-												</div>
-											</div>
-										{/if}
-
-										<!-- Quarterly Assessment Section -->
-										{#if subject.quarterlyAssessmentScores && subject.quarterlyAssessmentScores.length > 0}
-											<div class="breakdown-category quarterly-assessment-category">
-												<div class="category-header">
-													<div class="category-title">
-														<span class="material-symbols-outlined">quiz</span>
-														<span>Quarterly Assessment</span>
-													</div>
-													<div class="category-average" style="color: {getGradeColor(subject.quarterlyAssessment)}">
-														{formatGradeDisplay(subject.quarterlyAssessment)}
-													</div>
-												</div>
-												<div class="scores-list">
-													{#each subject.quarterlyAssessmentScores as score, i}
-														<div class="score-item">
-															<span class="score-label">{formatScoreLabel(i, 'quarterly')}</span>
-															<span class="score-value" style="color: {getGradeColor(score)}">{score}</span>
-														</div>
-													{/each}
-												</div>
-											</div>
-										{/if}
-									</div>
-								</div>
-							{/if}
 						</div>
 					{/each}
 				</div>
 			{/key}
+			
+			<!-- Mobile Pagination Dots for Subjects -->
+			{#if subjects.length > 0}
+				<div class="mobile-subject-pagination">
+					{#each subjects as _, index}
+						<button 
+							class="subject-pagination-dot" 
+							class:active={currentSubjectPage === index}
+							onclick={() => goToSubjectPage(index)}
+							aria-label="Go to subject {index + 1}">
+						</button>
+					{/each}
+				</div>
+			{/if}
 			{/if}
 		</div>
 	{/if}

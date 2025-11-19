@@ -1,6 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { authStore } from '../../../../../login/js/auth.js';
+  import { api } from '../../../../../../routes/api/helper/api-helper.js';
   import './teacherClassList.css';
   import Toast from '../../../../../common/Toast.svelte';
   import GradingSpreadsheet from './GradingSpreadsheet.svelte';
@@ -137,8 +138,7 @@
   // Fetch current quarter from the database based on system date
   async function fetchCurrentQuarter() {
     try {
-      const response = await fetch('/api/current-quarter');
-      const result = await response.json();
+      const result = await api.get('/api/current-quarter');
 
       if (result.success && result.data) {
         currentQuarter = result.data.currentQuarter;

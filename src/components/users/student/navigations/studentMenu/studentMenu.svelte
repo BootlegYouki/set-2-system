@@ -17,6 +17,16 @@
 			icon: 'leaderboard'
 		},
 		{
+			id: 'schedule',
+			label: 'Schedule',
+			icon: 'schedule'
+		},
+		{
+			id: 'documents',
+			label: 'Documents',
+			icon: 'description'
+		},
+		{
 			id: 'todo',
 			label: 'Todo List',
 			icon: 'checklist'

@@ -106,6 +106,7 @@ function createStudentDocumentRequestStore() {
 				requestId: req.requestId,
 				type: req.documentType,
 				purpose: req.purpose,
+				quantity: req.quantity || 1,
 				status: mapStatusToUI(req.status),
 				requestedDate: req.submittedDate,
 				completedDate: req.completedDate,
@@ -232,12 +233,13 @@ function createStudentDocumentRequestStore() {
 	}
 
 	// Submit a new document request
-	async function submitRequest(documentType, purpose) {
+	async function submitRequest(documentType, purpose, quantity = 1) {
 		try {
 			const result = await api.post('/api/document-requests', {
 				action: 'create',
 				documentType: documentType,
 				purpose: purpose.trim(),
+				quantity: quantity,
 				paymentAmount: null,
 				isUrgent: false
 			});
@@ -318,6 +320,7 @@ function createStudentDocumentRequestStore() {
 			const requestData = {
 				...result.data,
 				type: result.data.documentType,
+				quantity: result.data.quantity || 1,
 				requestedDate: result.data.submittedDate,
 				paymentAmount: result.data.paymentAmount,
 				paymentStatus: result.data.paymentStatus ?? 'pending'

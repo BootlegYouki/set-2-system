@@ -85,11 +85,11 @@ p {
   background-color: var(--md-sys-color-primary);
   box-shadow: 32px 0 var(--md-sys-color-primary), -32px 0 var(--md-sys-color-primary);
   position: relative;
-  animation: dashboard-flash 0.5s ease-out infinite alternate;
+  animation: system-load 0.5s ease-out infinite alternate;
   margin: var(--spacing-md);
 }
 
-@keyframes dashboard-flash {
+@keyframes system-load {
   0% {
     background-color: var(--md-sys-color-primary-container);
     box-shadow: 32px 0 var(--md-sys-color-primary-container), -32px 0 var(--md-sys-color-primary);
@@ -103,5 +103,4 @@ p {
     box-shadow: 32px 0 var(--md-sys-color-primary), -32px 0 var(--md-sys-color-primary-container);
   }
 }
-
 

@@ -11,8 +11,16 @@
 		return gender === 'female' ? 'Ms.' : 'Mr.';
 	}
 
-	// Computed display name with title
-	let displayName = $derived(`${getTitle(gender)} ${firstName}`);
+	// Helper: extract last name from full name
+	function extractLastName(fullName) {
+		if (!fullName) return '';
+		if (fullName.includes(',')) return fullName.split(',')[0].trim();
+		const parts = fullName.trim().split(' ');
+		return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+	}
+
+	// Computed display name with title (uses last name from full name)
+	let displayName = $derived(`${getTitle(gender)} ${extractLastName(teacherName)}`);
 
 	// Theme state (default to dark mode)
 	let isDarkMode = $state(true);

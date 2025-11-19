@@ -56,6 +56,24 @@
   margin: 0;
 }
 
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
 .quarter-selector {
   display: flex;
   width: 10rem;
@@ -1086,9 +1104,15 @@
   transition: all var(--transition-normal);
   box-shadow: var(--shadow-sm);
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto;
   gap: var(--spacing-md);
   align-items: center;
+  cursor: pointer;
+}
+
+.subject-card:hover {
+  background-color: var(--md-sys-color-surface-container);
+  box-shadow: var(--shadow-md);
 }
 
 /* Column 1: Icon */
@@ -1109,8 +1133,10 @@
 /* Column 3: Grade */
 .grade-column {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-xs);
   transition: all var(--transition-normal);
 }
 
@@ -1841,7 +1867,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-lg);
+  /* margin-bottom: var(--spacing-lg); */
   padding: var(--spacing-md);
   background: var(--md-sys-color-surface-container);
   border-radius: var(--radius-lg);
@@ -1905,7 +1931,7 @@
 }
 
 .analysis-display-container {
-  margin-top: var(--spacing-lg);
+  margin-top: var(--spacing-md);
 }
 
 /* Responsive adjustments for analysis section */
@@ -1913,6 +1939,7 @@
   .analysis-section-header {
     gap: var(--spacing-md);
     align-items: stretch;
+    margin-bottom: var(--spacing-sm);
   }
 
   .analysis-title-group {
@@ -1925,6 +1952,159 @@
 
   .toggle-analysis-btn span:not(.material-symbols-outlined) {
     display: inline;
+  }
+  
+  /* Mobile Carousel Styles for Subject Cards */
+  .subjects-grid {
+    display: flex;
+    overflow: hidden;
+    gap: 0;
+    padding: 0;
+    touch-action: pan-x;
+    position: relative;
+    width: 100%;
+    grid-template-columns: unset;
+  }
+  
+  .subject-accordion {
+    flex: 0 0 100%;
+    min-width: 100%;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    pointer-events: none;
+  }
+  
+  /* Position cards based on current subject page */
+  .subject-accordion {
+    transform: translateX(calc(-100% * var(--current-subject-page, 0)));
+  }
+  
+  .subject-accordion.mobile-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .grade-stat-item:hover{
+    background-color: var(--md-sys-color-surface);
+  }
+  
+  .subject-card:hover, .subject-card.clickable:hover{
+    background-color: transparent;
+  }
+  /* Mobile Pagination Dots for Subjects */
+  .mobile-subject-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-xs) 0;
+  }
+  
+  .subject-pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--md-sys-color-outline-variant);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: 0;
+  }
+  
+  .subject-pagination-dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background-color: var(--md-sys-color-primary);
+  }
+  
+  .subject-pagination-dot:hover:not(.active) {
+    background-color: var(--md-sys-color-outline);
+    transform: scale(1.2);
+  }
+  
+  /* Mobile Carousel Styles for Grade Stats */
+  .performance-stats {
+    display: flex;
+    overflow: hidden;
+    gap: 0;
+    padding: 0;
+    touch-action: pan-x;
+    position: relative;
+    width: 100%;
+  }
+  
+  .grade-stat-item {
+    flex: 0 0 100%;
+    min-width: 100%;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  
+  /* Position cards based on current page */
+  .grade-stat-item:nth-child(1) {
+    transform: translateX(calc(-100% * var(--current-page, 0)));
+  }
+  
+  .grade-stat-item:nth-child(2) {
+    transform: translateX(calc(-100% * var(--current-page, 0)));
+  }
+  
+  .grade-stat-item:nth-child(3) {
+    transform: translateX(calc(-100% * var(--current-page, 0)));
+  }
+  
+  .grade-stat-item.mobile-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  /* Mobile Pagination Dots */
+  .mobile-stat-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-xs) 0;
+  }
+  
+  .stat-pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--md-sys-color-outline-variant);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: 0;
+  }
+  
+  .stat-pagination-dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background-color: var(--md-sys-color-primary);
+  }
+  
+  .stat-pagination-dot:hover:not(.active) {
+    background-color: var(--md-sys-color-outline);
+    transform: scale(1.2);
+  }
+
+  .performance-card{
+    margin-bottom: var(--spacing-md);
+  }
+
+  .ai-analysis-section{
+    margin: 0;
+  }
+}
+
+/* Hide pagination dots on desktop */
+@media (min-width: 769px) {
+  .mobile-stat-pagination,
+  .mobile-subject-pagination {
+    display: none;
   }
 }
 
@@ -1956,7 +2136,8 @@
   .subject-card.clickable:hover,
   .score-item:hover,
   .ai-refresh-btn:hover,
-  .toggle-analysis-btn:hover {
-    /* Reset hover styles to default */
+  .toggle-analysis-btn:hover,
+  .subject-pagination-dot:hover {
+    all:none;
   }
 }

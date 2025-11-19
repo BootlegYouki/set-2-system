@@ -221,6 +221,35 @@
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* Current class highlight */
+.schedule-class-card.current {
+	border-color: var(--accent, var(--md-sys-color-primary));
+	outline: 3px solid rgba(0,0,0,0);
+	box-shadow: 0 0 0 3px var(--accent, var(--md-sys-color-primary)), 0 6px 18px rgba(0, 0, 0, 0.12);
+	animation: slideInUp 0.5s ease-out backwards, currentPulse 2s infinite;
+	animation-delay: calc(var(--card-index) * 0.1s), 0.5s;
+}
+
+/* Increase font-weight for highlighted teacher cards */
+.schedule-class-card.current .schedule-class-name {
+	font-weight: 700;
+}
+.schedule-class-card.current .schedule-class-time,
+.schedule-class-card.current .schedule-class-location,
+.schedule-class-card.current .schedule-class-teacher,
+.schedule-class-card.current .schedule-class-grade {
+	font-weight: 600;
+}
+
+@keyframes currentPulse {
+	0%, 100% {
+		box-shadow: 0 0 0 2px var(--accent, var(--md-sys-color-primary)), 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+	50% {
+		box-shadow: 0 0 0 4px var(--accent, var(--md-sys-color-primary)), 0 6px 16px rgba(0, 0, 0, 0.15);
+	}
+}
+
 /* Slide in animation */
 @keyframes slideInUp {
 	0% {
@@ -240,6 +269,7 @@
 	background-color: var(--md-sys-color-primary-container);
 	border-color: var(--md-sys-color-primary);
 	color: var(--md-sys-color-on-primary-container);
+	--accent: var(--md-sys-color-primary);
 }
 
 .schedule-class-card.blue .schedule-class-name,
@@ -255,6 +285,7 @@
 	background-color: #e8f5e8;
 	border-color: #4caf50;
 	color: #1b5e20;
+	--accent: #4caf50;
 }
 
 [data-theme="dark"] .schedule-class-card.green {
@@ -276,6 +307,7 @@
 	background-color: #f3e5f5;
 	border-color: #9c27b0;
 	color: #4a148c;
+	--accent: #9c27b0;
 }
 
 [data-theme="dark"] .schedule-class-card.purple {
@@ -297,6 +329,7 @@
 	background-color: #fff8e1;
 	border-color: #ffc107;
 	color: #ff6f00;
+	--accent: #ffc107;
 }
 
 [data-theme="dark"] .schedule-class-card.yellow {
@@ -318,6 +351,7 @@
 	background-color: #fff3e0;
 	border-color: #ff9800;
 	color: #e65100;
+	--accent: #ff9800;
 }
 
 [data-theme="dark"] .schedule-class-card.orange {
@@ -339,6 +373,7 @@
 	background-color: var(--md-sys-color-surface-variant);
 	border-color: var(--md-sys-color-outline-variant);
 	color: var(--md-sys-color-on-surface);
+	--accent: var(--md-sys-color-outline-variant);
 }
 
 .schedule-class-card.gray .schedule-class-name,
@@ -354,6 +389,7 @@
 	background-color: #fce4ec;
 	border-color: #e91e63;
 	color: #880e4f;
+	--accent: #e91e63;
 }
 
 [data-theme="dark"] .schedule-class-card.pink {
@@ -375,6 +411,7 @@
 	background-color: #ede7f6;
 	border-color: #673ab7;
 	color: #311b92;
+	--accent: #673ab7;
 }
 
 [data-theme="dark"] .schedule-class-card.light-purple {

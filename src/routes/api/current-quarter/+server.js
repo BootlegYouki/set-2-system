@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
+import { verifyAuth } from '../helper/auth-helper.js';
 
 /**
  * Parses a date string in MM-DD-YYYY format and returns a Date object
@@ -28,6 +29,12 @@ function parseMMDDYYYY(dateStr) {
  */
 export async function GET({ request }) {
 	try {
+		// Verify authentication - all authenticated users can access
+		const authResult = await verifyAuth(request);
+		if (!authResult.success) {
+			return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+		}
+
 		// Connect to database
 		const db = await connectToDatabase();
 		const adminSettingsCollection = db.collection('admin_settings');
