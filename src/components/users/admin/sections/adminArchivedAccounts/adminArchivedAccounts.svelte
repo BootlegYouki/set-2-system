@@ -453,7 +453,7 @@
 	<div class="aas-students-list-section">
 		{#if isLoading}
 			<div class="aas-loading-container">
-				<span class="aas-student-loader"></span>
+				<span class="system-loader"></span>
 				<p class="aas-loading-text">Loading archived accounts...</p>
 			</div>
 		{:else if filteredAccounts.length > 0}

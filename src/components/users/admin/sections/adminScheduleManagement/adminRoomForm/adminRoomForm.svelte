@@ -474,7 +474,7 @@
 
 		{#if isLoading}
 			<div class="admin-room-loading">
-				<span class="room-loader"></span>
+				<span class="system-loader"></span>
 				<p>Loading rooms...</p>
 			</div>
 		{:else if filteredRooms.length === 0}

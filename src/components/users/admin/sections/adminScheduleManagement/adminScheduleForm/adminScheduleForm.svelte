@@ -1006,7 +1006,7 @@
 							</div>
 							{#if isLoadingSections}
 								<div class="admin-section-loading">
-									<span class="section-loader"></span>
+									<span class="system-loader"></span>
 									<span>Loading sections...</span>
 								</div>
 							{:else if filteredSectionsWithSearch.length > 0}
@@ -1178,7 +1178,7 @@
 													</div>
 													{#if isLoadingSubjects}
 														<div class="scheduleassign-loading">
-															<span class="scheduleassign-loader"></span>
+															<span class="system-loader"></span>
 															<span>Loading subjects...</span>
 														</div>
 													{:else if filteredSubjects.length > 0}
@@ -1250,7 +1250,7 @@
 												>
 													{#if isLoadingActivityTypes}
 														<div class="scheduleassign-loading">
-															<span class="scheduleassign-loader"></span>
+															<span class="system-loader"></span>
 															<span>Loading activity types...</span>
 														</div>
 													{:else if activityTypes.length > 0}
@@ -1335,7 +1335,7 @@
 													</div>
 													{#if isLoadingTeachers}
 														<div class="scheduleassign-loading">
-															<span class="scheduleassign-loader"></span>
+															<span class="system-loader"></span>
 															<span>Loading teachers...</span>
 														</div>
 													{:else if filteredTeachers.length > 0}

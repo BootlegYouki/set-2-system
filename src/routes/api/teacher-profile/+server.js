@@ -17,12 +17,24 @@ async function getCurrentSchoolYear(db) {
 }
 
 // GET /api/teacher-profile - Get comprehensive teacher profile data
-export async function GET({ url }) {
+export async function GET({ url, request }) {
   try {
+    // Verify authentication - teachers can view their own profile
+    const authResult = await verifyAuth(request, ['teacher', 'admin']);
+    if (!authResult.success) {
+      return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+    }
+
+    const user = authResult.user;
     const teacherId = url.searchParams.get('teacherId');
     
     if (!teacherId) {
       return json({ error: 'Teacher ID is required' }, { status: 400 });
+    }
+
+    // Teachers can only view their own profile, admins can view any
+    if (user.account_type === 'teacher' && String(user.id) !== String(teacherId)) {
+      return json({ error: 'Access denied. You can only view your own profile.' }, { status: 403 });
     }
 
     const db = await connectToDatabase();

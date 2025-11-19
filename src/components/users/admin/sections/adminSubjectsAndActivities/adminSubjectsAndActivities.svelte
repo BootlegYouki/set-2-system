@@ -715,7 +715,7 @@
 				<div class="adminsubject-subjects-grid">
 					{#if isLoading}
 						<div class="adminsubject-loading-container">
-							<span class="subject-loader"></span>
+							<span class="system-loader"></span>
 							<p class="adminsubject-loading-text">Loading subjects...</p>
 						</div>
 					{:else}

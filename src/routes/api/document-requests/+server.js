@@ -5,6 +5,22 @@ import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/a
 import { encryptMessage, decryptMessages } from '../helper/encryption-helper.js';
 import PDFDocument from 'pdfkit';
 
+// Document type price mapping
+const DOCUMENT_PRICES = {
+	'Transcript of Records': 300.00,
+	'Enrollment Certificate': 150.00,
+	'Grade Report': 50.00,
+	'Diploma': 800.00,
+	'Certificate': 100.00,
+	'Good Moral': 300.00,
+	'Grade Slip': 170.00
+};
+
+// Helper function to get document price
+function getDocumentPrice(documentType) {
+	return DOCUMENT_PRICES[documentType] || null;
+}
+
 // Helper function to create notifications for document request updates
 async function createDocumentRequestNotification(db, studentId, notificationData) {
 	try {
@@ -285,6 +301,7 @@ export async function GET({ url, request }) {
 					section: req.section,
 					studentName: req.full_name,
 					documentType: req.document_type,
+					quantity: req.quantity || 1,
 					requestId: req.request_id,
 					submittedDate: formatDate(req.submitted_date),
 					cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
@@ -293,6 +310,7 @@ export async function GET({ url, request }) {
 						: 'Tentative',
 					paymentAmount: req.payment_amount,
 					paymentStatus: req.payment_status,
+					isFirstTime: req.is_first_time || false,
 					status: req.status,
 					tentativeDate: req.tentative_date ? formatDateForInput(req.tentative_date) : null,
 					isUrgent: req.is_urgent || false,
@@ -319,6 +337,7 @@ export async function GET({ url, request }) {
 				id: req._id.toString(),
 				requestId: req.request_id,
 				documentType: req.document_type,
+				quantity: req.quantity || 1,
 				purpose: req.purpose,
 				status: req.status,
 				submittedDate: formatDate(req.submitted_date),
@@ -329,6 +348,7 @@ export async function GET({ url, request }) {
 					: 'Tentative',
 				paymentAmount: req.payment_amount,
 				paymentStatus: req.payment_status,
+				isFirstTime: req.is_first_time || false,
 				processedBy: req.processed_by,
 				isUrgent: req.is_urgent || false,
 				messages: decryptMessages(req.messages || []),
@@ -396,6 +416,7 @@ export async function GET({ url, request }) {
 					section: request.section,
 					studentName: request.full_name,
 					documentType: request.document_type,
+					quantity: request.quantity || 1,
 					requestId: request.request_id,
 					submittedDate: formatDate(request.submitted_date),
 					cancelledDate: request.cancelled_date ? formatDate(request.cancelled_date) : null,
@@ -404,6 +425,7 @@ export async function GET({ url, request }) {
 						: 'Tentative',
 					paymentAmount: request.payment_amount,
 					paymentStatus: request.payment_status,
+					isFirstTime: request.is_first_time || false,
 					status: request.status,
 					tentativeDate: request.tentative_date ? formatDateForInput(request.tentative_date) : null,
 					isUrgent: request.is_urgent || false,
@@ -518,6 +540,27 @@ export async function POST({ request }) {
 						}
 					}
 
+					// Check if this is the student's first request for this document type
+					const previousRequests = await db
+						.collection('document_requests')
+						.find({
+							student_id: student._id.toString(),
+							document_type: data.documentType,
+							status: { $in: ['released', 'for_pickup', 'processing', 'verifying'] } // Only count completed or in-progress requests
+						})
+						.toArray();
+
+					const isFirstTime = previousRequests.length === 0;
+
+					// Get the fixed price for the document type
+					const documentPrice = getDocumentPrice(data.documentType);
+					const quantity = data.quantity || 1;
+					// First-time requests: only the first copy is free, additional copies are charged
+					// Non-first-time requests: all copies are charged
+					const totalPayment = isFirstTime 
+						? (documentPrice ? documentPrice * (quantity - 1) : null) 
+						: (documentPrice ? documentPrice * quantity : null);
+
 					const newRequest = {
 						student_id: student._id.toString(),
 						account_number: student.account_number,
@@ -526,10 +569,12 @@ export async function POST({ request }) {
 						section: sectionName,
 						birthdate: student.birthdate,
 						document_type: data.documentType,
+						quantity: quantity,
 						request_id: requestId,
 						submitted_date: new Date(),
-						payment_amount: data.paymentAmount !== undefined && data.paymentAmount !== null ? data.paymentAmount : null,
-						payment_status: 'pending',
+						payment_amount: totalPayment,
+						payment_status: totalPayment === 0 ? 'paid' : 'pending', // Free requests are automatically marked as paid
+						is_first_time: isFirstTime,
 						status: 'on_hold',
 						tentative_date: null,
 						is_urgent: data.isUrgent || false,
@@ -542,7 +587,11 @@ export async function POST({ request }) {
 								status: 'on_hold',
 								timestamp: new Date(),
 								changedBy: 'System',
-								note: 'Request submitted and awaiting review'
+								note: isFirstTime 
+									? (quantity === 1 
+										? 'Request submitted and awaiting review (First-time request - Free)' 
+										: `Request submitted and awaiting review (First-time request - 1st copy free, ${quantity - 1} additional ${quantity - 1 === 1 ? 'copy' : 'copies'} charged)`)
+									: 'Request submitted and awaiting review'
 							}
 						],
 						created_at: new Date(),
@@ -595,7 +644,6 @@ export async function POST({ request }) {
 				// Track what changed for notifications and logging
 				let statusChanged = false;
 				let paymentStatusChanged = false;
-				let paymentAmountChanged = false;
 				let tentativeDateChanged = false;
 				let oldStatus = existingRequest.status;
 				let oldPaymentStatus = existingRequest.payment_status;
@@ -651,17 +699,6 @@ export async function POST({ request }) {
 					// Check if payment status changed to 'paid' (handle null/undefined oldPaymentStatus)
 					const oldStatus = oldPaymentStatus || 'pending';
 					paymentStatusChanged = (paymentStatus !== oldStatus && paymentStatus === 'paid');
-				}
-
-				// Track if payment amount is being set for the first time
-				let isPaymentAmountFirstTime = false;
-				
-				if (paymentAmount !== undefined && paymentAmount !== null) {
-					const newPaymentAmount = parseFloat(paymentAmount);
-					updateData.payment_amount = newPaymentAmount;
-					// Track if payment amount changed (including first time set)
-					isPaymentAmountFirstTime = (oldPaymentAmount === null || oldPaymentAmount === undefined);
-					paymentAmountChanged = (newPaymentAmount !== oldPaymentAmount);
 				}
 
 				// Set processed by if not already set
@@ -739,7 +776,7 @@ export async function POST({ request }) {
 
 				// 2. Notify on payment status change to 'paid'
 				if (paymentStatusChanged) {
-					const paymentAmount = updateData.payment_amount || existingRequest.payment_amount || 0;
+					const paymentAmount = existingRequest.payment_amount || 0;
 					
 					// Send automated message to document request thread
 					await sendAutomatedPaymentMessage(
@@ -761,44 +798,7 @@ export async function POST({ request }) {
 					});
 				}
 
-				// 3. Notify on payment amount set/change (but not if payment is already paid)
-				if (paymentAmountChanged) {
-					const finalPaymentAmount = updateData.payment_amount || paymentAmount;
-					const currentPaymentStatus = updateData.payment_status || existingRequest.payment_status;
-					
-					// Only send message and notification if payment is not already paid (to avoid redundancy)
-					if (currentPaymentStatus !== 'paid' && finalPaymentAmount !== null && finalPaymentAmount !== undefined) {
-						// Send automated message to document request thread
-						await sendAutomatedPaymentAmountMessage(
-							db,
-							requestId,
-							finalPaymentAmount,
-							user.name || user.full_name,
-							isPaymentAmountFirstTime
-						);
-
-						// Create notification for student
-						const notificationTitle = isPaymentAmountFirstTime 
-							? `Payment Amount Set for Document Request`
-							: `Payment Amount Updated for Document Request`;
-						const notificationMessage = isPaymentAmountFirstTime
-							? `The payment amount for your "${existingRequest.document_type}" request (${requestId}) has been set to ₱${finalPaymentAmount}. Please proceed with the payment when ready.`
-							: `The payment amount for your "${existingRequest.document_type}" request (${requestId}) has been updated to ₱${finalPaymentAmount}. Please proceed with the payment when ready.`;
-
-						await createDocumentRequestNotification(db, existingRequest.student_id, {
-							title: notificationTitle,
-							message: notificationMessage,
-							priority: 'normal',
-							requestId: requestId,
-							documentType: existingRequest.document_type,
-							status: existingRequest.status,
-							adminName: user.name,
-							adminId: user.id
-						});
-					}
-				}
-
-				// 4. Notify on tentative date change
+				// 3. Notify on tentative date change
 				if (tentativeDateChanged) {
 					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
 					
@@ -829,9 +829,6 @@ export async function POST({ request }) {
 						new_status: status || oldStatus,
 						student_name: existingRequest.full_name,
 						student_id: existingRequest.account_number,
-						old_payment_amount: oldPaymentAmount,
-						new_payment_amount: updateData.payment_amount || existingRequest.payment_amount,
-						payment_amount_changed: paymentAmountChanged,
 						old_payment_status: oldPaymentStatus,
 						new_payment_status: updateData.payment_status || existingRequest.payment_status,
 						payment_status_changed: paymentStatusChanged,

@@ -815,7 +815,7 @@
 				<!-- Account Type and Gender Selection Row -->
 				<div class="account-type-gender-row">
 					<!-- Account Type Selection -->
-					<div class="form-group">
+					<div class="form-group admin">
 						<label class="form-label" for="account-type">Account Type *</label>
 						<div class="custom-dropdown" class:open={isDropdownOpen}>
 							<button
@@ -1249,7 +1249,7 @@
 		<div class="accounts-grid">
 			{#if isLoadingAccounts}
 				<div class="loading-container">
-					<span class="account-loader"></span>
+					<span class="system-loader"></span>
 					<p class="loading-text">Loading accounts...</p>
 				</div>
 			{:else if filteredAccounts.length === 0}

@@ -356,7 +356,7 @@
 	<div class="students-list-section">
 		{#if isLoading}
 			<div class="masterlist-loading-container">
-				<span class="student-loader"></span>
+				<span class="system-loader"></span>
 				<p class="masterlist-loading-text">Loading students...</p>
 			</div>
 		{:else if filteredStudents.length > 0}

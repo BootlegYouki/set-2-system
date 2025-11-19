@@ -389,7 +389,7 @@
 		<!-- Loading State -->
 		{#if isLoading}
 			<div class="sgl-masterlist-loading-container">
-				<span class="sgl-student-loader"></span>
+				<span class="system-loader"></span>
 				<p class="sgl-masterlist-loading-text">Loading student grades...</p>
 			</div>
 		{:else if filteredStudents.length === 0}

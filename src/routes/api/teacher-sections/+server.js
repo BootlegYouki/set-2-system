@@ -1,10 +1,23 @@
 import { json } from '@sveltejs/kit';
 import { connectToDatabase } from '../../database/db.js';
+import { verifyAuth } from '../helper/auth-helper.js';
 import { ObjectId } from 'mongodb';
 
-export async function GET({ url }) {
+export async function GET({ url, request }) {
     try {
-        const teacherId = url.searchParams.get('teacherId');
+        // Verify authentication - only teachers and admins can access
+        const authResult = await verifyAuth(request, ['teacher', 'admin']);
+        if (!authResult.success) {
+            return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
+        }
+
+        const user = authResult.user;
+        const teacherId = url.searchParams.get('teacherId') || user.id;
+
+        // Teachers can only view their own sections, admins can view any
+        if (user.account_type === 'teacher' && String(user.id) !== String(teacherId)) {
+            return json({ error: 'Access denied. You can only view your own sections.' }, { status: 403 });
+        }
 
         if (!teacherId) {
             return json({ 

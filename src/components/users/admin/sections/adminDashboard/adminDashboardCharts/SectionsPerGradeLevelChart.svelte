@@ -257,7 +257,7 @@
 <div class="chart-container">
 	{#if loading}
 		<div class="chart-loading">
-			<div class="chart-loader"></div>
+			<div class="system-loader"></div>
 			<p>Loading chart data...</p>
 		</div>
 	{:else if error}
@@ -274,7 +274,7 @@
 <div class="ai-insights-container">
 	{#if aiLoading}
 		<div class="ai-loading">
-			<div class="ai-loader"></div>
+			<div class="system-loader"></div>
 			<p>Generating insights...</p>
 		</div>
 	{:else if aiError}
@@ -334,20 +334,6 @@
 		color: var(--md-sys-color-on-surface);
 	}
 
-	.chart-loader {
-		width: 40px;
-		height: 40px;
-		border: 4px solid var(--md-sys-color-outline-variant);
-		border-top: 4px solid var(--md-sys-color-primary);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		0% { transform: rotate(0deg); }
-		100% { transform: rotate(360deg); }
-	}
-
 	.chart-error .material-symbols-outlined {
 		font-size: 48px;
 		color: var(--md-sys-color-error);
@@ -363,6 +349,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		flex-direction: column;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-md);
 		background-color: var(--md-sys-color-surface-container-high);
@@ -371,15 +358,6 @@
 		border: 2px solid var(--md-sys-color-outline-variant);
 		min-height: 180px;
 		max-height: 180px;
-	}
-
-	.ai-loading .ai-loader {
-		width: 20px;
-		height: 20px;
-		border: 2px solid var(--md-sys-color-outline-variant);
-		border-top: 2px solid var(--md-sys-color-primary);
-		border-radius: 50%;
-		animation: spin 1s linear infinite;
 	}
 
 	.ai-error {
