@@ -595,7 +595,7 @@
 							class="docreq-status-dropdown-trigger"
 							onclick={toggleModalStatusDropdown}
 							aria-label="Change status"
-							disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
+							disabled={request?.status === 'cancelled' || request?.status === 'rejected' || request?.status === 'released'}
 						>
 							<span class="docreq-status-dropdown-label">{modalCurrentStatusName}</span>
 							<span class="material-symbols-outlined docreq-status-dropdown-caret">
@@ -716,7 +716,7 @@
 				<button 
 					class="docreq-approve-button" 
 					onclick={handleUpdate}
-					disabled={request?.status === 'cancelled' || request?.status === 'rejected'}
+					disabled={request?.status === 'cancelled' || request?.status === 'rejected' || request?.status === 'released'}
 				>
 					<span class="material-symbols-outlined">check_circle</span>
 					Update Request
