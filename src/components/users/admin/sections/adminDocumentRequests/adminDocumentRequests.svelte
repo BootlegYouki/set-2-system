@@ -44,9 +44,11 @@
 	const requestStatuses = [
 		{ id: 'on_hold', name: 'On Hold', description: 'Awaiting review' },
 		{ id: 'verifying', name: 'Verifying', description: 'Under verification' },
+		{ id: 'for_compliance', name: 'For Compliance', description: 'Awaiting student compliance' },
 		{ id: 'processing', name: 'For Processing', description: 'Currently being processed' },
 		{ id: 'for_pickup', name: 'For Pick Up', description: 'Ready for pickup' },
 		{ id: 'released', name: 'Released', description: 'Successfully released' },
+		{ id: 'non_compliance', name: 'Non-Compliant', description: 'Student did not comply within deadline' },
 		{ id: 'rejected', name: 'Rejected', description: 'Request denied' },
 		{ id: 'cancelled', name: 'Cancelled', description: 'Cancelled by student' }
 	];
@@ -55,6 +57,7 @@
 	const modalStatuses = [
 		{ id: 'on_hold', name: 'On Hold' },
 		{ id: 'verifying', name: 'Verifying' },
+		{ id: 'for_compliance', name: 'For Compliance' },
 		{ id: 'processing', name: 'For Processing' },
 		{ id: 'for_pickup', name: 'For Pick Up' },
 		{ id: 'released', name: 'Released' }
@@ -759,6 +762,9 @@
 									{:else if request.status === 'verifying'}
 										<span class="material-symbols-outlined">fact_check</span>
 										<span>Verifying</span>
+									{:else if request.status === 'for_compliance'}
+										<span class="material-symbols-outlined">assignment_late</span>
+										<span>For Compliance</span>
 									{:else if request.status === 'processing'}
 										<span class="material-symbols-outlined">sync</span>
 										<span>For Processing</span>
@@ -768,6 +774,9 @@
 									{:else if request.status === 'released'}
 										<span class="material-symbols-outlined">check_circle</span>
 										<span>Released</span>
+									{:else if request.status === 'non_compliance'}
+										<span class="material-symbols-outlined">warning</span>
+										<span>Non-Compliant</span>
 									{:else if request.status === 'cancelled'}
 										<span class="material-symbols-outlined">block</span>
 										<span>Cancelled</span>
@@ -828,7 +837,7 @@
 						{#if request.tentativeDate}
 							<div class="docreq-detail-item">
 								<span class="material-symbols-outlined">event</span>
-								<span>Tentative: {formatDate(request.tentativeDate)}</span>
+								<span>{request.status === 'for_compliance' ? 'Deadline:' : 'Tentative:'} {formatDate(request.tentativeDate)}</span>
 							</div>
 						{/if}
 						</div>

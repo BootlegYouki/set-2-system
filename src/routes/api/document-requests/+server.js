@@ -21,6 +21,136 @@ function getDocumentPrice(documentType) {
 	return DOCUMENT_PRICES[documentType] || null;
 }
 
+// Helper function to check and update non-compliant requests
+async function checkComplianceDeadlines(db) {
+	try {
+		const now = new Date();
+		
+		// Find all requests with for_compliance status that have passed their deadline
+		const expiredRequests = await db.collection('document_requests').find({
+			status: 'for_compliance',
+			tentative_date: { $lt: now }
+		}).toArray();
+
+		for (const request of expiredRequests) {
+			// Check if student has sent any messages after the for_compliance status was set
+			const complianceStatusEntry = request.status_history?.find(h => h.status === 'for_compliance');
+			const complianceSetTime = complianceStatusEntry?.timestamp || request.updated_at;
+			
+			// Check if there are any student messages after the compliance was set
+			const studentResponded = request.messages?.some(msg => 
+				msg.authorRole === 'student' && 
+				new Date(msg.created_at) > new Date(complianceSetTime)
+			);
+
+			// Check if this is a resubmission (previous status was non_compliance)
+			const statusHistoryArray = request.status_history || [];
+			const currentComplianceIndex = statusHistoryArray.findIndex((h, idx) => 
+				h.status === 'for_compliance' && 
+				idx === statusHistoryArray.length - 1
+			);
+			const previousStatus = currentComplianceIndex > 0 
+				? statusHistoryArray[currentComplianceIndex - 1]?.status 
+				: null;
+			const isResubmission = previousStatus === 'non_compliance';
+
+			// If student hasn't responded
+			if (!studentResponded) {
+				if (isResubmission) {
+					// Resubmission that wasn't completed -> REJECT
+					await db.collection('document_requests').updateOne(
+						{ request_id: request.request_id },
+						{
+							$set: {
+								status: 'rejected',
+								tentative_date: null,
+								updated_at: new Date()
+							},
+							$push: {
+								status_history: {
+									status: 'rejected',
+									timestamp: new Date(),
+									changedBy: 'System',
+									note: 'Request rejected - Student did not submit required documents within the 2-day resubmission deadline'
+								}
+							}
+						}
+					);
+
+					// Send automated message
+					await sendAutomatedStatusMessage(
+						db,
+						request.request_id,
+						'rejected',
+						'System'
+					);
+
+					// Notify student
+					await createDocumentRequestNotification(db, request.student_id, {
+						title: 'Document Request Rejected',
+						message: `Your request for "${request.document_type}" (${request.request_id}) has been rejected because you did not submit the required documents within the 2-day resubmission deadline.`,
+						priority: 'high',
+						requestId: request.request_id,
+						documentType: request.document_type,
+						status: 'rejected',
+						adminName: 'System',
+						adminId: null
+					});
+
+					console.log(`Request ${request.request_id} rejected due to expired resubmission deadline`);
+				} else {
+					// First-time compliance that wasn't completed -> NON-COMPLIANCE
+					await db.collection('document_requests').updateOne(
+						{ request_id: request.request_id },
+						{
+							$set: {
+								status: 'non_compliance',
+								tentative_date: null,
+								updated_at: new Date()
+							},
+							$push: {
+								status_history: {
+									status: 'non_compliance',
+									timestamp: new Date(),
+									changedBy: 'System',
+									note: 'Student did not submit required documents within the 3-day deadline'
+								}
+							}
+						}
+					);
+
+					// Send automated message
+					await sendAutomatedStatusMessage(
+						db,
+						request.request_id,
+						'non_compliance',
+						'System'
+					);
+
+					// Notify student
+					await createDocumentRequestNotification(db, request.student_id, {
+						title: 'Document Request Marked as Non-Compliant',
+						message: `Your request for "${request.document_type}" (${request.request_id}) has been marked as non-compliant because you did not submit the required documents within the 3-day deadline. You may be given another chance to resubmit.`,
+						priority: 'high',
+						requestId: request.request_id,
+						documentType: request.document_type,
+						status: 'non_compliance',
+						adminName: 'System',
+						adminId: null
+					});
+
+					console.log(`Request ${request.request_id} marked as non-compliant due to expired compliance deadline`);
+				}
+			}
+		}
+
+		return { checked: expiredRequests.length };
+	} catch (error) {
+		console.error('Error checking compliance deadlines:', error);
+		return { error: error.message };
+	}
+}
+
 // Helper function to create notifications for document request updates
 async function createDocumentRequestNotification(db, studentId, notificationData) {
 	try {
@@ -50,44 +180,53 @@ async function createDocumentRequestNotification(db, studentId, notificationData
 }
 
 // Helper function to send automated message to document request thread
-async function sendAutomatedStatusMessage(db, requestId, status, adminName, tentativeDate = null, paymentAmount = null, paymentStatus = null) {
+async function sendAutomatedStatusMessage(db, requestId, status, adminName, tentativeDate = null, paymentAmount = null, paymentStatus = null, isResubmission = false) {
 	try {
 		const statusNames = {
 			'on_hold': 'On Hold',
 			'verifying': 'Verifying',
+			'for_compliance': isResubmission ? 'For Compliance (Resubmission)' : 'For Compliance',
 			'processing': 'For Processing',
 			'for_pickup': 'For Pick Up',
 			'released': 'Released',
+			'non_compliance': 'Non-Compliant',
 			'rejected': 'Rejected',
 			'cancelled': 'Cancelled'
 		};
 
-		const statusMessages = {
-			'on_hold': 'Your document request is currently on hold and awaiting review.',
-			'verifying': 'Your document request is now being verified. We will update you once verification is complete.',
-			'processing': 'Your document request is now being processed. We will notify you once it\'s ready.',
-			'for_pickup': 'Your document is ready for pickup! Please visit the office to collect your document.',
-			'released': 'Your document has been released. Thank you for using our services!',
-			'rejected': 'Your document request has been rejected. Please contact the office for more information.',
-			'cancelled': 'Your document request has been cancelled.'
-		};
+			const statusMessages = {
+				'on_hold': 'Your document request is currently on hold and awaiting review.',
+				'verifying': 'Your document request is now being verified. We will update you once verification is complete.',
+				'for_compliance': isResubmission 
+					? 'This is a resubmission request. Please submit the required documents within 2 days or your request will be rejected.'
+					: 'Your document request requires additional documents. Please submit them within 3 days or it will be marked as non-compliant.',
+				'processing': 'Your document request is now being processed. We will notify you once it\'s ready.',
+				'for_pickup': 'Your document is ready for pickup! Please visit the office to collect your document.',
+				'released': 'Your document has been released. Thank you for using our services!',
+				'non_compliance': 'Your document request has been marked as non-compliant. You may be given another chance to resubmit.',
+				'rejected': 'Your document request has been rejected. You may submit a new request if needed.',
+				'cancelled': 'Your document request has been cancelled.'
+			};	let messageText = `Status Update: Your document request status has been changed to "${statusNames[status] || status}". ${statusMessages[status] || ''}`;
+	
+	// Add deadline for compliance status
+	if (tentativeDate && status === 'for_compliance') {
+		const date = new Date(tentativeDate);
+		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+		messageText += ` Deadline: ${formattedDate}.`;
+	}
+	
+	// Add tentative date if available and status is processing
+	if (tentativeDate && status === 'processing') {
+		const date = new Date(tentativeDate);
+		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+		messageText += ` Tentative completion date: ${formattedDate}.`;
+	}
 
-		let messageText = `Status Update: Your document request status has been changed to "${statusNames[status] || status}". ${statusMessages[status] || ''}`;
-		
-		// Add tentative date if available and status is processing
-		if (tentativeDate && status === 'processing') {
-			const date = new Date(tentativeDate);
-			const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-			messageText += ` Tentative completion date: ${formattedDate}.`;
-		}
-
-		// Add payment amount if available and payment status is not 'paid'
-		// (If payment is already paid, don't include amount in status message as it's redundant)
-		if (paymentAmount !== null && paymentAmount !== undefined && paymentStatus !== 'paid') {
-			messageText += ` Payment amount: ₱${paymentAmount}.`;
-		}
-
-		// Encrypt the message text
+	// Add payment amount if available and payment status is not 'paid'
+	// (If payment is already paid, don't include amount in status message as it's redundant)
+	if (paymentAmount !== null && paymentAmount !== undefined && paymentStatus !== 'paid') {
+		messageText += ` Payment amount: ₱${paymentAmount}.`;
+	}		// Encrypt the message text
 		const encryptedText = encryptMessage(messageText.trim());
 
 		// Create the automated message
@@ -198,15 +337,15 @@ async function sendAutomatedTentativeDateMessage(db, requestId, tentativeDate, a
 		const date = new Date(tentativeDate);
 		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 		
-		// Adjust message based on current status
-		let statusMessage = 'ready for pickup';
-		if (currentStatus === 'verifying') {
-			statusMessage = 'ready for processing';
-		} else if (currentStatus === 'processing') {
-			statusMessage = 'ready for pickup';
-		}
-		
-		const messageText = `Tentative Date Set: Your document request has a tentative completion date of ${formattedDate}. We will notify you once your document is ${statusMessage}.`;
+				// Adjust message based on current status
+			let statusMessage = 'ready for pickup';
+			if (currentStatus === 'verifying') {
+				statusMessage = 'ready for processing';
+			} else if (currentStatus === 'for_compliance') {
+				statusMessage = 'reviewed for compliance';
+			} else if (currentStatus === 'processing') {
+				statusMessage = 'ready for pickup';
+			}		const messageText = `Tentative Date Set: Your document request has a tentative completion date of ${formattedDate}. We will notify you once your document is ${statusMessage}.`;
 
 		// Encrypt the message text
 		const encryptedText = encryptMessage(messageText.trim());
@@ -251,7 +390,26 @@ export async function GET({ url, request }) {
 		const db = await connectToDatabase();
 		const action = url.searchParams.get('action');
 
+		// Automatically check compliance deadlines on every request (runs in background)
+		// This ensures expired compliance requests are marked as non-compliant
+		checkComplianceDeadlines(db).catch(err => 
+			console.error('Background compliance check failed:', err)
+		);
+
 		switch (action) {
+			case 'checkCompliance':
+				// Manual compliance check endpoint (admin only)
+				if (authResult.user.account_type !== 'admin' && authResult.user.account_type !== 'teacher') {
+					return json({ error: 'Access denied. Only admins and teachers can trigger compliance checks.' }, { status: 403 });
+				}
+
+				const checkResult = await checkComplianceDeadlines(db);
+				return json({ 
+					success: true, 
+					message: 'Compliance check completed',
+					data: checkResult
+				});
+
 			case 'all':
 				// Get all document requests with optional filters (admin/teacher only)
 				if (authResult.user.account_type !== 'admin' && authResult.user.account_type !== 'teacher') {
@@ -641,44 +799,84 @@ export async function POST({ request }) {
 					return json({ error: 'Request not found' }, { status: 404 });
 				}
 
-				// Track what changed for notifications and logging
-				let statusChanged = false;
-				let paymentStatusChanged = false;
-				let tentativeDateChanged = false;
-				let oldStatus = existingRequest.status;
-				let oldPaymentStatus = existingRequest.payment_status;
-				let oldPaymentAmount = existingRequest.payment_amount;
-				let oldTentativeDate = existingRequest.tentative_date;
+			// Track what changed for notifications and logging
+			let statusChanged = false;
+			let paymentStatusChanged = false;
+			let tentativeDateChanged = false;
+			let oldStatus = existingRequest.status;
+			let oldPaymentStatus = existingRequest.payment_status;
+			let oldPaymentAmount = existingRequest.payment_amount;
+			let oldTentativeDate = existingRequest.tentative_date;
+			
+			// Detect resubmission: changing from non_compliance to for_compliance
+			let isResubmission = false;
 
-				if (status) {
-					updateData.status = status;
-					statusChanged = (status !== oldStatus);
-					// Clear tentative date if status is not processing
-					if (status !== 'processing') {
-						updateData.tentative_date = null;
-					}
-					
-					// Add to status history if status changed
-					if (statusChanged) {
-						// Get appropriate note based on status
-						const statusNotes = {
-							'on_hold': 'Request is on hold and awaiting admin review',
-							'verifying': 'Admin is verifying the request details and requirements',
-							'processing': 'Document is being prepared and processed',
-							'for_pickup': 'Document is ready and available for pickup at the office',
-							'released': 'Document has been successfully released to the student',
-							'rejected': 'Request has been rejected by admin',
-							'cancelled': 'Request was cancelled'
-						};
-						
-						const statusHistoryEntry = {
-							status: status,
-							timestamp: new Date(),
-							changedBy: user.name || user.full_name || 'Admin',
-							note: statusNotes[status] || 'Status updated'
-						};
-						
-						// Push to status_history array
+	if (status) {
+		updateData.status = status;
+		statusChanged = (status !== oldStatus);
+		
+		// Check if this is a resubmission
+		// Resubmission occurs when:
+		// 1. Changing from non_compliance to for_compliance (previous deadline passed)
+		// 2. Changing from verifying to for_compliance, BUT only if the student had previously submitted files
+		//    (i.e., verifying came from for_compliance, not from on_hold)
+		
+		// Check status history to determine if verifying came from for_compliance
+		let verifyingFromCompliance = false;
+		if (oldStatus === 'verifying' && status === 'for_compliance') {
+			// Look at status history to see what status came before verifying
+			const statusHistory = existingRequest.status_history || [];
+			// Find the most recent verifying entry
+			const verifyingIndex = statusHistory.length - 1;
+			if (verifyingIndex > 0) {
+				const previousStatus = statusHistory[verifyingIndex - 1]?.status;
+				// If previous status was for_compliance, this is a resubmission
+				verifyingFromCompliance = (previousStatus === 'for_compliance');
+			}
+		}
+		
+		isResubmission = (
+			(oldStatus === 'non_compliance' && status === 'for_compliance') ||
+			(oldStatus === 'verifying' && status === 'for_compliance' && verifyingFromCompliance)
+		);
+		
+		console.log('DEBUG - Resubmission check:', { oldStatus, status, verifyingFromCompliance, isResubmission });
+		
+		// Clear tentative date if status is not processing or for_compliance
+		if (status !== 'processing' && status !== 'for_compliance') {
+			updateData.tentative_date = null;
+		}
+		
+		// Set compliance deadline when status changes to for_compliance
+		if (status === 'for_compliance' && !tentativeDate) {
+			const complianceDeadline = new Date();
+			// 2 days for resubmission, 3 days for initial compliance
+			const daysToAdd = isResubmission ? 2 : 3;
+			console.log('DEBUG - Setting compliance deadline:', { isResubmission, daysToAdd, deadline: complianceDeadline });
+			complianceDeadline.setDate(complianceDeadline.getDate() + daysToAdd);
+			updateData.tentative_date = complianceDeadline;
+			updateData.compliance_deadline = complianceDeadline;
+		}					// Add to status history if status changed
+				if (statusChanged) {
+					// Get appropriate note based on status
+				const statusNotes = {
+					'on_hold': 'Request is on hold and awaiting admin review',
+					'verifying': 'Admin is verifying the request details and requirements',
+					'for_compliance': isResubmission 
+						? 'Resubmission required - Student must submit within 2 days or request will be rejected'
+						: 'Additional documents required - Student must submit within 3 days or will be marked as non-compliant',
+					'processing': 'Document is being prepared and processed',
+					'for_pickup': 'Document is ready and available for pickup at the office',
+					'released': 'Document has been successfully released to the student',
+					'non_compliance': 'Student did not comply within the 3-day deadline - May be given another chance',
+					'rejected': 'Request has been rejected - Student failed resubmission deadline',
+					'cancelled': 'Request was cancelled'
+				};						const statusHistoryEntry = {
+						status: status,
+						timestamp: new Date(),
+						changedBy: user.name || user.full_name || 'Admin',
+						note: statusNotes[status] || 'Status updated'
+					};						// Push to status_history array
 						updateData.$push = updateData.$push || {};
 						updateData.$push.status_history = statusHistoryEntry;
 					}
@@ -728,41 +926,45 @@ export async function POST({ request }) {
 					const statusNames = {
 						'on_hold': 'On Hold',
 						'verifying': 'Verifying',
+						'for_compliance': 'For Compliance',
 						'processing': 'Processing',
 						'for_pickup': 'Ready for Pickup',
 						'released': 'Released',
+						'non_compliance': 'Non-Compliant',
 						'rejected': 'Rejected',
 						'cancelled': 'Cancelled'
 					};
 					
-					const statusMessages = {
-						'on_hold': 'Your document request is currently on hold.',
-						'verifying': 'Your document request is now being verified.',
-						'processing': 'Your document request is being processed.',
-						'for_pickup': 'Your document is ready for pickup! Please visit the office.',
-						'released': 'Your document has been released. Thank you!',
-						'rejected': 'Your document request has been rejected.',
-						'cancelled': 'Your document request has been cancelled.'
-					};
-
-					// Send automated message to document request thread
+				
+				const statusMessages = {
+					'on_hold': 'Your document request is currently on hold.',
+					'verifying': 'Your document request is now being verified.',
+					'for_compliance': isResubmission
+						? 'Please submit the required documents within 2 days or your request will be rejected.'
+						: 'Please submit the required documents within 3 days or it will be marked as non-compliant.',
+					'processing': 'Your document request is being processed.',
+					'for_pickup': 'Your document is ready for pickup! Please visit the office.',
+					'released': 'Your document has been released. Thank you!',
+					'non_compliance': 'Your request has been marked as non-compliant. You may be given another chance to resubmit.',
+					'rejected': 'Your request has been rejected. You may submit a new request if needed.',
+					'cancelled': 'Your document request has been cancelled.'
+				};					// Send automated message to document request thread
 					// Use tentativeDate from input (if provided), and paymentAmount from input or existing
 					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : null;
 					const finalPaymentAmount = paymentAmount !== undefined && paymentAmount !== null ? paymentAmount : (existingRequest.payment_amount || null);
 					// Get current payment status (use new status if changed, otherwise existing status)
 					const finalPaymentStatus = updateData.payment_status || existingRequest.payment_status || null;
 					
-					await sendAutomatedStatusMessage(
-						db,
-						requestId,
-						status,
-						user.name || user.full_name,
-						finalTentativeDate,
-						finalPaymentAmount,
-						finalPaymentStatus
-					);
-
-					await createDocumentRequestNotification(db, existingRequest.student_id, {
+				await sendAutomatedStatusMessage(
+					db,
+					requestId,
+					status,
+					user.name || user.full_name,
+					finalTentativeDate,
+					finalPaymentAmount,
+					finalPaymentStatus,
+					isResubmission
+				);					await createDocumentRequestNotification(db, existingRequest.student_id, {
 						title: `Document Request Status Updated`,
 						message: `Your request for "${existingRequest.document_type}" (${requestId}) status changed to: ${statusNames[status]}. ${statusMessages[status] || ''}`,
 						priority: status === 'for_pickup' ? 'high' : 'normal',
@@ -798,26 +1000,23 @@ export async function POST({ request }) {
 					});
 				}
 
-				// 3. Notify on tentative date change
-				if (tentativeDateChanged) {
-					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
-					
-					if (finalTentativeDate) {
-						// Get current status (use new status if changed, otherwise existing status)
-						const currentStatus = updateData.status || existingRequest.status || 'processing';
-						
-						// Send automated message to document request thread
-						await sendAutomatedTentativeDateMessage(
-							db,
-							requestId,
-							finalTentativeDate,
-							user.name || user.full_name,
-							currentStatus
-						);
-					}
+			// 3. Notify on tentative date change (but not for compliance status, as deadline is already in status message)
+			if (tentativeDateChanged) {
+				const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
+				const currentStatus = updateData.status || existingRequest.status || 'processing';
+				
+				// Don't send separate tentative date message for compliance status
+				if (finalTentativeDate && currentStatus !== 'for_compliance') {
+					// Send automated message to document request thread
+					await sendAutomatedTentativeDateMessage(
+						db,
+						requestId,
+						finalTentativeDate,
+						user.name || user.full_name,
+						currentStatus
+					);
 				}
-
-				// Log activity with detailed information
+			}				// Log activity with detailed information
 				await logActivityWithUser(
 					'document_request_updated',
 					`Document request ${requestId} updated`,
@@ -1077,6 +1276,59 @@ export async function POST({ request }) {
 
 			if (messageResult.matchedCount === 0) {
 				return json({ error: 'Failed to send message' }, { status: 500 });
+			}
+
+			// Auto-update status from for_compliance to verifying if student sends files
+			if (user.account_type === 'student' && 
+			    targetRequest.status === 'for_compliance' && 
+			    attachments.length > 0) {
+				try {
+					// Calculate tentative date for verifying status (5 days from now)
+					const verifyingDeadline = new Date();
+					verifyingDeadline.setDate(verifyingDeadline.getDate() + 5);
+
+					await db.collection('document_requests').updateOne(
+						{ request_id: msgRequestId },
+						{
+							$set: {
+								status: 'verifying',
+								tentative_date: verifyingDeadline,
+								updated_at: new Date()
+							},
+							$push: {
+								status_history: {
+									status: 'verifying',
+									timestamp: new Date(),
+									changedBy: 'System',
+									note: 'Student submitted compliance documents - Automatically moved to verification'
+								}
+							}
+						}
+					);
+
+					// Send automated status message
+					await sendAutomatedStatusMessage(
+						db,
+						msgRequestId,
+						'verifying',
+						'System'
+					);
+
+					// Notify student about status change
+					await createDocumentRequestNotification(db, targetRequest.student_id, {
+						title: 'Status Updated to Verifying',
+						message: `Your compliance documents for "${targetRequest.document_type}" (${msgRequestId}) have been received. Your request is now being verified.`,
+						priority: 'normal',
+						requestId: msgRequestId,
+						documentType: targetRequest.document_type,
+						status: 'verifying',
+						adminName: 'System',
+						adminId: null
+					});
+				} catch (error) {
+					console.error('Error auto-updating status:', error);
+					// Don't fail the message send if status update fails
+				}
 			}
 
 			// 3. Notify student when admin/teacher sends a message

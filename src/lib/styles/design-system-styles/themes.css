@@ -124,6 +124,11 @@
   --status-verifying-border: #5c6bc0;
   --status-verifying-text: #3949ab;
   
+  /* For Compliance - Purple */
+  --status-for-compliance-bg: #f3e5f5;
+  --status-for-compliance-border: #9c27b0;
+  --status-for-compliance-text: #7b1fa2;
+  
   /* Processing - Orange */
   --status-processing-bg: #fff3e0;
   --status-processing-border: #ff9800;
@@ -143,6 +148,11 @@
   --status-completed-bg: #e8f5e8;
   --status-completed-border: #4caf50;
   --status-completed-text: #2e7d32;
+  
+  /* Non-Compliant - Deep Orange/Red */
+  --status-non-compliance-bg: #fbe9e7;
+  --status-non-compliance-border: #ff5722;
+  --status-non-compliance-text: #d84315;
   
   /* Rejected - Red */
   --status-rejected-bg: #ffebee;
@@ -280,6 +290,11 @@
   --status-verifying-border: #5c6bc0;
   --status-verifying-text: #c5cae9;
   
+  /* For Compliance - Purple */
+  --status-for-compliance-bg: #4a148c;
+  --status-for-compliance-border: #ab47bc;
+  --status-for-compliance-text: #e1bee7;
+  
   /* Processing - Orange */
   --status-processing-bg: #e651007c;
   --status-processing-border: #ff9900c9;
@@ -299,6 +314,11 @@
   --status-completed-bg: #1b5e20;
   --status-completed-border: #4caf50;
   --status-completed-text: #a5d6a7;
+  
+  /* Non-Compliant - Deep Orange/Red */
+  --status-non-compliance-bg: #8f3114;
+  --status-non-compliance-border: #ff7043;
+  --status-non-compliance-text: #ffccbc;
   
   /* Rejected - Red */
   --status-rejected-bg: #b71c1c65;

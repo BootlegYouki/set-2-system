@@ -106,12 +106,13 @@
 		);
 	}
 
-	// Check if a document type has an on-hold request
-	function hasOnHoldRequest(documentType) {
+	// Check if a document type has an ongoing request (not released, cancelled, or rejected)
+	function hasOngoingRequest(documentType) {
 		if (!requestHistory || requestHistory.length === 0) return false;
+		const terminalStatuses = ['released', 'cancelled', 'rejected'];
 		return requestHistory.some(req => 
 			req.type === documentType && 
-			req.status === 'on_hold'
+			!terminalStatuses.includes(req.status)
 		);
 	}
 
@@ -171,9 +172,11 @@
 		const statusNames = {
 			'on_hold': 'On Hold',
 			'verifying': 'Verifying',
+			'for_compliance': 'For Compliance',
 			'processing': 'For Processing',
 			'for_pickup': 'For Pick Up',
 			'released': 'Released',
+			'non_compliance': 'Non-Compliant',
 			'rejected': 'Rejected',
 			'cancelled': 'Cancelled'
 		};
@@ -192,6 +195,33 @@
 
 	// Submit new document request
 	async function handleSubmitRequest() {
+		if (!selectedDocumentType || !requestPurpose.trim()) return;
+
+		const docTypeName = documentTypes.find(d => d.id === selectedDocumentType)?.name || 'N/A';
+		const isFirstTimeRequest = !isDocumentTypeRequested(selectedDocumentType);
+		const priceDisplay = totalPrice === 0 
+			? `<strong style="color: var(--md-sys-color-tertiary);">Free</strong>${isFirstTimeRequest ? ' (First-time request)' : ''}` 
+			: `<strong>₱${totalPrice.toFixed(2)}</strong>${isFirstTimeRequest && selectedQuantity > 1 ? ` (1st copy free, ${selectedQuantity - 1} additional charged)` : ''}`;
+
+		modalStore.confirm(
+			'Confirm Document Request',
+			`<p>Please review your document request before submitting:</p>
+			<ul style="margin: 12px 0; padding-left: 20px; line-height: 1.8;">
+				<li><strong>Document Type:</strong> ${docTypeName}</li>
+				<li><strong>Quantity:</strong> ${selectedQuantity} ${selectedQuantity === 1 ? 'copy' : 'copies'}</li>
+				<li><strong>Total Price:</strong> ${priceDisplay}</li>
+				<li><strong>Purpose:</strong> ${requestPurpose.length > 100 ? requestPurpose.substring(0, 100) + '...' : requestPurpose}</li>
+			</ul>`,
+			async () => {
+				await submitRequestProcess();
+			},
+			() => {},
+			{ size: 'small' }
+		);
+	}
+
+	// Actual submission process
+	async function submitRequestProcess() {
 		if (!selectedDocumentType || !requestPurpose.trim()) return;
 
 		try {
@@ -274,9 +304,11 @@
 		switch (status) {
 			case 'on_hold': return 'pause_circle';
 			case 'verifying': return 'fact_check';
+			case 'for_compliance': return 'assignment_late';
 			case 'processing': return 'sync';
 			case 'for_pickup': return 'hand_package';
 			case 'released': return 'check_circle';
+			case 'non_compliance': return 'warning';
 			case 'rejected': return 'cancel';
 			case 'cancelled': return 'block';
 			default: return 'help';
@@ -400,43 +432,43 @@
 									</span>
 								</button>
 								
-							{#if isDropdownOpen}
-								<div class="dropdown-menu-document">
-									{#each documentTypes as docType}
-										{@const isOnHold = hasOnHoldRequest(docType.id)}
-										<button 
-											class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''} {isOnHold ? 'disabled' : ''}"
-											onclick={() => !isOnHold && selectDocumentType(docType)}
-											disabled={isOnHold}
-										>
-											<div class="doc-dropdown-item-content">
-												<div class="doc-dropdown-item-main">
-													<span class="doc-dropdown-item-name">{docType.name}</span>
-													<span class="doc-dropdown-item-desc">
-														{#if isOnHold}
-															Pending request exists
-														{:else}
-															{docType.description}
-														{/if}
-													</span>
+								{#if isDropdownOpen}
+									<div class="dropdown-menu-document">
+										{#each documentTypes as docType}
+											{@const isDisabled = hasOngoingRequest(docType.id)}
+											<button 
+												class="doc-dropdown-item {docType.id === selectedDocumentType ? 'selected' : ''} {isDisabled ? 'disabled' : ''}"
+												onclick={() => !isDisabled && selectDocumentType(docType)}
+												disabled={isDisabled}
+											>
+												<div class="doc-dropdown-item-content">
+													<div class="doc-dropdown-item-main">
+														<span class="doc-dropdown-item-name">{docType.name}</span>
+														<span class="doc-dropdown-item-desc">
+															{#if isDisabled}
+																Request in progress
+															{:else}
+																{docType.description}
+															{/if}
+														</span>
+													</div>
+													{#if isDisabled}
+														<span class="doc-dropdown-item-price on-hold-badge">
+															<span class="material-symbols-outlined">schedule</span>
+														</span>
+													{:else if !isDocumentTypeRequested(docType.id)}
+														<span class="doc-dropdown-item-price free-price">
+															<span class="free-badge">1st copy FREE</span>
+															<span class="original-price">₱{docType.price.toFixed(2)}/copy</span>
+														</span>
+													{:else}
+														<span class="doc-dropdown-item-price">₱{docType.price.toFixed(2)}</span>
+													{/if}
 												</div>
-												{#if isOnHold}
-													<span class="doc-dropdown-item-price on-hold-badge">
-														<span class="material-symbols-outlined">schedule</span>
-													</span>
-												{:else if !isDocumentTypeRequested(docType.id)}
-													<span class="doc-dropdown-item-price free-price">
-														<span class="free-badge">1st copy FREE</span>
-														<span class="original-price">₱{docType.price.toFixed(2)}/copy</span>
-													</span>
-												{:else}
-													<span class="doc-dropdown-item-price">₱{docType.price.toFixed(2)}</span>
-												{/if}
-											</div>
-										</button>
-									{/each}
-								</div>
-							{/if}
+											</button>
+										{/each}
+									</div>
+								{/if}
 							</div>
 						</div>
 
@@ -611,11 +643,23 @@
 										<span> • Tentative: {request.tentativeDate}</span>
 									{/if}
 								</span>
-							</div>
-					{:else if request.status === 'on_hold'}
-						<div class="request-footer pending-footer">
-							<span class="footer-info">Awaiting review</span>
 						</div>
+				{:else if request.status === 'for_compliance'}
+					<div class="request-footer pending-footer">
+						<span class="footer-info">
+							Please submit required compliance • Deadline: {request.tentativeDate || 'Not set'}
+						</span>
+					</div>
+				{:else if request.status === 'non_compliance'}
+					<div class="request-footer rejected-footer">
+						<span class="footer-info">
+							Deadline passed without compliance submission
+						</span>
+					</div>
+				{:else if request.status === 'on_hold'}
+					<div class="request-footer pending-footer">
+						<span class="footer-info">Awaiting review</span>
+					</div>
 					{:else if request.status === 'cancelled'}
 						<div class="request-footer cancelled-footer">
 							<span class="footer-info">Cancelled on {formatDate(request.cancelledDate || request.submittedDate)}</span>

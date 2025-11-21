@@ -591,7 +591,6 @@
 	border-radius: var(--radius-full);
 	font-size: 0.875rem;
 	font-weight: 500;
-	text-transform: capitalize;
 }
 
 .admindocreq-status-badge .material-symbols-outlined {
@@ -611,6 +610,10 @@
 	border: 1px solid var(--status-verifying-border);
 }
 
+.status-for_compliance-border {
+	border: 1px solid var(--status-for-compliance-border);
+}
+
 .status-processing-border {
 	border: 1px solid var(--status-processing-border);
 }
@@ -625,6 +628,10 @@
 
 .status-completed-border {
 	border: 1px solid var(--status-completed-border);
+}
+
+.status-non_compliance-border {
+	border: 1px solid var(--status-non-compliance-border);
 }
 
 .status-rejected-border {
@@ -653,6 +660,12 @@
 	border: 1px solid var(--status-verifying-border);
 }
 
+.admindocreq-status-for_compliance {
+	background-color: var(--status-for-compliance-bg);
+	color: var(--status-for-compliance-text);
+	border: 1px solid var(--status-for-compliance-border);
+}
+
 .admindocreq-status-processing {
 	background-color: var(--status-processing-bg);
 	color: var(--status-processing-text);
@@ -675,6 +688,12 @@
 	background-color: var(--status-completed-bg);
 	color: var(--status-completed-text);
 	border: 1px solid var(--status-completed-border);
+}
+
+.admindocreq-status-non_compliance {
+	background-color: var(--status-non-compliance-bg);
+	color: var(--status-non-compliance-text);
+	border: 1px solid var(--status-non-compliance-border);
 }
 
 .admindocreq-status-rejected {
@@ -712,6 +731,16 @@
 .docreq-request-card.status-verifying-border .chat-indicator-btn {
 	border-color: var(--status-verifying-border);
 	color: var(--status-verifying-text);
+}
+
+.docreq-request-card.status-for_compliance-border .chat-indicator-btn {
+	border-color: var(--status-for-compliance-border);
+	color: var(--status-for-compliance-text);
+}
+
+.docreq-request-card.status-non_compliance-border .chat-indicator-btn {
+	border-color: var(--status-non-compliace-border);
+	color: var(--status-non-compliance-text);
 }
 
 .docreq-request-card.status-processing-border .chat-indicator-btn {
@@ -775,6 +804,11 @@
 
 .docreq-request-card.status-verifying-border .chat-badge {
 	background: var(--status-verifying-border);
+	color: white;
+}
+
+.docreq-request-card.status-for_compliance-border .chat-badge {
+	background: var(--status-for-compliance-border);
 	color: white;
 }
 
