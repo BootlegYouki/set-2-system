@@ -44,9 +44,9 @@
 	right: -4px;
 	background: var(--md-sys-color-error);
 	color: var(--md-sys-color-on-error);
-	font-size: 10px;
+	font-size: 12px;
 	font-weight: 700;
-	padding: 2px 6px;
+	padding: 3px 6px;
 	border-radius: var(--radius-full);
 	border: 2px solid var(--md-sys-color-surface);
 }
