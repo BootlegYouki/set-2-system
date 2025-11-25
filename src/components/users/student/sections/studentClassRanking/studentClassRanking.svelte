@@ -116,7 +116,7 @@
 	<div class="rankings-header">
 		<div class="header-content">
 			<h1 class="page-title">Class Rankings</h1>
-			<p class="page-subtitle">Academic Performance Standings</p>
+			<p class="page-subtitle">Academic Standings</p>
 		</div>
 		<div class="quarter-selector">
 			<div class="custom-dropdown">
