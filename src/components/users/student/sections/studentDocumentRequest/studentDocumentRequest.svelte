@@ -6,6 +6,7 @@
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { studentDocReqModalStore } from './studentDocumentRequestModal/studentDocReqModalStore.js';
 	import { studentDocumentRequestStore } from '../../../../../lib/stores/student/studentDocumentRequestStore.js';
+	import StudentChatbot from './studentChatbot/studentChatbot.svelte';
 	import './studentDocumentRequest.css';
 
 	// Props - request ID to open from notification
@@ -676,4 +677,6 @@
 			</div>
 		{/if}
 	</div>
+
+	<!-- <StudentChatbot /> -->
 </div>
