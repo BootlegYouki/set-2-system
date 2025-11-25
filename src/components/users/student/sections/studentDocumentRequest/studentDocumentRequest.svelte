@@ -677,6 +677,4 @@
 			</div>
 		{/if}
 	</div>
-
-	<!-- <StudentChatbot /> -->
 </div>
