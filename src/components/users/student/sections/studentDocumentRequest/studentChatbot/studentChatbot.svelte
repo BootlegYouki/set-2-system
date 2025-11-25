@@ -142,7 +142,7 @@
 
 	// Suggested questions
 	const suggestedQuestions = [
-		'What requirements do I need to bring?',
+		'Is the system/chatbot available 24/7?',
 		'How long does it take to process my document?',
 		'How much is the document fee?'
 	];
