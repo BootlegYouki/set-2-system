@@ -6,7 +6,8 @@ node_modules
 .netlify
 .wrangler
 /.svelte-kit
-
+out
+/build
 # OS
 .DS_Store
 Thumbs.db
