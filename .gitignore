@@ -4,7 +4,7 @@ node_modules
 .env.*
 !.env.example
 .svelte-kit
-# build
+build
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
