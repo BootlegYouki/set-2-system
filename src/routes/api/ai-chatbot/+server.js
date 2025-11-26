@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { OPENROUTER_AI_KEY } from '$env/static/private';
+import { OPENROUTER_AI_KEY, OPENROUTER_AI_KEY_DESKTOP } from '$env/static/private';
 import { KNOWLEDGE_BASE } from './knowledge-base.js';
 
 export async function POST({ request }) {
@@ -32,7 +32,7 @@ Guidelines:
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_AI_KEY}`,
+        'Authorization': `Bearer ${OPENROUTER_AI_KEY_DESKTOP}`,
         'HTTP-Referer': 'http://localhost:3000',
         'X-Title': 'SET-2 System',
         'Content-Type': 'application/json',
