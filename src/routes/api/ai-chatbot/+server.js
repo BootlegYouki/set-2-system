@@ -1,19 +1,19 @@
 import { json } from '@sveltejs/kit';
-import { OPENROUTER_AI_KEY, OPENROUTER_AI_KEY_DESKTOP } from '$env/static/private';
+import { PROXY_SERVER_URL } from '$lib/config/proxy.js';
 import { KNOWLEDGE_BASE } from './knowledge-base.js';
 
 export async function POST({ request }) {
-  try {
-    const { messages } = await request.json();
+	try {
+		const { messages } = await request.json();
 
-    if (!messages || !Array.isArray(messages)) {
-      return json({ success: false, error: 'Invalid messages format' }, { status: 400 });
-    }
+		if (!messages || !Array.isArray(messages)) {
+			return json({ success: false, error: 'Invalid messages format' }, { status: 400 });
+		}
 
-    // Prepare the system message with knowledge base
-    const systemMessage = {
-      role: 'system',
-      content: `You are a helpful assistant for a student document request system. Use the following knowledge base to answer questions accurately and concisely:
+		// Prepare the system message with knowledge base
+		const systemMessage = {
+			role: 'system',
+			content: `You are a helpful assistant for a student document request system. Use the following knowledge base to answer questions accurately and concisely:
 
 ${KNOWLEDGE_BASE}
 
@@ -24,33 +24,32 @@ Guidelines:
 - Keep responses brief and to the point (2-3 sentences max unless more detail is needed)
 - Use a conversational tone
 - If asked about specific request details, remind them to check their dashboard or request history`
-    };
+		};
 
-    // Combine system message with user messages
-    const fullMessages = [systemMessage, ...messages];
+		// Combine system message with user messages
+		const fullMessages = [systemMessage, ...messages];
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_AI_KEY_DESKTOP}`,
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'SET-2 System',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'kwaipilot/kat-coder-pro:free',
-        messages: fullMessages
-      })
-    });
+		// Call the proxy server instead of OpenRouter directly
+		const response = await fetch(`${PROXY_SERVER_URL}/api/chat`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				model: 'kwaipilot/kat-coder-pro:free',
+				messages: fullMessages
+			})
+		});
 
-    if (!response.ok) {
-      throw new Error('OpenRouter API request failed');
-    }
+		if (!response.ok) {
+			throw new Error('Proxy API request failed');
+		}
 
-    const result = await response.json();
-    const reply = result.choices[0].message.content;
-
-    return json({ success: true, reply });
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'API request failed');
+		}
+		const reply = result.data.choices[0].message.content;    return json({ success: true, reply });
   } catch (error) {
     console.error('AI Chatbot Error:', error);
     return json({ success: false, error: error.message }, { status: 500 });

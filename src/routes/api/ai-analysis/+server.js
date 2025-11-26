@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { OPENROUTER_AI_KEY } from '$env/static/private';
+import { PROXY_SERVER_URL } from '$lib/config/proxy.js';
 
 export async function POST({ request }) {
 	try {
@@ -21,12 +21,10 @@ export async function POST({ request }) {
 			return json({ success: false, error: 'Invalid analysis type' }, { status: 400 });
 		}
 
-		const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+		// Call the proxy server instead of OpenRouter directly
+		const response = await fetch(`${PROXY_SERVER_URL}/api/chat`, {
 			method: 'POST',
 			headers: {
-				'Authorization': `Bearer ${OPENROUTER_AI_KEY_DESKTOP}`,
-				'HTTP-Referer': 'http://localhost:3000',
-				'X-Title': 'SET-2 System',
 				'Content-Type': 'application/json',
 			},
 			body: JSON.stringify({
@@ -41,11 +39,14 @@ export async function POST({ request }) {
 		});
 
 		if (!response.ok) {
-			throw new Error('OpenRouter API request failed');
+			throw new Error('Proxy API request failed');
 		}
 
 		const result = await response.json();
-		const analysis = result.choices[0].message.content;
+		if (!result.success) {
+			throw new Error(result.error || 'API request failed');
+		}
+		const analysis = result.data.choices[0].message.content;
 
 		return json({ success: true, analysis });
 	} catch (error) {
