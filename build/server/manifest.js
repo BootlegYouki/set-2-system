@@ -7,13 +7,13 @@ function __memo(fn) {
 return {
 	appDir: "_app",
 	appPath: "_app",
-	assets: new Set([".well-known/appspecific/com.chrome.devtools.json","icon.svg","manifest.json","pwa-192x192.png","pwa-512x512.png","robots.txt"]),
+	assets: new Set([".well-known/appspecific/com.chrome.devtools.json","icon.ico","icon.svg","manifest.json","pwa-192x192.png","pwa-512x512.png","robots.txt"]),
 	mimeTypes: {".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".txt":"text/plain"},
 	_: {
-		client: {start:"_app/immutable/entry/start.4dhzbU8D.js",app:"_app/immutable/entry/app.Bw8MA6_f.js",imports:["_app/immutable/entry/start.4dhzbU8D.js","_app/immutable/chunks/D2XsfF-m.js","_app/immutable/chunks/Dzme5HSP.js","_app/immutable/entry/app.Bw8MA6_f.js","_app/immutable/chunks/Dzme5HSP.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/BxRcuCIW.js","_app/immutable/chunks/B4dZFGov.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.D543j09G.js",app:"_app/immutable/entry/app.Bzx19L5Q.js",imports:["_app/immutable/entry/start.D543j09G.js","_app/immutable/chunks/CgPmtbKQ.js","_app/immutable/chunks/Dzme5HSP.js","_app/immutable/entry/app.Bzx19L5Q.js","_app/immutable/chunks/Dzme5HSP.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/BxRcuCIW.js","_app/immutable/chunks/B4dZFGov.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('./chunks/0-D2U4AOti.js')),
-			__memo(() => import('./chunks/1--Zy8jGBN.js')),
+			__memo(() => import('./chunks/1-zgbXP9jq.js')),
 			__memo(() => import('./chunks/2-Czbli6Nd.js'))
 		],
 		remotes: {

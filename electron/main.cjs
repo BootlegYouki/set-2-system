@@ -79,6 +79,8 @@ function startServer() {
     });
   } else {
     console.error('Server build not found at:', serverPath);
+    const { dialog } = require('electron');
+    dialog.showErrorBox('Error', 'Server build not found. Please ensure the app was built correctly.\nMissing: ' + serverPath);
   }
 }
 
