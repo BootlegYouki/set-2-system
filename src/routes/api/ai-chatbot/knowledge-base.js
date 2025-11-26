@@ -1,59 +1,79 @@
 
+
+
 export const KNOWLEDGE_BASE = `
-Q: Can I submit multiple requests at once?
-A: Yes. Most systems allow you to queue up or submit several document requests simultaneously.
+# Student Document Request System FAQs
 
-Q: What types of documents are typically available?
-A: Available documents usually include official records, certificates, transcripts, diplomas, and grade reports.
+---
 
-Q: Is stating the purpose of the request necessary?
-A: Yes. You are typically required to state the purpose for your request to ensure proper processing and documentation.
+## Document Types and Pricing
 
-Q: How do I cancel a request?
-A: You can usually cancel a request through your personal dashboard or in the dedicated conversation/chat system associated with the request.
+Q - What documents can I request and how much do they cost?
+A - Here are the available documents and their prices per copy:
+- **Transcript of Records**: ₱300.00
+- **Enrollment Certificate**: ₱150.00
+- **Grade Report**: ₱50.00
+- **Diploma**: ₱800.00
+- **Certificate**: ₱100.00
+- **Good Moral**: ₱300.00
+- **Grade Slip**: ₱170.00
 
-Q: What should I do if my request is rejected?
-A: If your request is rejected or you submitted the wrong type, cancel the initial request (if possible) and submit a new, corrected one.
+Q - Is there a free document request?
+A - Yes! For your **first-time request** of a specific document type, the **first copy is FREE**. Any additional copies in that same request will be charged the regular price. For subsequent requests of the same document type, all copies are charged.
 
-Q: How long does document processing usually take?
-A: Processing times vary significantly, but standard requests typically take 3-5 working days unless otherwise notified.
+Q - How is the total price calculated?
+A - If it's your first time requesting a document type, (Quantity - 1) * Price. If it's not your first time, Quantity * Price.
 
-Q: How can I track the status of my request?
-A: You can monitor your request status in real-time on your user dashboard, notification section, or within the communication thread with the administration.
+---
 
-Q: What does "For Verifying" mean?
-A: The admin is reviewing your request details, attached files, and payment confirmation.
+## Request Statuses
 
-Q: What does "For Processing" mean?
-A: Your request has been accepted and is currently being prepared by the relevant office.
+Q - What does "On Hold" mean?
+A - Your request is awaiting initial review by the administrator.
 
-Q: What does "On Hold" mean?
-A: Your request is temporarily paused, often due to an issue that requires the admin to check or verify a file or detail.
+Q - What does "Verifying" mean?
+A - The administrator is currently verifying your request details and records.
 
-Q: What does "Released" or "Ready for Pickup" mean?
-A: Your document has been finalized and is ready for collection or has been collected.
+Q - What does "For Compliance" mean?
+A - You need to submit additional requirements. **You can upload the required files directly in the chat** within the request details. You have a deadline to comply (usually 3 days for initial compliance, 2 days for resubmission).
 
-Q: When will I know the document's release date?
-A: A tentative release date is usually provided once your request has been verified and moves to the "For Processing" status. This date may be subject to change.
+Q - What does "Non-Compliant" mean?
+A - The deadline for compliance has passed, and you did not submit the required items. Your request may be stalled or cancelled.
 
-Q: Do I need to upload any files?
-A: Only if specifically requested by the system or the administrator.
+Q - What does "For Processing" mean?
+A - Your request has been verified and accepted. It is now being prepared/printed. A tentative release date is usually provided (typically 5 days from acceptance).
 
-Q: What if the file I need to upload is too big?
-A: You should compress your file or upload a lower-resolution version, ensuring the text remains clear and readable.
+Q - What does "For Pick Up" mean?
+A - Your document is ready! You can collect it from the school office.
 
-Q: Can I communicate directly with the staff processing my document?
-A: Direct contact is usually limited. Communication is typically managed through the official private chat or messaging system.
+Q - What does "Released" mean?
+A - The document has been successfully claimed by you.
 
-Q: Is the system/chatbot available 24/7?
-A: System availability for basic functions and chatbot inquiries is often 24/7, though staff assistance will only be available during working hours.
+Q - What does "Rejected" mean?
+A - Your request was denied. The reason is usually provided in the status note or chat. You may need to submit a new request.
 
-Q: Are online payment options available?
-A: We do not generally allow online payments for document requests. The system will typically generate a receipt or reference number which you must use to complete the payment at a designated payment center or office.
+---
 
-Q: What do I need to bring to claim my document?
-A: You must bring the required proof of payment and request, typically the systemgenerated receipt and the physical "Paid" receipt
+## Process and Features
 
-Q: How much is the document fee?
-A: Fees vary per document type. You can view the price of the document on the document request form.
+Q - How do I request a document?
+A - Click the "New Document" button, select the document type, choose the quantity, and state your purpose.
+
+Q - Can I cancel my request?
+A - You can **ONLY** cancel requests that are currently **"On Hold"**. Once the status changes to "Verifying" or anything else, you cannot cancel it yourself.
+
+Q - How do I pay?
+A - Payment is handled offline. You can **click the pending amount** in your request details to view specific payment instructions. After paying, the admin will update your status to "Paid".
+
+Q - How long does it take?
+A - Once your request is marked "For Processing", it typically takes about 5 working days. Check the "Tentative Date" in your request details.
+
+Q - Can I see the history of my request?
+A - Yes! You can view the **Status History** timeline in the request details to see exactly when and by whom your request was updated.
+
+Q - Can I message the admin?
+A - Yes, there is a built-in chat feature for each request. You can send messages and **attach files** (images, PDFs, docs) if needed for compliance.
 `;
+
+
+

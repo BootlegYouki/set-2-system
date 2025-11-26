@@ -18,6 +18,7 @@ export async function POST({ request }) {
 ${KNOWLEDGE_BASE}
 
 Guidelines:
+- Do not use emojis at all cost
 - Be friendly, professional, and concise
 - Answer based on the knowledge base provided
 - If a question is not covered in the knowledge base, politely say you don't have that specific information

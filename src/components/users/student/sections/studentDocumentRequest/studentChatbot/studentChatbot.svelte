@@ -8,6 +8,7 @@
 	let inputMessage = $state('');
 	let isLoading = $state(false);
 	let chatContainer = $state(null);
+	let inputElement = $state(null);
 
 	// Load chat from local storage on mount
 	onMount(() => {
@@ -113,7 +114,10 @@
 			}];
 		} finally {
 			isLoading = false;
-			setTimeout(scrollToBottom, 100);
+			setTimeout(() => {
+				scrollToBottom();
+				if (inputElement) inputElement.focus();
+			}, 100);
 		}
 	}
 
@@ -142,9 +146,9 @@
 
 	// Suggested questions
 	const suggestedQuestions = [
-		'Is the system/chatbot available 24/7?',
-		'How long does it take to process my document?',
-		'How much is the document fee?'
+		'Is there a free document request?',
+		'How do I pay for my request?',
+		'Can I cancel my request?'
 	];
 
 	function askSuggested(question) {
@@ -156,7 +160,7 @@
 		localStorage.removeItem('student_chatbot_history');
 		messages = [{
 			role: 'assistant',
-			content: 'Hi! 👋 I\'m here to help you with your document requests. Feel free to ask me anything about the process, statuses, or requirements!',
+			content: 'Hi! I\'m here to help you with your document requests. Feel free to ask me anything about the process, statuses, or requirements!',
 			timestamp: new Date()
 		}];
 	}
@@ -236,6 +240,7 @@
 		<!-- Input Area -->
 		<div class="sc-input-area">
 			<textarea
+				bind:this={inputElement}
 				bind:value={inputMessage}
 				onkeypress={handleKeyPress}
 				placeholder="Type your question..."
