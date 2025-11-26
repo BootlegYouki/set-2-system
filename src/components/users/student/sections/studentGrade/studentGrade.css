@@ -1942,6 +1942,11 @@
     margin-bottom: var(--spacing-sm);
   }
 
+  .subject-accordion,
+  .grade-stat-item {
+    animation: none;
+  }
+
   .analysis-title-group {
     justify-content: center;
   }
