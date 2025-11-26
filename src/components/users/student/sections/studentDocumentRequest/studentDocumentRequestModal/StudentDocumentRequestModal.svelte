@@ -2,6 +2,7 @@
 	import { authStore } from '../../../../../login/js/auth.js';
 	import { api } from '../../../../../../routes/api/helper/api-helper.js';
 	import { toastStore } from '../../../../../common/js/toastStore.js';
+	import { modalStore } from '../../../../../common/js/modalStore.js';
 	import Modal from '../../../../../common/Modal.svelte';
 
 	// Props passed from modal store
@@ -110,9 +111,11 @@
 		const statusNames = {
 			'on_hold': 'On Hold',
 			'verifying': 'Verifying',
+			'for_compliance': 'For Compliance',
 			'processing': 'For Processing',
 			'for_pickup': 'For Pick Up',
 			'released': 'Released',
+			'non_compliance': 'Non-Compliant',
 			'rejected': 'Rejected',
 			'cancelled': 'Cancelled'
 		};
@@ -160,9 +163,36 @@
 	async function sendMessage() {
 		if ((!newMessage.trim() && selectedFiles.length === 0) || isSendingMessage || !selectedRequest || isChatDisabled) return;
 
-		isSendingMessage = true;
+		// Show confirmation modal if there are files attached
+		if (selectedFiles.length > 0) {
+			const filesList = selectedFiles.map(f => `<li>${f.name} (${(f.size / 1024).toFixed(1)} KB)</li>`).join('');
+			modalStore.confirm(
+				'Confirm Send Message',
+				`<p>You are about to send a message with <strong>${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}</strong>. Please confirm before sending.</p>
+				${newMessage.trim() ? `<p style="margin-top: 12px;"><strong>Message:</strong> ${newMessage.trim().length > 100 ? newMessage.trim().substring(0, 100) + '...' : newMessage.trim()}</p>` : ''}
+				<p style="margin-top: 12px;"><strong>Files:</strong></p>
+				<ul style="margin: 8px 0; padding-left: 20px;">${filesList}</ul>`,
+				async () => {
+					await actualSendMessage();
+				},
+				() => {},
+				{ size: 'small' }
+			);
+			return;
+		}
+
+		// Proceed with sending if no files
+		await actualSendMessage();
+	}
+
+	// Actual send message function
+	async function actualSendMessage() {
 		const messageText = newMessage.trim();
 		const filesToSend = [...selectedFiles];
+		
+		if ((!messageText && filesToSend.length === 0) || isSendingMessage || !selectedRequest || isChatDisabled) return;
+
+		isSendingMessage = true;
 		
 		// Convert files to base64
 		let attachments = [];
@@ -220,6 +250,15 @@
 				selectedRequest.messages = selectedRequest.messages.map(msg => 
 					msg.id === tempId ? { ...result.data, id: tempId, isPending: false } : msg
 				);
+				
+				// If status was for_compliance and files were sent, the backend automatically changes it to verifying
+				// Refresh to get the updated status
+				if (selectedRequest.status === 'for_compliance' && attachments.length > 0) {
+					await fetchLatestMessages();
+					if (onRefresh) {
+						onRefresh();
+					}
+				}
 			} else {
 				console.error('Failed to send message:', result.error);
 			// Remove the optimistic message on failure
@@ -237,13 +276,11 @@
 		toastStore.error('An error occurred while sending the message.');
 		// Restore the message text and files so user can retry
 		newMessage = messageText;
-		selectedFiles = filesToSend;
+			selectedFiles = filesToSend;
 		} finally {
 			isSendingMessage = false;
 		}
-	}
-
-	// Handle cancel request
+	}	// Handle cancel request
 	function handleCancelRequest() {
 		// Show confirmation modal before cancelling
 		showCancelModal = true;
@@ -311,7 +348,7 @@
 		try {
 			const result = await api.get(`/api/document-requests?action=single&requestId=${selectedRequest.requestId}`);
 			
-			if (result.success && result.data.messages) {
+			if (result.success && result.data) {
 				// Keep pending messages and merge with server messages
 				const pendingMessages = messages.filter(m => m.isPending);
 				const serverMessages = result.data.messages;
@@ -327,7 +364,13 @@
 					scrollToBottom();
 				}
 				
-				// Update status history if available
+				// Update status, tentative date, and status history from server
+				if (result.data.status) {
+					selectedRequest.status = result.data.status;
+				}
+				if (result.data.tentativeDate) {
+					selectedRequest.tentativeDate = result.data.tentativeDate;
+				}
 				if (result.data.statusHistory) {
 					selectedRequest.statusHistory = result.data.statusHistory;
 				}
@@ -482,7 +525,7 @@
 	{:else if selectedRequest.tentativeDate}
 	<div class="student-docreq-card third-row">
 		<div class="card-label">
-			<span class="material-symbols-outlined">event</span> Tentative Date
+			<span class="material-symbols-outlined">event</span> {selectedRequest.status === 'for_compliance' ? 'Deadline' : 'Tentative Date'}
 		</div>
 		<div class="card-value">
 			<div class="date-display">
@@ -709,12 +752,16 @@
 											pause_circle
 										{:else if entry.status === 'verifying'}
 											fact_check
+										{:else if entry.status === 'for_compliance'}
+											assignment_late
 										{:else if entry.status === 'processing'}
 											sync
 										{:else if entry.status === 'for_pickup'}
 											inventory
 										{:else if entry.status === 'released'}
 											check_circle
+										{:else if entry.status === 'non_compliance'}
+											warning
 										{:else if entry.status === 'rejected'}
 											cancel
 										{:else if entry.status === 'cancelled'}
@@ -797,29 +844,38 @@
 						</div>
 					</div>
 
-					<!-- Verifying -->
-					<div class="flow-item">
-						<div class="flow-icon-wrapper verifying">
-							<span class="material-symbols-outlined">fact_check</span>
-						</div>
-						<div class="flow-content">
-							<h3>Verifying</h3>
-							<p>The document request is currently being verified. (Takes up to 5 days)</p>
-						</div>
+				<!-- Verifying -->
+				<div class="flow-item">
+					<div class="flow-icon-wrapper verifying">
+						<span class="material-symbols-outlined">fact_check</span>
 					</div>
-
-					<!-- Processing -->
-					<div class="flow-item">
-						<div class="flow-icon-wrapper processing">
-							<span class="material-symbols-outlined">sync</span>
-						</div>
-						<div class="flow-content">
-							<h3>For Processing</h3>
-							<p>The document is in the processing stage.</p>
-						</div>
+					<div class="flow-content">
+						<h3>Verifying</h3>
+						<p>The document request is currently being verified. (Takes up to 5 days)</p>
 					</div>
+				</div>
 
-					<!-- For Pick Up -->
+				<!-- For Compliance -->
+				<div class="flow-item">
+					<div class="flow-icon-wrapper for_compliance">
+						<span class="material-symbols-outlined">assignment_late</span>
+					</div>
+					<div class="flow-content">
+						<h3>For Compliance</h3>
+						<p>Additional documents required. You have <strong>3 days</strong> for initial compliance or <strong>2 days</strong> for resubmission. Failure to submit will result in non-compliance or rejection.</p>
+					</div>
+				</div>
+
+				<!-- Processing -->
+				<div class="flow-item">
+					<div class="flow-icon-wrapper processing">
+						<span class="material-symbols-outlined">sync</span>
+					</div>
+					<div class="flow-content">
+						<h3>For Processing</h3>
+						<p>The document is in the processing stage.</p>
+					</div>
+				</div>					<!-- For Pick Up -->
 					<div class="flow-item">
 						<div class="flow-icon-wrapper for_pickup">
 							<span class="material-symbols-outlined">inventory</span>
@@ -838,6 +894,17 @@
 						<div class="flow-content">
 							<h3>Released</h3>
 							<p>The document has been released to you.</p>
+						</div>
+					</div>
+
+					<!-- Non-Compliant -->
+					<div class="flow-item">
+						<div class="flow-icon-wrapper non_compliance">
+							<span class="material-symbols-outlined">warning</span>
+						</div>
+						<div class="flow-content">
+							<h3>Non-Compliant</h3>
+							<p>Request marked as non-compliant due to no response within the deadline.</p>
 						</div>
 					</div>
 
@@ -1161,6 +1228,12 @@
 		color: var(--status-verifying-text);
 	}
 
+	.status-badge.for_compliance {
+		background: var(--status-for-compliance-bg);
+		color: var(--status-for-compliance-text);
+		border-color: var(--status-for-compliance-border);
+	}
+
 	.status-badge.processing {
 		background: var(--status-processing-bg);
 		color: var(--status-processing-text);
@@ -1175,6 +1248,12 @@
 	.status-badge.released {
 		background: var(--status-released-bg);
 		color: var(--status-released-text);
+	}
+
+	.status-badge.non_compliance {
+		background: var(--status-non-compliance-bg);
+		color: var(--status-non-compliance-text);
+		border-color: var(--status-non-compliance-border);
 	}
 
 	.status-badge.rejected {
@@ -1196,6 +1275,10 @@
 		border-color: var(--status-verifying-bg);
 	}
 
+	.status-card-horizontal.status-card-for_compliance {
+		border-color: var(--status-for-compliance-bg);
+	}
+
 	.status-card-horizontal.status-card-processing {
 		border-color: var(--status-processing-bg);
 	}
@@ -1206,6 +1289,10 @@
 
 	.status-card-horizontal.status-card-released {
 		border-color: var(--status-released-bg);
+	}
+
+	.status-card-horizontal.status-card-non_compliance {
+		border-color: var(--status-non-compliance-bg);
 	}
 
 	.status-card-horizontal.status-card-rejected {
@@ -1326,7 +1413,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xs);
-		justify-content: end;
 	}
 
 	/* Reduce chat messages height when files are selected */
@@ -1782,6 +1868,11 @@
 		color: var(--status-verifying-text);
 	}
 
+	.flow-icon-wrapper.for_compliance {
+		background: var(--status-for-compliance-bg);
+		color: var(--status-for-compliance-text);
+	}
+
 	.flow-icon-wrapper.processing {
 		background: var(--status-processing-bg);
 		color: var(--status-processing-text);
@@ -1795,6 +1886,11 @@
 	.flow-icon-wrapper.released {
 		background: var(--status-released-bg);
 		color: var(--status-released-text);
+	}
+
+	.flow-icon-wrapper.non_compliance {
+		background: var(--status-non-compliance-bg);
+		color: var(--status-non-compliance-text);
 	}
 
 	.flow-icon-wrapper.rejected {
@@ -2439,6 +2535,12 @@
 		border-color: #3949ab;
 	}
 
+	.timeline-marker.status-for_compliance {
+		background: #4a148c;
+		color: #ffffff;
+		border-color: #601ab6;
+	}
+
 	.timeline-marker.status-processing {
 		background: #ff9800;
 		color: #ffffff;
@@ -2461,6 +2563,12 @@
 		background: #f44336;
 		color: #ffffff;
 		border-color: #d32f2f;
+	}
+
+	.timeline-marker.status-non_compliance {
+		background: #8f3114;
+		color: #ffffff;
+		border-color: #bd401a;
 	}
 
 	.timeline-marker.status-cancelled {
@@ -2716,6 +2824,183 @@
 	.payment-instructions-got-it-btn:focus-visible {
 		outline: 2px solid var(--md-sys-color-primary);
 		outline-offset: 2px;
+	}
+
+	/* Modal Confirmation Content Styles */
+	.modal-confirm-content {
+		padding: var(--spacing-md);
+	}
+
+	.modal-message {
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.modal-message > p {
+		margin: 0 0 var(--spacing-md) 0;
+		color: var(--md-sys-color-on-surface);
+		line-height: 1.6;
+	}
+
+	.confirm-details {
+		background: var(--md-sys-color-surface-container);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-md);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.confirm-detail-row {
+		display: flex;
+		gap: var(--spacing-sm);
+		margin-bottom: var(--spacing-sm);
+		align-items: flex-start;
+	}
+
+	.confirm-detail-row:last-child {
+		margin-bottom: 0;
+	}
+
+	.confirm-detail-row.files-list {
+		flex-direction: column;
+	}
+
+	.detail-label {
+		font-weight: 600;
+		color: var(--md-sys-color-on-surface-variant);
+		min-width: 80px;
+		flex-shrink: 0;
+	}
+
+	.detail-value {
+		color: var(--md-sys-color-on-surface);
+		flex: 1;
+	}
+
+	.detail-value.message-preview {
+		font-style: italic;
+		line-height: 1.4;
+		word-break: break-word;
+	}
+
+	.files-list .detail-value {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+		width: 100%;
+	}
+
+	.file-item {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		background: var(--md-sys-color-surface);
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.file-item .material-symbols-outlined {
+		font-size: 18px;
+		color: var(--md-sys-color-on-surface-variant);
+	}
+
+	.file-name {
+		flex: 1;
+		font-size: 0.875rem;
+		color: var(--md-sys-color-on-surface);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.file-size {
+		font-size: 0.75rem;
+		color: var(--md-sys-color-on-surface-variant);
+		flex-shrink: 0;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: var(--spacing-sm);
+		justify-content: flex-end;
+	}
+
+	.modal-btn {
+		padding: var(--spacing-sm) var(--spacing-lg);
+		border-radius: var(--radius-md);
+		border: none;
+		font-weight: 600;
+		font-size: 0.95rem;
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		min-width: 100px;
+		justify-content: center;
+	}
+
+	.modal-btn .material-symbols-outlined {
+		font-size: 18px;
+	}
+
+	.modal-btn-secondary {
+		background: var(--md-sys-color-surface-container-highest);
+		color: var(--md-sys-color-on-surface);
+		border: 1px solid var(--md-sys-color-outline-variant);
+	}
+
+	.modal-btn-secondary:hover {
+		background: var(--md-sys-color-surface-container-high);
+		border-color: var(--md-sys-color-outline);
+	}
+
+	.modal-btn-primary {
+		background: var(--md-sys-color-primary);
+		color: var(--md-sys-color-on-primary);
+	}
+
+	.modal-btn-primary:hover:not(:disabled) {
+		background: var(--md-sys-color-primary-container);
+		color: var(--md-sys-color-on-primary-container);
+		box-shadow: var(--shadow-sm);
+	}
+
+	.modal-btn-primary:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.modal-btn-danger {
+		background: var(--md-sys-color-error);
+		color: var(--md-sys-color-on-error);
+	}
+
+	.modal-btn-danger:hover {
+		background: var(--md-sys-color-error-container);
+		color: var(--md-sys-color-on-error-container);
+	}
+
+	.cancel-warning {
+		background: var(--md-sys-color-error-container);
+		border-color: var(--md-sys-color-error);
+	}
+
+	.cancel-notice {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		margin-top: var(--spacing-sm);
+		padding: var(--spacing-sm);
+		background: var(--md-sys-color-surface);
+		border-radius: var(--radius-sm);
+		color: var(--md-sys-color-error);
+		font-size: 0.875rem;
+		border: 1px solid var(--md-sys-color-error);
+	}
+
+	.cancel-notice .material-symbols-outlined {
+		font-size: 18px;
+		flex-shrink: 0;
 	}
 
 	@media (max-width: 768px) {

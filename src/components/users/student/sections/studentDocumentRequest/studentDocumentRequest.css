@@ -424,6 +424,11 @@
   background-color: var(--status-verifying-bg);
 }
 
+.request-card.for_compliance {
+  border: 2px solid var(--status-for-compliance-border);
+  background-color: var(--status-for-compliance-bg);
+}
+
 .request-card.processing {
   border: 2px solid var(--status-processing-border);
   background-color: var(--status-processing-bg);
@@ -437,6 +442,11 @@
 .request-card.released {
   border: 2px solid var(--status-released-border);
   background-color: var(--status-released-bg);
+}
+
+.request-card.non_compliance {
+  border: 2px solid var(--status-non-compliance-border);
+  background-color: var(--status-non-compliance-bg);
 }
 
 .request-card.rejected {
@@ -557,17 +567,14 @@
 }
 
 .student-status-badge {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: capitalize;
-  text-align: center;
-  min-width: 80px;
-  flex-shrink: 0;
-}
-
-/* Status-specific badge styling */
+	padding: var(--spacing-sm) var(--spacing-lg);
+	border-radius: var(--radius-full);
+	font-size: 14px;
+	font-weight: 600;
+	text-align: center;
+	min-width: 80px;
+	flex-shrink: 0;
+}/* Status-specific badge styling */
 /* Student status badge colors - matching admin system */
 .student-status-badge.status-on_hold {
   background-color: var(--status-on-hold-bg);
@@ -579,6 +586,12 @@
   background-color: var(--status-verifying-bg);
   color: var(--status-verifying-text);
   border: 1px solid var(--status-verifying-border);
+}
+
+.student-status-badge.status-for_compliance {
+  background-color: var(--status-for-compliance-bg);
+  color: var(--status-for-compliance-text);
+  border: 1px solid var(--status-for-compliance-border);
 }
 
 .student-status-badge.status-processing {
@@ -597,6 +610,12 @@
   background-color: var(--status-released-bg);
   color: var(--status-released-text);
   border: 1px solid var(--status-released-border);
+}
+
+.student-status-badge.status-non_compliance {
+  background-color: var(--status-non-compliance-bg);
+  color: var(--status-non-compliance-text);
+  border: 1px solid var(--status-non-compliance-border);
 }
 
 .student-status-badge.status-rejected {
@@ -1328,6 +1347,149 @@
 	color: #0b6b3a;
 	border: 1px solid rgba(11,107,58,0.12);
 }
+
+/* Modal Confirmation Content Styles */
+.modal-confirm-content {
+	padding: var(--spacing-md);
+}
+
+.modal-message {
+	margin-bottom: var(--spacing-lg);
+}
+
+.modal-message > p {
+	margin: 0 0 var(--spacing-md) 0;
+	color: var(--md-sys-color-on-surface);
+	line-height: 1.6;
+}
+
+.confirm-details {
+	background: var(--md-sys-color-surface-container);
+	border-radius: var(--radius-md);
+	padding: var(--spacing-md);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.confirm-detail-row {
+	display: flex;
+	gap: var(--spacing-sm);
+	margin-bottom: var(--spacing-sm);
+	align-items: flex-start;
+}
+
+.confirm-detail-row:last-child {
+	margin-bottom: 0;
+}
+
+.confirm-detail-row.purpose-row {
+	flex-direction: column;
+	gap: 4px;
+}
+
+.detail-label {
+	font-weight: 600;
+	color: var(--md-sys-color-on-surface-variant);
+	min-width: 100px;
+	flex-shrink: 0;
+	font-size: 0.875rem;
+}
+
+.detail-value {
+	color: var(--md-sys-color-on-surface);
+	flex: 1;
+	font-size: 0.95rem;
+}
+
+.detail-value.price-highlight {
+	font-weight: 700;
+	color: var(--md-sys-color-primary);
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.detail-value.purpose-text {
+	background: var(--md-sys-color-surface);
+	padding: var(--spacing-sm);
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--md-sys-color-outline-variant);
+	line-height: 1.5;
+	font-style: italic;
+	color: var(--md-sys-color-on-surface-variant);
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.free-badge-modal {
+	color: var(--md-sys-color-tertiary);
+	font-weight: 700;
+	font-size: 1rem;
+}
+
+.first-time-note,
+.pricing-note {
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--md-sys-color-on-surface-variant);
+	font-style: italic;
+}
+
+.modal-actions {
+	display: flex;
+	gap: var(--spacing-sm);
+	justify-content: flex-end;
+}
+
+.modal-btn {
+	padding: var(--spacing-sm) var(--spacing-lg);
+	border-radius: var(--radius-md);
+	border: none;
+	font-weight: 600;
+	font-size: 0.95rem;
+	cursor: pointer;
+	transition: all var(--transition-fast);
+	display: flex;
+	align-items: center;
+	gap: var(--spacing-xs);
+	min-width: 100px;
+	justify-content: center;
+}
+
+.modal-btn .material-symbols-outlined {
+	font-size: 18px;
+}
+
+.modal-btn-secondary {
+	background: var(--md-sys-color-surface-container-highest);
+	color: var(--md-sys-color-on-surface);
+	border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.modal-btn-secondary:hover {
+	background: var(--md-sys-color-surface-container-high);
+	border-color: var(--md-sys-color-outline);
+}
+
+.modal-btn-primary {
+	background: var(--md-sys-color-primary);
+	color: var(--md-sys-color-on-primary);
+}
+
+.modal-btn-primary:hover:not(:disabled) {
+	background: var(--md-sys-color-primary-container);
+	color: var(--md-sys-color-on-primary-container);
+	box-shadow: var(--shadow-sm);
+}
+
+.modal-btn-primary:active:not(:disabled) {
+	transform: scale(0.98);
+}
+
+.modal-btn-primary:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 .pay-button {
 	background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, color-mix(in srgb, var(--md-sys-color-primary) 75%, var(--md-sys-color-secondary)) 100%);
 	color: var(--md-sys-color-on-primary);
@@ -1434,6 +1596,11 @@
 	color: var(--status-verifying-text); 
 	border: 1px solid var(--status-verifying-border); 
 }
+.status-for_compliance { 
+	background: var(--status-for-compliance-bg); 
+	color: var(--status-for-compliance-text); 
+	border: 1px solid var(--status-for-compliance-border); 
+}
 .status-processing { 
 	background: var(--status-processing-bg); 
 	color: var(--status-processing-text); 
@@ -1448,6 +1615,11 @@
 	background: var(--status-released-bg); 
 	color: var(--status-released-text); 
 	border: 1px solid var(--status-released-border); 
+}
+.status-non_compliance { 
+	background: var(--status-non-compliance-bg); 
+	color: var(--status-non-compliance-text); 
+	border: 1px solid var(--status-non-compliance-border); 
 }
 .status-rejected { 
 	background: var(--status-rejected-bg); 
@@ -1521,6 +1693,11 @@
 	color: var(--status-verifying-text);
 }
 
+.request-card.for_compliance .chat-indicator-btn {
+	border-color: var(--status-for-compliance-border);
+	color: var(--status-for-compliance-text);
+}
+
 .request-card.processing .chat-indicator-btn {
 	border-color: var(--status-processing-border);
 	color: var(--status-processing-text);
@@ -1534,6 +1711,11 @@
 .request-card.released .chat-indicator-btn {
 	border-color: var(--status-released-border);
 	color: var(--status-released-text);
+}
+
+.request-card.non_compliance .chat-indicator-btn {
+	border-color: var(--status-non-compliance-border);
+	color: var(--status-non-compliance-text);
 }
 
 .request-card.rejected .chat-indicator-btn {
@@ -1585,6 +1767,11 @@
 	color: white;
 }
 
+.request-card.for_compliance .chat-badge {
+	background: var(--status-for-compliance-border);
+	color: white;
+}
+
 .request-card.processing .chat-badge {
 	background: var(--status-processing-border);
 	color: white;
@@ -1597,6 +1784,11 @@
 
 .request-card.released .chat-badge {
 	background: var(--status-released-border);
+	color: white;
+}
+
+.request-card.non_compliance .chat-badge {
+	background: var(--status-non-compliance-border);
 	color: white;
 }
 

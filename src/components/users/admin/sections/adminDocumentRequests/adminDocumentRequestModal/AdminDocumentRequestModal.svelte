@@ -248,6 +248,19 @@
 			const month = String(tentativeDate.getMonth() + 1).padStart(2, '0');
 			const day = String(tentativeDate.getDate()).padStart(2, '0');
 			selectedRequest.tentativeDate = `${year}-${month}-${day}`;
+		} else if (statusId === 'for_compliance') {
+			// Calculate deadline in real-time based on whether this is a resubmission
+			// Resubmission = changing from non_compliance to for_compliance (2 days)
+			// Initial compliance = any other status to for_compliance (3 days)
+			const isResubmission = (savedStatus === 'non_compliance');
+			const daysToAdd = isResubmission ? 2 : 3;
+			
+			const complianceDeadline = new Date();
+			complianceDeadline.setDate(complianceDeadline.getDate() + daysToAdd);
+			const year = complianceDeadline.getFullYear();
+			const month = String(complianceDeadline.getMonth() + 1).padStart(2, '0');
+			const day = String(complianceDeadline.getDate()).padStart(2, '0');
+			selectedRequest.tentativeDate = `${year}-${month}-${day}`;
 		} else {
 			// Reset tentative date for other statuses
 			selectedRequest.tentativeDate = null;
@@ -273,7 +286,7 @@
 	async function confirmUpdate() {
 		const updateData = {
 			status: selectedRequest.status,
-			tentativeDate: selectedRequest.tentativeDate,
+			tentativeDate: selectedRequest.status === 'for_compliance' ? undefined : selectedRequest.tentativeDate,
 			paymentAmount: selectedRequest.paymentAmount,
 			paymentStatus: paymentStatus
 		};
@@ -632,7 +645,7 @@
 		{#if selectedRequest.tentativeDate}
 		<div class="docreq-card">
 			<div class="card-label">
-				<span class="material-symbols-outlined">event</span> Tentative Date
+				<span class="material-symbols-outlined">event</span> {selectedRequest.status === 'for_compliance' ? 'Deadline' : 'Tentative Date'}
 			</div>
 			<div class="admin-card-value">
 				<div class="date-box readonly">
@@ -648,7 +661,7 @@
 				<span class="material-symbols-outlined">numbers</span> Quantity
 			</div>
 			<div class="admin-card-value">
-				{selectedRequest.quantity + ` Copies` ?? '—'} 
+				{selectedRequest.quantity ? `${selectedRequest.quantity} ${selectedRequest.quantity === 1 ? 'Copy' : 'Copies'}` : '—'} 
 			</div>
 		</div>
 
@@ -898,7 +911,7 @@
 					</div>
 					{#if selectedRequest.tentativeDate}
 					<div class="confirm-detail-row">
-						<span class="detail-label">Tentative Date:</span>
+						<span class="detail-label">{selectedRequest.status === 'for_compliance' ? 'Deadline:' : 'Tentative Date:'}</span>
 						<span class="detail-value">{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}</span>
 					</div>
 					{/if}
@@ -1799,6 +1812,9 @@
 	.status-dot.verifying {
 		background: #3b82f6;
 	}
+	.status-dot.for_compliance {
+		background: #9c27b0;
+	}
 	.status-dot.processing {
 		background: #fb923c;
 	}
@@ -1807,6 +1823,9 @@
 	}
 	.status-dot.released {
 		background: #22c55e;
+	}
+	.status-dot.non_compliance {
+		background: #ff5722;
 	}
 	.status-dot.rejected {
 		background: #ef4444;
