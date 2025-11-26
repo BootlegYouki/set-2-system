@@ -95,6 +95,7 @@
 	// Use the live currentTime (updates every minute) to compute whether the selected day is today
 	$: currentWeekdayAbbrev = dayIndexToAbbrev[currentTime.getDay()];
 	$: isToday = currentWeekdayAbbrev === selectedDay;
+	$: hasCurrentClass = currentTime && currentClasses.some(c => isCurrentClass(c.time));
 	
 	// Add animation key to trigger re-render on day change
 	let animationKey = 0;
@@ -248,7 +249,7 @@
 			</div>
 		{:else if currentClasses.length > 0}
 			{#key animationKey}
-				<div class="classes-list">
+				<div class="classes-list {hasCurrentClass ? 'has-current' : ''}">
 					{#each currentClasses as classItem, index}
 						<div class="class-card {classItem.color} {isCurrentClass(classItem.time) ? 'current' : ''}" style="--card-index: {index};">
 							<div class="class-header">

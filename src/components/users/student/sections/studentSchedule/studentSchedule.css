@@ -375,11 +375,24 @@
 	/* Stagger animation */
 	animation: slideInUp 0.5s ease-out backwards;
 	animation-delay: calc(var(--card-index) * 0.1s);
+	
+	/* Animation variables */
+	--card-opacity: 1;
+	--card-scale: 1;
 }
 
 .class-card:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Dull other cards when a current card exists */
+.classes-list.has-current .class-card:not(.current) {
+	--card-opacity: 0.5;
+	--card-scale: 0.98;
+	opacity: var(--card-opacity);
+	filter: grayscale(0.3);
+	transform: scale(var(--card-scale));
 }
 
 /* Current class highlight */
@@ -414,11 +427,11 @@
 @keyframes slideInUp {
 	0% {
 		opacity: 0;
-		transform: translateY(20px);
+		transform: translateY(20px) scale(var(--card-scale));
 	}
 	100% {
-		opacity: 1;
-		transform: translateY(0);
+		opacity: var(--card-opacity);
+		transform: translateY(0) scale(var(--card-scale));
 	}
 }
 
@@ -754,11 +767,6 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-
-	.schedule-header h1 {
-		font-size: 1.5rem;
-	}
-
 	.week-navigation {
 		padding: var(--spacing-md) var(--spacing-lg);
 	}

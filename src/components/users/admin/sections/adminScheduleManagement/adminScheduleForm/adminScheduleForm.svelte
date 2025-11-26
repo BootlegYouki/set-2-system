@@ -49,7 +49,7 @@
 	// Fetch current school year from database
 	async function fetchCurrentSchoolYear() {
 		try {
-			const response = await fetch('/api/current-quarter');
+			const response = await authenticatedFetch('/api/current-quarter');
 			const result = await response.json();
 
 			if (result.success && result.data) {
