@@ -267,7 +267,7 @@
 }
 
 /* Slide in animation for request cards */
-@keyframes slideInUp {
+@keyframes docslideInUp {
   0% {
     opacity: 0;
     transform: translateY(20px);
@@ -408,7 +408,7 @@
   overflow: hidden;
   color: var(--md-sys-color-on-surface);
   /* Stagger animation */
-  animation: slideInUp 0.5s ease-out backwards;
+  animation: docslideInUp 0.5s ease-out backwards;
   animation-delay: calc(var(--card-index) * 0.1s);
 }
 
