@@ -62,10 +62,10 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // Use the API key from environment variable (never exposed to client)
-    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY_DESKTOP || process.env.OPENROUTER_API_KEY;
     
     if (!OPENROUTER_API_KEY) {
-      console.error('OPENROUTER_API_KEY not configured');
+      console.error('OPENROUTER_API_KEY_DESKTOP or OPENROUTER_API_KEY not configured');
       return res.status(500).json({ 
         success: false, 
         error: 'Server configuration error' 
