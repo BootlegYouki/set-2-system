@@ -1,4 +1,4 @@
-import { r as render, s as set, L as LEGACY_PROPS, g as get, f as flushSync, d as define_property, m as mutable_source, i as init_operations, a as get_first_child, C as COMMENT_NODE, H as HYDRATION_START, b as get_next_sibling, c as HYDRATION_ERROR, e as HYDRATION_END, h as hydration_failed, j as clear_text_content, k as array_from, l as component_root, n as set_active_reaction, o as set_active_effect, p as is_array, q as active_effect, t as active_reaction, u as create_text, v as branch, w as push, x as setContext, y as pop, z as push$1, A as component_context, B as pop$1, D as DEV, E as readable, F as writable } from './chunks/index-Dr4ytFAP.js';
+import { r as render, s as set, L as LEGACY_PROPS, g as get, f as flushSync, d as define_property, m as mutable_source, i as init_operations, a as get_first_child, C as COMMENT_NODE, H as HYDRATION_START, b as get_next_sibling, c as HYDRATION_ERROR, e as HYDRATION_END, h as hydration_failed, j as clear_text_content, k as array_from, l as component_root, n as set_active_reaction, o as set_active_effect, p as is_array, q as active_effect, t as active_reaction, u as create_text, v as branch, w as push, x as setContext, y as pop, z as push$1, A as component_context, B as pop$1, D as BROWSER, E as readable, F as writable } from './chunks/index-BwMdFRNM.js';
 import { j as json, t as text, R as Redirect, S as SvelteKitError, H as HttpError, e as error, A as ActionFailure } from './chunks/index-CccDCyu_.js';
 import { t as text_decoder, b as base64_decode, d as decode_pathname, a as decode_params, n as normalize_path, c as disable_search, v as validate_layout_server_exports, e as validate_layout_exports, f as validate_page_server_exports, g as validate_page_exports, h as text_encoder, r as resolve, m as make_trackable, i as get_relative_path, j as base64_encode } from './chunks/utils-Bg2Rux6K.js';
 
@@ -1585,11 +1585,13 @@ const options = {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>\r
 		\r
 		<!-- PWA Meta Tags -->\r
-		<meta name="theme-color" content="#1565c0" />\r
+		<!-- Dynamic theme color based on light/dark mode -->\r
+		<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />\r
+		<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />\r
 		<meta name="description" content="Student Enrollment and Tracking System" />\r
 		<meta name="mobile-web-app-capable" content="yes" />\r
 		<meta name="apple-mobile-web-app-capable" content="yes" />\r
-		<meta name="apple-mobile-web-app-status-bar-style" content="default" />\r
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />\r
 		<meta name="apple-mobile-web-app-title" content="SET-2 System" />\r
 		<link rel="apple-touch-icon" href="/pwa-192x192.png" />\r
 		<link rel="manifest" href="/manifest.json" />\r
@@ -1760,9 +1762,23 @@ const options = {
 					// Default to light mode if no saved preference\r
 					const theme = savedTheme === 'dark' ? 'dark' : 'light';\r
 					document.documentElement.setAttribute('data-theme', theme);\r
+					\r
+					// Update theme-color meta tag dynamically\r
+					const themeColor = theme === 'dark' ? '#121212' : '#FFFFFF';\r
+					let metaThemeColor = document.querySelector('meta[name="theme-color"]:not([media])');\r
+					if (!metaThemeColor) {\r
+						metaThemeColor = document.createElement('meta');\r
+						metaThemeColor.setAttribute('name', 'theme-color');\r
+						document.head.appendChild(metaThemeColor);\r
+					}\r
+					metaThemeColor.setAttribute('content', themeColor);\r
 				} catch (e) {\r
 					// Fallback to light mode if localStorage is not available\r
 					document.documentElement.setAttribute('data-theme', 'light');\r
+					const metaThemeColor = document.querySelector('meta[name="theme-color"]:not([media])');\r
+					if (metaThemeColor) {\r
+						metaThemeColor.setAttribute('content', '#FFFFFF');\r
+					}\r
 				}\r
 			})();\r
 			\r
@@ -1886,7 +1902,7 @@ const options = {
 		<div class="error">
 			<span class="status">` + status + '</span>\n			<div class="message">\n				<h1>' + message + "</h1>\n			</div>\n		</div>\n	</body>\n</html>\n"
   },
-  version_hash: "6rq07r"
+  version_hash: "1yypzx"
 };
 async function get_hooks() {
   let handle;
@@ -2830,7 +2846,7 @@ async function handle_action_json_request(event, event_state, options2, server) 
   check_named_default_separate(actions);
   try {
     const data = await call_action(event, event_state, actions);
-    if (DEV) ;
+    if (BROWSER) ;
     if (data instanceof ActionFailure) {
       return action_json({
         type: "failure",
@@ -2915,7 +2931,7 @@ async function handle_action_request(event, event_state, server) {
   check_named_default_separate(actions);
   try {
     const data = await call_action(event, event_state, actions);
-    if (DEV) ;
+    if (BROWSER) ;
     if (data instanceof ActionFailure) {
       return {
         type: "failure",
@@ -5050,7 +5066,7 @@ async function render_page(event, event_state, page, options2, manifest, state, 
     const ssr = nodes.ssr();
     const csr = nodes.csr();
     if (ssr === false && !(state.prerendering && should_prerender_data)) {
-      if (DEV && action_result && !event.request.headers.has("x-sveltekit-action")) ;
+      if (BROWSER && action_result && !event.request.headers.has("x-sveltekit-action")) ;
       return await render_response({
         branch: [],
         fetched,
@@ -5745,12 +5761,12 @@ async function internal_respond(request, options2, manifest, state) {
       if (url.pathname === base || url.pathname === base + "/") {
         trailing_slash = "always";
       } else if (page_nodes) {
-        if (DEV) ;
+        if (BROWSER) ;
         trailing_slash = page_nodes.trailing_slash();
       } else if (route.endpoint) {
         const node = await route.endpoint();
         trailing_slash = node.trailingSlash ?? "never";
-        if (DEV) ;
+        if (BROWSER) ;
       }
       if (!is_data_request) {
         const normalized = normalize_path(url.pathname, trailing_slash);
@@ -6009,7 +6025,7 @@ async function internal_respond(request, options2, manifest, state) {
         });
       }
       if (state.depth === 0) {
-        if (DEV && event2.url.pathname === "/.well-known/appspecific/com.chrome.devtools.json") ;
+        if (BROWSER && event2.url.pathname === "/.well-known/appspecific/com.chrome.devtools.json") ;
         return await respond_with_error({
           event: event2,
           event_state,

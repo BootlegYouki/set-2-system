@@ -33,7 +33,7 @@ Guidelines:
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${OPENROUTER_AI_KEY}`,
-        'HTTP-Referer': 'https://set-2-system.onrender.com',
+        'HTTP-Referer': 'http://localhost:3000',
         'X-Title': 'SET-2 System',
         'Content-Type': 'application/json',
       },

@@ -10,11 +10,11 @@ return {
 	assets: new Set([".well-known/appspecific/com.chrome.devtools.json","icon.svg","manifest.json","pwa-192x192.png","pwa-512x512.png","robots.txt"]),
 	mimeTypes: {".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".txt":"text/plain"},
 	_: {
-		client: {start:"_app/immutable/entry/start.DtcNGlrL.js",app:"_app/immutable/entry/app.v1lLjWZs.js",imports:["_app/immutable/entry/start.DtcNGlrL.js","_app/immutable/chunks/CMGJVHyi.js","_app/immutable/chunks/BrR45Eif.js","_app/immutable/entry/app.v1lLjWZs.js","_app/immutable/chunks/BrR45Eif.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/CsvhCkDi.js","_app/immutable/chunks/vM_StVem.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.4dhzbU8D.js",app:"_app/immutable/entry/app.Bw8MA6_f.js",imports:["_app/immutable/entry/start.4dhzbU8D.js","_app/immutable/chunks/D2XsfF-m.js","_app/immutable/chunks/Dzme5HSP.js","_app/immutable/entry/app.Bw8MA6_f.js","_app/immutable/chunks/Dzme5HSP.js","_app/immutable/chunks/DsnmJJEf.js","_app/immutable/chunks/BxRcuCIW.js","_app/immutable/chunks/B4dZFGov.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
-			__memo(() => import('./chunks/0-CUrArFRl.js')),
-			__memo(() => import('./chunks/1-B-soYAuP.js')),
-			__memo(() => import('./chunks/2-DN057mQ2.js'))
+			__memo(() => import('./chunks/0-D2U4AOti.js')),
+			__memo(() => import('./chunks/1--Zy8jGBN.js')),
+			__memo(() => import('./chunks/2-Czbli6Nd.js'))
 		],
 		remotes: {
 			
@@ -32,7 +32,7 @@ return {
 				pattern: /^\/api\/accounts\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-mw15yEgJ.js'))
+				endpoint: __memo(() => import('./chunks/_server-DgEm9UYv.js'))
 			},
 			{
 				id: "/api/accounts/check-email",
@@ -70,11 +70,25 @@ return {
 				endpoint: __memo(() => import('./chunks/_server-CzwKyvCO.js'))
 			},
 			{
+				id: "/api/ai-analysis",
+				pattern: /^\/api\/ai-analysis\/?$/,
+				params: [],
+				page: null,
+				endpoint: __memo(() => import('./chunks/_server-DkD6vOVL.js'))
+			},
+			{
+				id: "/api/ai-chatbot",
+				pattern: /^\/api\/ai-chatbot\/?$/,
+				params: [],
+				page: null,
+				endpoint: __memo(() => import('./chunks/_server-B8QlWKdR.js'))
+			},
+			{
 				id: "/api/ai-grade-analysis",
 				pattern: /^\/api\/ai-grade-analysis\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-DdCIwo49.js'))
+				endpoint: __memo(() => import('./chunks/_server-BPVrtuPM.js'))
 			},
 			{
 				id: "/api/archived-accounts",
@@ -89,13 +103,6 @@ return {
 				params: [],
 				page: null,
 				endpoint: __memo(() => import('./chunks/_server-vFxnc-ts.js'))
-			},
-			{
-				id: "/api/auth/heartbeat",
-				pattern: /^\/api\/auth\/heartbeat\/?$/,
-				params: [],
-				page: null,
-				endpoint: __memo(() => import('./chunks/_server-DeJ2fUQJ.js'))
 			},
 			{
 				id: "/api/change-password",
@@ -123,7 +130,7 @@ return {
 				pattern: /^\/api\/current-quarter\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-Ch7s5C0j.js'))
+				endpoint: __memo(() => import('./chunks/_server-DqxnqpxD.js'))
 			},
 			{
 				id: "/api/dashboard",
@@ -158,21 +165,21 @@ return {
 				pattern: /^\/api\/document-requests\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-BrqO-EO_.js'))
+				endpoint: __memo(() => import('./chunks/_server-NFOrpHLY.js'))
 			},
 			{
 				id: "/api/forgot-password",
 				pattern: /^\/api\/forgot-password\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-C-F3l6X3.js'))
+				endpoint: __memo(() => import('./chunks/_server-BikVxzyh.js'))
 			},
 			{
 				id: "/api/forgot-password/reset-password",
 				pattern: /^\/api\/forgot-password\/reset-password\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-1osS2i2e.js'))
+				endpoint: __memo(() => import('./chunks/_server-D4CJzXCj.js'))
 			},
 			{
 				id: "/api/forgot-password/verify-code",
@@ -277,21 +284,21 @@ return {
 				pattern: /^\/api\/teacher-advisory\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CLfmeiwB.js'))
+				endpoint: __memo(() => import('./chunks/_server-BPqixgw0.js'))
 			},
 			{
 				id: "/api/teacher-profile",
 				pattern: /^\/api\/teacher-profile\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-Bsd-SyVb.js'))
+				endpoint: __memo(() => import('./chunks/_server-BYtHd_jE.js'))
 			},
 			{
 				id: "/api/teacher-sections",
 				pattern: /^\/api\/teacher-sections\/?$/,
 				params: [],
 				page: null,
-				endpoint: __memo(() => import('./chunks/_server-CnOcz2pp.js'))
+				endpoint: __memo(() => import('./chunks/_server-oZBy_CHg.js'))
 			},
 			{
 				id: "/api/users",
