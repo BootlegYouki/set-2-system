@@ -90,6 +90,7 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	gap: var(--spacing-md);
 	border-bottom: 1px solid var(--md-sys-color-outline-variant);
 }
 
@@ -106,7 +107,7 @@
 
 .sc-header h3 {
 	margin: 0;
-	font-size: 16px;
+	font-size: 15px;
 	font-weight: 600;
 	font-family: var(--md-sys-typescale-title-medium-font);
 	color: var(--md-sys-color-on-surface);
@@ -121,7 +122,7 @@
 .sc-header-actions {
 	display: flex;
 	align-items: center;
-	gap: var(--spacing-xs);
+	gap: var(--spacing-md);
 }
 
 .sc-header-btn {
@@ -392,13 +393,14 @@
 @media (max-width: 768px) {
 	.sc-window {
 		width: calc(100vw - 32px);
-		height: calc(100vh - 140px);
-		bottom: 90px;
+		height: 60vh;
+		max-height: 500px;
+		bottom: 170px;
 		right: 16px;
 	}
 
 	.sc-toggle {
-		bottom: 24px;
+		bottom: 100px;
 		right: 24px;
 	}
 }
