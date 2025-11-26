@@ -97,11 +97,22 @@
 	];
 
 	// Reactive statements
-	$: currentClasses = scheduleData[selectedDay] || [];
+	$: rawClasses = scheduleData[selectedDay] || [];
+	$: currentClasses = [...rawClasses].sort((a, b) => {
+		// Dependency on currentTime to trigger re-sort when time changes
+		currentTime;
+		isToday; // Ensure dependency on isToday
+		const isACurrent = isCurrentClass(a.time);
+		const isBCurrent = isCurrentClass(b.time);
+		if (isACurrent && !isBCurrent) return -1;
+		if (!isACurrent && isBCurrent) return 1;
+		return 0;
+	});
 	$: fullDayName = dayNameMap[selectedDay] || 'Monday';
 	// Use the live currentTime (updates every minute) to compute whether the selected day is today
 	$: currentWeekdayAbbrev = dayIndexToAbbrev[currentTime.getDay()];
 	$: isToday = currentWeekdayAbbrev === selectedDay;
+	$: hasCurrentClass = currentTime && currentClasses.some(c => isCurrentClass(c.time));
 	
 	// Add animation key to trigger re-render on day change
 	let animationKey = 0;
@@ -250,7 +261,7 @@
 			</div>
 		{:else if currentClasses.length > 0}
 			{#key animationKey}
-				<div class="schedule-classes-grid">
+				<div class="schedule-classes-grid {hasCurrentClass ? 'has-current' : ''}">
 					{#each currentClasses as classItem, index}
 						<div class="schedule-class-card {classItem.color} {isCurrentClass(classItem.time) ? 'current' : ''}" style="--card-index: {index};">
 							<div class="class-header">

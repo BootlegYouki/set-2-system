@@ -361,7 +361,13 @@
 			// If both selected or both not selected, sort alphabetically by name
 			return a.name.localeCompare(b.name);
 		});
-	$: filteredSections = sectionsData;
+	$: filteredSections = sectionsData.filter((section) => {
+		// Filter by grade level
+		if (selectedFilter !== 'all' && section.grade_level.toString() !== selectedFilter) {
+			return false;
+		}
+		return true;
+	});
 
 	// Clear selections when grade level changes
 	$: if (gradeLevel) {

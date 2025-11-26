@@ -297,7 +297,7 @@
 	box-shadow: var(--elevation-1);
 	position: relative;
 	overflow: hidden;
-	animation: slideInUp 0.5s ease-out backwards;
+	animation: rankslideInUp 0.5s ease-out backwards;
 }
 
 .student-rank-banner.top-rank {
@@ -503,7 +503,7 @@
 	overflow: hidden;
 	
 	/* Stagger animation - starts after 0.7 second delay for banner */
-	animation: slideInUp 0.5s ease-out backwards;
+	animation: rankslideInUp 0.5s ease-out backwards;
 	animation-delay: calc(0.7s + (var(--card-index) * 0.1s));
 }
 
@@ -784,7 +784,7 @@
 }
 
 /* Slide in animation for stagger effect */
-@keyframes slideInUp {
+@keyframes rankslideInUp {
 	0% {
 		opacity: 0;
 		transform: translateY(20px);
