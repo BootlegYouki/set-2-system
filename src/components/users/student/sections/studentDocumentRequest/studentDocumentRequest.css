@@ -85,6 +85,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   gap: var(--spacing-sm);
   padding: var(--spacing-xl);
   text-align: center;
