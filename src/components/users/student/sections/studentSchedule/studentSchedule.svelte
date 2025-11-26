@@ -94,6 +94,7 @@
 	$: currentClasses = [...rawClasses].sort((a, b) => {
 		// Dependency on currentTime to trigger re-sort when time changes
 		currentTime;
+		isToday; // Ensure dependency on isToday
 		const isACurrent = isCurrentClass(a.time);
 		const isBCurrent = isCurrentClass(b.time);
 		if (isACurrent && !isBCurrent) return -1;
