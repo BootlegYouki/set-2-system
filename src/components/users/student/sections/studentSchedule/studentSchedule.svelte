@@ -90,7 +90,16 @@
 	};
 
 	// Reactive statements
-	$: currentClasses = scheduleData[selectedDay] || [];
+	$: rawClasses = scheduleData[selectedDay] || [];
+	$: currentClasses = [...rawClasses].sort((a, b) => {
+		// Dependency on currentTime to trigger re-sort when time changes
+		currentTime;
+		const isACurrent = isCurrentClass(a.time);
+		const isBCurrent = isCurrentClass(b.time);
+		if (isACurrent && !isBCurrent) return -1;
+		if (!isACurrent && isBCurrent) return 1;
+		return 0;
+	});
 	$: fullDayName = dayNameMap[selectedDay] || 'Monday';
 	// Use the live currentTime (updates every minute) to compute whether the selected day is today
 	$: currentWeekdayAbbrev = dayIndexToAbbrev[currentTime.getDay()];
