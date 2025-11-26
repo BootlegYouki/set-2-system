@@ -324,67 +324,77 @@ function streamCachedAnalysis(analysis) {
 }
 
 async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarterGrades = null, previousQuarterInfo = null) {
-    // Get section info
-    const section = student.section_id 
-        ? await db.collection('sections').findOne({ _id: new ObjectId(student.section_id) })
-        : null;
+    // 1. Extract all IDs to fetch in bulk
+    const sectionId = student.section_id ? new ObjectId(student.section_id) : null;
+    const subjectIds = [...new Set(studentGrades.map(g => g.subject_id.toString()))].map(id => new ObjectId(id));
+    const teacherIds = [...new Set(studentGrades.map(g => g.teacher_id.toString()))].map(id => new ObjectId(id));
+    
+    // 2. Fire ALL independent queries IN PARALLEL
+    const [section, subjects, teachers, sectionStudents, gradeConfigs] = await Promise.all([
+        sectionId ? db.collection('sections').findOne({ _id: sectionId }) : null,
+        db.collection('subjects').find({ _id: { $in: subjectIds } }).toArray(),
+        db.collection('users').find({ _id: { $in: teacherIds } }).toArray(),
+        sectionId ? db.collection('section_students').find({ section_id: sectionId }).toArray() : [],
+        db.collection('grade_configurations').find({
+            section_id: sectionId,
+            subject_id: { $in: subjectIds },
+            grading_period_id: studentGrades[0]?.quarter
+        }).toArray()
+    ]);
 
+    // 3. Create lookup maps for O(1) access
+    const subjectMap = new Map(subjects.map(s => [s._id.toString(), s]));
+    const teacherMap = new Map(teachers.map(t => [t._id.toString(), t]));
+    const gradeConfigMap = new Map(gradeConfigs.map(gc => [gc.subject_id.toString(), gc]));
+    
     // Calculate overall average
     const totalGrades = studentGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
     const overallAverage = studentGrades.length > 0 ? totalGrades / studentGrades.length : 0;
 
-    // Get class rank if possible
-    const sectionStudents = section 
-        ? await db.collection('section_students').find({ section_id: new ObjectId(student.section_id) }).toArray()
-        : [];
-
     // Process previous quarter data if available
     let previousQuarterAnalysis = null;
     if (previousQuarterGrades && previousQuarterGrades.length > 0 && previousQuarterInfo) {
-        const prevGrades = previousQuarterGrades;
-        const prevTotalGrades = prevGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
-        const prevOverallAverage = prevGrades.length > 0 ? prevTotalGrades / prevGrades.length : 0;
+        const prevTotalGrades = previousQuarterGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
+        const prevOverallAverage = previousQuarterGrades.length > 0 ? prevTotalGrades / previousQuarterGrades.length : 0;
         
-        console.log(`Previous quarter average calculated: ${prevOverallAverage} (from ${prevGrades.length} grades)`);
+        console.log(`Previous quarter average calculated: ${prevOverallAverage} (from ${previousQuarterGrades.length} grades)`);
         
-        // Create subject-by-subject comparison
-        const subjectComparisons = [];
-        for (const currentGrade of studentGrades) {
-            const prevGrade = prevGrades.find(pg => 
+        // Create subject-by-subject comparison (no DB calls - using cached subjectMap)
+        const subjectComparisons = studentGrades.map(currentGrade => {
+            const prevGrade = previousQuarterGrades.find(pg => 
                 pg.subject_id.toString() === currentGrade.subject_id.toString()
             );
             
-            if (prevGrade) {
-                const subject = await db.collection('subjects').findOne({ _id: new ObjectId(currentGrade.subject_id) });
-                const currentFinal = currentGrade.averages?.final_grade || 0;
-                const prevFinal = prevGrade.averages?.final_grade || 0;
-                const change = currentFinal - prevFinal;
-                
-                subjectComparisons.push({
-                    subjectName: subject?.name || 'Unknown',
-                    currentGrade: currentFinal,
-                    previousGrade: prevFinal,
-                    change: Math.round(change * 100) / 100,
-                    trend: change > 0 ? 'improved' : change < 0 ? 'declined' : 'stable',
-                    // Component comparisons
-                    writtenWork: {
-                        current: currentGrade.averages?.written_work || 0,
-                        previous: prevGrade.averages?.written_work || 0,
-                        change: (currentGrade.averages?.written_work || 0) - (prevGrade.averages?.written_work || 0)
-                    },
-                    performanceTasks: {
-                        current: currentGrade.averages?.performance_tasks || 0,
-                        previous: prevGrade.averages?.performance_tasks || 0,
-                        change: (currentGrade.averages?.performance_tasks || 0) - (prevGrade.averages?.performance_tasks || 0)
-                    },
-                    quarterlyAssessment: {
-                        current: currentGrade.averages?.quarterly_assessment || 0,
-                        previous: prevGrade.averages?.quarterly_assessment || 0,
-                        change: (currentGrade.averages?.quarterly_assessment || 0) - (prevGrade.averages?.quarterly_assessment || 0)
-                    }
-                });
-            }
-        }
+            if (!prevGrade) return null;
+            
+            const subject = subjectMap.get(currentGrade.subject_id.toString());
+            const currentFinal = currentGrade.averages?.final_grade || 0;
+            const prevFinal = prevGrade.averages?.final_grade || 0;
+            const change = currentFinal - prevFinal;
+            
+            return {
+                subjectName: subject?.name || 'Unknown',
+                currentGrade: currentFinal,
+                previousGrade: prevFinal,
+                change: Math.round(change * 100) / 100,
+                trend: change > 0 ? 'improved' : change < 0 ? 'declined' : 'stable',
+                writtenWork: {
+                    current: currentGrade.averages?.written_work || 0,
+                    previous: prevGrade.averages?.written_work || 0,
+                    change: (currentGrade.averages?.written_work || 0) - (prevGrade.averages?.written_work || 0)
+                },
+                performanceTasks: {
+                    current: currentGrade.averages?.performance_tasks || 0,
+                    previous: prevGrade.averages?.performance_tasks || 0,
+                    change: (currentGrade.averages?.performance_tasks || 0) - (prevGrade.averages?.performance_tasks || 0)
+                },
+                quarterlyAssessment: {
+                    current: currentGrade.averages?.quarterly_assessment || 0,
+                    previous: prevGrade.averages?.quarterly_assessment || 0,
+                    change: (currentGrade.averages?.quarterly_assessment || 0) - (prevGrade.averages?.quarterly_assessment || 0)
+                }
+            };
+        }).filter(comp => comp !== null);
         
         previousQuarterAnalysis = {
             quarter: previousQuarterInfo.quarter,
@@ -403,40 +413,32 @@ async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarte
         });
     }
 
-    // Prepare subject breakdown with detailed score analysis
-    const subjectBreakdown = [];
-
-    for (const grade of studentGrades) {
-        const subject = await db.collection('subjects').findOne({ _id: new ObjectId(grade.subject_id) });
-        const teacher = await db.collection('users').findOne({ _id: new ObjectId(grade.teacher_id) });
-        
-        // Get grade configuration for detailed item names and total scores
-        const gradeConfig = await db.collection('grade_configurations').findOne({
-            section_id: new ObjectId(grade.section_id),
-            subject_id: new ObjectId(grade.subject_id),
-            grading_period_id: grade.quarter
-        });
+    // Prepare subject breakdown with detailed score analysis (no DB calls - using cached maps)
+    const subjectBreakdown = studentGrades.map(grade => {
+        const subject = subjectMap.get(grade.subject_id.toString());
+        const teacher = teacherMap.get(grade.teacher_id.toString());
+        const gradeConfig = gradeConfigMap.get(grade.subject_id.toString());
 
         // Build detailed score breakdown
         const writtenWorkDetails = buildScoreDetails(
-            grade.written_work || [],
-            gradeConfig?.grade_items?.writtenWork || [],
+            grade.scores?.written_work || [],
+            gradeConfig?.grade_items?.written_work || [],
             'Written Work'
         );
 
         const performanceTasksDetails = buildScoreDetails(
-            grade.performance_tasks || [],
-            gradeConfig?.grade_items?.performanceTasks || [],
+            grade.scores?.performance_tasks || [],
+            gradeConfig?.grade_items?.performance_tasks || [],
             'Performance Tasks'
         );
 
         const quarterlyAssessmentDetails = buildScoreDetails(
-            grade.quarterly_assessment || [],
-            gradeConfig?.grade_items?.quarterlyAssessment || [],
+            grade.scores?.quarterly_assessment || [],
+            gradeConfig?.grade_items?.quarterly_assessment || [],
             'Quarterly Assessment'
         );
 
-        subjectBreakdown.push({
+        return {
             name: subject?.name || 'Unknown Subject',
             teacher: teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown Teacher',
             overallGrade: grade.averages?.final_grade || 0,
@@ -449,8 +451,8 @@ async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarte
             verified: grade.verified || false,
             quarter: grade.quarter,
             schoolYear: grade.school_year
-        });
-    }
+        };
+    });
 
     return {
         studentInfo: {
