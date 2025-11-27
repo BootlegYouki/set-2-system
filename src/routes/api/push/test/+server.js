@@ -16,15 +16,10 @@ export async function GET({ url }) {
   }
   
   try {
-    // Configure VAPID - Apple requires mailto: prefix
+    // Configure VAPID
     const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
     const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-    let vapidEmail = process.env.VAPID_EMAIL || 'mailto:admin@set2system.com';
-    
-    // Ensure mailto: prefix
-    if (!vapidEmail.startsWith('mailto:')) {
-      vapidEmail = 'mailto:' + vapidEmail;
-    }
+    const vapidEmail = process.env.VAPID_EMAIL || 'mailto:admin@set2system.com';
     
     if (!vapidPublicKey || !vapidPrivateKey) {
       return json({ 
@@ -51,10 +46,10 @@ export async function GET({ url }) {
       }, { status: 404 });
     }
     
-    // Very minimal payload for iOS compatibility - just title and body
+    // Very minimal payload for iOS compatibility
     const payload = JSON.stringify({
-      title: 'SET-2 System',
-      body: `Test notification at ${new Date().toLocaleTimeString()}`
+      title: 'Test Notification',
+      body: `Test at ${new Date().toLocaleTimeString()}`
     });
     
     const results = [];
@@ -63,8 +58,7 @@ export async function GET({ url }) {
       const result = {
         endpoint: sub.endpoint.substring(0, 50) + '...',
         isApple: sub.endpoint.includes('apple'),
-        status: 'pending',
-        createdAt: sub.createdAt
+        status: 'pending'
       };
       
       try {
@@ -73,15 +67,8 @@ export async function GET({ url }) {
           keys: sub.keys
         };
         
-        // For Apple, use specific TTL and urgency
-        const options = {
-          TTL: 60, // 60 seconds
-          urgency: 'high',
-          topic: 'com.set2system.push' // Optional topic for Apple
-        };
-        
-        // Send with options
-        const response = await webpush.sendNotification(pushSub, payload, options);
+        // Send with detailed response
+        const response = await webpush.sendNotification(pushSub, payload);
         result.status = 'sent';
         result.statusCode = response?.statusCode || 201;
         result.headers = response?.headers || {};
@@ -95,11 +82,6 @@ export async function GET({ url }) {
         // If 410 Gone, the subscription is invalid
         if (error.statusCode === 410 || error.statusCode === 404) {
           result.subscriptionInvalid = true;
-          // Mark as inactive
-          await db.collection('push_subscriptions').updateOne(
-            { endpoint: sub.endpoint },
-            { $set: { isActive: false, deactivatedAt: new Date(), deactivatedReason: 'endpoint_invalid' } }
-          );
         }
       }
       
@@ -109,7 +91,6 @@ export async function GET({ url }) {
     return json({
       success: true,
       userId,
-      vapidEmail,
       subscriptionCount: subscriptions.length,
       payloadSize: payload.length,
       payload: JSON.parse(payload),
