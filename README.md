@@ -1084,7 +1084,7 @@ The application is configured for deployment on:
 - **Supported User Roles**: 3 (Student, Teacher, Admin)
 - **Database Collections**: 18+ MongoDB collections
 - **Features**: 35+ distinct features across all user roles
-- **Supported Platforms**: Windows, macOS, Linux (Electron), Web (All browsers), Mobile (PWA)
+- **Supported Platforms**: Windows (Electron), Web (All browsers), Mobile (PWA)
 
 ---
 
