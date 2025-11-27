@@ -1,5 +1,7 @@
 <script>
   import { authStore } from '../components/login/js/auth.js';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import Login from '../components/login/loginpage.svelte';
   import StudentNavbar from '../components/users/student/navigations/studentNavbar/studentNavbar.svelte';
   import StudentMenu from '../components/users/student/navigations/studentMenu/studentMenu.svelte';
@@ -146,6 +148,30 @@
     teacherActiveSection = 'students'; // Reset teacher section
     adminActiveSection = 'dashboard'; // Reset admin section
   }
+
+  // Handle URL parameters for navigation (e.g., from push notifications)
+  onMount(() => {
+    if (browser) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const section = urlParams.get('section');
+      
+      if (section) {
+        // Valid student sections
+        const validStudentSections = ['profile', 'grades', 'ranking', 'schedule', 'documents', 'notifications', 'todo'];
+        // Valid admin sections
+        const validAdminSections = ['dashboard', 'account-creation', 'student-masterlist', 'teacher-masterlist', 'archived-accounts', 'grades-list', 'schedule-management', 'subjects-activities', 'department-management', 'document-requests', 'settings'];
+        
+        if (validStudentSections.includes(section)) {
+          activeSection = section;
+        } else if (validAdminSections.includes(section)) {
+          adminActiveSection = section;
+        }
+        
+        // Clean up URL after navigation
+        window.history.replaceState({}, '', '/');
+      }
+    }
+  });
 
   // Reactive title based on auth state
   let pageTitle = $derived(

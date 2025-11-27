@@ -3,6 +3,7 @@ import { connectToDatabase } from '../../database/db.js';
 import { ObjectId } from 'mongodb';
 import { verifyAuth, logActivityWithUser, getUserFromRequest } from '../helper/auth-helper.js';
 import { encryptMessage, decryptMessages } from '../helper/encryption-helper.js';
+import { sendDocumentRequestPush } from '../helper/push-helper.js';
 import PDFDocument from 'pdfkit';
 
 // Document type price mapping
@@ -173,6 +174,22 @@ async function createDocumentRequestNotification(db, studentId, notificationData
 
 		await db.collection('notifications').insertOne(notification);
 		console.log(`Notification created for student ${studentId}: ${notificationData.title}`);
+		
+		// Send push notification for document request updates
+		try {
+			await sendDocumentRequestPush(
+				db, 
+				studentId, 
+				notificationData.title, 
+				notificationData.message,
+				notificationData.requestId,
+				notificationData.status
+			);
+			console.log(`Push notification sent for student ${studentId}`);
+		} catch (pushError) {
+			console.error('Error sending push notification:', pushError);
+			// Don't fail the main operation if push notification fails
+		}
 	} catch (error) {
 		console.error('Error creating notification:', error);
 		// Don't fail the main operation if notification fails

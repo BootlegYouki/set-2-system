@@ -7,15 +7,8 @@ export default defineConfig({
 		sveltekit(),
 		VitePWA({
 			registerType: 'autoUpdate',
-			includeAssets: ['favicon.svg', 'favicon-admin.svg', 'favicon-student.svg', 'favicon-teacher.svg'],
-			iconPaths: {
-				faviconSVG: 'icon.svg',
-				favicon32: 'pwa-192x192.png',
-				favicon16: 'pwa-192x192.png',
-				appleTouchIcon: 'pwa-192x192.png',
-				maskIcon: 'icon.svg',
-				msTileImage: 'pwa-512x512.png'
-			},
+			injectRegister: false, // We'll register our own SW
+			includeAssets: ['favicon.svg', 'favicon-admin.svg', 'favicon-student.svg', 'favicon-teacher.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
 			manifest: {
 				name: 'SET-2 System',
 				short_name: 'SET-2',
@@ -56,42 +49,10 @@ export default defineConfig({
 					}
 				]
 			},
-			workbox: {
-				globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-				runtimeCaching: [
-					{
-						urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-						handler: 'CacheFirst',
-						options: {
-							cacheName: 'google-fonts-cache',
-							expiration: {
-								maxEntries: 10,
-								maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-							},
-							cacheableResponse: {
-								statuses: [0, 200]
-							}
-						}
-					},
-					{
-						urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-						handler: 'CacheFirst',
-						options: {
-							cacheName: 'gstatic-fonts-cache',
-							expiration: {
-								maxEntries: 10,
-								maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-							},
-							cacheableResponse: {
-								statuses: [0, 200]
-							}
-						}
-					}
-				]
-			},
 			devOptions: {
 				enabled: true,
-				type: 'module'
+				type: 'module',
+				navigateFallback: '/'
 			}
 		})
 	],
