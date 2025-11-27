@@ -1,5 +1,4 @@
 import { ObjectId } from 'mongodb';
-import { sendGradeReleasePush, sendDocumentRequestPush } from './push-helper.js';
 
 /**
  * Helper function to format teacher name as "Ms./Mr. [LastName]"
@@ -59,15 +58,6 @@ export async function createGradeVerificationNotification(db, studentId, teacher
 
     await db.collection('notifications').insertOne(notification);
     console.log(`Grade verification notification created for student: ${studentId}`);
-    
-    // Send push notification
-    try {
-      await sendGradeReleasePush(db, studentId, teacherName, subjectName);
-      console.log(`Grade verification push notification sent for student: ${studentId}`);
-    } catch (pushError) {
-      console.error('Error sending grade verification push notification:', pushError);
-      // Don't fail if push notification fails
-    }
   } catch (error) {
     console.error('Error creating grade verification notification:', error);
   }
@@ -99,16 +89,6 @@ export async function createBulkGradeVerificationNotifications(db, studentIds, t
     if (notifications.length > 0) {
       await db.collection('notifications').insertMany(notifications);
       console.log(`Grade verification notifications created for ${notifications.length} students`);
-      
-      // Send push notifications to all students
-      try {
-        const { sendBulkGradeReleasePush } = await import('./push-helper.js');
-        const pushResult = await sendBulkGradeReleasePush(db, studentIds, teacherName, subjectName);
-        console.log(`Grade verification push notifications: sent ${pushResult.sent}, failed ${pushResult.failed}`);
-      } catch (pushError) {
-        console.error('Error sending bulk grade verification push notifications:', pushError);
-        // Don't fail if push notification fails
-      }
     }
   } catch (error) {
     console.error('Error creating bulk grade verification notifications:', error);
@@ -221,15 +201,6 @@ export async function createDocumentRequestNotification(db, studentId, documentT
 
     await db.collection('notifications').insertOne(notification);
     console.log(`Document request notification created for student: ${studentId}, status: ${status}`);
-    
-    // Send push notification for document request status change
-    try {
-      await sendDocumentRequestPush(db, studentId, notificationTitle, notificationMessage, documentType, status);
-      console.log(`Document request push notification sent for student: ${studentId}`);
-    } catch (pushError) {
-      console.error('Error sending document request push notification:', pushError);
-      // Don't fail if push notification fails
-    }
   } catch (error) {
     console.error('Error creating document request notification:', error);
   }

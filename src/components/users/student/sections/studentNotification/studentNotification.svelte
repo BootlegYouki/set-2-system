@@ -7,7 +7,6 @@
   import { modalStore } from '../../../../common/js/modalStore.js';
   import { toastStore } from '../../../../common/js/toastStore.js';
   import { studentNotificationStore } from '../../../../../lib/stores/student/studentNotificationStore.js';
-  import PushNotificationToggle from '../../../../common/PushNotificationToggle.svelte';
 
   // Props - navigation callback
   let { onnavigate } = $props();
@@ -240,11 +239,6 @@
         <span class="notification-badge">{unreadCount} unread</span>
       </p>
     </div>
-  </div>
-
-  <!-- Push Notification Settings -->
-  <div class="push-settings-section">
-    <PushNotificationToggle showTestButton={true} />
   </div>
 
   <!-- Filter and Actions Section -->

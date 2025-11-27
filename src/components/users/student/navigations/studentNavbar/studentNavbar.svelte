@@ -6,7 +6,7 @@
 	import { authenticatedFetch } from '../../../../../routes/api/helper/api-helper.js';
 	import { authStore } from '../../../../login/js/auth.js';
 	import { studentNotificationStore } from '../../../../../lib/stores/student/studentNotificationStore.js';
-	import { initPushNotifications, subscribeToPush, checkSubscriptionStatus } from '../../../../../lib/push/pushNotifications.js';
+
 
 	// Props
 	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
@@ -81,37 +81,6 @@
 		// Add click outside listener
 		document.addEventListener('click', handleClickOutside);
 
-		// Wait for auth store to be initialized before fetching notifications
-		let unsubscribe;
-		unsubscribe = authStore.subscribe(async (authState) => {
-			if (authState.isAuthenticated) {
-				fetchNotificationCount();
-				
-				// Initialize push notifications
-				try {
-					await initPushNotifications();
-					// Auto-prompt for push notification subscription after first login
-					const hasPrompted = localStorage.getItem('push_notification_prompted');
-					if (!hasPrompted && authState.userData?.id) {
-						// Wait a bit before prompting
-						setTimeout(async () => {
-							const isSubscribed = await checkSubscriptionStatus();
-							if (!isSubscribed) {
-								// User can enable push notifications from the notification settings
-								console.log('[Push] User can enable push notifications from settings');
-							}
-						}, 3000);
-						localStorage.setItem('push_notification_prompted', 'true');
-					}
-				} catch (err) {
-					console.error('Error initializing push notifications:', err);
-				}
-				
-				if (unsubscribe) {
-					unsubscribe();
-				}
-			}
-		});
 
 		// Refresh notification count every 10 seconds
 		const interval = setInterval(() => {

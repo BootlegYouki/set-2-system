@@ -39,22 +39,11 @@
 			: favicon
 	);
 	
-	// Register service worker early for PWA and push notifications
-	async function registerSW() {
-		if (browser && 'serviceWorker' in navigator) {
-			try {
-				const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-				console.log('[App] Service Worker registered:', registration.scope);
-			} catch (error) {
-				console.error('[App] Service Worker registration failed:', error);
-			}
-		}
-	}
+
 	
 	// Initialize auth store
 	onMount(() => {
-		// Register service worker immediately
-		registerSW();
+
 		
 		setTimeout(() => {
 			authStore.initialize();

@@ -1,8 +1,3 @@
-/* Push Notification Settings Section */
-.push-settings-section {
-  margin-bottom: var(--spacing-lg);
-}
-
 /* Loading and Error States */
 .loading-state, .error-state {
   display: flex;
@@ -351,7 +346,7 @@
   overflow: hidden;
   
   /* Stagger animation */
-  animation: notifslideInUp 0.5s ease-out backwards;
+  animation: docSlideInUp 0.5s ease-out backwards;
   animation-delay: calc(var(--card-index) * 0.05s);
 }
 
@@ -735,7 +730,7 @@
 }
 
 /* Slide in animation for stagger effect */
-@keyframes notifslideInUp {
+@keyframes docSlideInUp {
   0% {
     opacity: 0;
     transform: translateY(20px);
