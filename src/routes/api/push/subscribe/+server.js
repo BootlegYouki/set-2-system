@@ -23,6 +23,25 @@ export async function POST({ request }) {
     const db = await connectToDatabase();
     const subscriptionsCollection = db.collection('push_subscriptions');
     
+    // If userId provided, deactivate ALL other subscriptions for this user first
+    // This ensures only ONE active subscription per user (the most recent device/browser)
+    if (userId) {
+      await subscriptionsCollection.updateMany(
+        { 
+          userId: userId, 
+          endpoint: { $ne: subscription.endpoint },
+          isActive: true 
+        },
+        { 
+          $set: { 
+            isActive: false, 
+            deactivatedAt: new Date(),
+            deactivatedReason: 'new_subscription_created'
+          } 
+        }
+      );
+    }
+    
     // Create subscription document for update (without createdAt)
     const updateDoc = {
       endpoint: subscription.endpoint,

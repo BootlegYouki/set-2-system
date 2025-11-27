@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Worker Debug</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }
+    .card { background: #2a2a2a; padding: 15px; border-radius: 10px; margin: 10px 0; }
+    .status { padding: 5px 10px; border-radius: 5px; display: inline-block; }
+    .ok { background: #22c55e; }
+    .error { background: #ef4444; }
+    .warn { background: #f59e0b; }
+    button { background: #3b82f6; color: white; border: none; padding: 12px 20px; border-radius: 8px; margin: 5px; font-size: 16px; }
+    pre { background: #333; padding: 10px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>🔧 Service Worker Debug</h1>
+  
+  <div class="card">
+    <h2>Service Worker Status</h2>
+    <div id="sw-status">Checking...</div>
+  </div>
+  
+  <div class="card">
+    <h2>Push Permission</h2>
+    <div id="push-permission">Checking...</div>
+  </div>
+  
+  <div class="card">
+    <h2>Push Subscription</h2>
+    <div id="push-subscription">Checking...</div>
+  </div>
+  
+  <div class="card">
+    <h2>Actions</h2>
+    <button onclick="updateSW()">Force Update SW</button>
+    <button onclick="testLocalNotification()">Test Local Notification</button>
+    <button onclick="resubscribe()">Re-subscribe Push</button>
+  </div>
+  
+  <div class="card">
+    <h2>Log</h2>
+    <pre id="log"></pre>
+  </div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    function log(msg) {
+      const time = new Date().toLocaleTimeString();
+      logEl.textContent = `[${time}] ${msg}\n` + logEl.textContent;
+      console.log(msg);
+    }
+
+    async function checkSW() {
+      const el = document.getElementById('sw-status');
+      if (!('serviceWorker' in navigator)) {
+        el.innerHTML = '<span class="status error">Not Supported</span>';
+        return;
+      }
+      
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+          el.innerHTML = '<span class="status error">Not Registered</span>';
+          return;
+        }
+        
+        const sw = reg.active || reg.waiting || reg.installing;
+        let state = sw ? sw.state : 'unknown';
+        
+        // Try to get version
+        let version = 'unknown';
+        if (reg.active) {
+          try {
+            const channel = new MessageChannel();
+            const promise = new Promise((resolve) => {
+              channel.port1.onmessage = (e) => resolve(e.data?.version || 'no response');
+              setTimeout(() => resolve('timeout'), 2000);
+            });
+            reg.active.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+            version = await promise;
+          } catch(e) {
+            version = 'error: ' + e.message;
+          }
+        }
+        
+        el.innerHTML = `
+          <span class="status ${state === 'activated' ? 'ok' : 'warn'}">${state}</span>
+          <br>Version: <strong>${version}</strong>
+          <br>Scope: ${reg.scope}
+        `;
+        log('SW state: ' + state + ', version: ' + version);
+      } catch(e) {
+        el.innerHTML = '<span class="status error">Error: ' + e.message + '</span>';
+        log('SW error: ' + e.message);
+      }
+    }
+
+    async function checkPushPermission() {
+      const el = document.getElementById('push-permission');
+      if (!('Notification' in window)) {
+        el.innerHTML = '<span class="status error">Not Supported</span>';
+        return;
+      }
+      const perm = Notification.permission;
+      el.innerHTML = `<span class="status ${perm === 'granted' ? 'ok' : perm === 'denied' ? 'error' : 'warn'}">${perm}</span>`;
+      log('Notification permission: ' + perm);
+    }
+
+    async function checkPushSubscription() {
+      const el = document.getElementById('push-subscription');
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+          el.innerHTML = '<span class="status error">No SW</span>';
+          return;
+        }
+        const sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          el.innerHTML = '<span class="status warn">Not Subscribed</span>';
+          return;
+        }
+        const endpoint = sub.endpoint;
+        const isApple = endpoint.includes('apple');
+        el.innerHTML = `
+          <span class="status ok">Subscribed</span>
+          <br>Type: ${isApple ? '🍎 Apple' : '🔔 Other'}
+          <br>Endpoint: ${endpoint.substring(0, 50)}...
+        `;
+        log('Subscribed to: ' + (isApple ? 'Apple' : 'Other'));
+      } catch(e) {
+        el.innerHTML = '<span class="status error">Error: ' + e.message + '</span>';
+        log('Subscription error: ' + e.message);
+      }
+    }
+
+    async function updateSW() {
+      log('Forcing SW update...');
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          await reg.update();
+          log('SW update triggered');
+          
+          // Wait and recheck
+          setTimeout(checkSW, 1000);
+        } else {
+          // Register new
+          await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          log('SW registered');
+          setTimeout(checkSW, 1000);
+        }
+      } catch(e) {
+        log('Update error: ' + e.message);
+      }
+    }
+
+    async function testLocalNotification() {
+      log('Testing local notification...');
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+          log('No SW registration!');
+          return;
+        }
+        
+        // This tests if showNotification works at all
+        await reg.showNotification('Test Notification', {
+          body: 'This is a local test at ' + new Date().toLocaleTimeString(),
+          icon: '/pwa-192x192.png'
+        });
+        log('Local notification sent!');
+      } catch(e) {
+        log('Notification error: ' + e.message);
+      }
+    }
+
+    async function resubscribe() {
+      log('Re-subscribing to push...');
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+          log('No SW!');
+          return;
+        }
+        
+        // Unsubscribe first
+        const existingSub = await reg.pushManager.getSubscription();
+        if (existingSub) {
+          await existingSub.unsubscribe();
+          log('Unsubscribed from old');
+        }
+        
+        // Get VAPID key
+        const vapidRes = await fetch('/api/push/vapid-public-key');
+        const { publicKey } = await vapidRes.json();
+        
+        // Convert key
+        const urlBase64ToUint8Array = (base64String) => {
+          const padding = '='.repeat((4 - base64String.length % 4) % 4);
+          const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+          const rawData = window.atob(base64);
+          const outputArray = new Uint8Array(rawData.length);
+          for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+          }
+          return outputArray;
+        };
+        
+        // Subscribe
+        const newSub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+        
+        log('Got new subscription');
+        log('Endpoint: ' + newSub.endpoint.substring(0, 50) + '...');
+        
+        // Save to server (without userId for now)
+        const saveRes = await fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription: newSub.toJSON() })
+        });
+        const saveData = await saveRes.json();
+        log('Saved: ' + JSON.stringify(saveData));
+        
+        checkPushSubscription();
+      } catch(e) {
+        log('Resubscribe error: ' + e.message);
+      }
+    }
+
+    // Initial checks
+    checkSW();
+    checkPushPermission();
+    checkPushSubscription();
+  </script>
+</body>
+</html>
