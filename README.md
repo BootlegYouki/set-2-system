@@ -2,6 +2,236 @@
 
 A comprehensive student information system built with SvelteKit, designed specifically for Philippine high school students (Grades 7-10) following the DepEd curriculum.
 
+## 📱 Multi-Platform Availability
+
+SET-2 System is available on **multiple platforms** to provide flexibility and accessibility:
+
+### 🌐 Web Application
+Access the system directly from any modern web browser at **[https://set-2-system.onrender.com](https://set-2-system.onrender.com)**. The web version includes full PWA (Progressive Web App) support.
+
+### 💻 Desktop Application (Electron)
+Native desktop application built with **Electron.js** for Windows, macOS, and Linux. The desktop version provides:
+- **Native desktop experience** with system integration
+- **Offline-first capabilities** for uninterrupted access
+- **Fast performance** with local caching
+- **System tray integration** for quick access
+- **Auto-updates** for seamless maintenance
+- **Proxy server** for API routing and CORS handling
+
+**Download the desktop app** from the website's download section or releases page.
+
+**Desktop Branch:** The Electron desktop app is maintained in a separate branch:
+```sh
+git checkout desktop-branch
+# or
+git clone -b desktop-branch https://github.com/BootlegYouki/set-2-system.git
+```
+
+This branch includes:
+- Electron main process (`electron/main.cjs`)
+- Electron preload script (`electron/preload.cjs`)
+- Forge configuration (`forge.config.cjs`)
+- Proxy server for secure API routing (deployable to Render.com)
+
+### 📲 Progressive Web App (PWA)
+Install the web application directly from your browser for an app-like experience:
+- **Installable** on desktop and mobile devices
+- **Offline support** with service worker caching
+- **Fast loading** with optimized caching strategies
+- **Responsive design** that adapts to any screen size
+- **Add to home screen** on mobile devices
+
+#### PWA Features:
+- **Standalone mode**: Runs in its own window without browser UI
+- **Window controls overlay**: Modern title bar integration on supported platforms
+- **Adaptive icons**: 192x192 and 512x512 icons for all devices
+- **Themed splash screen**: Branded loading experience
+- **Auto-update**: Service worker automatically updates to the latest version
+
+
+## ⚡ Why SvelteKit? Fullstack Framework Advantages
+
+Unlike React, which is primarily a frontend UI library requiring additional tools for backend functionality, **SvelteKit is a complete fullstack framework** that handles both frontend and backend in a single, unified codebase.
+
+### 🔧 Fullstack Capabilities
+
+**SvelteKit provides everything you need out of the box:**
+
+- **Backend API Routes**: Built-in server-side API endpoints in the same codebase
+  - 35+ RESTful API routes in `src/routes/api/`
+  - Handle POST, GET, PUT, DELETE requests with `+server.js` files
+  - No need for separate Express.js or separate backend framework
+  - Direct database access in API routes (MongoDB integration)
+
+- **Server-Side Rendering (SSR)**: Automatic SSR for better performance and SEO
+  - Pages render on the server first, then hydrate on the client
+  - Faster initial page loads compared to client-only React apps
+  - Better SEO with pre-rendered HTML content
+
+- **File-Based Routing**: Intuitive routing based on file structure
+  - `src/routes/+page.svelte` = homepage
+  - `src/routes/api/auth/+server.js` = /api/auth endpoint
+  - No need for React Router or additional routing libraries
+
+### 🚀 Performance Advantages Over React
+
+**Svelte compiles to vanilla JavaScript at build time:**
+
+- **No Virtual DOM**: Unlike React, Svelte doesn't use a virtual DOM
+  - React: Runtime overhead for virtual DOM diffing and reconciliation
+  - Svelte: Compiles to highly optimized vanilla JS that directly updates the DOM
+  - Result: Faster runtime performance and smaller bundle sizes
+
+- **True Reactivity**: Svelte 5's runes (`$state()`, `$derived()`) provide simpler, more intuitive reactivity
+  - React: Requires hooks (useState, useEffect, useMemo) with complex dependency arrays
+  - Svelte: Built-in reactivity with `$state()` - just assign values naturally
+  - No need to worry about re-render optimization or memoization
+
+- **Smaller Bundle Sizes**: Svelte apps are typically 30-50% smaller than equivalent React apps
+  - No framework runtime shipped to the client
+  - Only the code you actually use gets compiled into the bundle
+
+### 💡 Developer Experience Benefits
+
+**Simplified Development:**
+
+```javascript
+// React way - complex hooks and dependencies
+const [count, setCount] = useState(0);
+const doubled = useMemo(() => count * 2, [count]);
+useEffect(() => {
+  console.log('Count changed:', count);
+}, [count]);
+
+// Svelte 5 way - natural and simple
+let count = $state(0);
+let doubled = $derived(count * 2);
+$effect(() => {
+  console.log('Count changed:', count);
+});
+```
+
+**Key Advantages:**
+- **Less Boilerplate**: No need for useState, useEffect, useCallback, useMemo
+- **Natural JavaScript**: Write code that looks and feels like regular JS
+- **Built-in Transitions**: Smooth animations without external libraries
+- **Scoped CSS**: Component styles are automatically scoped (no CSS-in-JS needed)
+- **TypeScript-Ready**: Full TypeScript support with excellent type inference
+
+### 🏗️ Architecture in SET-2 System
+
+This project leverages SvelteKit's fullstack nature:
+
+- **Frontend**: Svelte 5 components with runes for state management
+- **Backend**: 35+ API routes handling authentication, database operations, AI integration
+- **Database**: Direct MongoDB connection in server-side code
+- **Email**: Server-side Brevo API integration
+- **AI**: OpenRouter and Google AI API calls from backend routes
+- **PDF Generation**: Server-side PDFKit for document creation
+
+**Single Codebase = Simplified Development**
+- No need to manage separate frontend and backend repositories
+- Shared type definitions between client and server
+- Unified deployment process
+- Consistent coding style and tooling
+
+
+## 🔀 Subsystem Branches
+
+The SET-2 System is also available in **separated subsystem versions** for modular deployment or development. These branches contain isolated implementations of specific user roles:
+
+### 📋 Available Subsystem Branches
+
+#### Branch: `ss1` - Student & Teacher Subsystem
+**Includes:**
+- 👨‍🎓 **Student Portal** (Limited)
+  - Profile Management
+  - Grade Viewing with AI Analysis
+  - Class Rankings
+  - Document Requests with AI Chatbot
+  - Notifications & Todo Lists
+- 👨‍🏫 **Teacher Portal** (Limited)
+  - Profile Management
+  - Class Management with Grading Spreadsheet
+  - Advisory Class Management
+
+**Use Case:** Ideal for institutions that want to deploy student grade tracking and teacher grading functionality independently from administrative features and scheduling.
+
+**Access:**
+```sh
+git checkout ss1
+# or
+git clone -b ss1 https://github.com/BootlegYouki/set-2-system.git
+```
+
+---
+
+#### Branch: `ss2` - Admin & Schedule Management Subsystem
+**Includes:**
+- 👨‍💼 **Admin Portal** (Limited)
+  - AI-Powered Dashboard
+  - Account Management & Archives
+  - Department Management
+  - Schedule Management
+  - All admin scheduling features
+- 📅 **Student Schedule** (Limited)
+  - Schedule viewing only
+  - Basic schedule interface
+- 📅 **Teacher Schedule** (Limited)
+  - Schedule viewing only
+  - Basic schedule interface
+
+**Use Case:** Focused on administrative management with basic schedule viewing for students and teachers. Ideal for institutions prioritizing administrative control and schedule coordination without document management or full student/teacher feature sets.
+
+**Access:**
+```sh
+git checkout ss2
+# or
+git clone -b ss2 https://github.com/BootlegYouki/set-2-system.git
+```
+
+---
+
+#### Branch: `ss3` - Document Request Subsystem
+**Includes:**
+- 📝 **Admin Document Management** (Limited)
+  - Document Request Management
+  - Request approval workflows
+  - Status tracking
+  - PDF generation for documents
+- 📝 **Student Document Requests** (Limited)
+  - Document request submission
+  - Request status tracking
+  - AI Chatbot Assistant for document help
+  - Request history
+
+**Use Case:** Streamlined document request system focusing solely on student document submissions and administrative approval workflows. Ideal for institutions that want to implement document management independently from other features.
+
+**Access:**
+```sh
+git checkout ss3
+# or
+git clone -b ss3 https://github.com/BootlegYouki/set-2-system.git
+```
+
+---
+
+### 🛠️ Subsystem Benefits
+
+- **Modular Deployment**: Deploy only the subsystems you need
+- **Reduced Complexity**: Smaller codebase for focused implementations
+- **Independent Development**: Work on specific subsystems without affecting others
+- **Resource Optimization**: Lower resource requirements for partial deployments
+- **Flexible Architecture**: Mix and match subsystems based on institutional needs
+
+### 📝 Note on Subsystem Branches
+
+All subsystem branches share the same technology stack and database schema as the main branch. They differ only in which user role components are included in the build. This allows for:
+- **Easy migration** between subsystem and full system deployments
+- **Consistent database** structure across all versions
+- **Shared codebase** for common features and utilities
+
+
 ## 🆕 Recent Updates & Features
 
 ### ✅ Completed Features
@@ -23,11 +253,17 @@ A comprehensive student information system built with SvelteKit, designed specif
 
 #### 👨‍🎓 Student Portal
 - **Profile Management** with personal information display
-- **Advanced Grade Viewing** with AI-powered performance analysis using OpenRouter API
+- **Advanced Grade Viewing** with AI-powered performance analysis using dual AI engines:
+  - **OpenRouter API** for comprehensive grade analysis with 7-day caching
+  - **Google Generative AI** for alternative AI insights
 - **Interactive Grade Charts** (Subject Performance, Assessment Type breakdown)
 - **Class Rankings System** with live position tracking and section-wide comparisons
 - **Class Schedule** with daily and weekly views
-- **Document Requests** with status tracking and submission history
+- **Document Requests** with:
+  - Status tracking and submission history
+  - **AI Chatbot Assistant** for instant help with document request questions
+  - Smart knowledge base covering request types, pricing, and procedures
+  - Conversational AI using OpenRouter (KwaiPilot Kat-Coder-Pro model)
 - **Smart Notifications** with filtering by type (grades, schedule, documents, todo)
 - **Todo List Management** with categories, due dates, completion tracking, and priority levels
 
@@ -44,13 +280,19 @@ A comprehensive student information system built with SvelteKit, designed specif
 - **Section Assignment** with student roster management
 
 #### 👨‍💼 Admin Portal
-- **Dashboard** with system statistics, animated counters, and interactive charts
-  - Students per Grade Level Chart
-  - Sections per Grade Level Chart
+- **AI-Powered Dashboard** with system statistics, animated counters, and interactive charts
+  - Students per Grade Level Chart with AI analysis
+  - Sections per Grade Level Chart with AI analysis
+  - Teachers per Department Chart with AI insights
   - Document Request Status Chart
+  - **AI-Generated Insights** using OpenRouter API for actionable recommendations
+  - Automatic detection of imbalances and resource allocation suggestions
 - **Account Creation** for all user types with email notifications
-- **Student Masterlist** with full CRUD operations and search capabilities
-- **Archived Students** management with restoration capabilities
+- **Account Management** with full CRUD operations:
+  - Student Masterlist with search capabilities
+  - **Archived Accounts** system for soft-delete functionality
+  - Archive and restore capabilities for all account types
+  - Activity tracking for archived operations
 - **Student Grades List** for academic oversight across all students
 - **Department Management** with organizational structure
 - **Schedule Management** with:
@@ -58,11 +300,18 @@ A comprehensive student information system built with SvelteKit, designed specif
   - Section Management and class organization
   - Time Slot Management with conflict detection
 - **Subjects and Activities** management aligned with DepEd curriculum
-- **Document Request Management** with approval workflows and status tracking
+- **Document Request Management** with:
+  - Approval workflows and status tracking
+  - **PDF Generation** using PDFKit for official documents
+  - Automated email notifications for status updates
 - **Admin Settings** for system configuration (current school year, quarters, etc.)
 - **Bulk Student Operations** with Excel file import/export
 
 ### 🎯 Key Implementations
+- **Multi-Platform Support**:
+  - **Progressive Web App (PWA)**: Full PWA support with manifest, service worker, and offline capabilities
+  - **Electron Desktop App**: Native desktop application for Windows, macOS, and Linux
+  - **Responsive Web**: Mobile-first design that works on any device
 - **Svelte 5 Runes**: Modern reactive state management using `$state()` and `$derived()`
 - **Component-Scoped Styling**: Each component has unique CSS prefixes to prevent conflicts
 - **Material Design 3**: Custom components built with MD3 design tokens and principles
@@ -71,8 +320,12 @@ A comprehensive student information system built with SvelteKit, designed specif
 - **RESTful API Architecture**: 35+ well-structured API endpoints with proper error handling
 - **Advanced Authentication**: Secure password hashing with bcrypt and role-based access control
 - **Activity Tracking**: Comprehensive logging system with MongoDB document storage
-- **Responsive Design**: Mobile-first approach with collapsible navigation systems
-- **AI Integration**: OpenRouter API integration for intelligent grade analysis with caching
+- **Dual AI Integration**:
+  - **OpenRouter API**: For grade analysis, dashboard insights, and chatbot conversations
+  - **Google Generative AI**: Alternative AI engine for enhanced analysis capabilities
+  - **Smart Caching**: 7-day cache for AI analysis results to optimize performance
+  - **AI Chatbot**: Context-aware assistant for document request help
+- **Document Generation**: PDFKit integration for generating official PDF documents
 - **Data Visualization**: Chart.js integration for interactive charts and statistics
 - **Animated UI**: CountUp.js for smooth number animations in dashboards and statistics
 
@@ -409,6 +662,27 @@ let adminNavRailVisible = $state(false);       // Admin nav
 - **Node.js**: Version 22 (specified in package.json engines)
 - **Adapter**: @sveltejs/adapter-node 5.3.1 for production deployment
 
+### Desktop Application (Electron)
+- **Electron**: 39.2.3 for native desktop applications
+- **Electron Forge**: 7.10.2 for packaging and distribution
+  - **Maker Squirrel**: Windows installer generation
+  - **Auto Unpack Natives**: Automatic native module handling
+- **Build Tools**:
+  - **concurrently**: 9.2.1 for running dev server and Electron simultaneously
+  - **wait-on**: 9.0.3 for waiting on dev server before launching Electron
+  - **cross-env**: 10.1.0 for cross-platform environment variables
+- **electron-squirrel-startup**: 1.0.1 for Windows installer hooks
+
+### Progressive Web App (PWA)
+- **vite-plugin-pwa**: 1.1.0 for PWA generation and service worker
+- **sharp**: 0.34.5 for image optimization and icon generation
+- **png-to-ico**: 3.0.1 for favicon generation
+- **PWA Features**:
+  - Manifest generation with adaptive icons (192x192, 512x512)
+  - Service worker with auto-update capabilities
+  - Offline support and caching strategies
+  - Window controls overlay for native-like experience
+
 ### Backend & Database
 - **Database**: MongoDB 6.20.0 (NoSQL document database)
 - **Database Driver**: mongodb (official MongoDB Node.js driver)
@@ -432,10 +706,17 @@ let adminNavRailVisible = $state(false);       // Admin nav
 - **Animations**: CountUp.js 2.9.0 for smooth number animations with easing
 
 ### AI & External APIs
-- **AI Analysis**: OpenRouter API integration for grade analysis
-- **AI Model**: Configurable via environment variables
+- **Dual AI Integration**:
+  - **OpenRouter API**: Primary AI provider for multiple use cases
+    - Grade performance analysis with intelligent insights
+    - Dashboard analytics with actionable recommendations
+    - AI Chatbot using KwaiPilot Kat-Coder-Pro model (free tier)
+  - **Google Generative AI**: Alternative AI engine (@google/generative-ai 0.24.1)
+    - Enhanced analysis capabilities
+    - Fallback option for critical AI features
 - **Email Delivery**: Brevo (formerly Sendinblue) API for reliable email sending
 - **HTTP Client**: node-fetch 3.3.2 for server-side API calls
+- **PDF Generation**: PDFKit 0.17.2 for creating official documents
 
 ### Architecture
 - **Component System**: Role-based component organization with modular architecture
@@ -479,7 +760,7 @@ The system uses MongoDB with the following primary collections:
 - **grade_configurations**: Grading criteria and item configurations per section/subject
 - **rooms**: Classroom and facility information
 - **departments**: Academic department organization
-- **document_requests**: Student document request submissions and approvals
+- **document_requests**: Student document request submissions and approvals with PDF generation
 - **notifications**: User notifications with read/unread status
 - **student_todos**: Student todo items with categories and due dates
 - **activity_logs**: System-wide activity tracking with IP and user agent
@@ -487,6 +768,7 @@ The system uses MongoDB with the following primary collections:
 - **admin_settings**: System configuration (school year, quarters, etc.)
 - **ai_grade_analysis_cache**: Cached AI analysis results (7-day TTL)
 - **password_reset_tokens**: Temporary password reset verification codes
+- **archived_accounts**: Soft-deleted user accounts with restoration capabilities
 
 ### Key MongoDB Features Used
 - **Aggregation Pipelines**: Complex queries with $lookup, $group, $match for analytics
@@ -521,9 +803,12 @@ MONGODB_DB_NAME=set-2-system
 BREVO_API_KEY=your_brevo_api_key
 BREVO_FROM_EMAIL=noreply@yourdomain.com
 
-# AI Configuration (OpenRouter)
+# AI Configuration
+# OpenRouter API (Primary AI provider)
 OPENROUTER_AI_KEY=your_openrouter_api_key
-AI_MODEL=openai/gpt-4-turbo-preview
+
+# Google Generative AI (Alternative AI provider)
+GOOGLE_AI_KEY=your_google_ai_api_key
 
 # Optional: Server Configuration
 PORT=3000
@@ -546,6 +831,22 @@ npm run preview
 
 # Start production server (requires build first)
 npm run start
+
+# Generate PWA icons
+npm run generate-icons
+
+# Electron Desktop App Commands
+# Run Electron in development mode (starts dev server + Electron)
+npm run electron:dev
+
+# Start Electron in production mode (requires build first)
+npm run electron:start
+
+# Package Electron app for distribution
+npm run package
+
+# Create installer/executable for Electron app
+npm run make
 
 # Lint code
 npm run lint
@@ -689,7 +990,62 @@ npm run format
 
 ## 🚢 Deployment
 
-### Production Deployment
+### Electron Desktop App Deployment
+
+The application includes Electron.js support for creating native desktop applications for Windows, macOS, and Linux.
+
+#### Desktop App Setup
+
+1. **Ensure all dependencies are installed**
+   ```sh
+   npm install
+   ```
+
+2. **Build the web application first**
+   ```sh
+   npm run build
+   ```
+
+3. **Development Mode**
+   - Run the Electron app in development with hot reload:
+   ```sh
+   npm run electron:dev
+   ```
+   - This command concurrently starts the Vite dev server and launches Electron
+
+4. **Production Mode**
+   - Start Electron with the production build:
+   ```sh
+   npm run electron:start
+   ```
+
+5. **Package the Desktop App**
+   - Create distributable package:
+   ```sh
+   npm run package
+   ```
+   - This creates platform-specific packages in the `out/` directory
+
+6. **Create Installer**
+   - Build installer/executable:
+   ```sh
+   npm run make
+   ```
+   - Creates installers for your platform (e.g., .exe for Windows)
+
+#### Desktop App Features
+- **Cross-Platform**: Works on Windows, macOS, and Linux
+- **Native Performance**: Full access to system resources
+- **Offline Capabilities**: Can work without internet connection
+- **Auto-Updates**: Electron Forge supports automatic updates
+- **System Integration**: Native menus, notifications, and system tray
+
+#### Electron Configuration
+- **Main Process**: Located at `electron/main.cjs`
+- **Electron Forge Config**: Defined in `package.json`
+- **Makers**: Configured for Squirrel (Windows installer)
+
+### Web Application Deployment
 
 1. **Build the application**
    ```sh
@@ -720,13 +1076,16 @@ The application is configured for deployment on:
 
 ## 📊 Project Statistics
 
+- **Platforms**: 3 (Web, Desktop via Electron, PWA)
 - **Total Components**: 50+ Svelte components
 - **API Endpoints**: 35+ RESTful endpoints
+- **AI Integrations**: 2 (OpenRouter API, Google Generative AI)
 - **Lines of Code**: 20,000+ lines
 - **Supported User Roles**: 3 (Student, Teacher, Admin)
-- **Database Collections**: 15+ MongoDB collections
-- **Features**: 30+ distinct features across all user roles
+- **Database Collections**: 18+ MongoDB collections
+- **Features**: 35+ distinct features across all user roles
+- **Supported Platforms**: Windows, macOS, Linux (Electron), Web (All browsers), Mobile (PWA)
 
 ---
 
-This system provides a **scalable, maintainable, and feature-rich** foundation for managing high school student information with a focus on the **Philippine educational context** and **modern web development practices** using cutting-edge technologies like Svelte 5, MongoDB, and AI-powered analytics.
+This system provides a **scalable, maintainable, and feature-rich** foundation for managing high school student information with a focus on the **Philippine educational context** and **modern web development practices** using cutting-edge technologies like Svelte 5, MongoDB, and AI-powered analytics. Available as a **web application, desktop app (Electron), and Progressive Web App (PWA)** for maximum accessibility and flexibility.
