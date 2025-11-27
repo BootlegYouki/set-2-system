@@ -454,6 +454,7 @@
 
 .text-input {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -746,7 +747,6 @@ input:-webkit-autofill:active {
   margin-top: -12px;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
-
 
 @media (min-width: 768px) {
   .login-container {
