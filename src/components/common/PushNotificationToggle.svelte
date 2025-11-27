@@ -21,6 +21,7 @@
   let isLoading = $state(false);
   let isIOS = $state(false);
   let isStandalone = $state(false);
+  let swVersion = $state('');
 
   // Initialize on mount
   onMount(async () => {
@@ -32,6 +33,15 @@
                      window.navigator.standalone === true;
       
       await initPushNotifications();
+      
+      // Get SW version for debugging
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = (e) => {
+          if (e.data?.version) swVersion = e.data.version;
+        };
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+      }
     }
   });
 
@@ -93,6 +103,9 @@
       <span class="push-status" class:active={isSubscribed} class:warning={!isSupported && isIOS && !isStandalone}>
         {getStatusMessage()}
       </span>
+      {#if swVersion}
+        <span class="sw-version">SW: {swVersion}</span>
+      {/if}
     </div>
   </div>
   
@@ -160,6 +173,12 @@
 
   .push-status.warning {
     color: var(--md-sys-color-error);
+  }
+
+  .sw-version {
+    font-size: 0.625rem;
+    color: var(--md-sys-color-outline);
+    margin-top: 0.25rem;
   }
 
   .toggle-btn {
