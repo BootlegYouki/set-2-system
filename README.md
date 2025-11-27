@@ -710,7 +710,7 @@ let adminNavRailVisible = $state(false);       // Admin nav
   - **OpenRouter API**: Primary AI provider for multiple use cases
     - Grade performance analysis with intelligent insights
     - Dashboard analytics with actionable recommendations
-    - AI Chatbot using KwaiPilot Kat-Coder-Pro model (free tier)
+    - AI Chatbot using KwaiPilot Kat-Coder-Pro model
   - **Google Generative AI**: Alternative AI engine (@google/generative-ai 0.24.1)
     - Enhanced analysis capabilities
     - Fallback option for critical AI features
