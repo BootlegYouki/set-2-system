@@ -1080,9 +1080,9 @@ The application is configured for deployment on:
 - **Total Components**: 50+ Svelte components
 - **API Endpoints**: 35+ RESTful endpoints
 - **AI Integrations**: 2 (OpenRouter API, Google Generative AI)
-- **Lines of Code**: 20,000+ lines
+- **Lines of Code**: 25,000+ lines
 - **Supported User Roles**: 3 (Student, Teacher, Admin)
-- **Database Collections**: 18+ MongoDB collections
+- **Database Collections**: 17 MongoDB collections
 - **Features**: 35+ distinct features across all user roles
 - **Supported Platforms**: Windows (Electron), Web (All browsers), Mobile (PWA)
 
