@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 // Service Worker for Push Notifications and PWA
-const SW_VERSION = '1.0.4';
+const SW_VERSION = '1.0.3';
 const CACHE_NAME = `set2-cache-${SW_VERSION}`;
 
 // Assets to cache for offline support
@@ -106,9 +106,6 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
-  }
-  if (event.data?.type === 'GET_VERSION') {
-    event.ports[0]?.postMessage({ version: SW_VERSION });
   }
 });
 

@@ -6,13 +6,8 @@ export default defineConfig({
 	plugins: [
 		sveltekit(),
 		VitePWA({
-			disable: false,
-			registerType: 'prompt',
-			injectRegister: null, // Don't auto-register any SW - we use our custom one
-			workbox: {
-				// Completely disable workbox - we use custom sw.js
-				globPatterns: []
-			},
+			registerType: 'autoUpdate',
+			injectRegister: false, // We'll register our own SW
 			includeAssets: ['favicon.svg', 'favicon-admin.svg', 'favicon-student.svg', 'favicon-teacher.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
 			manifest: {
 				name: 'SET-2 System',
