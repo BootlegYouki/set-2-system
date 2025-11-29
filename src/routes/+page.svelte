@@ -204,7 +204,6 @@
         firstName={authState.userData?.firstName || 'Student'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
-        profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleToggleNavRail}
         onnavigate={handleNavigation}
@@ -238,7 +237,6 @@
         firstName={authState.userData?.firstName || 'Teacher'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
-        profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleTeacherToggleNavRail}
         onnavigate={handleTeacherNavigation}
@@ -271,7 +269,6 @@
         firstName={authState.userData?.firstName || 'Admin'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
-        profileImage={authState.userData?.profileImage}
         onlogout={handleLogout}
         onToggleNavRail={handleAdminToggleNavRail}
         onNavigateToSettings={handleAdminNavigateToSettings}
