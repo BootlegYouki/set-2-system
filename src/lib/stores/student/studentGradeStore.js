@@ -749,6 +749,18 @@ function createStudentGradeStore() {
 					continue;
 				}
 
+				// Check if still authenticated before fetching
+				const currentHeaders = getAuthHeaders();
+				if (!currentHeaders['x-user-info']) {
+					// User logged out, stop preloading
+					update(state => ({
+						...state,
+						isPreloading: false,
+						preloadProgress: { current: 0, total: 0 }
+					}));
+					return;
+				}
+
 
 				// Fetch grades data, profile, class rank, and previous quarter average
 				const quarterName = `${quarter}${quarter === 1 ? 'st' : quarter === 2 ? 'nd' : quarter === 3 ? 'rd' : 'th'} Quarter`;
