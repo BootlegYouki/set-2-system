@@ -9,8 +9,9 @@
 
 
 	// Props
-	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
+	let { studentName, firstName, gender, accountNumber, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
 
+	let unsubscribe;
 	// Notification state from shared store
 	let unreadNotificationCount = $derived($studentNotificationStore.unreadCount);
 
@@ -60,7 +61,7 @@
 		if (!browser) return;
 		
 		const authState = $authStore;
-		if (!authState.isAuthenticated || !authState.userData?.id) return;
+		if (!authState.isAuthenticated || !authState.userData?.id || authState.userType !== 'student') return;
 		
 		try {
 			// Use the store's loadNotifications method with silent refresh
@@ -84,7 +85,7 @@
 
 		// Refresh notification count every 10 seconds
 		const interval = setInterval(() => {
-			if ($authStore.isAuthenticated) {
+			if ($authStore.isAuthenticated && $authStore.userType === 'student') {
 				fetchNotificationCount();
 			}
 		}, 10000);
@@ -195,13 +196,9 @@
 					</div>
 					
 					<div class="user-avatar">
-						{#if profileImage}
-							<img src={profileImage} alt="Profile" class="avatar-image" />
-						{:else}
-							<div class="avatar-placeholder">
-								{getInitials(firstName)}
-							</div>
-						{/if}
+						<div class="avatar-placeholder">
+							{getInitials(firstName)}
+						</div>
 					</div>
 				</button>
 
