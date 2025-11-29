@@ -736,6 +736,7 @@
 		box-shadow: var(--elevation-1);
 		min-height: 180px;
 		max-height: 180px;
+		overflow-y: auto;
 	}
 
 	.ai-header {
