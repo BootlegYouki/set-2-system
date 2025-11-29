@@ -2,14 +2,14 @@
 
 A comprehensive student information system built with SvelteKit, designed specifically for Philippine high school students (Grades 7-10) following the DepEd curriculum.
 
-## 📱 Multi-Platform Availability
+## Multi-Platform Availability
 
 SET-2 System is available on **multiple platforms** to provide flexibility and accessibility:
 
-### 🌐 Web Application
+### Web Application
 Access the system directly from any modern web browser at **[https://set-2-system.onrender.com](https://set-2-system.onrender.com)**. The web version includes full PWA (Progressive Web App) support.
 
-### 💻 Desktop Application (Electron)
+### Desktop Application (Electron)
 Native desktop application built with **Electron.js** for Windows, macOS, and Linux. The desktop version provides:
 - **Native desktop experience** with system integration
 - **Offline-first capabilities** for uninterrupted access
@@ -33,7 +33,7 @@ This branch includes:
 - Forge configuration (`forge.config.cjs`)
 - Proxy server for secure API routing (deployable to Render.com)
 
-### 📲 Progressive Web App (PWA)
+### Progressive Web App (PWA)
 Install the web application directly from your browser for an app-like experience:
 - **Installable** on desktop and mobile devices
 - **Offline support** with service worker caching
@@ -49,11 +49,11 @@ Install the web application directly from your browser for an app-like experienc
 - **Auto-update**: Service worker automatically updates to the latest version
 
 
-## ⚡ Why SvelteKit? Fullstack Framework Advantages
+## Why SvelteKit? Fullstack Framework Advantages
 
 Unlike React, which is primarily a frontend UI library requiring additional tools for backend functionality, **SvelteKit is a complete fullstack framework** that handles both frontend and backend in a single, unified codebase.
 
-### 🔧 Fullstack Capabilities
+### Fullstack Capabilities
 
 **SvelteKit provides everything you need out of the box:**
 
@@ -73,7 +73,7 @@ Unlike React, which is primarily a frontend UI library requiring additional tool
   - `src/routes/api/auth/+server.js` = /api/auth endpoint
   - No need for React Router or additional routing libraries
 
-### 🚀 Performance Advantages Over React
+### Performance Advantages Over React
 
 **Svelte compiles to vanilla JavaScript at build time:**
 
@@ -91,7 +91,7 @@ Unlike React, which is primarily a frontend UI library requiring additional tool
   - No framework runtime shipped to the client
   - Only the code you actually use gets compiled into the bundle
 
-### 💡 Developer Experience Benefits
+### Developer Experience Benefits
 
 **Simplified Development:**
 
@@ -118,7 +118,7 @@ $effect(() => {
 - **Scoped CSS**: Component styles are automatically scoped (no CSS-in-JS needed)
 - **TypeScript-Ready**: Full TypeScript support with excellent type inference
 
-### 🏗️ Architecture in SET-2 System
+### Architecture in SET-2 System
 
 This project leverages SvelteKit's fullstack nature:
 
@@ -136,21 +136,21 @@ This project leverages SvelteKit's fullstack nature:
 - Consistent coding style and tooling
 
 
-## 🔀 Subsystem Branches
+## Subsystem Branches
 
 The SET-2 System is also available in **separated subsystem versions** for modular deployment or development. These branches contain isolated implementations of specific user roles:
 
-### 📋 Available Subsystem Branches
+### Available Subsystem Branches
 
 #### Branch: `ss1` - Student & Teacher Subsystem
 **Includes:**
-- 👨‍🎓 **Student Portal** (Limited)
+- **Student Portal** (Limited)
   - Profile Management
   - Grade Viewing with AI Analysis
   - Class Rankings
   - Document Requests with AI Chatbot
   - Notifications & Todo Lists
-- 👨‍🏫 **Teacher Portal** (Limited)
+- **Teacher Portal** (Limited)
   - Profile Management
   - Class Management with Grading Spreadsheet
   - Advisory Class Management
@@ -168,16 +168,16 @@ git clone -b ss1 https://github.com/BootlegYouki/set-2-system.git
 
 #### Branch: `ss2` - Admin & Schedule Management Subsystem
 **Includes:**
-- 👨‍💼 **Admin Portal** (Limited)
+- **Admin Portal** (Limited)
   - AI-Powered Dashboard
   - Account Management & Archives
   - Department Management
   - Schedule Management
   - All admin scheduling features
-- 📅 **Student Schedule** (Limited)
+- **Student Schedule** (Limited)
   - Schedule viewing only
   - Basic schedule interface
-- 📅 **Teacher Schedule** (Limited)
+- **Teacher Schedule** (Limited)
   - Schedule viewing only
   - Basic schedule interface
 
@@ -194,12 +194,12 @@ git clone -b ss2 https://github.com/BootlegYouki/set-2-system.git
 
 #### Branch: `ss3` - Document Request Subsystem
 **Includes:**
-- 📝 **Admin Document Management** (Limited)
+- **Admin Document Management** (Limited)
   - Document Request Management
   - Request approval workflows
   - Status tracking
   - PDF generation for documents
-- 📝 **Student Document Requests** (Limited)
+- **Student Document Requests** (Limited)
   - Document request submission
   - Request status tracking
   - AI Chatbot Assistant for document help
@@ -216,7 +216,7 @@ git clone -b ss3 https://github.com/BootlegYouki/set-2-system.git
 
 ---
 
-### 🛠️ Subsystem Benefits
+### Subsystem Benefits
 
 - **Modular Deployment**: Deploy only the subsystems you need
 - **Reduced Complexity**: Smaller codebase for focused implementations
@@ -224,7 +224,7 @@ git clone -b ss3 https://github.com/BootlegYouki/set-2-system.git
 - **Resource Optimization**: Lower resource requirements for partial deployments
 - **Flexible Architecture**: Mix and match subsystems based on institutional needs
 
-### 📝 Note on Subsystem Branches
+### Note on Subsystem Branches
 
 All subsystem branches share the same technology stack and database schema as the main branch. They differ only in which user role components are included in the build. This allows for:
 - **Easy migration** between subsystem and full system deployments
@@ -232,11 +232,11 @@ All subsystem branches share the same technology stack and database schema as th
 - **Shared codebase** for common features and utilities
 
 
-## 🆕 Recent Updates & Features
+## Recent Updates & Features
 
-### ✅ Completed Features
+### Completed Features
 
-#### 🔐 Authentication & Security
+#### Authentication & Security
 - **Complete Authentication System** with role-based access control (Student, Teacher, Admin)
 - **Secure Password Management** with bcrypt hashing (12 salt rounds)
 - **Forgot Password System** with 6-digit verification codes and 15-minute expiration
@@ -245,13 +245,13 @@ All subsystem branches share the same technology stack and database schema as th
 - **Activity Logging System** with MongoDB storage and IP tracking
 - **Session Management** with heartbeat monitoring and automatic logout
 
-#### 📧 Email System
+#### Email System
 - **Brevo API Integration** for reliable email delivery
 - **Account Creation Emails** with beautifully designed Material Design 3 templates
 - **Password Reset Emails** with secure verification codes
 - **HTML and Plain Text** email support for all email clients
 
-#### 👨‍🎓 Student Portal
+#### Student Portal
 - **Profile Management** with personal information display
 - **Advanced Grade Viewing** with AI-powered performance analysis using dual AI engines:
   - **OpenRouter API** for comprehensive grade analysis with 7-day caching
@@ -267,7 +267,7 @@ All subsystem branches share the same technology stack and database schema as th
 - **Smart Notifications** with filtering by type (grades, schedule, documents, todo)
 - **Todo List Management** with categories, due dates, completion tracking, and priority levels
 
-#### 👨‍🏫 Teacher Portal
+#### Teacher Portal
 - **Personal Profile** with teaching information
 - **Class Schedule** with teaching assignments and time management
 - **Class Management** with advanced features including:
@@ -279,7 +279,7 @@ All subsystem branches share the same technology stack and database schema as th
 - **Advisory Class Management** with comprehensive student oversight and mentoring tools
 - **Section Assignment** with student roster management
 
-#### 👨‍💼 Admin Portal
+#### Admin Portal
 - **AI-Powered Dashboard** with system statistics, animated counters, and interactive charts
   - Students per Grade Level Chart with AI analysis
   - Sections per Grade Level Chart with AI analysis
@@ -307,7 +307,7 @@ All subsystem branches share the same technology stack and database schema as th
 - **Admin Settings** for system configuration (current school year, quarters, etc.)
 - **Bulk Student Operations** with Excel file import/export
 
-### 🎯 Key Implementations
+### Key Implementations
 - **Multi-Platform Support**:
   - **Progressive Web App (PWA)**: Full PWA support with manifest, service worker, and offline capabilities
   - **Electron Desktop App**: Native desktop application for Windows, macOS, and Linux
@@ -329,7 +329,7 @@ All subsystem branches share the same technology stack and database schema as th
 - **Data Visualization**: Chart.js integration for interactive charts and statistics
 - **Animated UI**: CountUp.js for smooth number animations in dashboards and statistics
 
-## 🏗️ Project Architecture
+## Project Architecture
 
 ### File Structure Overview
 
@@ -474,7 +474,7 @@ src/
             └── notification-helper.js # Notification creation
 ```
 
-## 🎨 Design System Architecture
+## Design System Architecture
 
 ### Modular CSS Structure
 
@@ -516,7 +516,7 @@ The project uses a sophisticated modular CSS architecture located in `src/lib/st
 - **CSS Custom Properties**: Extensive use of CSS variables for theming
 - **Material Design Styling**: Custom components built with Material Design 3 principles and design tokens
 
-## 🏛️ Component Architecture
+## Component Architecture
 
 ### Role-Based Organization
 
@@ -580,7 +580,7 @@ Each component follows a consistent structure:
 
 ### User Roles & Features
 
-#### 👨‍💼 Admin Features
+#### Admin Features
 - **Dashboard** with system overview and statistics using animated CountUp counters and Chart.js visualizations
 - **Account Creation** for students, teachers, and administrators with automatic email notifications
 - **Student Masterlist** with comprehensive CRUD operations, search, and filter capabilities
@@ -596,7 +596,7 @@ Each component follows a consistent structure:
 - **Admin Settings** for system configuration (school year, quarters, grading periods)
 - **Bulk Operations** for efficient student data import/export using Excel files
 
-#### 👨‍🎓 Student Features
+#### Student Features
 - **Profile Management** with personal information display and profile picture
 - **Grade Viewing** with:
   - AI-powered performance analysis using OpenRouter API (cached for 7 days)
@@ -609,7 +609,7 @@ Each component follows a consistent structure:
 - **Smart Notifications** with filtering by type (grades, schedule, documents, todo)
 - **Todo List Management** with categories, due dates, completion tracking, and priority levels
 
-#### 👨‍🏫 Teacher Features
+#### Teacher Features
 - **Personal Profile** with teaching information and class assignments
 - **Class Schedule** with teaching assignments, time management, and room information
 - **Class Management** with advanced grading features:
@@ -624,7 +624,7 @@ Each component follows a consistent structure:
   - Student intervention tracking
 - **Student Performance Tracking** with detailed academic progress monitoring and analytics
 
-## 🔄 Application Flow & Rendering
+## Application Flow & Rendering
 
 ### Single Page Application (SPA) Architecture
 
@@ -653,7 +653,7 @@ let teacherNavRailVisible = $state(false);     // Teacher nav
 let adminNavRailVisible = $state(false);       // Admin nav
 ```
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Core Framework
 - **Framework**: SvelteKit 2.22.0 with Svelte 5.0.0
@@ -745,7 +745,7 @@ let adminNavRailVisible = $state(false);       // Admin nav
 - **Database Integration**: Authentication queries against MongoDB with indexed lookups for performance
 - **Security Measures**: Input sanitization, SQL injection prevention, status-based account access control
 
-## 🗄️ Database Architecture
+## Database Architecture
 
 ### MongoDB Collections
 
@@ -777,7 +777,7 @@ The system uses MongoDB with the following primary collections:
 - **Flexible Schema**: Dynamic document structure for evolving requirements
 - **Embedded Documents**: Nested data structures for grade items and configurations
 
-## 🎯 Educational Context
+## Educational Context
 
 ### Philippine DepEd Curriculum Integration
 
@@ -788,7 +788,7 @@ The system uses MongoDB with the following primary collections:
 - **Document Types**: Standard DepEd forms and requirements (Form 137, Good Moral, etc.)
 - **Grade Scale**: 90-100 (Outstanding), 85-89 (Very Satisfactory), 80-84 (Satisfactory), 75-79 (Fairly Satisfactory), Below 75 (Did Not Meet Expectations)
 
-## 🚀 Development Workflow
+## Development Workflow
 
 ### Environment Setup
 
@@ -866,7 +866,7 @@ npm run format
 7. **API Integration**: Use `api-helper.js` for authenticated API calls
 8. **Error Handling**: Always implement proper try-catch blocks and user-friendly error messages
 
-## 📁 Key Files & Their Purposes
+## Key Files & Their Purposes
 
 ### Core Application Files
 - **`+layout.svelte`**: Global layout wrapper, imports design system, manages fonts and meta tags, includes global toast and modal containers
@@ -913,7 +913,7 @@ npm run format
 - **Form Components**: Time inputs, dropdowns, and custom form controls
 - **Grading Components**: Advanced spreadsheet-style grading interface with Excel-like functionality
 
-## 🔧 Customization & Extension
+## Customization & Extension
 
 ### Adding New Features
 
@@ -988,7 +988,7 @@ npm run format
 - **Formatting**: Use Prettier for consistent code formatting
 - **Linting**: Run ESLint to catch potential issues before deployment
 
-## 🚢 Deployment
+## Deployment
 
 ### Electron Desktop App Deployment
 
@@ -1074,7 +1074,7 @@ The application is configured for deployment on:
 
 ---
 
-## 📊 Project Statistics
+## Project Statistics
 
 - **Platforms**: 3 (Web, Desktop via Electron, PWA)
 - **Total Components**: 50+ Svelte components
