@@ -9,7 +9,8 @@
 
 
 	// Props
-	let { studentName, firstName, gender, accountNumber, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
+	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
+
 	// Notification state from shared store
 	let unreadNotificationCount = $derived($studentNotificationStore.unreadCount);
 
@@ -87,6 +88,13 @@
 				fetchNotificationCount();
 			}
 		}, 10000);
+
+		// Cleanup
+		return () => {
+			document.removeEventListener('click', handleClickOutside);
+			clearInterval(interval);
+			if (unsubscribe) unsubscribe();
+		};
 	});
 
 	// Toggle theme mode
@@ -187,9 +195,13 @@
 					</div>
 					
 					<div class="user-avatar">
-						<div class="avatar-placeholder">
-							{getInitials(firstName)}
-						</div>
+						{#if profileImage}
+							<img src={profileImage} alt="Profile" class="avatar-image" />
+						{:else}
+							<div class="avatar-placeholder">
+								{getInitials(firstName)}
+							</div>
+						{/if}
 					</div>
 				</button>
 
