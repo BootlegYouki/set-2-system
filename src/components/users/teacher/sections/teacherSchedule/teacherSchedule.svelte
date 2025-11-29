@@ -101,6 +101,7 @@
 	$: currentClasses = [...rawClasses].sort((a, b) => {
 		// Dependency on currentTime to trigger re-sort when time changes
 		currentTime;
+		isToday; // Ensure dependency on isToday
 		const isACurrent = isCurrentClass(a.time);
 		const isBCurrent = isCurrentClass(b.time);
 		if (isACurrent && !isBCurrent) return -1;
@@ -192,7 +193,7 @@
 
 	<div class="week-navigation">
 		<div class="week-title">
-			<span>{currentDayName}, {currentMonth} {currentDay}</span>
+			<span>{currentDayName}, {currentMonth} {currentDay} - {currentTime.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}</span>
 		</div>
 
 		<div class="schedule-day-selector">

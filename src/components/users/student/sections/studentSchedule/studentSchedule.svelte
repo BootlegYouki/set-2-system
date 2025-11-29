@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '../../../../login/js/auth.js';
 	import { studentScheduleStore } from '../../../../../lib/stores/student/studentScheduleStore.js';
+	import { studentProfileStore } from '../../../../../lib/stores/student/studentProfileStore.js';
 	import './studentSchedule.css';
 
 	// Get current date info
@@ -31,12 +32,16 @@
 
 	// Subscribe to the store
 	$: ({ scheduleData, isLoading, isRefreshing, error, lastUpdated } = $studentScheduleStore);
+	$: ({ studentData, studentProfileData } = $studentProfileStore);
+	$: gradeLevel = studentData?.gradeLevel || studentProfileData?.section?.gradeLevel;
+	$: sectionName = studentProfileData?.section?.name;
 
 	// Handle refresh functionality
 	async function handleRefresh() {
 		const authState = $authStore;
 		if (authState.isAuthenticated && authState.userData?.id) {
 			await studentScheduleStore.forceRefresh(authState.userData.id);
+			await studentProfileStore.forceRefresh(authState.userData.id);
 		}
 	}
 
@@ -49,6 +54,12 @@
 			
 			// Load fresh data if no cache or load silently if cached
 			studentScheduleStore.loadSchedule(authState.userData.id, hasCachedData);
+
+			// Initialize profile store with cached data if available
+			const hasCachedProfileData = studentProfileStore.init(authState.userData.id);
+			
+			// Load fresh profile data if no cache or load silently if cached
+			studentProfileStore.loadProfile(authState.userData.id, hasCachedProfileData);
 
 			// Set up periodic refresh every 5 minutes
 			const refreshInterval = setInterval(() => {
@@ -94,6 +105,7 @@
 	$: currentClasses = [...rawClasses].sort((a, b) => {
 		// Dependency on currentTime to trigger re-sort when time changes
 		currentTime;
+		isToday; // Ensure dependency on isToday
 		const isACurrent = isCurrentClass(a.time);
 		const isBCurrent = isCurrentClass(b.time);
 		if (isACurrent && !isBCurrent) return -1;
@@ -190,8 +202,15 @@
 
 	<div class="week-navigation">
 		<div class="week-title">
-			<span>{currentDayName}, {currentMonth} {currentDay}</span>
+			<span>{currentDayName}, {currentMonth} {currentDay} - {currentTime.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}</span>
 		</div>
+		{#if gradeLevel || sectionName}
+			<div class="student-grade-info">
+				{#if gradeLevel}Grade {gradeLevel}{/if}
+				{#if gradeLevel && sectionName} - {/if}
+				{#if sectionName}{sectionName}{/if}
+			</div>
+		{/if}
 
 		<div class="day-selector">
 			{#each weekDays as { day }}
