@@ -40,6 +40,40 @@ const isMobileDevice = () => {
   return false;
 };
 
+// Predefined test accounts
+const testAccounts = {
+  'student@school.edu': {
+    password: 'student123',
+    userType: 'student',
+    userData: {
+      name: 'John Student',
+      id: '2024-001234',
+      email: 'student@school.edu',
+      profileImage: null
+    }
+  },
+  'teacher@school.edu': {
+    password: 'teacher123',
+    userType: 'teacher',
+    userData: {
+      name: 'Jane Teacher',
+      id: 'TEACH-001',
+      email: 'teacher@school.edu',
+      profileImage: null
+    }
+  },
+  'admin@school.edu': {
+    password: 'admin123',
+    userType: 'admin',
+    userData: {
+      name: 'System Admin',
+      id: 'ADM001',
+      email: 'admin@school.edu',
+      profileImage: null
+    }
+  }
+};
+
 /**
  * Handle user login
  * @param {Object} loginData - Login data object
@@ -83,6 +117,8 @@ export const handleLogin = async ({ accountNumber, password }) => {
       
       // Show success message
       showSuccess(`Login successful! Welcome back, ${userData.name}`);
+      
+      console.log('Login successful:', { accountNumber, userType: userData.accountType });
       
       return userData;
     } else {
