@@ -9,7 +9,10 @@
 
 
 	// Props
-	let { studentName, firstName, gender, accountNumber, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
+	let { studentName, lastName, gender, accountNumber, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
+
+	// Fallback: extract last name from full name if lastName is not provided
+	let effectiveLastName = $derived(lastName && lastName !== 'Student' ? lastName : extractLastName(studentName));
 
 	let unsubscribe;
 	// Notification state from shared store
@@ -197,7 +200,7 @@
 					
 					<div class="user-avatar">
 						<div class="avatar-placeholder">
-							{getInitials(firstName)}
+							{getInitials(effectiveLastName)}
 						</div>
 					</div>
 				</button>

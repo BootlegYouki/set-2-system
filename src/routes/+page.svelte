@@ -201,7 +201,7 @@
     <div class="student-portal" class:nav-rail-collapsed={!isNavRailVisible}>
       <StudentNavbar 
         studentName={authState.userData?.name || 'Student'}
-        firstName={authState.userData?.firstName || 'Student'}
+        lastName={authState.userData?.lastName || 'Student'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}
@@ -235,7 +235,7 @@
     <div class="teacher-portal" class:nav-rail-collapsed={!teacherNavRailVisible}>
       <TeacherNavbar 
         teacherName={authState.userData?.name || 'Teacher'}
-        firstName={authState.userData?.firstName || 'Teacher'}
+        lastName={authState.userData?.lastName || 'Teacher'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}
@@ -268,7 +268,7 @@
     <div class="admin-portal" class:nav-rail-collapsed={!adminNavRailVisible}>
       <AdminNavbar 
         adminName={authState.userData?.name || 'Admin'}
-        firstName={authState.userData?.firstName || 'Admin'}
+        lastName={authState.userData?.lastName || 'Admin'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}

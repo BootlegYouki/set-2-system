@@ -153,6 +153,7 @@ export async function POST({ request, getClientAddress }) {
       id: user._id,
       name: user.full_name,
       firstName: user.first_name,
+      lastName: user.last_name,
       gender: user.gender,
       accountNumber: user.account_number,
       accountType: user.account_type
