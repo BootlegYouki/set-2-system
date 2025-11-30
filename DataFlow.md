@@ -147,107 +147,7 @@ sequenceDiagram
 
 ---
 
-### 3. Document Request Submission Flow
-
-```mermaid
-sequenceDiagram
-    participant S as Student
-    participant UI as Document Request Page
-    participant API as Document Requests API
-    participant DB as MongoDB
-    participant Notify as Notification Helper
-    participant Email as Brevo Email API
-    
-    S->>UI: Fill document request form
-    UI->>API: POST /api/document-requests
-    API->>DB: Query existing requests (check first_time)
-    
-    alt First Request (Free)
-        API->>DB: Create request (is_first_time: true, payment: 0)
-    else Subsequent Request (Paid)
-        API->>DB: Create request (is_first_time: false, payment: amount)
-    end
-    
-    DB-->>API: New request document
-    API->>Notify: Create notification
-    Notify->>DB: Insert into notifications
-    API->>Email: Send confirmation email
-    Email-->>API: Email sent
-    API->>DB: Create activity log
-    API-->>UI: Success response
-    UI->>S: Show success message
-```
-
-**Data Collections Involved:**
-- `document_requests` (create, read)
-- `notifications` (create)
-- `activity_logs` (create)
-- `users` (read for student info)
-
-**Business Logic:**
-1. Check if student has previous **approved/completed** requests
-2. Rejected requests don't count as "first time"
-3. Calculate payment: first = ₱0, subsequent = configured amount
-4. Generate unique `request_id`
-5. Set default status: `pending`
-
----
-
-### 4. Student Schedule Retrieval Flow
-
-```mermaid
-sequenceDiagram
-    participant S as Student
-    participant UI as Schedule Page
-    participant Store as Schedule Store
-    participant API as Schedules API
-    participant DB as MongoDB
-    
-    S->>UI: Navigate to Schedule
-    UI->>Store: Check cached data
-    
-    alt Data Cached
-        Store-->>UI: Return cached schedule
-    else No Cache
-        UI->>API: GET /api/schedules/student
-        API->>DB: Get student's section_id
-        note over DB: section_students → sections
-        DB-->>API: section_id
-        API->>DB: Query schedules by section_id
-        note over DB: Join with subjects, activity_types, teachers
-        DB-->>API: Complete schedule data
-        API-->>Store: Store in cache
-        Store-->>UI: Schedule data
-    end
-    
-    UI->>S: Display weekly/daily schedule
-```
-
-**Data Collections Involved:**
-- `section_students` (read)
-- `sections` (read)
-- `schedules` (read)
-- `subjects` (read via lookup)
-- `activity_types` (read via lookup)
-- `users` (read via lookup for teachers)
-
-**Query Flow:**
-```javascript
-// Step 1: Get student's section
-section_students.findOne({ student_id, status: "active" })
-
-// Step 2: Get schedule entries
-schedules.aggregate([
-  { $match: { section_id, school_year } },
-  { $lookup: { from: "subjects", ... } },
-  { $lookup: { from: "activity_types", ... } },
-  { $lookup: { from: "users", as: "teacher", ... } }
-])
-```
-
----
-
-### 5. Grade Input by Teacher Flow
+### 3. Grade Input by Teacher Flow
 
 ```mermaid
 sequenceDiagram
@@ -302,55 +202,7 @@ final_grade = (
 
 ---
 
-### 6. Student Enrollment Flow
-
-```mermaid
-sequenceDiagram
-    participant A as Admin
-    participant UI as Student Masterlist
-    participant API as Students API
-    participant DB as MongoDB
-    participant Email as Brevo Email
-    
-    A->>UI: Create new student account
-    UI->>API: POST /api/accounts/create
-    API->>API: Generate account_number
-    API->>API: Hash password (bcrypt)
-    API->>DB: Insert into users
-    DB-->>API: New user document
-    
-    alt Assign to Section
-        A->>UI: Assign to section
-        UI->>API: POST /api/section-students
-        API->>DB: Insert section_students record
-        DB-->>API: Enrollment record
-    end
-    
-    API->>Email: Send welcome email
-    Email-->>API: Email sent
-    API->>DB: Create activity log
-    API-->>UI: Success + account details
-    UI->>A: Display account info
-```
-
-**Data Collections Involved:**
-- `users` (create)
-- `section_students` (create)
-- `activity_logs` (create)
-
-**Account Number Generation:**
-```javascript
-// Format: YYYY-GL-XXXXX
-// Example: 2024-7-00123
-const year = new Date().getFullYear()
-const gradeLevel = student.grade_level
-const sequence = await getNextSequence(year, gradeLevel)
-const accountNumber = `${year}-${gradeLevel}-${sequence.toString().padStart(5, '0')}`
-```
-
----
-
-### 7. Class Ranking Calculation Flow
+### 4. Class Ranking Calculation Flow
 
 ```mermaid
 sequenceDiagram
@@ -403,7 +255,7 @@ sequenceDiagram
 
 ---
 
-### 8. Notification Creation & Delivery Flow
+### 5. Notification Creation & Delivery Flow
 
 ```mermaid
 sequenceDiagram
@@ -448,7 +300,7 @@ sequenceDiagram
 
 ---
 
-### 9. Password Reset Flow
+### 6. Password Reset Flow
 
 ```mermaid
 sequenceDiagram
@@ -505,7 +357,7 @@ sequenceDiagram
 
 ---
 
-### 10. Student Profile Data Flow
+### 7. Student Profile Data Flow
 
 ```mermaid
 sequenceDiagram
@@ -552,7 +404,7 @@ sequenceDiagram
 
 ---
 
-### 11. Todo List Management Flow
+### 8. Todo List Management Flow
 
 ```mermaid
 sequenceDiagram
@@ -841,8 +693,8 @@ sequenceDiagram
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2024-11-30 | Initial SS1 data flow documentation |
+| 1.0 | 2025-11-30 | Initial SS1 data flow documentation |
 
 ---
 
-**Note**: This data flow diagram focuses on SS1 (Student Information System) processes. All flows are designed with security, performance, and data integrity as primary concerns.
+**Note**: This data flow diagram focuses on SS1 (Student Information System) processes relevant to teachers and students. All flows are designed with security, performance, and data integrity as primary concerns.

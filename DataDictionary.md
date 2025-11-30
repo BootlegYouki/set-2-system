@@ -4,7 +4,7 @@
 
 ## Overview
 
-The SET-2 Student Information System uses MongoDB as its database, storing data in flexible document structures. This dictionary documents all collections, their fields, relationships, and business rules for the SS1 module.
+The SET-2 Student Information System uses MongoDB as its database, storing data in flexible document structures. This dictionary documents collections relevant to teachers and students, their fields, relationships, and business rules for the SS1 module.
 
 ---
 
@@ -127,40 +127,7 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 
 ---
 
-### 5. schedules
-**Purpose**: Class timetable management linking sections, subjects, teachers, and time slots
-
-**SS1 Focus**: Student class schedule viewing
-
-| Field Name | Data Type | Nullable | Description |
-|------------|-----------|----------|-------------|
-| `_id` | ObjectId | No | Unique schedule entry ID |
-| `section_id` | ObjectId | No | Reference to sections._id |
-| `day_of_week` | String | No | Day: `Monday`, `Tuesday`, etc. |
-| `start_time` | String | No | Start time (e.g., "08:00") |
-| `end_time` | String | No | End time (e.g., "09:00") |
-| `schedule_type` | String | No | Type: `subject` or `activity` |
-| `subject_id` | ObjectId | Yes | Reference to subjects._id (if type = subject) |
-| `activity_type_id` | ObjectId | Yes | Reference to activity_types._id (if type = activity) |
-| `teacher_id` | ObjectId | Yes | Reference to users._id (teacher) |
-| `school_year` | String | No | Academic year |
-| `created_at` | Date | No | Creation timestamp |
-| `updated_at` | Date | No | Last update timestamp |
-
-**Relationships:**
-- `section_id` → `sections._id`
-- `subject_id` → `subjects._id`
-- `activity_type_id` → `activity_types._id`
-- `teacher_id` → `users._id` (where account_type = 'teacher')
-
-**Business Rules:**
-- Time slots cannot overlap for the same section
-- Either subject_id or activity_type_id must be set (not both)
-- Schedule entries are specific to a school year
-
----
-
-### 6. grades
+### 5. grades
 **Purpose**: Stores student grades for subjects across quarters
 
 **SS1 Focus**: Core academic performance tracking
@@ -215,7 +182,7 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 
 ---
 
-### 7. grade_configurations
+### 6. grade_configurations
 **Purpose**: Defines grading criteria and items for each subject-section-quarter
 
 **SS1 Focus**: Teacher-managed grade item configuration
@@ -261,66 +228,10 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 
 ## Supporting Collections
 
-### 8. document_requests
-**Purpose**: Manages student requests for official documents
-
-**SS1 Focus**: Student document request submission and tracking
-
-| Field Name | Data Type | Nullable | Description |
-|------------|-----------|----------|-------------|
-| `_id` | ObjectId | No | Unique request ID |
-| `student_id` | String | No | Student identifier |
-| `account_number` | String | No | Student account number |
-| `full_name` | String | No | Student full name |
-| `grade_level` | String | No | Current grade level |
-| `section` | String | No | Current section name |
-| `birthdate` | Date | No | Student birthdate |
-| `document_type` | String | No | Document type (e.g., "Form 137", "Good Moral") |
-| `quantity` | Number | No | Number of copies requested |
-| `request_id` | String | No | Unique request identifier |
-| `submitted_date` | Date | No | Submission timestamp |
-| `payment_amount` | Number | No | Payment amount in PHP |
-| `payment_status` | String | No | Payment status: `paid`, `unpaid`, `free` |
-| `is_first_time` | Boolean | No | First document request flag (free) |
-| `status` | String | No | Request status: `pending`, `processing`, `ready`, `completed`, `rejected` |
-| `tentative_date` | Date | Yes | Expected completion date |
-| `is_urgent` | Boolean | No | Urgent request flag |
-| `purpose` | String | No | Purpose of document request |
-| `processed_by` | String | Yes | Admin name who processed |
-| `processed_by_id` | String | Yes | Admin user ID |
-| `messages` | Array[Object] | Yes | Communication thread (see below) |
-| `status_history` | Array[Object] | Yes | Status change log (see below) |
-| `created_at` | Date | No | Creation timestamp |
-| `updated_at` | Date | No | Last update timestamp |
-| `last_read_at` | Date | Yes | Last read timestamp |
-| `compliance_deadline` | Date | Yes | Compliance deadline |
-
-**Messages Object Structure:**
-```json
-{
-  "id": "string",
-  "author": "string",
-  "authorId": "string",
-  "authorRole": "string",
-  "text": "string",
-  "attachments": [...],
-  "created_at": "Date",
-  "isAutomated": "boolean"
-}
-```
-
-**Business Rules:**
-- First document request is free (is_first_time = true)
-- Rejected documents count as "first time" for next request
-- Payment required for subsequent requests
-- Status transitions: pending → processing → ready → completed
-
----
-
-### 9. notifications
+### 7. notifications
 **Purpose**: User notifications for system events
 
-**SS1 Focus**: Student notifications for grades, schedules, and document requests
+**SS1 Focus**: Student notifications for grades and tasks
 
 | Field Name | Data Type | Nullable | Description |
 |------------|-----------|----------|-------------|
@@ -328,15 +239,11 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 | `student_id` | String | No | Student identifier |
 | `title` | String | No | Notification title |
 | `message` | String | No | Notification message |
-| `type` | String | No | Type: `grades`, `schedule`, `documents`, `todo` |
+| `type` | String | No | Type: `grades`, `todo` |
 | `priority` | String | No | Priority: `low`, `medium`, `high` |
 | `is_read` | Boolean | No | Read status flag |
-| `related_id` | String | Yes | Related entity ID (e.g., document_request_id) |
-| `document_type` | String | Yes | Document type (if type = documents) |
+| `related_id` | String | Yes | Related entity ID |
 | `status` | String | Yes | Related entity status |
-| `admin_name` | String | Yes | Admin who triggered notification |
-| `admin_id` | String | Yes | Admin user ID |
-| `admin_note` | String | Yes | Admin's note |
 | `created_at` | Date | No | Creation timestamp |
 | `updated_at` | Date | No | Last update timestamp |
 | `created_by` | String | Yes | Creator identifier |
@@ -348,7 +255,7 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 
 ---
 
-### 10. student_todos
+### 8. student_todos
 **Purpose**: Student task and assignment management
 
 **SS1 Focus**: Student productivity and task tracking
@@ -375,7 +282,7 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 
 ## Analytics & Caching Collections
 
-### 11. ai_grade_analysis_cache
+### 9. ai_grade_analysis_cache
 **Purpose**: Caches AI-powered grade analysis results
 
 **SS1 Focus**: Student performance insights (7-day TTL)
@@ -420,7 +327,7 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 
 ---
 
-### 12. activity_logs
+### 10. activity_logs
 **Purpose**: System-wide activity logging for auditing
 
 **SS1 Focus**: Student activity tracking
@@ -443,91 +350,7 @@ The SET-2 Student Information System uses MongoDB as its database, storing data 
 
 ---
 
-## Administrative Collections
-
-### 13. admin_settings
-**Purpose**: System-wide configuration settings
-
-| Field Name | Data Type | Nullable | Description |
-|------------|-----------|----------|-------------|
-| `_id` | ObjectId | No | Unique setting ID |
-| `setting_key` | String | No | Setting identifier |
-| `setting_value` | String | No | Setting value |
-| `setting_type` | String | No | Value type |
-| `created_at` | Date | No | Creation timestamp |
-| `updated_at` | Date | No | Last update timestamp |
-
-**Common Settings:**
-- `current_school_year`: Active academic year
-- `current_quarter`: Active grading period (1-4)
-- `grading_deadline`: Grade submission deadline
-
----
-
-### 14. departments
-**Purpose**: Academic department organization
-
-| Field Name | Data Type | Nullable | Description |
-|------------|-----------|----------|-------------|
-| `_id` | ObjectId | No | Unique department ID |
-| `name` | String | No | Department name |
-| `code` | String | No | Department code |
-| `status` | String | No | Department status |
-| `created_at` | Date | No | Creation timestamp |
-| `updated_at` | Date | No | Last update timestamp |
-
-**Examples:**
-- Science Department (SCI)
-- Mathematics Department (MATH)
-- Filipino Department (FIL)
-
----
-
-### 15. teacher_departments
-**Purpose**: Links teachers to their departments
-
-| Field Name | Data Type | Nullable | Description |
-|------------|-----------|----------|-------------|
-| `_id` | ObjectId | No | Unique association ID |
-| `teacher_id` | ObjectId | No | Reference to users._id (teacher) |
-| `department_id` | ObjectId | No | Reference to departments._id |
-
-**Relationships:**
-- `teacher_id` → `users._id`
-- `department_id` → `departments._id`
-
----
-
-### 16. rooms
-**Purpose**: Classroom and facility management
-
-| Field Name | Data Type | Nullable | Description |
-|------------|-----------|----------|-------------|
-| `_id` | ObjectId | No | Unique room ID |
-| `name` | String | No | Room name/number |
-| `building` | String | No | Building name |
-| `floor` | String | No | Floor level |
-| `status` | String | No | Room status |
-| `assigned_to` | String | Yes | Assignment info |
-| `created_at` | Date | No | Creation timestamp |
-| `updated_at` | Date | No | Last update timestamp |
-
----
-
-### 17. activity_types
-**Purpose**: Non-subject schedule items (e.g., lunch, breaks)
-
-| Field Name | Data Type | Nullable | Description |
-|------------|-----------|----------|-------------|
-| `_id` | ObjectId | No | Unique activity type ID |
-| `name` | String | No | Activity name (e.g., "Lunch Break") |
-| `code` | String | No | Activity code |
-| `color` | String | No | Display color |
-| `icon` | String | No | Display icon |
-
----
-
-### 18. pushSubscriptions
+### 11. pushSubscriptions
 **Purpose**: PWA push notification subscriptions
 
 | Field Name | Data Type | Nullable | Description |
@@ -574,14 +397,6 @@ For optimal SS1 performance, the following indexes are recommended:
 - `{section_id, status}` (compound)
 - `student_id`
 
-### schedules
-- `{section_id, day_of_week}` (compound)
-- `teacher_id`
-
-### document_requests
-- `{student_id, status}` (compound)
-- `status`
-
 ---
 
 ## Validation Rules
@@ -600,13 +415,11 @@ For optimal SS1 performance, the following indexes are recommended:
 
 ### Status Values
 **User Status**: `active`, `inactive`, `archived`  
-**Request Status**: `pending`, `processing`, `ready`, `completed`, `rejected`  
 **Section Status**: `active`, `inactive`
 
 ### Date Constraints
 - `birthdate`: Must be in the past
 - `due_date`: Can be future or past
-- `tentative_date`: Must be future date
 
 ---
 
@@ -615,15 +428,19 @@ For optimal SS1 performance, the following indexes are recommended:
 ```
 users (students)
    ↓
-section_students ← sections → schedules → subjects
-   ↓                            ↓
-grades ←────────────────────────┘
+section_students ← sections
+   ↓
+grades → subjects
    ↓
 ai_grade_analysis_cache
 
 users (students)
    ↓
-document_requests → notifications
+student_todos
+
+users (students)
+   ↓
+notifications
    ↓
 activity_logs
 ```
@@ -634,8 +451,8 @@ activity_logs
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2024-11-30 | Initial SS1 data dictionary |
+| 1.0 | 2025-11-30 | Initial SS1 data dictionary |
 
 ---
 
-**Note**: This data dictionary focuses on SS1 (Student Information System) collections and relationships. Teacher and Admin-specific collections have been documented with SS1 context in mind.
+**Note**: This data dictionary focuses on SS1 (Student Information System) collections relevant to teachers and students. Administrative and scheduling collections have been excluded from this documentation.
