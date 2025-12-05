@@ -147,20 +147,11 @@
 			const result = await response.json();
 
 			if (result.success) {
-				// If status is "on_hold", automatically change it to "verifying"
+				// If status is "on_hold", automatically change it to "verifying" (do not set tentative date)
 				if (result.data.status === 'on_hold') {
-					// Calculate tentative date (5 days from now)
-					const tentativeDate = new Date();
-					tentativeDate.setDate(tentativeDate.getDate() + 5);
-					const year = tentativeDate.getFullYear();
-					const month = String(tentativeDate.getMonth() + 1).padStart(2, '0');
-					const day = String(tentativeDate.getDate()).padStart(2, '0');
-					const tentativeDateStr = `${year}-${month}-${day}`;
-
-					// Update the status to verifying with auto-calculated tentative date
+					// Update the status to verifying without an auto-calculated tentative date
 					await updateRequestAPI(request.requestId, {
 						status: 'verifying',
-						tentativeDate: tentativeDateStr,
 						paymentAmount: result.data.paymentAmount,
 						paymentStatus: result.data.paymentStatus
 					});
@@ -833,8 +824,8 @@
 							</div>
 						{/if}
 
-						<!-- Tentative date - only show if there is one -->
-						{#if request.tentativeDate}
+						<!-- Tentative date - only show if there is one and status is not 'verifying' -->
+						{#if request.tentativeDate && request.status !== 'verifying'}
 							<div class="docreq-detail-item">
 								<span class="material-symbols-outlined">event</span>
 								<span>{request.status === 'for_compliance' ? 'Deadline:' : 'Tentative:'} {formatDate(request.tentativeDate)}</span>

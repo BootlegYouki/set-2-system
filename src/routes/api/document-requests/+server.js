@@ -350,6 +350,11 @@ async function sendAutomatedPaymentAmountMessage(db, requestId, paymentAmount, a
 // Helper function to send automated tentative date message
 async function sendAutomatedTentativeDateMessage(db, requestId, tentativeDate, adminName, currentStatus = 'processing') {
 	try {
+		// Do not send an automated tentative date message when the request is in 'verifying' status
+		if (currentStatus === 'verifying') {
+			console.log(`Suppressing automated tentative date message for request ${requestId} because status is 'verifying'`);
+			return;
+		}
 		const date = new Date(tentativeDate);
 		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
 
@@ -486,7 +491,7 @@ export async function GET({ url, request }) {
 					paymentStatus: req.payment_status,
 					isFirstTime: req.is_first_time || false,
 					status: req.status,
-					tentativeDate: req.tentative_date ? formatDateForInput(req.tentative_date) : null,
+					tentativeDate: (req.tentative_date && req.status !== 'verifying') ? formatDateForInput(req.tentative_date) : null,
 					isUrgent: req.is_urgent || false,
 					purpose: req.purpose,
 					dateOfBirth: formatDateDisplay(req.birthdate),
@@ -516,7 +521,7 @@ export async function GET({ url, request }) {
 					status: req.status,
 					submittedDate: formatDate(req.submitted_date),
 					cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
-					tentativeDate: req.tentative_date ? formatDate(req.tentative_date) : null,
+					tentativeDate: (req.tentative_date && req.status !== 'verifying') ? formatDate(req.tentative_date) : null,
 					payment: req.payment_amount !== null && req.payment_amount !== undefined
 						? (req.payment_amount === 0 ? 'Free' : `₱${req.payment_amount}`)
 						: 'Tentative',
@@ -601,7 +606,7 @@ export async function GET({ url, request }) {
 					paymentStatus: request.payment_status,
 					isFirstTime: request.is_first_time || false,
 					status: request.status,
-					tentativeDate: request.tentative_date ? formatDateForInput(request.tentative_date) : null,
+					tentativeDate: (request.tentative_date && request.status !== 'verifying') ? formatDateForInput(request.tentative_date) : null,
 					isUrgent: request.is_urgent || false,
 					purpose: request.purpose,
 					dateOfBirth: formatDateDisplay(request.birthdate),
@@ -898,14 +903,24 @@ export async function POST({ request }) {
 					}
 				}
 
+				// Determine the status that will be used after update
+				const finalStatus = (status !== undefined && status !== null) ? status : existingRequest.status;
+
 				if (tentativeDate !== undefined) {
 					const newTentativeDate = tentativeDate ? new Date(tentativeDate) : null;
-					updateData.tentative_date = newTentativeDate;
-					// Track if tentative date changed (only if it's being set, not cleared)
-					// Compare dates by converting to ISO string for accurate comparison
-					const oldDateStr = oldTentativeDate ? new Date(oldTentativeDate).toISOString().split('T')[0] : null;
-					const newDateStr = newTentativeDate ? new Date(newTentativeDate).toISOString().split('T')[0] : null;
-					tentativeDateChanged = (newDateStr !== oldDateStr && newTentativeDate !== null);
+
+					// If the final status is 'verifying', ignore any tentative date set by the client and clear it
+					if (finalStatus === 'verifying') {
+						updateData.tentative_date = null;
+						tentativeDateChanged = false;
+					} else {
+						updateData.tentative_date = newTentativeDate;
+						// Track if tentative date changed (only if it's being set, not cleared)
+						// Compare dates by converting to ISO string for accurate comparison
+						const oldDateStr = oldTentativeDate ? new Date(oldTentativeDate).toISOString().split('T')[0] : null;
+						const newDateStr = newTentativeDate ? new Date(newTentativeDate).toISOString().split('T')[0] : null;
+						tentativeDateChanged = (newDateStr !== oldDateStr && newTentativeDate !== null);
+					}
 				}
 
 				if (paymentStatus !== undefined) {
@@ -1021,8 +1036,8 @@ export async function POST({ request }) {
 					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
 					const currentStatus = updateData.status || existingRequest.status || 'processing';
 
-					// Don't send separate tentative date message for compliance status
-					if (finalTentativeDate && currentStatus !== 'for_compliance') {
+					// Don't send separate tentative date message for compliance status or verifying status
+					if (finalTentativeDate && currentStatus !== 'for_compliance' && currentStatus !== 'verifying') {
 						// Send automated message to document request thread
 						await sendAutomatedTentativeDateMessage(
 							db,
@@ -1299,16 +1314,13 @@ export async function POST({ request }) {
 					targetRequest.status === 'for_compliance' &&
 					attachments.length > 0) {
 					try {
-						// Calculate tentative date for verifying status (5 days from now)
-						const verifyingDeadline = new Date();
-						verifyingDeadline.setDate(verifyingDeadline.getDate() + 5);
-
+						// When moving to 'verifying', do NOT set a tentative_date; keep it null
 						await db.collection('document_requests').updateOne(
 							{ request_id: msgRequestId },
 							{
 								$set: {
 									status: 'verifying',
-									tentative_date: verifyingDeadline,
+									tentative_date: null,
 									updated_at: new Date()
 								},
 								$push: {
