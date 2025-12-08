@@ -158,12 +158,21 @@ export async function POST(event) {
       }
 
       // Update user
+      let newStatus = 'active'; // Default for promoted/retained students waiting for next year (Changed from unenrolled)
+
+      // Special case: Grade 10 students who are promoted are considered graduates/completers
+      // Archive them immediately
+      if (currentGradeLevelParam === 10 && status === 'promoted') {
+        newStatus = 'archived';
+        newGradeLevel = 'Completed'; // Or '10' depending on preference, but 'Completed' is clearer for archives
+      }
+
       await users.updateOne(
         { _id: student._id },
         {
           $set: {
             grade_level: newGradeLevel.toString(),
-            status: 'unenrolled', // Mark as unenrolled for new year
+            status: newStatus,
             updated_at: new Date()
           }
         }

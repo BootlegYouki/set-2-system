@@ -11,6 +11,7 @@
     let rolloverSummary = $state(null);
     let showPromotedSummary = $state(false);
     let showRetainedSummary = $state(false);
+    let showArchivedSummary = $state(false);
     
     // Store
     import { selectedSchoolYear } from '../../../../../stores/schoolYearStore.js';
@@ -1125,6 +1126,92 @@
                                 </div>
                             {:else}
                                 <p style="color: var(--text-secondary); font-style: italic; font-size: 0.9rem;">No students were retained.</p>
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
+
+                <div style="height: 1px; background-color: var(--border-light); width: 100%;"></div>
+
+                <!-- Archived Students Accordion -->
+                <div>
+                     <div 
+                        class="admin-settings-accordion-header" 
+                        style="padding: 1.5rem; cursor: default;"
+                    >
+                        <!-- Clickable Content Area -->
+                         <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <div 
+                            class="admin-settings-security-content-container" 
+                            style="cursor: pointer; flex: 1;"
+                            onclick={() => showArchivedSummary = !showArchivedSummary}
+                            role="button"
+                            tabindex="0"
+                        >
+                            <div class="admin-settings-security-icon" style="background-color: var(--text-secondary);">
+                                <span class="material-symbols-outlined">archive</span>
+                            </div>
+                            <div class="admin-settings-security-content">
+                                <div class="admin-settings-security-label">Archived / Graduated Students</div>
+                                <div class="admin-settings-security-value">
+                                    {rolloverSummary.archived ? rolloverSummary.archived.length : 0} students were archived
+                                </div>
+                            </div>
+                        </div>
+
+                         <!-- Actions Area -->
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <!-- svelte-ignore a11y_mouse_events_have_key_events -->
+                            <button 
+                                class="admin-settings-icon-button" 
+                                onclick={() => handleExport('archived')}
+                                title="Export Archived List"
+                                style="background: none; border: none; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; padding: 0.5rem; border-radius: 50%; transition: background-color 0.2s;"
+                                onmouseover={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)'}
+                                onmouseout={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                                <span class="material-symbols-outlined">picture_as_pdf</span>
+                            </button>
+                            <button
+                                style="background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0;"
+                                onclick={() => showArchivedSummary = !showArchivedSummary}
+                            >
+                                <span class="material-symbols-outlined transition-transform duration-300" class:rotate-180={showArchivedSummary}>
+                                    expand_more
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {#if showArchivedSummary}
+                        <div class="admin-settings-accordion-content" style="padding: 0 1.5rem 1.5rem 1.5rem; border-top: 1px solid var(--border-light); margin-top: 0;">
+                            {#if rolloverSummary.archived && rolloverSummary.archived.length > 0}
+                                <div style="overflow-x: auto; border: 1px solid var(--border-light); border-radius: 8px;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                                        <thead style="background-color: rgba(0,0,0,0.02); border-bottom: 1px solid var(--border-light);">
+                                            <tr>
+                                                <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600;">ID</th>
+                                                <th style="padding: 0.75rem 1rem; text-align: left; font-weight: 600;">Name</th>
+                                                <th style="padding: 0.75rem 1rem; text-align: center; font-weight: 600;">Old Grade</th>
+                                                <th style="padding: 0.75rem 1rem; text-align: center; font-weight: 600;">New Status</th>
+                                                <th style="padding: 0.75rem 1rem; text-align: right; font-weight: 600;">GWA</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {#each rolloverSummary.archived as student}
+                                                <tr style="border-bottom: 1px solid var(--border-light);">
+                                                    <td style="padding: 0.75rem 1rem; font-family: monospace;">{student.id}</td>
+                                                    <td style="padding: 0.75rem 1rem; font-weight: 500;">{student.name}</td>
+                                                    <td style="padding: 0.75rem 1rem; text-align: center;">{student.old_grade}</td>
+                                                    <td style="padding: 0.75rem 1rem; text-align: center; color: var(--text-secondary); font-weight: 600;">{student.new_grade}</td>
+                                                    <td style="padding: 0.75rem 1rem; text-align: right; font-family: monospace;">{student.gwa}</td>
+                                                </tr>
+                                            {/each}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {:else}
+                                <p style="color: var(--text-secondary); font-style: italic; font-size: 0.9rem;">No students were archived.</p>
                             {/if}
                         </div>
                     {/if}
