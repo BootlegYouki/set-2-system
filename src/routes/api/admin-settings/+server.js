@@ -4,62 +4,72 @@ import { getUserFromRequest, logActivityWithUser } from '../helper/auth-helper.j
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ request }) {
-	try {
-		// Get user from request
-		const user = getUserFromRequest(request);
-		if (!user || user.account_type !== 'admin') {
-			return json({ error: 'Unauthorized' }, { status: 401 });
-		}
+  try {
+    // Get user from request
+    const user = getUserFromRequest(request);
+    if (!user || user.account_type !== 'admin') {
+      return json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-		// Get all admin settings from database
-		const db = await connectToDatabase();
-		const adminSettingsCollection = db.collection('admin_settings');
-		
-		const result = await adminSettingsCollection.find({}).sort({ setting_key: 1 }).toArray();
+    // Get all admin settings from database
+    const db = await connectToDatabase();
+    const adminSettingsCollection = db.collection('admin_settings');
 
-		// Transform the result into a more usable format
-		const settings = {};
-		result.forEach(row => {
-			let value = row.setting_value;
-			
-			// Convert value based on type
-			if (row.setting_type === 'number' && value !== null) {
-				value = parseFloat(value);
-			} else if (row.setting_type === 'boolean' && value !== null) {
-				value = value === 'true';
-			} else if (row.setting_type === 'date' && value !== null) {
-				// Keep date in MM-DD-YYYY format as expected by the frontend
-				// No conversion needed - return as stored
-				value = value;
-			} else if (row.setting_type === 'json' && value !== null) {
-				try {
-					value = JSON.parse(value);
-				} catch (e) {
-					console.error('Failed to parse JSON setting:', row.setting_key, e);
-				}
-			}
-			
-			settings[row.setting_key] = value;
-		});
+    const result = await adminSettingsCollection.find({}).sort({ setting_key: 1 }).toArray();
 
-		return json({
-			success: true,
-			data: settings
-		});
+    // Get available school years from sections
+    const sectionsCollection = db.collection('sections');
+    const distinctYears = await sectionsCollection.distinct('school_year');
 
-	} catch (error) {
-		console.error('Error fetching admin settings:', error);
-		return json(
-			{ error: 'Failed to fetch admin settings' },
-			{ status: 500 }
-		);
-	}
+    // Transform the result into a more usable format
+    const settings = {};
+    result.forEach(row => {
+      let value = row.setting_value;
+
+      // Convert value based on type
+      if (row.setting_type === 'number' && value !== null) {
+        value = parseFloat(value);
+      } else if (row.setting_type === 'boolean' && value !== null) {
+        value = value === 'true';
+      } else if (row.setting_type === 'date' && value !== null) {
+        // Keep date in MM-DD-YYYY format as expected by the frontend
+        // No conversion needed - return as stored
+        value = value;
+      } else if (row.setting_type === 'json' && value !== null) {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          console.error('Failed to parse JSON setting:', row.setting_key, e);
+        }
+      }
+
+      settings[row.setting_key] = value;
+    });
+
+    // Ensure current year is in the list and sort descending
+    const currentYear = settings.current_school_year || '2024-2025';
+    const allYears = [...new Set([...distinctYears, currentYear])].sort().reverse();
+
+    settings.available_school_years = allYears;
+
+    return json({
+      success: true,
+      data: settings
+    });
+
+  } catch (error) {
+    console.error('Error fetching admin settings:', error);
+    return json(
+      { error: 'Failed to fetch admin settings' },
+      { status: 500 }
+    );
+  }
 }
 
 /** @type {import('./$types').RequestHandler} */
 export async function PUT(event) {
   const user = getUserFromRequest(event.request);
-  
+
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -76,7 +86,7 @@ export async function PUT(event) {
 
   try {
     const { settings } = await event.request.json();
-    
+
     if (!settings || typeof settings !== 'object') {
       return new Response(JSON.stringify({ error: 'Invalid settings data' }), {
         status: 400,
@@ -91,7 +101,7 @@ export async function PUT(event) {
     // Update each setting
     for (const [key, value] of Object.entries(settings)) {
       let stringValue = value;
-      
+
       // Convert value to string for storage
       if (typeof value === 'object' && value !== null) {
         stringValue = JSON.stringify(value);
@@ -108,9 +118,9 @@ export async function PUT(event) {
         // Validate that it's a real date by parsing MM-DD-YYYY
         const [month, day, year] = value.split('-');
         const date = new Date(year, month - 1, day);
-        if (isNaN(date.getTime()) || 
-          date.getFullYear() != year || 
-          date.getMonth() != month - 1 || 
+        if (isNaN(date.getTime()) ||
+          date.getFullYear() != year ||
+          date.getMonth() != month - 1 ||
           date.getDate() != day) {
           throw new Error(`Invalid date value for ${key}: ${value}`);
         }
@@ -118,11 +128,11 @@ export async function PUT(event) {
 
       await adminSettingsCollection.updateOne(
         { setting_key: key },
-        { 
-          $set: { 
-            setting_value: stringValue, 
-            updated_at: new Date() 
-          } 
+        {
+          $set: {
+            setting_value: stringValue,
+            updated_at: new Date()
+          }
         },
         { upsert: true }
       );
@@ -146,8 +156,8 @@ export async function PUT(event) {
 
   } catch (error) {
     console.error('Error updating admin settings:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message || 'Internal server error' 
+    return new Response(JSON.stringify({
+      error: error.message || 'Internal server error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
