@@ -12,10 +12,10 @@
 	let { data: dashboardStats, isLoading: statsLoading, error: statsError } = $derived($dashboardStore);
 
 	// Local state for activity logs (replacing activityLogsStore)
-	let recentActivities = [];
-	let activitiesLoading = false;
-	let activitiesError = null;
-    let currentSchoolYearValue = null;
+	let recentActivities = $state([]);
+	let activitiesLoading = $state(false);
+	let activitiesError = $state(null);
+    let currentSchoolYearValue = $state(null);
 
 	// Array of border color classes for each stat card
 	const borderColors = ['border-blue', 'border-green', 'border-orange', 'border-purple'];
@@ -131,6 +131,7 @@
 			const data = await api.get('/api/activity-logs');
 
 			if (data.success) {
+                // console.log("Activity Logs API Response:", data);
 				recentActivities = data.activities;
 			} else {
 				throw new Error(data.error || 'Failed to fetch activities');
@@ -214,7 +215,7 @@
 			<div class="stats-error">
 				<span class="material-symbols-outlined">error</span>
 				<p>Error loading statistics: {statsError}</p>
-				<button class="retry-button" on:click={() => fetchDashboardStats(false)}>
+				<button class="retry-button" onclick={() => fetchDashboardStats(false)}>
 					<span class="material-symbols-outlined">refresh</span>
 					Retry
 				</button>
@@ -259,7 +260,7 @@
 			<h2 class="section-title">Activity Logs</h2>
 			<button
 				class="refresh-button"
-				on:click={() => fetchRecentActivities(false)}
+				onclick={() => fetchRecentActivities(false)}
 				disabled={activitiesLoading}
 				title="Refresh activity logs"
 			>
