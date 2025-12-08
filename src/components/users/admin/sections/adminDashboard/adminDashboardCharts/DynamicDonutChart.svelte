@@ -212,7 +212,7 @@
 
 		// Transform data into chart format
 		const transformedData = gradeLevels.map((level) => {
-			const gradeData = data.find((d) => d.grade_level === level);
+			const gradeData = data.find((d) => String(d.grade_level) === level);
 			return gradeData ? gradeData.count : 0;
 		});
 

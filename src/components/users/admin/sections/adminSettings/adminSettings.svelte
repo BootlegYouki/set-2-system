@@ -7,8 +7,7 @@
 
 	let loading = $state(false);
 	let saving = $state(false);
-    let rolloverLoading = $state(false);
-    let undoLoading = $state(false);
+    let processingAction = $state(null);
     let rolloverSummary = $state(null);
     let showPromotedSummary = $state(false);
     let showRetainedSummary = $state(false);
@@ -18,7 +17,6 @@
 
 	// Current school year state (will be calculated from dates)
 	let currentSchoolYear = $state('2024-2025');
-    let availableSchoolYears = $state([]);
 
 	// School year dates
 	let startDate = $state('');
@@ -114,9 +112,6 @@
                 } else {
                     rolloverSummary = null;
                 }
-
-                // Set available school years
-                availableSchoolYears = settings.available_school_years || [currentSchoolYear];
 			}
 		} catch (error) {
 			console.error('Error loading admin settings:', error);
@@ -519,7 +514,7 @@
             '<div class="text-red-600 mb-4"><strong>WARNING: You are about to end the current school year.</strong></div><p>This action will:</p><ul class="list-disc pl-5 mb-4"><li>Promote eligible students to the next grade level</li><li>Archive current section enrollments</li><li>Update the system to the next school year</li></ul><p>Please ensure you have verified all grades before proceeding.</p>',
             async () => {
                  try {
-                     rolloverLoading = true;
+                     processingAction = 'end_year';
                      const result = await api.post('/api/school-year/end', {});
                      if (result.success) {
                          showSuccess(result.message);
@@ -533,7 +528,7 @@
                      console.error(e);
                      showError('Failed to end school year');
                  } finally {
-                     rolloverLoading = false;
+                     processingAction = null;
                  }
             },
             () => {},
@@ -547,7 +542,7 @@
             '<div class="text-red-600 mb-4"><strong>CAUTION: You are about to undo the last school year rollover.</strong></div><p>This will revert the system to the state immediately before the last rollover. Any data created since the rollover will be lost.</p>',
             async () => {
                  try {
-                     undoLoading = true;
+                     processingAction = 'undo_rollover';
                      const result = await api.post('/api/school-year/undo', {});
                      if (result.success) {
                          showSuccess(result.message);
@@ -562,7 +557,7 @@
                      console.error(e);
                      showError('Failed to undo rollover');
                  } finally {
-                     undoLoading = false;
+                     processingAction = null;
                  }
             },
             () => {},
@@ -865,9 +860,13 @@
                         value={$selectedSchoolYear || currentSchoolYear}
                         onchange={(e) => selectedSchoolYear.set(e.target.value)}
                     >
-                        {#each availableSchoolYears as year}
-                            <option value={year}>{year} {year === currentSchoolYear ? '(Current)' : ''}</option>
-                        {/each}
+                        <option value={currentSchoolYear}>{currentSchoolYear} (Current)</option>
+                        <option value={currentSchoolYear.split('-').map((y, i) => parseInt(y) - 1).join('-')}>
+                            {currentSchoolYear.split('-').map((y, i) => parseInt(y) - 1).join('-')}
+                        </option>
+                        <option value={currentSchoolYear.split('-').map((y, i) => parseInt(y) - 2).join('-')}>
+                            {currentSchoolYear.split('-').map((y, i) => parseInt(y) - 2).join('-')}
+                        </option>
                     </select>
 				</div>
 			</div>
@@ -891,10 +890,10 @@
 						class="admin-settings-security-action-button"
                         style="background-color: #ef4444;"
 						onclick={handleEndSchoolYear}
-						disabled={loading || saving || rolloverLoading || undoLoading}
+						disabled={loading || saving || processingAction !== null}
 					>
-                        {#if rolloverLoading}
-                            <div class="end-year-loader"></div>
+                        {#if processingAction === 'end_year'}
+                            <span class="material-symbols-outlined animate-spin">refresh</span>
                             Processing...
                         {:else}
                             <span class="material-symbols-outlined">school</span>
@@ -920,11 +919,11 @@
 						class="admin-settings-security-action-button"
                         style="background-color: #64748b;"
 						onclick={handleUndoRollover}
-						disabled={loading || saving || rolloverLoading || undoLoading}
+						disabled={loading || saving || processingAction !== null}
 					>
-                        {#if undoLoading}
-                             <div class="end-year-loader"></div>
-                             Undoing...
+                        {#if processingAction === 'undo_rollover'}
+                            <span class="material-symbols-outlined animate-spin">refresh</span>
+                            Undoing...
                         {:else}
                             <span class="material-symbols-outlined">undo</span>
                             Undo

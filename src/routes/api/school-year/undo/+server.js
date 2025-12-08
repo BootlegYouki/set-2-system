@@ -93,6 +93,10 @@ export async function POST(event) {
     // Remove the rollover summary since we undid the action
     await db.collection('admin_settings').deleteMany({ setting_key: 'last_rollover_details' });
 
+    // 3. DELETE the used backup so we don't restore it again
+    await backups.deleteMany({ backup_id: backupId });
+    await backups.deleteOne({ _id: backupId });
+
     // Log
     await logActivityWithUser(
       'undo_end_school_year',
