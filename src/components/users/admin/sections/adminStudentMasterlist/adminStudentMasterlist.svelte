@@ -15,6 +15,9 @@
 	let selectedGradeLevel = '';
 	let selectedSection = '';
 
+	// Search state for dropdowns
+	let sectionSearchTerm = '';
+
     // School Year Store
     import { selectedSchoolYear } from '../../../../../stores/schoolYearStore.js';
     let currentSchoolYearString = '';
@@ -43,6 +46,12 @@
 	// Computed values
 	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
+
+	// Filter section options based on search term
+	$: filteredSectionOptions = sectionOptions.filter((section) => {
+		if (section.id === '') return true; // Always show "All Sections" or handle separately
+		return section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase());
+	});
 
 	// Reactive filter
 	$: if (students) {
@@ -134,6 +143,9 @@
 	function toggleSectionDropdown() {
 		isSectionDropdownOpen = !isSectionDropdownOpen;
 		isGradeLevelDropdownOpen = false;
+		if (!isSectionDropdownOpen) {
+			sectionSearchTerm = ''; // Clear search when closing
+		}
 	}
 
 	function selectGradeLevel(gradeLevel) {
@@ -338,7 +350,22 @@
 							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
 						</button>
 						<div class="dropdown-menu">
-							{#each sectionOptions as section (section.id)}
+							<div
+								class="dropdown-search-container"
+								on:click|stopPropagation
+								on:keydown|stopPropagation
+								role="presentation"
+							>
+								<input
+									type="text"
+									class="dropdown-search-input"
+									placeholder="Search sections..."
+									bind:value={sectionSearchTerm}
+								/>
+								<span class="material-symbols-outlined dropdown-search-icon">search</span>
+							</div>
+
+							{#each filteredSectionOptions as section (section.id)}
 								<button
 									type="button"
 									class="dropdown-option"

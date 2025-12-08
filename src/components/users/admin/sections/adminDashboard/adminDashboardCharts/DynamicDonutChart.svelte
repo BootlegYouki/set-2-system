@@ -559,7 +559,7 @@
 		border: 1px solid var(--md-sys-color-outline-variant);
 		border-radius: var(--radius-lg);
 		padding: var(--spacing-lg);
-		height: 400px;
+		/* height: 400px; */
 		display: flex;
 		flex-direction: column;
 		box-shadow: var(--elevation-1);
@@ -629,7 +629,6 @@
 	.graph-label {
 		display: flex;
 		gap: var(--spacing-md);
-		margin-top: var(--spacing-md);
 		justify-content: center;
 		flex-wrap: wrap;
 	}

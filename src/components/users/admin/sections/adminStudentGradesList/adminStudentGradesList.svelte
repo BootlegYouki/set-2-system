@@ -16,6 +16,9 @@
 	let selectedSection = '';
 	let selectedQuarter = ''; // Empty string means "Current Quarter"
 
+	// Search state for dropdowns
+	let sectionSearchTerm = '';
+
 	// Dropdown states
 	let isGradeLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
@@ -54,6 +57,12 @@
 	$: selectedGradeLevelObj = gradeLevelOptions.find((level) => level.id === selectedGradeLevel);
 	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
 	$: selectedQuarterObj = quarterOptions.find((quarter) => quarter.id === selectedQuarter);
+
+	// Filter section options based on search term
+	$: filteredSectionOptions = sectionOptions.filter((section) => {
+		if (section.id === '') return true; // Always show "All Sections"
+		return section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase());
+	});
 
 	// Load sections from API
 	async function loadSections() {
@@ -142,6 +151,9 @@
 		isSectionDropdownOpen = !isSectionDropdownOpen;
 		isGradeLevelDropdownOpen = false;
 		isQuarterDropdownOpen = false;
+		if (!isSectionDropdownOpen) {
+			sectionSearchTerm = ''; // Clear search when closing
+		}
 	}
 
 	function toggleQuarterDropdown() {
@@ -375,7 +387,22 @@
 							<span class="material-symbols-outlined sgl-dropdown-arrow">expand_more</span>
 						</button>
 						<div class="sgl-dropdown-menu">
-							{#each sectionOptions as section (section.id)}
+							<div
+								class="sgl-dropdown-search-container"
+								on:click|stopPropagation
+								on:keydown|stopPropagation
+								role="presentation"
+							>
+								<input
+									type="text"
+									class="sgl-dropdown-search-input"
+									placeholder="Search sections..."
+									bind:value={sectionSearchTerm}
+								/>
+								<span class="material-symbols-outlined sgl-dropdown-search-icon">search</span>
+							</div>
+
+							{#each filteredSectionOptions as section (section.id)}
 								<button
 									type="button"
 									class="sgl-dropdown-option"
