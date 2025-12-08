@@ -43,25 +43,32 @@ export async function GET({ request }) {
         studentsCount = usersBackup?.data ? usersBackup.data.filter(s => s.status !== 'archived').length : 0;
 
         // 2. Sections Count (from sections backup)
+        // Filter by school year and active status to get the count AT THAT TIME
         const sectionsBackup = await db.collection('system_backups').findOne({
           backup_id: backupMetadata._id,
           collection: 'sections',
           type: 'pre_rollover_data'
         });
-        sectionsCount = sectionsBackup?.data ? sectionsBackup.data.length : 0;
 
-        // 3. Teachers Count (from sections backup advisers)
         if (sectionsBackup?.data) {
-          const uniqueAdvisers = new Set();
-          sectionsBackup.data.forEach(section => {
-            if (section.adviser_id) {
-              uniqueAdvisers.add(String(section.adviser_id));
-            }
-          });
-          teachersCount = uniqueAdvisers.size;
+          sectionsCount = sectionsBackup.data.filter(section =>
+            section.school_year === requestedSchoolYear &&
+            section.status === 'active'
+          ).length;
         } else {
-          teachersCount = 0;
+          sectionsCount = 0;
         }
+
+        // 3. Teachers Count
+        // Since we don't backup teachers, we count current teachers who existed at the time of backup.
+        teachersCount = await db.collection('users').countDocuments({
+          account_type: 'teacher',
+          $or: [
+            { status: { $exists: false } },
+            { status: 'active' }
+          ],
+          created_at: { $lte: backupMetadata.timestamp }
+        });
 
       } else {
         studentsCount = 0;
@@ -91,8 +98,10 @@ export async function GET({ request }) {
         ]
       });
 
+      // Filter sections by CURRENT SCHOOL YEAR
       sectionsCount = await db.collection('sections').countDocuments({
-        status: 'active'
+        status: 'active',
+        school_year: currentSchoolYear
       });
 
       roomsCount = await db.collection('rooms').countDocuments({});
