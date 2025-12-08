@@ -14,6 +14,18 @@
 	let searchQuery = '';
 	let selectedDepartment = '';
 
+    // School Year Store
+    import { selectedSchoolYear } from '../../../../../stores/schoolYearStore.js';
+    let currentSchoolYearString = '';
+    
+    $: if ($selectedSchoolYear && $selectedSchoolYear !== currentSchoolYearString) {
+        currentSchoolYearString = $selectedSchoolYear;
+        loadTeachers(false);
+    } else if (!$selectedSchoolYear && currentSchoolYearString) {
+        currentSchoolYearString = '';
+        loadTeachers(false);
+    }
+
 	// Initialize departments with default value
 	$: if (!departmentOptions || departmentOptions.length === 0) {
 		teacherMasterlistStore.updateDepartments([{ id: '', name: 'All Departments' }]);
@@ -37,7 +49,7 @@
 				teacherMasterlistStore.setLoading(true);
 			}
 
-			const data = await api.get('/api/accounts?type=teacher');
+			const data = await api.get(`/api/accounts?type=teacher${currentSchoolYearString ? `&schoolYear=${currentSchoolYearString}` : ''}`);
 			if (!data.success) {
 				throw new Error('Failed to load teachers');
 			}

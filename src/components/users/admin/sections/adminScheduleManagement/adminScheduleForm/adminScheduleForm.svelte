@@ -19,6 +19,7 @@
 	let sectionSearchTerm = '';
 	let subjectSearchTerm = '';
 	let teacherSearchTerm = '';
+	let roomSearchTerm = ''; // Add room search term
 
 	// Loading states
 	let isLoadingSections = false;
@@ -46,8 +47,22 @@
 	// Current school year from database
 	let currentSchoolYear = '2024-2025'; // Default fallback
 
+    // School Year Store
+    import { selectedSchoolYear } from '../../../../../../stores/schoolYearStore.js';
+
+    $: if ($selectedSchoolYear && $selectedSchoolYear !== currentSchoolYear) {
+        currentSchoolYear = $selectedSchoolYear;
+        // Reload all data when year changes
+        loadSections();
+        loadSchedules();
+    } else if (!$selectedSchoolYear && currentSchoolYear === '2024-2025') {
+       // Only fetch if not set and default
+       fetchCurrentSchoolYear();
+    }
+
 	// Fetch current school year from database
 	async function fetchCurrentSchoolYear() {
+        if ($selectedSchoolYear) return; // Don't overwrite if store is set
 		try {
 			const response = await authenticatedFetch('/api/current-quarter');
 			const result = await response.json();
@@ -55,11 +70,18 @@
 			if (result.success && result.data) {
 				currentSchoolYear = result.data.currentSchoolYear;
 				console.log(`School year set to: ${currentSchoolYear}`);
+                // Initial load after fetching year
+                loadSections();
+                loadSchedules();
 			} else {
 				console.warn('Failed to fetch current school year, using default: 2024-2025');
+                loadSections();
+                loadSchedules();
 			}
 		} catch (error) {
 			console.error('Error fetching current school year:', error);
+            loadSections();
+            loadSchedules();
 		}
 	}
 
@@ -67,7 +89,7 @@
 	async function loadSections() {
 		isLoadingSections = true;
 		try {
-			const response = await authenticatedFetch('/api/sections?action=available-sections');
+			const response = await authenticatedFetch(`/api/sections?action=available-sections&schoolYear=${currentSchoolYear}`);
 			const result = await response.json();
 
 			if (result.success) {
@@ -100,21 +122,25 @@
 		scheduleType: 'subject',
 		subjectId: '',
 		activityTypeId: '',
-		teacherId: ''
+		teacherId: '',
+		roomId: '' // Add room selection
 	};
 
 	// Dropdown states for add form
 	let subjects = [];
 	let activityTypes = [];
 	let teachers = [];
+	let rooms = []; // Add rooms array
 	let isLoadingSubjects = false;
 	let isLoadingActivityTypes = false;
 	let isLoadingTeachers = false;
+	let isLoadingRooms = false; // Add loading state for rooms
 
 	// Custom dropdown states
 	let isSubjectDropdownOpen = false;
 	let isActivityTypeDropdownOpen = false;
 	let isTeacherDropdownOpen = false;
+	let isRoomDropdownOpen = false; // Add room dropdown state
 	let isScheduleTypeDropdownOpen = false;
 
 	// Time input states
@@ -371,6 +397,17 @@
 		}
 	);
 
+	$: filteredRooms = rooms.filter(
+		(room) => {
+			const term = roomSearchTerm.toLowerCase();
+			return (
+				(room.name && String(room.name).toLowerCase().includes(term)) ||
+				(room.building && String(room.building).toLowerCase().includes(term)) ||
+				(room.floor && String(room.floor).toLowerCase().includes(term))
+			);
+		}
+	);
+
 	// Get selected objects for form display
 	$: selectedFormYearObj = years.find((y) => y.id === selectedFormYear);
 	$: selectedFormSectionObj = sections.find((s) => s.id === selectedFormSection);
@@ -493,7 +530,7 @@
 	// Load existing schedules from API
 	async function loadSchedules() {
 		try {
-			const response = await authenticatedFetch('/api/schedules');
+			const response = await authenticatedFetch(`/api/schedules?schoolYear=${currentSchoolYear}`);
 			const result = await response.json();
 
 			if (result.success) {
@@ -581,7 +618,8 @@
 			scheduleType: 'subject',
 			subjectId: '',
 			activityTypeId: '',
-			teacherId: ''
+			teacherId: '',
+			roomId: ''
 		};
 	}
 
@@ -604,6 +642,10 @@
 
 	function toggleTeacherDropdown() {
 		isTeacherDropdownOpen = !isTeacherDropdownOpen;
+	}
+
+	function toggleRoomDropdown() {
+		isRoomDropdownOpen = !isRoomDropdownOpen;
 	}
 
 	function toggleScheduleTypeDropdown() {
@@ -647,6 +689,12 @@
 		formData.teacherId = teacher.id;
 		isTeacherDropdownOpen = false;
 		teacherSearchTerm = ''; // Clear search term
+	}
+
+	function selectRoom(room) {
+		formData.roomId = room.id;
+		isRoomDropdownOpen = false;
+		roomSearchTerm = ''; // Clear search term
 	}
 
 	function selectScheduleType(type) {
@@ -724,6 +772,28 @@
 		}
 	}
 
+	async function loadRooms() {
+		if (rooms.length > 0) return;
+
+		isLoadingRooms = true;
+		try {
+			const response = await authenticatedFetch('/api/sections?action=available-rooms');
+			const result = await response.json();
+
+			if (result.success) {
+				// Map the data to ensure the id field is properly set
+				rooms = result.data.map(room => ({
+					...room,
+					id: room.id || room._id?.toString() || room._id
+				}));
+			}
+		} catch (error) {
+			console.error('Error loading rooms:', error);
+		} finally {
+			isLoadingRooms = false;
+		}
+	}
+
 	// Form submission function
 	async function handleSubmitSchedule() {
 		if (!selectedFormSection || selectedDays.length === 0) {
@@ -746,6 +816,11 @@
 			return;
 		}
 
+		if (!formData.roomId) {
+			toastStore.error('Please select a room');
+			return;
+		}
+
 		isSubmitting = true;
 
 		try {
@@ -753,40 +828,49 @@
 				const dayName = days.find((d) => d.id === dayId)?.name.toLowerCase();
 
 				try {
-					// Use authenticatedFetch directly instead of api.post to handle both success and error responses
 					const response = await authenticatedFetch('/api/schedules', {
 						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
 						body: JSON.stringify({
 							sectionId: selectedFormSection,
 							dayOfWeek: dayName,
 							startTime: formData.startTime,
 							endTime: formData.endTime,
 							scheduleType: formData.scheduleType,
-							subjectId: formData.scheduleType === 'subject' ? formData.subjectId : null,
-							activityTypeId: formData.scheduleType === 'activity' ? formData.activityTypeId : null,
-							teacherId: formData.teacherId || null,
+							subjectId: formData.subjectId || undefined,
+							activityTypeId: formData.activityTypeId || undefined,
+							teacherId: formData.teacherId || undefined,
+							roomId: formData.roomId || undefined,
 							schoolYear: currentSchoolYear
 						})
 					});
-					
-					// Parse the response body
+
 					const result = await response.json();
-					
+
 					// If response is not OK (status 409 for conflicts, etc.), mark as failed
 					if (!response.ok) {
+						// Determine if it's a conflict
+						const isConflict = response.status === 409;
+						
 						return { 
 							success: false, 
 							error: result.error || 'Failed to create schedule',
-							conflictType: result.conflictType,
+							conflictType: result.conflictType || (isConflict ? 'time_conflict' : 'other_error'),
 							conflictingSchedule: result.conflictingSchedule
 						};
 					}
 					
-					return result;
+					return { success: true, data: result.data };
 				} catch (error) {
 					// Convert error response to result format
 					console.error('API Error:', error);
-					return { success: false, error: error.message || 'Failed to create schedule' };
+					return { 
+						success: false, 
+						error: error.message || 'Failed to create schedule',
+						conflictType: 'system_error' 
+					};
 				}
 			});
 
@@ -812,7 +896,8 @@
 
 				// Handle different types of errors
 				const teacherConflicts = failedResults.filter((r) => r.conflictType === 'teacher_conflict');
-				const timeConflicts = failedResults.filter((r) => r.conflictType !== 'teacher_conflict');
+				const timeConflicts = failedResults.filter((r) => r.conflictType === 'time_conflict');
+				const otherErrors = failedResults.filter((r) => !['teacher_conflict', 'time_conflict'].includes(r.conflictType));
 
 				if (teacherConflicts.length > 0) {
 					// Show specific teacher conflict messages
@@ -828,9 +913,10 @@
 				}
 
 				// If there are other types of failures, show generic message
-				if (failedResults.length > teacherConflicts.length + timeConflicts.length) {
+				if (otherErrors.length > 0) {
+					const firstError = otherErrors[0].error;
 					toastStore.error(
-						`Failed to add schedule for ${failedResults.length - teacherConflicts.length - timeConflicts.length} day(s)`
+						`Failed: ${firstError}`
 					);
 				}
 			}
@@ -847,6 +933,7 @@
 		loadSubjects();
 		loadActivityTypes();
 		loadTeachers();
+		loadRooms(); // Add rooms loading
 	}
 
 	// Load data on component mount
@@ -1370,7 +1457,95 @@
 											</div>
 										</div>
 									{/if}
+
+								<!-- Room Selection -->
+								<div class="scheduleassign-input-group">
+									<label class="scheduleassign-input-label" for="scheduleassign-room-dropdown">Room</label>
+									<div class="scheduleassign-custom-dropdown">
+										<button
+											type="button"
+											id="scheduleassign-room-dropdown"
+											class="scheduleassign-dropdown-trigger"
+											class:open={isRoomDropdownOpen}
+											class:selected={formData.roomId}
+											disabled={isLoadingRooms}
+											on:click={toggleRoomDropdown}
+										>
+											{#if formData.roomId}
+												{@const selectedRoom = rooms.find(
+													(r) => r.id === formData.roomId
+												)}
+												<div class="scheduleassign-selected-option">
+													<span class="material-symbols-outlined scheduleassign-option-icon"
+														>meeting_room</span
+													>
+													<div class="scheduleassign-option-content">
+														<span class="scheduleassign-option-name"
+															>{selectedRoom?.name}</span
+														>
+													</div>
+												</div>
+											{:else}
+												<span class="scheduleassign-placeholder">Select Room</span>
+											{/if}
+											<span class="material-symbols-outlined scheduleassign-dropdown-arrow"
+												>expand_more</span
+											>
+										</button>
+										<div
+											class="scheduleassign-dropdown-menu"
+											class:open={isRoomDropdownOpen}
+										>
+											<!-- Search Container -->
+											<div class="scheduleassign-search-container">
+												<input
+													type="text"
+													class="scheduleassign-search-input"
+													placeholder="Search rooms..."
+													bind:value={roomSearchTerm}
+												/>
+												<span class="material-icons scheduleassign-search-icon">search</span>
+											</div>
+											{#if isLoadingRooms}
+												<div class="scheduleassign-loading">
+													<span class="system-loader"></span>
+													<span>Loading rooms...</span>
+												</div>
+											{:else if filteredRooms.length > 0}
+												{#each filteredRooms as room (room.id)}
+													<button
+														type="button"
+														class="scheduleassign-dropdown-option"
+														class:selected={formData.roomId === room.id}
+														on:click={() => selectRoom(room)}
+													>
+														<span class="material-symbols-outlined scheduleassign-option-icon"
+															>meeting_room</span
+														>
+														<div class="scheduleassign-option-content">
+															<span class="scheduleassign-option-name">{room.name}</span>
+															<span class="scheduleassign-option-description"
+																>{room.building}, {room.floor}</span
+															>
+														</div>
+													</button>
+												{/each}
+											{:else}
+												<div class="scheduleassign-empty-state">
+													<span class="material-symbols-outlined scheduleassign-empty-icon"
+														>inbox</span
+													>
+													<span class="scheduleassign-empty-text">
+														{roomSearchTerm ? 'No rooms found' : 'No rooms available'}
+													</span>
+												</div>
+											{/if}
+										</div>
+									</div>
 								</div>
+
+								</div>
+
 								<!-- Time Section -->
 								<div class="scheduleassign-time-section">
 									<div class="scheduleassign-time-row">
@@ -1502,10 +1677,10 @@
 															>
 														</div>
 													{/if}
-													{#if assignment.type === 'subject' && assignment.roomName}
+													{#if assignment.roomName}
 														<div class="scheduleassign-detail-item">
 															<span class="material-symbols-outlined scheduleassign-detail-icon"
-																>location_on</span
+																>meeting_room</span
 															>
 															<span class="scheduleassign-detail-text">
 																{assignment.roomName}

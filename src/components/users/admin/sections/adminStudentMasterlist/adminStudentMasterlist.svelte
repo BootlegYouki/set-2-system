@@ -15,6 +15,18 @@
 	let selectedGradeLevel = '';
 	let selectedSection = '';
 
+    // School Year Store
+    import { selectedSchoolYear } from '../../../../../stores/schoolYearStore.js';
+    let currentSchoolYearString = '';
+    
+    $: if ($selectedSchoolYear && $selectedSchoolYear !== currentSchoolYearString) {
+        currentSchoolYearString = $selectedSchoolYear;
+        loadStudents(false);
+    } else if (!$selectedSchoolYear && currentSchoolYearString) {
+        currentSchoolYearString = '';
+        loadStudents(false);
+    }
+
 	// Dropdown states
 	let isGradeLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
@@ -44,7 +56,7 @@
 				studentMasterlistStore.setLoading(true);
 			}
 
-			const data = await api.get('/api/accounts?type=student');
+			const data = await api.get(`/api/accounts?type=student${currentSchoolYearString ? `&schoolYear=${currentSchoolYearString}` : ''}`);
 			if (!data.success) {
 				throw new Error('Failed to load students');
 			}
