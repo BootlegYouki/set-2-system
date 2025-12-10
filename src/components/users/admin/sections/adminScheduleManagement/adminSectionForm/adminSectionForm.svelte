@@ -10,6 +10,29 @@
 	$: ({ sections, isLoadingSections, sectionsError } = sectionManagementStore);
 	$: isLoading = $isLoadingSections;
 	$: sectionsData = $sections;
+    
+    // School Year Store
+    import { selectedSchoolYear } from '../../../../../../stores/schoolYearStore.js';
+    
+    // Reload when selectedSchoolYear changes
+    $: if ($selectedSchoolYear && $selectedSchoolYear !== schoolYear) {
+        schoolYear = $selectedSchoolYear;
+        reloadAllData();
+    }
+
+    async function reloadAllData() {
+        // Reload sections with new school year
+        await sectionManagementStore.loadSections(false, sectionsSearchTerm, schoolYear);
+        
+        // Reload dependent data if grade level is selected
+        if (gradeLevel) {
+            await loadAvailableStudents(gradeLevel);
+            await loadAvailableTeachers(gradeLevel);
+        } else {
+             // Just load teachers if no grade level (general pool)
+            await loadAvailableTeachers();
+        }
+    }
 
 	// Section creation state
 	let isCreating = false;
@@ -318,7 +341,7 @@
 	function handleSearchChange() {
 		clearTimeout(searchTimeout);
 		searchTimeout = setTimeout(async () => {
-			await sectionManagementStore.loadSections(false, sectionsSearchTerm);
+			await sectionManagementStore.loadSections(false, sectionsSearchTerm, schoolYear);
 		}, 500); // 500ms delay
 	}
 
@@ -330,7 +353,7 @@
 	// Clear search function
 	function clearSearch() {
 		sectionsSearchTerm = '';
-		sectionManagementStore.loadSections(false, ''); // Load all sections
+		sectionManagementStore.loadSections(false, '', schoolYear); // Load all sections
 	}
 
 	// Computed values

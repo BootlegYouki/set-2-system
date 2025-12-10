@@ -6,13 +6,16 @@
 	import DynamicDonutChart from './adminDashboardCharts/DynamicDonutChart.svelte';
 	import SectionsPerGradeLevelChart from './adminDashboardCharts/SectionsPerGradeLevelChart.svelte';
 
+	import { selectedSchoolYear } from '../../../../../stores/schoolYearStore.js';
+
 	// Subscribe to dashboard store
-	$: ({ data: dashboardStats, isLoading: statsLoading, error: statsError } = $dashboardStore);
+	let { data: dashboardStats, isLoading: statsLoading, error: statsError } = $derived($dashboardStore);
 
 	// Local state for activity logs (replacing activityLogsStore)
-	let recentActivities = [];
-	let activitiesLoading = false;
-	let activitiesError = null;
+	let recentActivities = $state([]);
+	let activitiesLoading = $state(false);
+	let activitiesError = $state(null);
+    let currentSchoolYearValue = $state(null);
 
 	// Array of border color classes for each stat card
 	const borderColors = ['border-blue', 'border-green', 'border-orange', 'border-purple'];
@@ -29,7 +32,8 @@
 				dashboardStore.setLoading(true);
 			}
 
-			const data = await api.get('/api/dashboard');
+            const queryParams = currentSchoolYearValue ? `?school_year=${currentSchoolYearValue}` : '';
+			const data = await api.get(`/api/dashboard${queryParams}`);
 
 			if (data.success) {
 				// Update the stats with real data
@@ -81,7 +85,8 @@
 				dashboardStore.setChartLoading('studentsPerGrade', true);
 			}
 
-			const response = await api.get('/api/dashboard/students-per-grade');
+            const queryParams = currentSchoolYearValue ? `?school_year=${currentSchoolYearValue}` : '';
+			const response = await api.get(`/api/dashboard/students-per-grade${queryParams}`);
 
 			if (response.success) {
 				dashboardStore.updateChartData('studentsPerGrade', response.data);
@@ -101,7 +106,8 @@
 				dashboardStore.setChartLoading('sectionsPerGrade', true);
 			}
 
-			const response = await api.get('/api/dashboard/sections-per-grade');
+            const queryParams = currentSchoolYearValue ? `?school_year=${currentSchoolYearValue}` : '';
+			const response = await api.get(`/api/dashboard/sections-per-grade${queryParams}`);
 
 			if (response.success) {
 				dashboardStore.updateChartData('sectionsPerGrade', response.data);
@@ -125,6 +131,7 @@
 			const data = await api.get('/api/activity-logs');
 
 			if (data.success) {
+                // console.log("Activity Logs API Response:", data);
 				recentActivities = data.activities;
 			} else {
 				throw new Error(data.error || 'Failed to fetch activities');
@@ -137,8 +144,24 @@
 		}
 	}
 
+    // React to school year changes
+    $effect(() => {
+        if ($selectedSchoolYear !== currentSchoolYearValue) {
+            currentSchoolYearValue = $selectedSchoolYear;
+            // Refetch data when school year changes
+            fetchDashboardStats();
+            fetchStudentsPerGrade();
+            fetchSectionsPerGrade();
+        }
+    });
+
 	// Load activities and statistics on component mount
 	onMount(() => {
+        // Initial set if store already has value
+        if ($selectedSchoolYear) {
+            currentSchoolYearValue = $selectedSchoolYear;
+        }
+
 		// Initialize dashboard store with cached data (instant load)
 		const cachedData = dashboardStore.getCachedData();
 		if (cachedData) {
@@ -192,7 +215,7 @@
 			<div class="stats-error">
 				<span class="material-symbols-outlined">error</span>
 				<p>Error loading statistics: {statsError}</p>
-				<button class="retry-button" on:click={() => fetchDashboardStats(false)}>
+				<button class="retry-button" onclick={() => fetchDashboardStats(false)}>
 					<span class="material-symbols-outlined">refresh</span>
 					Retry
 				</button>
@@ -237,7 +260,7 @@
 			<h2 class="section-title">Activity Logs</h2>
 			<button
 				class="refresh-button"
-				on:click={() => fetchRecentActivities(false)}
+				onclick={() => fetchRecentActivities(false)}
 				disabled={activitiesLoading}
 				title="Refresh activity logs"
 			>

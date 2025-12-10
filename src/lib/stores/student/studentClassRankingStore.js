@@ -32,14 +32,14 @@ function createStudentClassRankingStore() {
 		if (!authState?.isAuthenticated || !authState.userData) {
 			return {};
 		}
-		
+
 		const userInfo = {
 			id: authState.userData.id,
 			name: authState.userData.name,
 			account_number: authState.userData.accountNumber,
 			account_type: authState.userData.account_type || authState.userData.accountType
 		};
-		
+
 		return {
 			'x-user-info': JSON.stringify(userInfo)
 		};
@@ -71,7 +71,7 @@ function createStudentClassRankingStore() {
 		}
 		return null;
 	}
-	
+
 	// Helper function to get only valid cached data (for init)
 	function getValidCachedData(studentId, quarter, schoolYear) {
 		try {
@@ -111,11 +111,20 @@ function createStudentClassRankingStore() {
 				headers: getAuthHeaders()
 			}
 		);
-		
+
 		if (!response.ok) {
+			if (response.status === 404) {
+				return {
+					myRank: 0,
+					totalStudents: 0,
+					myAverage: 0,
+					sectionInfo: null,
+					rankings: []
+				};
+			}
 			throw new Error('Failed to load class rankings');
 		}
-		
+
 		return await response.json();
 	}
 
@@ -138,7 +147,7 @@ function createStudentClassRankingStore() {
 				}));
 				return true; // Has cached data
 			}
-			
+
 			// No cached data, set up initial state
 			update(state => ({
 				...state,
@@ -204,50 +213,50 @@ function createStudentClassRankingStore() {
 				// Update the store
 				set(newState);
 
-		} catch (error) {
-			console.error('Error loading class rankings:', error);
-			
-			// Try to get cached data even if it's expired
-			const cachedData = getCachedData(studentId, quarter, schoolYear);
-			
-			console.log('Rankings fetch failed, checking cache:', {
-				hasCachedData: !!cachedData,
-				studentId,
-				quarter,
-				schoolYear
-			});
-			
-			if (cachedData) {
-				// If we have cached data, use it and show a toast notification
-				console.log('Using cached rankings data and showing toast');
-				update(state => ({
-					...state,
-					myRank: cachedData.myRank || 0,
-					totalStudents: cachedData.totalStudents || 0,
-					myAverage: cachedData.myAverage || 0,
-					sectionInfo: cachedData.sectionInfo || null,
-					rankingsList: cachedData.rankingsList || [],
-					lastUpdated: cachedData.lastUpdated,
-					isLoading: false,
-					isRefreshing: false,
-					error: null // Don't set error since we have cached data
-				}));
-				
-				// Show connection error toast - always show it
-				setTimeout(() => {
-					toastStore.error('No internet connection. Showing offline data.');
-				}, 100);
-			} else {
-				console.log('No cached data available, showing error container');
-				// No cached data available, show error container
-				update(state => ({
-					...state,
-					isLoading: false,
-					isRefreshing: false,
-					error: error.message || 'Failed to load rankings'
-				}));
+			} catch (error) {
+				console.error('Error loading class rankings:', error);
+
+				// Try to get cached data even if it's expired
+				const cachedData = getCachedData(studentId, quarter, schoolYear);
+
+				console.log('Rankings fetch failed, checking cache:', {
+					hasCachedData: !!cachedData,
+					studentId,
+					quarter,
+					schoolYear
+				});
+
+				if (cachedData) {
+					// If we have cached data, use it and show a toast notification
+					console.log('Using cached rankings data and showing toast');
+					update(state => ({
+						...state,
+						myRank: cachedData.myRank || 0,
+						totalStudents: cachedData.totalStudents || 0,
+						myAverage: cachedData.myAverage || 0,
+						sectionInfo: cachedData.sectionInfo || null,
+						rankingsList: cachedData.rankingsList || [],
+						lastUpdated: cachedData.lastUpdated,
+						isLoading: false,
+						isRefreshing: false,
+						error: null // Don't set error since we have cached data
+					}));
+
+					// Show connection error toast - always show it
+					setTimeout(() => {
+						toastStore.error('No internet connection. Showing offline data.');
+					}, 100);
+				} else {
+					console.log('No cached data available, showing error container');
+					// No cached data available, show error container
+					update(state => ({
+						...state,
+						isLoading: false,
+						isRefreshing: false,
+						error: error.message || 'Failed to load rankings'
+					}));
+				}
 			}
-		}
 		},
 
 		// Refresh current rankings

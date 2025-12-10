@@ -12,11 +12,11 @@ export async function POST({ request }) {
 		let prompt = '';
 
 		if (type === 'sectionsPerGrade') {
-			prompt = `Analyze this junior high school section distribution data for grades 7-10: ${JSON.stringify(data)}. Identify significant imbalances (differences >2 sections between grades) and provide a brief 2-3 sentence analysis with one specific actionable recommendation. Focus on resource allocation and student experience for grades 7-10. Be concise.`;
+			prompt = `Analyze this junior high school section distribution data for grades 7-10: ${JSON.stringify(data)}. Identify significant imbalances (differences >2 sections between grades) and provide a brief 2-3 sentence analysis with one specific actionable recommendation. Focus on resource allocation and student experience for grades 7-10. Be concise. Limit to 60-70 words.`;
 		} else if (type === 'studentsPerGrade') {
-			prompt = `Analyze this junior high school student distribution data for grades 7-10: ${JSON.stringify(data)}. Identify significant imbalances in student numbers across grades 7-10 and provide a brief 2-3 sentence analysis with one specific actionable recommendation. Focus on capacity planning and enrollment strategies for grades 7-10. Be concise.`;
+			prompt = `Analyze this junior high school student distribution data for grades 7-10: ${JSON.stringify(data)}. Identify significant imbalances in student numbers across grades 7-10 and provide a brief 2-3 sentence analysis with one specific actionable recommendation. Focus on capacity planning and enrollment strategies for grades 7-10. Be concise. Limit to 60-70 words.`;
 		} else if (type === 'teachersPerDepartment') {
-			prompt = `Analyze this teacher department distribution data: ${JSON.stringify(data)}. Identify staffing imbalances and provide a brief 2-3 sentence analysis with one specific actionable recommendation. Focus on workload distribution and hiring priorities. Be concise.`;
+			prompt = `Analyze this teacher department distribution data: ${JSON.stringify(data)}. Identify staffing imbalances and provide a brief 2-3 sentence analysis with one specific actionable recommendation. Focus on workload distribution and hiring priorities. Be concise. Limit to 60-70 words.`;
 		} else {
 			return json({ success: false, error: 'Invalid analysis type' }, { status: 400 });
 		}
@@ -25,7 +25,7 @@ export async function POST({ request }) {
 			method: 'POST',
 			headers: {
 				'Authorization': `Bearer ${OPENROUTER_AI_KEY}`,
-				'HTTP-Referer': 'https://set-2-system.vercel.app',
+				'HTTP-Referer': 'https://set-2-system.onrender.com',
 				'X-Title': 'SET-2 System',
 				'Content-Type': 'application/json',
 			},

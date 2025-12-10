@@ -4,6 +4,8 @@
 	import { toastStore } from '../../../../common/js/toastStore.js';
 	import { api } from '../../../../../routes/api/helper/api-helper.js';
 
+	import { selectedSchoolYear } from '../../../../../stores/schoolYearStore.js';
+
 	// State variables
 	let students = [];
 	let filteredStudents = [];
@@ -14,10 +16,20 @@
 	let selectedSection = '';
 	let selectedQuarter = ''; // Empty string means "Current Quarter"
 
+	// Search state for dropdowns
+	let sectionSearchTerm = '';
+
 	// Dropdown states
 	let isGradeLevelDropdownOpen = false;
 	let isSectionDropdownOpen = false;
 	let isQuarterDropdownOpen = false;
+
+	// Reactive school year
+	// Reload data when school year changes
+	$: if ($selectedSchoolYear) {
+		loadSections();
+		loadStudents();
+	}
 
 	// Grade level options
 	const gradeLevelOptions = [
@@ -46,14 +58,25 @@
 	$: selectedSectionObj = sectionOptions.find((section) => section.id === selectedSection);
 	$: selectedQuarterObj = quarterOptions.find((quarter) => quarter.id === selectedQuarter);
 
+	// Filter section options based on search term
+	$: filteredSectionOptions = sectionOptions.filter((section) => {
+		if (section.id === '') return true; // Always show "All Sections"
+		return section.name.toLowerCase().includes(sectionSearchTerm.toLowerCase());
+	});
+
 	// Load sections from API
 	async function loadSections() {
 		try {
 			const data = await api.get('/api/sections');
 			if (data.success) {
 				sections = data.data || [];
-				// Update section options with dynamic data - only include active sections
-				const activeSections = sections.filter((section) => section.status === 'active');
+				// Update section options with dynamic data - filter by selected school year
+				const activeSections = sections.filter((section) => {
+					// Check school year and active status
+					return section.status === 'active' && 
+						   (!$selectedSchoolYear || section.school_year === $selectedSchoolYear);
+				});
+				
 				sectionOptions = [
 					{ id: '', name: 'All Sections' },
 					...activeSections.map((section) => ({
@@ -76,6 +99,9 @@
 			const params = new URLSearchParams();
 			if (selectedQuarter) {
 				params.append('quarter', selectedQuarter);
+			}
+			if ($selectedSchoolYear) {
+				params.append('school_year', $selectedSchoolYear);
 			}
 			
 			// Use the new bulk endpoint that gets all data in one query
@@ -125,6 +151,9 @@
 		isSectionDropdownOpen = !isSectionDropdownOpen;
 		isGradeLevelDropdownOpen = false;
 		isQuarterDropdownOpen = false;
+		if (!isSectionDropdownOpen) {
+			sectionSearchTerm = ''; // Clear search when closing
+		}
 	}
 
 	function toggleQuarterDropdown() {
@@ -358,7 +387,22 @@
 							<span class="material-symbols-outlined sgl-dropdown-arrow">expand_more</span>
 						</button>
 						<div class="sgl-dropdown-menu">
-							{#each sectionOptions as section (section.id)}
+							<div
+								class="sgl-dropdown-search-container"
+								on:click|stopPropagation
+								on:keydown|stopPropagation
+								role="presentation"
+							>
+								<input
+									type="text"
+									class="sgl-dropdown-search-input"
+									placeholder="Search sections..."
+									bind:value={sectionSearchTerm}
+								/>
+								<span class="material-symbols-outlined sgl-dropdown-search-icon">search</span>
+							</div>
+
+							{#each filteredSectionOptions as section (section.id)}
 								<button
 									type="button"
 									class="sgl-dropdown-option"

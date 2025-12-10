@@ -17,11 +17,11 @@ export const config = {
 
 export async function POST({ request }) {
     console.log('=== AI Grade Analysis Request Started ===');
-    
+
     // Declare variables at top scope for fallback access in catch block
     let db;
     let cacheKey;
-    
+
     try {
         const { studentId, quarter, schoolYear, forceRefresh = false, previousQuarterInfo = null, cacheOnly = false } = await request.json();
         console.log('Request params:', { studentId, quarter, schoolYear, forceRefresh, cacheOnly, hasPreviousQuarter: !!previousQuarterInfo });
@@ -49,16 +49,16 @@ export async function POST({ request }) {
         // If cacheOnly is true, ONLY check cache and return 404 if not found
         if (cacheOnly) {
             const cachedAnalysis = await db.collection('ai_grade_analysis_cache').findOne(cacheKey);
-            
+
             if (cachedAnalysis && cachedAnalysis.analysis) {
                 const isValidJSON = typeof cachedAnalysis.analysis === 'object' && cachedAnalysis.analysis.overallInsight;
-                
+
                 if (isValidJSON) {
                     console.log('Cache-only mode: Serving cached AI analysis');
                     return streamCachedAnalysis(cachedAnalysis.analysis);
                 }
             }
-            
+
             // No cache found in cache-only mode - return 404
             console.log('Cache-only mode: No cached analysis found');
             return json({ error: 'No cached analysis available' }, { status: 404 });
@@ -70,13 +70,13 @@ export async function POST({ request }) {
             // Check if cache is valid (less than 7 days old)
             const CACHE_DURATION_DAYS = 7;
             const now = new Date();
-            const cacheValid = cachedAnalysis && 
+            const cacheValid = cachedAnalysis &&
                 ((now - new Date(cachedAnalysis.created_at)) / (1000 * 60 * 60 * 24)) < CACHE_DURATION_DAYS;
 
             if (cacheValid && cachedAnalysis.analysis) {
                 // Check if cached analysis is valid JSON (not old text format)
                 const isValidJSON = typeof cachedAnalysis.analysis === 'object' && cachedAnalysis.analysis.overallInsight;
-                
+
                 if (isValidJSON) {
                     console.log('Serving cached AI analysis (JSON format)');
                     return streamCachedAnalysis(cachedAnalysis.analysis);
@@ -90,7 +90,7 @@ export async function POST({ request }) {
         }
 
         // Fetch all grades for the student (only verified ones)
-        const gradesQuery = { 
+        const gradesQuery = {
             student_id: new ObjectId(studentId),
             verified: true // Only fetch verified grades
         };
@@ -125,76 +125,54 @@ export async function POST({ request }) {
         // Initialize Google Gemini AI
         const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        
+
         // Use Gemini 2.5 Flash for fast, efficient JSON responses
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
             model: GEMINI_MODEL,
             generationConfig: {
-                temperature: 0.3,
+                temperature: 0.2,
                 maxOutputTokens: 5000,
                 responseMimeType: "application/json", // Force JSON response
             }
         });
-        
+
         console.log('Using Google Gemini model:', GEMINI_MODEL);
-        console.log('Making request to Gemini API...');
-        
-        // Generate content using the official SDK
-        let fullAnalysis;
-        try {
-            const result = await model.generateContent(prompt);
-            console.log('Gemini API response received');
-            const response = result.response;
-            fullAnalysis = response.text();
-            console.log('Response text extracted, length:', fullAnalysis.length);
-        } catch (geminiError) {
-            console.error('Gemini API call failed:', geminiError);
-            console.error('Error details:', {
-                message: geminiError.message,
-                name: geminiError.name,
-                stack: geminiError.stack
-            });
-            throw new Error(`Gemini API error: ${geminiError.message}`);
+
+        // Retry logic for AI generation and parsing
+        let parsedAnalysis;
+        let attempt = 0;
+        const maxAttempts = 2;
+        let lastError;
+
+        while (attempt < maxAttempts) {
+            attempt++;
+            console.log(`Making request to Gemini API (Attempt ${attempt}/${maxAttempts})...`);
+
+            try {
+                // Generate content using the official SDK
+                const result = await model.generateContent(prompt);
+                console.log('Gemini API response received');
+                const response = result.response;
+                const fullAnalysis = response.text();
+                console.log('Response text extracted, length:', fullAnalysis.length);
+
+                // Clean and parse the JSON
+                parsedAnalysis = parseAiResponse(fullAnalysis);
+
+                // If we got here, parsing was successful
+                break;
+            } catch (error) {
+                console.error(`Attempt ${attempt} failed:`, error.message);
+                lastError = error;
+                if (attempt < maxAttempts) {
+                    console.log('Retrying...');
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+                }
+            }
         }
 
-        // Parse the AI response as JSON
-        let parsedAnalysis;
-        try {
-            // Clean up the response - remove any markdown code blocks, extra text, etc.
-            let cleanedAnalysis = fullAnalysis.trim();
-            
-            // Remove markdown code blocks
-            if (cleanedAnalysis.startsWith('```json')) {
-                cleanedAnalysis = cleanedAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-            } else if (cleanedAnalysis.startsWith('```')) {
-                cleanedAnalysis = cleanedAnalysis.replace(/```\n?/g, '');
-            }
-            
-            // Find the first { and last } to extract just the JSON object
-            const firstBrace = cleanedAnalysis.indexOf('{');
-            const lastBrace = cleanedAnalysis.lastIndexOf('}');
-            
-            if (firstBrace === -1 || lastBrace === -1) {
-                throw new Error('No JSON object found in response');
-            }
-            
-            cleanedAnalysis = cleanedAnalysis.substring(firstBrace, lastBrace + 1);
-            
-            // Parse the JSON
-            parsedAnalysis = JSON.parse(cleanedAnalysis);
-            
-            // Validate the structure
-            if (!parsedAnalysis.overallInsight || !parsedAnalysis.performanceLevel) {
-                throw new Error('Invalid JSON structure - missing required fields');
-            }
-            
-        } catch (error) {
-            console.error('Failed to parse AI response as JSON:', error);
-            console.error('Gemini Model used:', GEMINI_MODEL);
-            console.error('Raw response (first 500 chars):', fullAnalysis.substring(0, 500));
-            
-            // Provide helpful error message
-            throw new Error('Gemini returned invalid JSON format. Please try again.');
+        if (!parsedAnalysis) {
+            throw lastError || new Error('Failed to generate valid analysis after multiple attempts');
         }
 
         // Save to cache
@@ -232,38 +210,82 @@ export async function POST({ request }) {
     } catch (error) {
         console.error('AI Grade Analysis Error:', error);
         console.error('Error stack:', error.stack);
-        
+
         // FALLBACK: Try to return cached analysis (even if expired) if generation failed
         if (db && cacheKey) {
             try {
                 console.log('⚠️ AI generation failed - attempting to retrieve cached analysis as fallback...');
                 const cachedAnalysis = await db.collection('ai_grade_analysis_cache').findOne(cacheKey);
-                
+
                 if (cachedAnalysis && cachedAnalysis.analysis) {
                     // Check if it's valid JSON format
                     const isValidJSON = typeof cachedAnalysis.analysis === 'object' && cachedAnalysis.analysis.overallInsight;
-                    
+
                     if (isValidJSON) {
                         const cacheAge = Math.floor((new Date() - new Date(cachedAnalysis.created_at)) / (1000 * 60 * 60 * 24));
                         console.log(`✅ Serving cached analysis as fallback (${cacheAge} days old)`);
-                        
+
                         // Return the cached analysis
                         return streamCachedAnalysis(cachedAnalysis.analysis);
                     }
                 }
-                
+
                 console.log('❌ No valid cached analysis found for fallback');
             } catch (fallbackError) {
                 console.error('Failed to retrieve cached analysis as fallback:', fallbackError);
             }
         }
-        
+
         // No cache available, return error
         return json({
             error: 'Failed to generate AI analysis',
             details: error.message,
             stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         }, { status: 500 });
+    }
+}
+
+// Helper function to parse and validate AI response
+function parseAiResponse(fullAnalysis) {
+    try {
+        // Clean up the response - remove any markdown code blocks, extra text, etc.
+        let cleanedAnalysis = fullAnalysis.trim();
+
+        // Remove markdown code blocks
+        if (cleanedAnalysis.startsWith('```json')) {
+            cleanedAnalysis = cleanedAnalysis.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        } else if (cleanedAnalysis.startsWith('```')) {
+            cleanedAnalysis = cleanedAnalysis.replace(/```\n?/g, '');
+        }
+
+        // Find the first { and last } to extract just the JSON object
+        const firstBrace = cleanedAnalysis.indexOf('{');
+        const lastBrace = cleanedAnalysis.lastIndexOf('}');
+
+        if (firstBrace === -1 || lastBrace === -1) {
+            throw new Error('No JSON object found in response');
+        }
+
+        cleanedAnalysis = cleanedAnalysis.substring(firstBrace, lastBrace + 1);
+
+        // Remove trailing commas (common LLM error)
+        // Regex looks for a comma followed by whitespace and then a closing brace or bracket
+        cleanedAnalysis = cleanedAnalysis.replace(/,(\s*[}\]])/g, '$1');
+
+        // Parse the JSON
+        const parsedAnalysis = JSON.parse(cleanedAnalysis);
+
+        // Validate the structure
+        if (!parsedAnalysis.overallInsight || !parsedAnalysis.performanceLevel) {
+            throw new Error('Invalid JSON structure - missing required fields');
+        }
+
+        return parsedAnalysis;
+
+    } catch (error) {
+        console.error('Failed to parse AI response as JSON:', error);
+        console.error('Raw response (first 500 chars):', fullAnalysis.substring(0, 500));
+        throw new Error('Gemini returned invalid JSON format');
     }
 }
 
@@ -292,7 +314,7 @@ async function saveAnalysisToCache(db, cacheKey, analysis) {
 function streamCachedAnalysis(analysis) {
     // Convert analysis object to JSON string
     const jsonString = typeof analysis === 'string' ? analysis : JSON.stringify(analysis);
-    
+
     const stream = new ReadableStream({
         start(controller) {
             // Stream cached content in chunks to simulate real streaming
@@ -324,68 +346,78 @@ function streamCachedAnalysis(analysis) {
 }
 
 async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarterGrades = null, previousQuarterInfo = null) {
-    // Get section info
-    const section = student.section_id 
-        ? await db.collection('sections').findOne({ _id: new ObjectId(student.section_id) })
-        : null;
+    // 1. Extract all IDs to fetch in bulk
+    const sectionId = student.section_id ? new ObjectId(student.section_id) : null;
+    const subjectIds = [...new Set(studentGrades.map(g => g.subject_id.toString()))].map(id => new ObjectId(id));
+    const teacherIds = [...new Set(studentGrades.map(g => g.teacher_id.toString()))].map(id => new ObjectId(id));
+
+    // 2. Fire ALL independent queries IN PARALLEL
+    const [section, subjects, teachers, sectionStudents, gradeConfigs] = await Promise.all([
+        sectionId ? db.collection('sections').findOne({ _id: sectionId }) : null,
+        db.collection('subjects').find({ _id: { $in: subjectIds } }).toArray(),
+        db.collection('users').find({ _id: { $in: teacherIds } }).toArray(),
+        sectionId ? db.collection('section_students').find({ section_id: sectionId }).toArray() : [],
+        db.collection('grade_configurations').find({
+            section_id: sectionId,
+            subject_id: { $in: subjectIds },
+            grading_period_id: studentGrades[0]?.quarter
+        }).toArray()
+    ]);
+
+    // 3. Create lookup maps for O(1) access
+    const subjectMap = new Map(subjects.map(s => [s._id.toString(), s]));
+    const teacherMap = new Map(teachers.map(t => [t._id.toString(), t]));
+    const gradeConfigMap = new Map(gradeConfigs.map(gc => [gc.subject_id.toString(), gc]));
 
     // Calculate overall average
     const totalGrades = studentGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
     const overallAverage = studentGrades.length > 0 ? totalGrades / studentGrades.length : 0;
 
-    // Get class rank if possible
-    const sectionStudents = section 
-        ? await db.collection('section_students').find({ section_id: new ObjectId(student.section_id) }).toArray()
-        : [];
-
     // Process previous quarter data if available
     let previousQuarterAnalysis = null;
     if (previousQuarterGrades && previousQuarterGrades.length > 0 && previousQuarterInfo) {
-        const prevGrades = previousQuarterGrades;
-        const prevTotalGrades = prevGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
-        const prevOverallAverage = prevGrades.length > 0 ? prevTotalGrades / prevGrades.length : 0;
-        
-        console.log(`Previous quarter average calculated: ${prevOverallAverage} (from ${prevGrades.length} grades)`);
-        
-        // Create subject-by-subject comparison
-        const subjectComparisons = [];
-        for (const currentGrade of studentGrades) {
-            const prevGrade = prevGrades.find(pg => 
+        const prevTotalGrades = previousQuarterGrades.reduce((sum, grade) => sum + (grade.averages?.final_grade || 0), 0);
+        const prevOverallAverage = previousQuarterGrades.length > 0 ? prevTotalGrades / previousQuarterGrades.length : 0;
+
+        console.log(`Previous quarter average calculated: ${prevOverallAverage} (from ${previousQuarterGrades.length} grades)`);
+
+        // Create subject-by-subject comparison (no DB calls - using cached subjectMap)
+        const subjectComparisons = studentGrades.map(currentGrade => {
+            const prevGrade = previousQuarterGrades.find(pg =>
                 pg.subject_id.toString() === currentGrade.subject_id.toString()
             );
-            
-            if (prevGrade) {
-                const subject = await db.collection('subjects').findOne({ _id: new ObjectId(currentGrade.subject_id) });
-                const currentFinal = currentGrade.averages?.final_grade || 0;
-                const prevFinal = prevGrade.averages?.final_grade || 0;
-                const change = currentFinal - prevFinal;
-                
-                subjectComparisons.push({
-                    subjectName: subject?.name || 'Unknown',
-                    currentGrade: currentFinal,
-                    previousGrade: prevFinal,
-                    change: Math.round(change * 100) / 100,
-                    trend: change > 0 ? 'improved' : change < 0 ? 'declined' : 'stable',
-                    // Component comparisons
-                    writtenWork: {
-                        current: currentGrade.averages?.written_work || 0,
-                        previous: prevGrade.averages?.written_work || 0,
-                        change: (currentGrade.averages?.written_work || 0) - (prevGrade.averages?.written_work || 0)
-                    },
-                    performanceTasks: {
-                        current: currentGrade.averages?.performance_tasks || 0,
-                        previous: prevGrade.averages?.performance_tasks || 0,
-                        change: (currentGrade.averages?.performance_tasks || 0) - (prevGrade.averages?.performance_tasks || 0)
-                    },
-                    quarterlyAssessment: {
-                        current: currentGrade.averages?.quarterly_assessment || 0,
-                        previous: prevGrade.averages?.quarterly_assessment || 0,
-                        change: (currentGrade.averages?.quarterly_assessment || 0) - (prevGrade.averages?.quarterly_assessment || 0)
-                    }
-                });
-            }
-        }
-        
+
+            if (!prevGrade) return null;
+
+            const subject = subjectMap.get(currentGrade.subject_id.toString());
+            const currentFinal = currentGrade.averages?.final_grade || 0;
+            const prevFinal = prevGrade.averages?.final_grade || 0;
+            const change = currentFinal - prevFinal;
+
+            return {
+                subjectName: subject?.name || 'Unknown',
+                currentGrade: currentFinal,
+                previousGrade: prevFinal,
+                change: Math.round(change * 100) / 100,
+                trend: change > 0 ? 'improved' : change < 0 ? 'declined' : 'stable',
+                writtenWork: {
+                    current: currentGrade.averages?.written_work || 0,
+                    previous: prevGrade.averages?.written_work || 0,
+                    change: (currentGrade.averages?.written_work || 0) - (prevGrade.averages?.written_work || 0)
+                },
+                performanceTasks: {
+                    current: currentGrade.averages?.performance_tasks || 0,
+                    previous: prevGrade.averages?.performance_tasks || 0,
+                    change: (currentGrade.averages?.performance_tasks || 0) - (prevGrade.averages?.performance_tasks || 0)
+                },
+                quarterlyAssessment: {
+                    current: currentGrade.averages?.quarterly_assessment || 0,
+                    previous: prevGrade.averages?.quarterly_assessment || 0,
+                    change: (currentGrade.averages?.quarterly_assessment || 0) - (prevGrade.averages?.quarterly_assessment || 0)
+                }
+            };
+        }).filter(comp => comp !== null);
+
         previousQuarterAnalysis = {
             quarter: previousQuarterInfo.quarter,
             schoolYear: previousQuarterInfo.schoolYear,
@@ -393,7 +425,7 @@ async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarte
             overallChange: Math.round((overallAverage - prevOverallAverage) * 100) / 100,
             subjectComparisons
         };
-        
+
         console.log(`Previous quarter analysis prepared:`, {
             quarter: previousQuarterAnalysis.quarter,
             schoolYear: previousQuarterAnalysis.schoolYear,
@@ -403,40 +435,32 @@ async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarte
         });
     }
 
-    // Prepare subject breakdown with detailed score analysis
-    const subjectBreakdown = [];
-
-    for (const grade of studentGrades) {
-        const subject = await db.collection('subjects').findOne({ _id: new ObjectId(grade.subject_id) });
-        const teacher = await db.collection('users').findOne({ _id: new ObjectId(grade.teacher_id) });
-        
-        // Get grade configuration for detailed item names and total scores
-        const gradeConfig = await db.collection('grade_configurations').findOne({
-            section_id: new ObjectId(grade.section_id),
-            subject_id: new ObjectId(grade.subject_id),
-            grading_period_id: grade.quarter
-        });
+    // Prepare subject breakdown with detailed score analysis (no DB calls - using cached maps)
+    const subjectBreakdown = studentGrades.map(grade => {
+        const subject = subjectMap.get(grade.subject_id.toString());
+        const teacher = teacherMap.get(grade.teacher_id.toString());
+        const gradeConfig = gradeConfigMap.get(grade.subject_id.toString());
 
         // Build detailed score breakdown
         const writtenWorkDetails = buildScoreDetails(
-            grade.written_work || [],
-            gradeConfig?.grade_items?.writtenWork || [],
+            grade.scores?.written_work || [],
+            gradeConfig?.grade_items?.written_work || [],
             'Written Work'
         );
 
         const performanceTasksDetails = buildScoreDetails(
-            grade.performance_tasks || [],
-            gradeConfig?.grade_items?.performanceTasks || [],
+            grade.scores?.performance_tasks || [],
+            gradeConfig?.grade_items?.performance_tasks || [],
             'Performance Tasks'
         );
 
         const quarterlyAssessmentDetails = buildScoreDetails(
-            grade.quarterly_assessment || [],
-            gradeConfig?.grade_items?.quarterlyAssessment || [],
+            grade.scores?.quarterly_assessment || [],
+            gradeConfig?.grade_items?.quarterly_assessment || [],
             'Quarterly Assessment'
         );
 
-        subjectBreakdown.push({
+        return {
             name: subject?.name || 'Unknown Subject',
             teacher: teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown Teacher',
             overallGrade: grade.averages?.final_grade || 0,
@@ -449,8 +473,8 @@ async function prepareGradeDataFromDB(db, student, studentGrades, previousQuarte
             verified: grade.verified || false,
             quarter: grade.quarter,
             schoolYear: grade.school_year
-        });
-    }
+        };
+    });
 
     return {
         studentInfo: {
@@ -510,10 +534,10 @@ ACADEMIC OVERVIEW:
 
     // Add previous quarter comparison if available
     if (previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0) {
-        const trend = previousQuarter.overallChange > 0 ? '📈 IMPROVED' : 
-                     previousQuarter.overallChange < 0 ? '📉 DECLINED' : 
-                     '➡️ STABLE';
-        
+        const trend = previousQuarter.overallChange > 0 ? '📈 IMPROVED' :
+            previousQuarter.overallChange < 0 ? '📉 DECLINED' :
+                '➡️ STABLE';
+
         prompt += `
 PREVIOUS QUARTER COMPARISON:
 - Previous Quarter: Quarter ${previousQuarter.quarter} (${previousQuarter.schoolYear})
@@ -522,11 +546,11 @@ PREVIOUS QUARTER COMPARISON:
 
 SUBJECT-BY-SUBJECT COMPARISON:
 `;
-        
+
         previousQuarter.subjectComparisons.forEach(comparison => {
-            const trendEmoji = comparison.trend === 'improved' ? '📈' : 
-                             comparison.trend === 'declined' ? '📉' : '➡️';
-            
+            const trendEmoji = comparison.trend === 'improved' ? '📈' :
+                comparison.trend === 'declined' ? '📉' : '➡️';
+
             prompt += `
   ${trendEmoji} ${comparison.subjectName}:
      Current: ${comparison.currentGrade} | Previous: ${comparison.previousGrade} | Change: ${comparison.change > 0 ? '+' : ''}${comparison.change}
@@ -658,12 +682,19 @@ REQUIREMENTS:
 - Include MAXIMUM 3 items in strengths array (top performing subjects)
 - Include 2-3 items in areasForGrowth array (subjects needing attention) - MINIMUM 2, MAXIMUM 3
 - Include MAXIMUM 5 items in actionPlan array, ordered by priority (high/medium/low)
-${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '- CRITICAL: Thoroughly analyze the quarter-over-quarter comparison. This is valuable data!\n- Celebrate improvements enthusiastically. For declines, be supportive and solution-focused\n- Identify subjects that consistently perform well or poorly across quarters\n- ' : ''}- Be genuinely encouraging while staying honest
+- ${previousQuarter && previousQuarter.subjectComparisons && previousQuarter.subjectComparisons.length > 0 ? '- CRITICAL: Thoroughly analyze the quarter-over-quarter comparison. This is valuable data!\n- Celebrate improvements enthusiastically. For declines, be supportive and solution-focused\n- Identify subjects that consistently perform well or poorly across quarters\n- ' : ''}- Be genuinely encouraging while staying honest
 - Use growth mindset language - frame weaknesses as opportunities
 - Avoid judgmental words like "poor", "bad", "failing" - use "developing", "emerging", "growing"
 - Make all recommendations feel achievable and supportive
 - Provide specific, actionable advice
+
+CRITICAL JSON FORMATTING RULES:
+1. Output MUST be valid, parseable JSON.
+2. Do NOT include markdown formatting (like \`\`\`json).
+3. Strictly escape all double quotes within strings (e.g., use \\" instead of ").
+4. Do NOT include trailing commas in arrays or objects.
+5. Ensure all property names are enclosed in double quotes.
 `;
-    
+
     return prompt;
 }

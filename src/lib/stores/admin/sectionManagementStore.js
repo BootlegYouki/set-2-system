@@ -20,13 +20,13 @@ export const sectionManagementStore = (() => {
 
             const data = JSON.parse(cached);
             const now = Date.now();
-            
+
             // Check if cache is still valid
             if (now - data.timestamp > CACHE_VALIDITY_MS) {
                 localStorage.removeItem(SECTIONS_CACHE_KEY);
                 return null;
             }
-            
+
             return data.sections;
         } catch (error) {
             console.error('Error reading sections cache:', error);
@@ -68,11 +68,11 @@ export const sectionManagementStore = (() => {
     const updateSections = (newSections, silent = false) => {
         sections.set(newSections);
         sectionsError.set(null);
-        
+
         if (!silent) {
             isLoadingSections.set(false);
         }
-        
+
         // Update cache
         setCachedSections(newSections);
     };
@@ -88,39 +88,50 @@ export const sectionManagementStore = (() => {
         isLoadingSections.set(false);
     };
 
-    const loadSections = async (silent = false, searchTerm = '') => {
+    const loadSections = async (silent = false, searchTerm = '', schoolYear = '') => {
         try {
             setLoadingSections(true, silent);
-            
-            // Build URL with search parameter if provided
+
+            // Build URL with parameters
             let url = '/api/sections';
+            const params = new URLSearchParams();
+
             if (searchTerm && searchTerm.trim()) {
-                url += `?search=${encodeURIComponent(searchTerm.trim())}`;
+                params.append('search', searchTerm.trim());
             }
-            
+
+            if (schoolYear) {
+                params.append('schoolYear', schoolYear);
+            }
+
+            const queryString = params.toString();
+            if (queryString) {
+                url += `?${queryString}`;
+            }
+
             const response = await authenticatedFetch(url);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const result = await response.json();
-            
+
             // Check if the API response has the expected structure
             if (!result.success || !result.data) {
                 throw new Error('Invalid API response structure');
             }
-            
+
             // Process sections data
             const processedSections = result.data.map(section => ({
                 ...section,
                 students: section.students || [],
                 adviser: section.adviser || null
             }));
-            
+
             // Update stores and cache using the modern caching system
             updateSections(processedSections, silent);
-            
+
         } catch (error) {
             console.error('Error loading sections:', error);
             setSectionsError(error.message);
@@ -139,7 +150,7 @@ export const sectionManagementStore = (() => {
 
     const updateSection = (sectionId, updatedSection) => {
         sections.update(currentSections => {
-            const updated = currentSections.map(section => 
+            const updated = currentSections.map(section =>
                 section.id === sectionId ? { ...section, ...updatedSection } : section
             );
             setCachedSections(updated);
@@ -161,7 +172,7 @@ export const sectionManagementStore = (() => {
         sections: { subscribe: sections.subscribe },
         isLoadingSections: { subscribe: isLoadingSections.subscribe },
         sectionsError: { subscribe: sectionsError.subscribe },
-        
+
         // Methods
         initSections,
         loadSections,

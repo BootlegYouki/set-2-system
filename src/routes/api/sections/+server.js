@@ -11,14 +11,14 @@ export async function GET({ url, request }) {
         if (!authResult.success) {
             return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
         }
-        
+
         const db = await connectToDatabase();
         const action = url.searchParams.get('action');
         const gradeLevel = url.searchParams.get('gradeLevel');
-        
+
         // Get current school year from admin settings
-        const schoolYearSetting = await db.collection('admin_settings').findOne({ 
-            setting_key: 'current_school_year' 
+        const schoolYearSetting = await db.collection('admin_settings').findOne({
+            setting_key: 'current_school_year'
         });
         const schoolYear = url.searchParams.get('schoolYear') || schoolYearSetting?.setting_value || '2025-2026';
         const sectionId = url.searchParams.get('sectionId');
@@ -28,11 +28,16 @@ export async function GET({ url, request }) {
                 const sections = await db.collection('sections').find({
                     status: 'active'
                 }).sort({ grade_level: 1, name: 1 }).toArray();
-                
+
                 return json({ success: true, data: sections });
 
             case 'available-rooms':
+                // Note: All active rooms are now available for assignment
+                // Multiple sections can share the same room as long as their schedules don't overlap
                 const rooms = await db.collection('rooms').aggregate([
+                    {
+                        $match: { status: { $in: ['available', 'assigned', 'active'] } }
+                    },
                     {
                         $lookup: {
                             from: 'sections',
@@ -43,30 +48,26 @@ export async function GET({ url, request }) {
                         }
                     },
                     {
-                        $addFields: {
-                            available: { $eq: [{ $size: '$assigned_sections' }, 0] }
-                        }
-                    },
-                    {
                         $project: {
                             id: '$_id',
                             name: 1,
                             building: 1,
                             floor: 1,
                             status: 1,
-                            available: 1
+                            assigned_sections_count: { $size: '$assigned_sections' },
+                            available: true // All rooms are available for sharing
                         }
                     },
                     {
                         $sort: { building: 1, floor: 1, name: 1 }
                     }
                 ]).toArray();
-                
+
                 return json({ success: true, data: rooms });
 
             case 'available-teachers':
                 const teacherGradeLevel = url.searchParams.get('teacherGradeLevel');
-                
+
                 // Get teachers who are not already assigned as advisers for the given grade level and school year
                 const availableTeachers = await db.collection('users').aggregate([
                     {
@@ -108,14 +109,14 @@ export async function GET({ url, request }) {
                         }
                     }
                 ]).toArray();
-                
+
                 return json({ success: true, data: availableTeachers });
 
             case 'available-students':
                 if (!gradeLevel) {
                     return json({ success: false, error: 'Grade level is required' }, { status: 400 });
                 }
-                
+
                 // Get students who are not enrolled in any active section for the given grade level and school year
                 const availableStudents = await db.collection('users').aggregate([
                     {
@@ -169,14 +170,14 @@ export async function GET({ url, request }) {
                         }
                     }
                 ]).toArray();
-                
+
                 return json({ success: true, data: availableStudents });
 
             case 'section-details':
                 if (!sectionId) {
                     return json({ success: false, error: 'Section ID is required' }, { status: 400 });
                 }
-                
+
                 const sectionDetails = await db.collection('sections').aggregate([
                     {
                         $match: { _id: new ObjectId(sectionId) }
@@ -226,17 +227,17 @@ export async function GET({ url, request }) {
                         }
                     }
                 ]).toArray();
-                
+
                 return json({ success: true, data: sectionDetails[0] || null });
 
             case 'section-students':
                 if (!sectionId) {
                     return json({ success: false, error: 'Section ID is required' }, { status: 400 });
                 }
-                
+
                 const sectionStudents = await db.collection('section_students').aggregate([
                     {
-                        $match: { 
+                        $match: {
                             section_id: new ObjectId(sectionId),
                             status: 'active'
                         }
@@ -271,16 +272,16 @@ export async function GET({ url, request }) {
                         $sort: { full_name: 1 }
                     }
                 ]).toArray();
-                
+
                 return json({ success: true, data: sectionStudents });
 
             default:
                 // Default: Get all sections with details, with optional search functionality
                 const searchTerm = url.searchParams.get('search');
-                
+
                 let pipeline = [
                     {
-                        $match: { 
+                        $match: {
                             school_year: schoolYear,
                             status: 'active'
                         }
@@ -337,7 +338,7 @@ export async function GET({ url, request }) {
                 // Add search functionality if search term is provided
                 if (searchTerm && searchTerm.trim()) {
                     const searchRegex = { $regex: searchTerm.trim(), $options: 'i' };
-                    
+
                     pipeline.push({
                         $match: {
                             $or: [
@@ -370,7 +371,7 @@ export async function GET({ url, request }) {
                 });
 
                 const allSections = await db.collection('sections').aggregate(pipeline).toArray();
-                
+
                 return json({ success: true, data: allSections });
         }
     } catch (error) {
@@ -388,18 +389,18 @@ export async function POST({ request, getClientAddress }) {
             return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
         }
         const user = authResult.user;
-        
+
         const db = await connectToDatabase();
         const requestBody = await request.json();
-        const { 
-            sectionName, 
-            gradeLevel, 
-            schoolYear, 
-            adviserId: adviserId_raw, 
-            studentIds, 
-            roomId 
+        const {
+            sectionName,
+            gradeLevel,
+            schoolYear,
+            adviserId: adviserId_raw,
+            studentIds,
+            roomId
         } = requestBody;
-        
+
         // Handle both adviserId and adviser_id for compatibility
         const adviserId = adviserId_raw || requestBody.adviser_id;
         const clientIP = getClientAddress();
@@ -419,9 +420,9 @@ export async function POST({ request, getClientAddress }) {
         });
 
         if (existingSection) {
-            return json({ 
-                success: false, 
-                error: 'A section with this name already exists for the specified grade level and school year' 
+            return json({
+                success: false,
+                error: 'A section with this name already exists for the specified grade level and school year'
             }, { status: 400 });
         }
 
@@ -434,9 +435,9 @@ export async function POST({ request, getClientAddress }) {
             });
 
             if (!adviser) {
-                return json({ 
-                    success: false, 
-                    error: 'Invalid adviser selected' 
+                return json({
+                    success: false,
+                    error: 'Invalid adviser selected'
                 }, { status: 400 });
             }
 
@@ -448,9 +449,9 @@ export async function POST({ request, getClientAddress }) {
             });
 
             if (existingAdviserSection) {
-                return json({ 
-                    success: false, 
-                    error: 'This teacher is already assigned as an adviser to another section' 
+                return json({
+                    success: false,
+                    error: 'This teacher is already assigned as an adviser to another section'
                 }, { status: 400 });
             }
         }
@@ -463,24 +464,15 @@ export async function POST({ request, getClientAddress }) {
             });
 
             if (!room) {
-                return json({ 
-                    success: false, 
-                    error: 'Invalid room selected' 
+                return json({
+                    success: false,
+                    error: 'Invalid room selected'
                 }, { status: 400 });
             }
 
-            // Check if room is already assigned
-            const existingRoomSection = await db.collection('sections').findOne({
-                room_id: new ObjectId(roomId),
-                status: 'active'
-            });
-
-            if (existingRoomSection) {
-                return json({ 
-                    success: false, 
-                    error: 'This room is already assigned to another section' 
-                }, { status: 400 });
-            }
+            // Note: Room assignment validation is now done at schedule creation time
+            // Multiple sections can share a room as long as their schedules don't overlap
+            // This check will be performed when creating/updating schedules
         }
 
         // Create the section
@@ -515,9 +507,9 @@ export async function POST({ request, getClientAddress }) {
             }).toArray();
 
             if (students.length !== studentIds.length) {
-                return json({ 
-                    success: false, 
-                    error: 'Some selected students are invalid or not available' 
+                return json({
+                    success: false,
+                    error: 'Some selected students are invalid or not available'
                 }, { status: 400 });
             }
 
@@ -528,9 +520,9 @@ export async function POST({ request, getClientAddress }) {
             }).toArray();
 
             if (existingEnrollments.length > 0) {
-                return json({ 
-                    success: false, 
-                    error: 'Some students are already enrolled in other sections' 
+                return json({
+                    success: false,
+                    error: 'Some students are already enrolled in other sections'
                 }, { status: 400 });
             }
 
@@ -548,7 +540,7 @@ export async function POST({ request, getClientAddress }) {
         // Log activity
         try {
             const activityCollection = db.collection('activity_logs');
-            
+
             // Create activity log with proper structure
             await activityCollection.insertOne({
                 activity_type: 'section_created',
@@ -570,7 +562,7 @@ export async function POST({ request, getClientAddress }) {
                 const adviser = await db.collection('users').findOne({
                     _id: new ObjectId(adviserId)
                 });
-                
+
                 if (adviser) {
                     await activityCollection.insertOne({
                         activity_type: 'adviser_assigned_to_section',
@@ -596,7 +588,7 @@ export async function POST({ request, getClientAddress }) {
                 for (const studentId of studentIds) {
                     // Get student details for logging
                     const student = await db.collection('users').findOne({ _id: new ObjectId(studentId) });
-                    
+
                     await activityCollection.insertOne({
                         activity_type: 'student_enrolled_to_section',
                         user_id: user?.id ? new ObjectId(user.id) : null,
@@ -658,9 +650,9 @@ export async function POST({ request, getClientAddress }) {
                 }
             }
         ]).toArray();
-        
-        return json({ 
-            success: true, 
+
+        return json({
+            success: true,
             data: sectionDetails[0],
             message: `Section ${sectionName} created successfully with ${studentIds ? studentIds.length : 0} students`
         });
@@ -681,13 +673,13 @@ export async function PUT({ request, getClientAddress }) {
             return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
         }
         const user = authResult.user;
-        
+
         const db = await connectToDatabase();
         console.log('Database connected successfully');
-        
+
         const requestBody = await request.json();
         console.log('Request body:', JSON.stringify(requestBody, null, 2));
-        
+
         // Handle both formats from frontend
         const sectionId = requestBody.sectionId || requestBody.section_id;
         const updates = requestBody.updates || {
@@ -696,10 +688,10 @@ export async function PUT({ request, getClientAddress }) {
             studentIds: requestBody.studentIds,
             roomId: requestBody.roomId
         };
-        
+
         console.log('Parsed sectionId:', sectionId);
         console.log('Parsed updates:', JSON.stringify(updates, null, 2));
-        
+
         const clientIP = getClientAddress();
         const userAgent = request.headers.get('user-agent');
 
@@ -710,11 +702,11 @@ export async function PUT({ request, getClientAddress }) {
 
         console.log('Starting database operations...');
         // Get current section details
-        const currentSection = await db.collection('sections').findOne({ 
+        const currentSection = await db.collection('sections').findOne({
             _id: new ObjectId(sectionId),
             status: 'active'
         });
-        
+
         console.log('Current section found:', currentSection ? 'YES' : 'NO');
         console.log('Current section data:', currentSection);
 
@@ -722,7 +714,7 @@ export async function PUT({ request, getClientAddress }) {
             return json({ success: false, error: 'Section not found' }, { status: 404 });
         }
 
-        const updateData = { 
+        const updateData = {
             $set: { updated_at: new Date() }
         };
         const changes = [];
@@ -739,9 +731,9 @@ export async function PUT({ request, getClientAddress }) {
             });
 
             if (existingSection) {
-                return json({ 
-                    success: false, 
-                    error: 'A section with this name already exists for the same grade level and school year' 
+                return json({
+                    success: false,
+                    error: 'A section with this name already exists for the same grade level and school year'
                 }, { status: 400 });
             }
 
@@ -761,9 +753,9 @@ export async function PUT({ request, getClientAddress }) {
                 });
 
                 if (!adviser) {
-                    return json({ 
-                        success: false, 
-                        error: 'Invalid adviser selected' 
+                    return json({
+                        success: false,
+                        error: 'Invalid adviser selected'
                     }, { status: 400 });
                 }
 
@@ -776,15 +768,15 @@ export async function PUT({ request, getClientAddress }) {
                 });
 
                 if (existingAdviserSection) {
-                    return json({ 
-                        success: false, 
-                        error: 'This teacher is already assigned as an adviser to another section' 
+                    return json({
+                        success: false,
+                        error: 'This teacher is already assigned as an adviser to another section'
                     }, { status: 400 });
                 }
 
                 updateData.$set.adviser_id = new ObjectId(updates.adviserId);
                 changes.push(`Adviser assigned: ${adviser.full_name}`);
-                
+
                 // Prepare adviser change log
                 adviserChangeLog = {
                     type: currentSection.adviser_id ? 'adviser_changed' : 'adviser_assigned',
@@ -794,7 +786,7 @@ export async function PUT({ request, getClientAddress }) {
                     },
                     oldAdviser: null
                 };
-                
+
                 // If there was a previous adviser, get their details
                 if (currentSection.adviser_id) {
                     const oldAdviser = await db.collection('users').findOne({
@@ -812,10 +804,10 @@ export async function PUT({ request, getClientAddress }) {
                 const oldAdviser = await db.collection('users').findOne({
                     _id: currentSection.adviser_id
                 });
-                
+
                 updateData.$unset = { adviser_id: "" };
                 changes.push('Adviser removed');
-                
+
                 // Prepare adviser removal log
                 if (oldAdviser) {
                     adviserChangeLog = {
@@ -839,25 +831,15 @@ export async function PUT({ request, getClientAddress }) {
                 });
 
                 if (!room) {
-                    return json({ 
-                        success: false, 
-                        error: 'Invalid room selected' 
+                    return json({
+                        success: false,
+                        error: 'Invalid room selected'
                     }, { status: 400 });
                 }
 
-                // Check if room is already assigned
-                const existingRoomSection = await db.collection('sections').findOne({
-                    room_id: new ObjectId(updates.roomId),
-                    status: 'active',
-                    _id: { $ne: new ObjectId(sectionId) }
-                });
-
-                if (existingRoomSection) {
-                    return json({ 
-                        success: false, 
-                        error: 'This room is already assigned to another section' 
-                    }, { status: 400 });
-                }
+                // Note: Room assignment validation is now done at schedule creation time
+                // Multiple sections can share a room as long as their schedules don't overlap
+                // This check will be performed when creating/updating schedules
 
                 updateData.$set.room_id = new ObjectId(updates.roomId);
                 changes.push(`Room assigned: ${room.name}`);
@@ -871,20 +853,20 @@ export async function PUT({ request, getClientAddress }) {
         // Handle student list updates (complete replacement approach)
         if (updates.studentIds !== undefined) {
             const newStudentIds = updates.studentIds || [];
-            
+
             // Get current students in the section
             const currentStudents = await db.collection('section_students').find({
                 section_id: new ObjectId(sectionId),
                 status: 'active'
             }).toArray();
-            
+
             const currentStudentIds = currentStudents.map(s => s.student_id.toString());
             const newStudentIdStrings = newStudentIds.map(id => id.toString());
-            
+
             // Find students to add and remove
             const studentsToAdd = newStudentIds.filter(id => !currentStudentIds.includes(id.toString()));
             const studentsToRemove = currentStudentIds.filter(id => !newStudentIdStrings.includes(id));
-            
+
             // Add new students
             if (studentsToAdd.length > 0) {
                 // Filter out invalid IDs and validate ObjectId format
@@ -897,9 +879,9 @@ export async function PUT({ request, getClientAddress }) {
                 });
 
                 if (validStudentIds.length === 0) {
-                    return json({ 
-                        success: false, 
-                        error: 'No valid student IDs provided' 
+                    return json({
+                        success: false,
+                        error: 'No valid student IDs provided'
                     }, { status: 400 });
                 }
 
@@ -912,9 +894,9 @@ export async function PUT({ request, getClientAddress }) {
                 }).toArray();
 
                 if (students.length !== validStudentIds.length) {
-                    return json({ 
-                        success: false, 
-                        error: 'Some selected students are invalid or not available' 
+                    return json({
+                        success: false,
+                        error: 'Some selected students are invalid or not available'
                     }, { status: 400 });
                 }
 
@@ -925,9 +907,9 @@ export async function PUT({ request, getClientAddress }) {
                 }).toArray();
 
                 if (existingEnrollments.length > 0) {
-                    return json({ 
-                        success: false, 
-                        error: 'Some students are already enrolled in other sections' 
+                    return json({
+                        success: false,
+                        error: 'Some students are already enrolled in other sections'
                     }, { status: 400 });
                 }
 
@@ -962,7 +944,7 @@ export async function PUT({ request, getClientAddress }) {
                     });
                 }
             }
-            
+
             // Remove students
             if (studentsToRemove.length > 0) {
                 // Filter out invalid IDs and validate ObjectId format
@@ -983,7 +965,7 @@ export async function PUT({ request, getClientAddress }) {
                             status: 'active'
                         },
                         {
-                            $set: { 
+                            $set: {
                                 status: 'inactive',
                                 removed_at: new Date()
                             }
@@ -1031,7 +1013,7 @@ export async function PUT({ request, getClientAddress }) {
         // Log adviser changes specifically
         if (adviserChangeLog) {
             const activityCollection = db.collection('activity_logs');
-            
+
             if (adviserChangeLog.type === 'adviser_assigned') {
                 await activityCollection.insertOne({
                     activity_type: 'adviser_assigned_to_section',
@@ -1077,15 +1059,15 @@ export async function PUT({ request, getClientAddress }) {
                 });
             }
         }
-        
+
         // Log section update activity (only for non-student and non-adviser changes)
-        const nonStudentAdviserChanges = changes.filter(change => 
-            !change.includes('Added') && 
-            !change.includes('Removed') && 
+        const nonStudentAdviserChanges = changes.filter(change =>
+            !change.includes('Added') &&
+            !change.includes('Removed') &&
             !change.includes('students') &&
             !change.includes('Adviser')
         );
-        
+
         if (nonStudentAdviserChanges.length > 0) {
             // Create activity log with proper structure for non-student/non-adviser changes only
             const activityCollection = db.collection('activity_logs');
@@ -1142,8 +1124,8 @@ export async function PUT({ request, getClientAddress }) {
             }
         ]).toArray();
 
-        return json({ 
-            success: true, 
+        return json({
+            success: true,
             data: updatedSection[0],
             message: changes.length > 0 ? `Section updated: ${changes.join(', ')}` : 'No changes made'
         });
@@ -1164,12 +1146,12 @@ export async function DELETE({ request, getClientAddress, url }) {
         if (!authResult.success) {
             return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
         }
-        
+
         const db = await connectToDatabase();
-        
+
         // Get sectionId from URL parameters instead of request body
         const sectionId = url.searchParams.get('sectionId');
-        
+
         const clientIP = getClientAddress();
         const userAgent = request.headers.get('user-agent');
 
@@ -1178,7 +1160,7 @@ export async function DELETE({ request, getClientAddress, url }) {
         }
 
         // Get section details for logging
-        const section = await db.collection('sections').findOne({ 
+        const section = await db.collection('sections').findOne({
             _id: new ObjectId(sectionId),
             status: 'active'
         });
@@ -1209,7 +1191,7 @@ export async function DELETE({ request, getClientAddress, url }) {
 
         // Remove all students from section
         await db.collection('section_students').updateMany(
-            { 
+            {
                 section_id: new ObjectId(sectionId),
                 status: 'active'
             },
@@ -1255,8 +1237,8 @@ export async function DELETE({ request, getClientAddress, url }) {
             // Don't fail the deletion if logging fails
         }
 
-        return json({ 
-            success: true, 
+        return json({
+            success: true,
             message: `Section ${section.name} has been deleted successfully`
         });
 
