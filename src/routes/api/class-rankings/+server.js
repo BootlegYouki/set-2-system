@@ -25,9 +25,9 @@ export async function GET({ url, request }) {
 			return json({ error: authResult.error }, { status: 401 });
 		}
 		const currentUser = authResult.user;
-		
+
 		const db = await connectToDatabase();
-		
+
 		// Get query parameters
 		const studentId = url.searchParams.get('studentId');
 		const quarter = parseInt(url.searchParams.get('quarter')) || 1;
@@ -47,7 +47,7 @@ export async function GET({ url, request }) {
 				error: 'Invalid student ID format'
 			}, { status: 400 });
 		}
-		
+
 		// Authorization check: students can only view rankings for classes they're in
 		// This allows a student to see the full class ranking (including all classmates)
 		if (currentUser.account_type === 'student') {
@@ -56,19 +56,19 @@ export async function GET({ url, request }) {
 				student_id: new ObjectId(currentUser.id),
 				status: 'active'
 			});
-			
+
 			const queriedStudentSection = await db.collection('section_students').findOne({
 				student_id: new ObjectId(studentId),
 				status: 'active'
 			});
-			
+
 			// Students can view rankings if they're querying their own ID or someone in their section
-			if (currentUser.id !== studentId && 
-			    (!requestingStudentSection || !queriedStudentSection || 
-			     requestingStudentSection.section_id.toString() !== queriedStudentSection.section_id.toString())) {
-				return json({ 
+			if (currentUser.id !== studentId &&
+				(!requestingStudentSection || !queriedStudentSection ||
+					requestingStudentSection.section_id.toString() !== queriedStudentSection.section_id.toString())) {
+				return json({
 					success: false,
-					error: 'Unauthorized: You can only view rankings for your own class' 
+					error: 'Unauthorized: You can only view rankings for your own class'
 				}, { status: 403 });
 			}
 		}
@@ -81,9 +81,13 @@ export async function GET({ url, request }) {
 
 		if (!studentEnrollment) {
 			return json({
-				success: false,
-				error: 'Student not enrolled in any section'
-			}, { status: 404 });
+				success: true,
+				myRank: 0,
+				totalStudents: 0,
+				myAverage: 0,
+				sectionInfo: null,
+				rankings: []
+			});
 		}
 
 		// Get section details
@@ -94,11 +98,15 @@ export async function GET({ url, request }) {
 
 		if (!section) {
 			return json({
-				success: false,
-				error: 'Section not found'
-			}, { status: 404 });
+				success: true,
+				myRank: 0,
+				totalStudents: 0,
+				myAverage: 0,
+				sectionInfo: null,
+				rankings: []
+			});
 		}
-		
+
 		// Additional authorization for teachers: verify they teach in this section
 		if (currentUser.account_type === 'teacher') {
 			const teacherSchedule = await db.collection('schedules').findOne({
@@ -106,21 +114,21 @@ export async function GET({ url, request }) {
 				section_id: section._id,
 				schedule_type: 'subject'
 			});
-			
+
 			if (!teacherSchedule) {
-				return json({ 
+				return json({
 					success: false,
-					error: 'Unauthorized: You can only view rankings for sections you teach' 
+					error: 'Unauthorized: You can only view rankings for sections you teach'
 				}, { status: 403 });
 			}
 		}
-		
+
 		// Additional authorization for advisers: verify this is their advisory section
 		if (currentUser.account_type === 'adviser') {
 			if (!section.adviser_id || section.adviser_id.toString() !== currentUser.id) {
-				return json({ 
+				return json({
 					success: false,
-					error: 'Unauthorized: You can only view rankings for your advisory section' 
+					error: 'Unauthorized: You can only view rankings for your advisory section'
 				}, { status: 403 });
 			}
 		}
@@ -139,7 +147,7 @@ export async function GET({ url, request }) {
 
 		const gradesCollection = db.collection('grades');
 		const usersCollection = db.collection('users');
-		
+
 		const studentAverages = [];
 
 		// Calculate averages for each student
@@ -159,7 +167,7 @@ export async function GET({ url, request }) {
 				const totalGrades = studentGrades.reduce((sum, grade) => {
 					return sum + (grade.averages?.final_grade || 0);
 				}, 0);
-				
+
 				const average = totalGrades / studentGrades.length;
 
 				// Get student info

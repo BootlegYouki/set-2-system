@@ -25,7 +25,7 @@ function getDocumentPrice(documentType) {
 async function checkComplianceDeadlines(db) {
 	try {
 		const now = new Date();
-		
+
 		// Find all requests with for_compliance status that have passed their deadline
 		const expiredRequests = await db.collection('document_requests').find({
 			status: 'for_compliance',
@@ -36,21 +36,21 @@ async function checkComplianceDeadlines(db) {
 			// Check if student has sent any messages after the for_compliance status was set
 			const complianceStatusEntry = request.status_history?.find(h => h.status === 'for_compliance');
 			const complianceSetTime = complianceStatusEntry?.timestamp || request.updated_at;
-			
+
 			// Check if there are any student messages after the compliance was set
-			const studentResponded = request.messages?.some(msg => 
-				msg.authorRole === 'student' && 
+			const studentResponded = request.messages?.some(msg =>
+				msg.authorRole === 'student' &&
 				new Date(msg.created_at) > new Date(complianceSetTime)
 			);
 
 			// Check if this is a resubmission (previous status was non_compliance)
 			const statusHistoryArray = request.status_history || [];
-			const currentComplianceIndex = statusHistoryArray.findIndex((h, idx) => 
-				h.status === 'for_compliance' && 
+			const currentComplianceIndex = statusHistoryArray.findIndex((h, idx) =>
+				h.status === 'for_compliance' &&
 				idx === statusHistoryArray.length - 1
 			);
-			const previousStatus = currentComplianceIndex > 0 
-				? statusHistoryArray[currentComplianceIndex - 1]?.status 
+			const previousStatus = currentComplianceIndex > 0
+				? statusHistoryArray[currentComplianceIndex - 1]?.status
 				: null;
 			const isResubmission = previousStatus === 'non_compliance';
 
@@ -173,6 +173,22 @@ async function createDocumentRequestNotification(db, studentId, notificationData
 
 		await db.collection('notifications').insertOne(notification);
 		console.log(`Notification created for student ${studentId}: ${notificationData.title}`);
+
+		// Send push notification for document request updates
+		try {
+			await sendDocumentRequestPush(
+				db,
+				studentId,
+				notificationData.title,
+				notificationData.message,
+				notificationData.requestId,
+				notificationData.status
+			);
+			console.log(`Push notification sent for student ${studentId}`);
+		} catch (pushError) {
+			console.error('Error sending push notification:', pushError);
+			// Don't fail the main operation if push notification fails
+		}
 	} catch (error) {
 		console.error('Error creating notification:', error);
 		// Don't fail the main operation if notification fails
@@ -194,39 +210,39 @@ async function sendAutomatedStatusMessage(db, requestId, status, adminName, tent
 			'cancelled': 'Cancelled'
 		};
 
-			const statusMessages = {
-				'on_hold': 'Your document request is currently on hold and awaiting review.',
-				'verifying': 'Your document request is now being verified. We will update you once verification is complete.',
-				'for_compliance': isResubmission 
-					? 'This is a resubmission request. Please submit the required documents within 2 days or your request will be rejected.'
-					: 'Your document request requires additional documents. Please submit them within 3 days or it will be marked as non-compliant.',
-				'processing': 'Your document request is now being processed. We will notify you once it\'s ready.',
-				'for_pickup': 'Your document is ready for pickup! Please visit the office to collect your document.',
-				'released': 'Your document has been released. Thank you for using our services!',
-				'non_compliance': 'Your document request has been marked as non-compliant. You may be given another chance to resubmit.',
-				'rejected': 'Your document request has been rejected. You may submit a new request if needed.',
-				'cancelled': 'Your document request has been cancelled.'
-			};	let messageText = `Status Update: Your document request status has been changed to "${statusNames[status] || status}". ${statusMessages[status] || ''}`;
-	
-	// Add deadline for compliance status
-	if (tentativeDate && status === 'for_compliance') {
-		const date = new Date(tentativeDate);
-		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-		messageText += ` Deadline: ${formattedDate}.`;
-	}
-	
-	// Add tentative date if available and status is processing
-	if (tentativeDate && status === 'processing') {
-		const date = new Date(tentativeDate);
-		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-		messageText += ` Tentative completion date: ${formattedDate}.`;
-	}
+		const statusMessages = {
+			'on_hold': 'Your document request is currently on hold and awaiting review.',
+			'verifying': 'Your document request is now being verified. We will update you once verification is complete.',
+			'for_compliance': isResubmission
+				? 'This is a resubmission request. Please submit the required documents within 2 days or your request will be rejected.'
+				: 'Your document request requires additional documents. Please submit them within 3 days or it will be marked as non-compliant.',
+			'processing': 'Your document request is now being processed. We will notify you once it\'s ready.',
+			'for_pickup': 'Your document is ready for pickup! Please visit the office to collect your document.',
+			'released': 'Your document has been released. Thank you for using our services!',
+			'non_compliance': 'Your document request has been marked as non-compliant. You may be given another chance to resubmit.',
+			'rejected': 'Your document request has been rejected. You may submit a new request if needed.',
+			'cancelled': 'Your document request has been cancelled.'
+		}; let messageText = `Status Update: Your document request status has been changed to "${statusNames[status] || status}". ${statusMessages[status] || ''}`;
 
-	// Add payment amount if available and payment status is not 'paid'
-	// (If payment is already paid, don't include amount in status message as it's redundant)
-	if (paymentAmount !== null && paymentAmount !== undefined && paymentStatus !== 'paid') {
-		messageText += ` Payment amount: ₱${paymentAmount}.`;
-	}		// Encrypt the message text
+		// Add deadline for compliance status
+		if (tentativeDate && status === 'for_compliance') {
+			const date = new Date(tentativeDate);
+			const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+			messageText += ` Deadline: ${formattedDate}.`;
+		}
+
+		// Add tentative date if available and status is processing
+		if (tentativeDate && status === 'processing') {
+			const date = new Date(tentativeDate);
+			const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+			messageText += ` Tentative completion date: ${formattedDate}.`;
+		}
+
+		// Add payment amount if available and payment status is not 'paid'
+		// (If payment is already paid, don't include amount in status message as it's redundant)
+		if (paymentAmount !== null && paymentAmount !== undefined && paymentStatus !== 'paid') {
+			messageText += ` Payment amount: ₱${paymentAmount}.`;
+		}		// Encrypt the message text
 		const encryptedText = encryptMessage(messageText.trim());
 
 		// Create the automated message
@@ -296,7 +312,7 @@ async function sendAutomatedPaymentMessage(db, requestId, paymentAmount, adminNa
 // Helper function to send automated payment amount set message
 async function sendAutomatedPaymentAmountMessage(db, requestId, paymentAmount, adminName, isFirstTime = false) {
 	try {
-		const messageText = isFirstTime 
+		const messageText = isFirstTime
 			? `Payment Amount Set: The payment amount for your document request has been set to ₱${paymentAmount}. Please proceed with the payment when ready.`
 			: `Payment Amount Updated: The payment amount for your document request has been updated to ₱${paymentAmount}. Please proceed with the payment when ready.`;
 
@@ -334,18 +350,23 @@ async function sendAutomatedPaymentAmountMessage(db, requestId, paymentAmount, a
 // Helper function to send automated tentative date message
 async function sendAutomatedTentativeDateMessage(db, requestId, tentativeDate, adminName, currentStatus = 'processing') {
 	try {
+		// Do not send an automated tentative date message when the request is in 'verifying' status
+		if (currentStatus === 'verifying') {
+			console.log(`Suppressing automated tentative date message for request ${requestId} because status is 'verifying'`);
+			return;
+		}
 		const date = new Date(tentativeDate);
 		const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-		
-				// Adjust message based on current status
-			let statusMessage = 'ready for pickup';
-			if (currentStatus === 'verifying') {
-				statusMessage = 'ready for processing';
-			} else if (currentStatus === 'for_compliance') {
-				statusMessage = 'reviewed for compliance';
-			} else if (currentStatus === 'processing') {
-				statusMessage = 'ready for pickup';
-			}		const messageText = `Tentative Date Set: Your document request has a tentative completion date of ${formattedDate}. We will notify you once your document is ${statusMessage}.`;
+
+		// Adjust message based on current status
+		let statusMessage = 'ready for pickup';
+		if (currentStatus === 'verifying') {
+			statusMessage = 'ready for processing';
+		} else if (currentStatus === 'for_compliance') {
+			statusMessage = 'reviewed for compliance';
+		} else if (currentStatus === 'processing') {
+			statusMessage = 'ready for pickup';
+		} const messageText = `Tentative Date Set: Your document request has a tentative completion date of ${formattedDate}. We will notify you once your document is ${statusMessage}.`;
 
 		// Encrypt the message text
 		const encryptedText = encryptMessage(messageText.trim());
@@ -392,7 +413,7 @@ export async function GET({ url, request }) {
 
 		// Automatically check compliance deadlines on every request (runs in background)
 		// This ensures expired compliance requests are marked as non-compliant
-		checkComplianceDeadlines(db).catch(err => 
+		checkComplianceDeadlines(db).catch(err =>
 			console.error('Background compliance check failed:', err)
 		);
 
@@ -404,8 +425,8 @@ export async function GET({ url, request }) {
 				}
 
 				const checkResult = await checkComplianceDeadlines(db);
-				return json({ 
-					success: true, 
+				return json({
+					success: true,
 					message: 'Compliance check completed',
 					data: checkResult
 				});
@@ -463,14 +484,14 @@ export async function GET({ url, request }) {
 					requestId: req.request_id,
 					submittedDate: formatDate(req.submitted_date),
 					cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
-					payment: req.payment_amount !== null && req.payment_amount !== undefined 
-						? (req.payment_amount === 0 ? 'Free' : `₱${req.payment_amount}`) 
+					payment: req.payment_amount !== null && req.payment_amount !== undefined
+						? (req.payment_amount === 0 ? 'Free' : `₱${req.payment_amount}`)
 						: 'Tentative',
 					paymentAmount: req.payment_amount,
 					paymentStatus: req.payment_status,
 					isFirstTime: req.is_first_time || false,
 					status: req.status,
-					tentativeDate: req.tentative_date ? formatDateForInput(req.tentative_date) : null,
+					tentativeDate: (req.tentative_date && req.status !== 'verifying') ? formatDateForInput(req.tentative_date) : null,
 					isUrgent: req.is_urgent || false,
 					purpose: req.purpose,
 					dateOfBirth: formatDateDisplay(req.birthdate),
@@ -491,28 +512,28 @@ export async function GET({ url, request }) {
 					.sort({ submitted_date: -1 })
 					.toArray();
 
-			const formattedStudentRequests = studentRequests.map((req) => ({
-				id: req._id.toString(),
-				requestId: req.request_id,
-				documentType: req.document_type,
-				quantity: req.quantity || 1,
-				purpose: req.purpose,
-				status: req.status,
-				submittedDate: formatDate(req.submitted_date),
-				cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
-				tentativeDate: req.tentative_date ? formatDate(req.tentative_date) : null,
-				payment: req.payment_amount !== null && req.payment_amount !== undefined 
-					? (req.payment_amount === 0 ? 'Free' : `₱${req.payment_amount}`) 
-					: 'Tentative',
-				paymentAmount: req.payment_amount,
-				paymentStatus: req.payment_status,
-				isFirstTime: req.is_first_time || false,
-				processedBy: req.processed_by,
-				isUrgent: req.is_urgent || false,
-				messages: decryptMessages(req.messages || []),
-				lastReadAt: req.last_read_at || null,
-				statusHistory: req.status_history || []
-			}));
+				const formattedStudentRequests = studentRequests.map((req) => ({
+					id: req._id.toString(),
+					requestId: req.request_id,
+					documentType: req.document_type,
+					quantity: req.quantity || 1,
+					purpose: req.purpose,
+					status: req.status,
+					submittedDate: formatDate(req.submitted_date),
+					cancelledDate: req.cancelled_date ? formatDate(req.cancelled_date) : null,
+					tentativeDate: (req.tentative_date && req.status !== 'verifying') ? formatDate(req.tentative_date) : null,
+					payment: req.payment_amount !== null && req.payment_amount !== undefined
+						? (req.payment_amount === 0 ? 'Free' : `₱${req.payment_amount}`)
+						: 'Tentative',
+					paymentAmount: req.payment_amount,
+					paymentStatus: req.payment_status,
+					isFirstTime: req.is_first_time || false,
+					processedBy: req.processed_by,
+					isUrgent: req.is_urgent || false,
+					messages: decryptMessages(req.messages || []),
+					lastReadAt: req.last_read_at || null,
+					statusHistory: req.status_history || []
+				}));
 
 				return json({ success: true, data: formattedStudentRequests });
 
@@ -578,14 +599,14 @@ export async function GET({ url, request }) {
 					requestId: request.request_id,
 					submittedDate: formatDate(request.submitted_date),
 					cancelledDate: request.cancelled_date ? formatDate(request.cancelled_date) : null,
-					payment: request.payment_amount !== null && request.payment_amount !== undefined 
-						? (request.payment_amount === 0 ? 'Free' : `₱${request.payment_amount}`) 
+					payment: request.payment_amount !== null && request.payment_amount !== undefined
+						? (request.payment_amount === 0 ? 'Free' : `₱${request.payment_amount}`)
 						: 'Tentative',
 					paymentAmount: request.payment_amount,
 					paymentStatus: request.payment_status,
 					isFirstTime: request.is_first_time || false,
 					status: request.status,
-					tentativeDate: request.tentative_date ? formatDateForInput(request.tentative_date) : null,
+					tentativeDate: (request.tentative_date && request.status !== 'verifying') ? formatDateForInput(request.tentative_date) : null,
 					isUrgent: request.is_urgent || false,
 					purpose: request.purpose,
 					dateOfBirth: formatDateDisplay(request.birthdate),
@@ -715,8 +736,8 @@ export async function POST({ request }) {
 					const quantity = data.quantity || 1;
 					// First-time requests: only the first copy is free, additional copies are charged
 					// Non-first-time requests: all copies are charged
-					const totalPayment = isFirstTime 
-						? (documentPrice ? documentPrice * (quantity - 1) : null) 
+					const totalPayment = isFirstTime
+						? (documentPrice ? documentPrice * (quantity - 1) : null)
 						: (documentPrice ? documentPrice * quantity : null);
 
 					const newRequest = {
@@ -745,9 +766,9 @@ export async function POST({ request }) {
 								status: 'on_hold',
 								timestamp: new Date(),
 								changedBy: 'System',
-								note: isFirstTime 
-									? (quantity === 1 
-										? 'Request submitted and awaiting review (First-time request - Free)' 
+								note: isFirstTime
+									? (quantity === 1
+										? 'Request submitted and awaiting review (First-time request - Free)'
 										: `Request submitted and awaiting review (First-time request - 1st copy free, ${quantity - 1} additional ${quantity - 1 === 1 ? 'copy' : 'copies'} charged)`)
 									: 'Request submitted and awaiting review'
 							}
@@ -799,97 +820,107 @@ export async function POST({ request }) {
 					return json({ error: 'Request not found' }, { status: 404 });
 				}
 
-			// Track what changed for notifications and logging
-			let statusChanged = false;
-			let paymentStatusChanged = false;
-			let tentativeDateChanged = false;
-			let oldStatus = existingRequest.status;
-			let oldPaymentStatus = existingRequest.payment_status;
-			let oldPaymentAmount = existingRequest.payment_amount;
-			let oldTentativeDate = existingRequest.tentative_date;
-			
-			// Detect resubmission: changing from non_compliance to for_compliance
-			let isResubmission = false;
+				// Track what changed for notifications and logging
+				let statusChanged = false;
+				let paymentStatusChanged = false;
+				let tentativeDateChanged = false;
+				let oldStatus = existingRequest.status;
+				let oldPaymentStatus = existingRequest.payment_status;
+				let oldPaymentAmount = existingRequest.payment_amount;
+				let oldTentativeDate = existingRequest.tentative_date;
 
-	if (status) {
-		updateData.status = status;
-		statusChanged = (status !== oldStatus);
-		
-		// Check if this is a resubmission
-		// Resubmission occurs when:
-		// 1. Changing from non_compliance to for_compliance (previous deadline passed)
-		// 2. Changing from verifying to for_compliance, BUT only if the student had previously submitted files
-		//    (i.e., verifying came from for_compliance, not from on_hold)
-		
-		// Check status history to determine if verifying came from for_compliance
-		let verifyingFromCompliance = false;
-		if (oldStatus === 'verifying' && status === 'for_compliance') {
-			// Look at status history to see what status came before verifying
-			const statusHistory = existingRequest.status_history || [];
-			// Find the most recent verifying entry
-			const verifyingIndex = statusHistory.length - 1;
-			if (verifyingIndex > 0) {
-				const previousStatus = statusHistory[verifyingIndex - 1]?.status;
-				// If previous status was for_compliance, this is a resubmission
-				verifyingFromCompliance = (previousStatus === 'for_compliance');
-			}
-		}
-		
-		isResubmission = (
-			(oldStatus === 'non_compliance' && status === 'for_compliance') ||
-			(oldStatus === 'verifying' && status === 'for_compliance' && verifyingFromCompliance)
-		);
-		
-		console.log('DEBUG - Resubmission check:', { oldStatus, status, verifyingFromCompliance, isResubmission });
-		
-		// Clear tentative date if status is not processing or for_compliance
-		if (status !== 'processing' && status !== 'for_compliance') {
-			updateData.tentative_date = null;
-		}
-		
-		// Set compliance deadline when status changes to for_compliance
-		if (status === 'for_compliance' && !tentativeDate) {
-			const complianceDeadline = new Date();
-			// 2 days for resubmission, 3 days for initial compliance
-			const daysToAdd = isResubmission ? 2 : 3;
-			console.log('DEBUG - Setting compliance deadline:', { isResubmission, daysToAdd, deadline: complianceDeadline });
-			complianceDeadline.setDate(complianceDeadline.getDate() + daysToAdd);
-			updateData.tentative_date = complianceDeadline;
-			updateData.compliance_deadline = complianceDeadline;
-		}					// Add to status history if status changed
-				if (statusChanged) {
-					// Get appropriate note based on status
-				const statusNotes = {
-					'on_hold': 'Request is on hold and awaiting admin review',
-					'verifying': 'Admin is verifying the request details and requirements',
-					'for_compliance': isResubmission 
-						? 'Resubmission required - Student must submit within 2 days or request will be rejected'
-						: 'Additional documents required - Student must submit within 3 days or will be marked as non-compliant',
-					'processing': 'Document is being prepared and processed',
-					'for_pickup': 'Document is ready and available for pickup at the office',
-					'released': 'Document has been successfully released to the student',
-					'non_compliance': 'Student did not comply within the 3-day deadline - May be given another chance',
-					'rejected': 'Request has been rejected - Student failed resubmission deadline',
-					'cancelled': 'Request was cancelled'
-				};						const statusHistoryEntry = {
-						status: status,
-						timestamp: new Date(),
-						changedBy: user.name || user.full_name || 'Admin',
-						note: statusNotes[status] || 'Status updated'
-					};						// Push to status_history array
+				// Detect resubmission: changing from non_compliance to for_compliance
+				let isResubmission = false;
+
+				if (status) {
+					updateData.status = status;
+					statusChanged = (status !== oldStatus);
+
+					// Check if this is a resubmission
+					// Resubmission occurs when:
+					// 1. Changing from non_compliance to for_compliance (previous deadline passed)
+					// 2. Changing from verifying to for_compliance, BUT only if the student had previously submitted files
+					//    (i.e., verifying came from for_compliance, not from on_hold)
+
+					// Check status history to determine if verifying came from for_compliance
+					let verifyingFromCompliance = false;
+					if (oldStatus === 'verifying' && status === 'for_compliance') {
+						// Look at status history to see what status came before verifying
+						const statusHistory = existingRequest.status_history || [];
+						// Find the most recent verifying entry
+						const verifyingIndex = statusHistory.length - 1;
+						if (verifyingIndex > 0) {
+							const previousStatus = statusHistory[verifyingIndex - 1]?.status;
+							// If previous status was for_compliance, this is a resubmission
+							verifyingFromCompliance = (previousStatus === 'for_compliance');
+						}
+					}
+
+					isResubmission = (
+						(oldStatus === 'non_compliance' && status === 'for_compliance') ||
+						(oldStatus === 'verifying' && status === 'for_compliance' && verifyingFromCompliance)
+					);
+
+					console.log('DEBUG - Resubmission check:', { oldStatus, status, verifyingFromCompliance, isResubmission });
+
+					// Clear tentative date if status is not processing or for_compliance
+					if (status !== 'processing' && status !== 'for_compliance') {
+						updateData.tentative_date = null;
+					}
+
+					// Set compliance deadline when status changes to for_compliance
+					if (status === 'for_compliance' && !tentativeDate) {
+						const complianceDeadline = new Date();
+						// 2 days for resubmission, 3 days for initial compliance
+						const daysToAdd = isResubmission ? 2 : 3;
+						console.log('DEBUG - Setting compliance deadline:', { isResubmission, daysToAdd, deadline: complianceDeadline });
+						complianceDeadline.setDate(complianceDeadline.getDate() + daysToAdd);
+						updateData.tentative_date = complianceDeadline;
+						updateData.compliance_deadline = complianceDeadline;
+					}					// Add to status history if status changed
+					if (statusChanged) {
+						// Get appropriate note based on status
+						const statusNotes = {
+							'on_hold': 'Request is on hold and awaiting admin review',
+							'verifying': 'Admin is verifying the request details and requirements',
+							'for_compliance': isResubmission
+								? 'Resubmission required - Student must submit within 2 days or request will be rejected'
+								: 'Additional documents required - Student must submit within 3 days or will be marked as non-compliant',
+							'processing': 'Document is being prepared and processed',
+							'for_pickup': 'Document is ready and available for pickup at the office',
+							'released': 'Document has been successfully released to the student',
+							'non_compliance': 'Student did not comply within the 3-day deadline - May be given another chance',
+							'rejected': 'Request has been rejected - Student failed resubmission deadline',
+							'cancelled': 'Request was cancelled'
+						}; const statusHistoryEntry = {
+							status: status,
+							timestamp: new Date(),
+							changedBy: user.name || user.full_name || 'Admin',
+							note: statusNotes[status] || 'Status updated'
+						};						// Push to status_history array
 						updateData.$push = updateData.$push || {};
 						updateData.$push.status_history = statusHistoryEntry;
 					}
 				}
 
+				// Determine the status that will be used after update
+				const finalStatus = (status !== undefined && status !== null) ? status : existingRequest.status;
+
 				if (tentativeDate !== undefined) {
 					const newTentativeDate = tentativeDate ? new Date(tentativeDate) : null;
-					updateData.tentative_date = newTentativeDate;
-					// Track if tentative date changed (only if it's being set, not cleared)
-					// Compare dates by converting to ISO string for accurate comparison
-					const oldDateStr = oldTentativeDate ? new Date(oldTentativeDate).toISOString().split('T')[0] : null;
-					const newDateStr = newTentativeDate ? new Date(newTentativeDate).toISOString().split('T')[0] : null;
-					tentativeDateChanged = (newDateStr !== oldDateStr && newTentativeDate !== null);
+
+					// If the final status is 'verifying', ignore any tentative date set by the client and clear it
+					if (finalStatus === 'verifying') {
+						updateData.tentative_date = null;
+						tentativeDateChanged = false;
+					} else {
+						updateData.tentative_date = newTentativeDate;
+						// Track if tentative date changed (only if it's being set, not cleared)
+						// Compare dates by converting to ISO string for accurate comparison
+						const oldDateStr = oldTentativeDate ? new Date(oldTentativeDate).toISOString().split('T')[0] : null;
+						const newDateStr = newTentativeDate ? new Date(newTentativeDate).toISOString().split('T')[0] : null;
+						tentativeDateChanged = (newDateStr !== oldDateStr && newTentativeDate !== null);
+					}
 				}
 
 				if (paymentStatus !== undefined) {
@@ -934,37 +965,37 @@ export async function POST({ request }) {
 						'rejected': 'Rejected',
 						'cancelled': 'Cancelled'
 					};
-					
-				
-				const statusMessages = {
-					'on_hold': 'Your document request is currently on hold.',
-					'verifying': 'Your document request is now being verified.',
-					'for_compliance': isResubmission
-						? 'Please submit the required documents within 2 days or your request will be rejected.'
-						: 'Please submit the required documents within 3 days or it will be marked as non-compliant.',
-					'processing': 'Your document request is being processed.',
-					'for_pickup': 'Your document is ready for pickup! Please visit the office.',
-					'released': 'Your document has been released. Thank you!',
-					'non_compliance': 'Your request has been marked as non-compliant. You may be given another chance to resubmit.',
-					'rejected': 'Your request has been rejected. You may submit a new request if needed.',
-					'cancelled': 'Your document request has been cancelled.'
-				};					// Send automated message to document request thread
+
+
+					const statusMessages = {
+						'on_hold': 'Your document request is currently on hold.',
+						'verifying': 'Your document request is now being verified.',
+						'for_compliance': isResubmission
+							? 'Please submit the required documents within 2 days or your request will be rejected.'
+							: 'Please submit the required documents within 3 days or it will be marked as non-compliant.',
+						'processing': 'Your document request is being processed.',
+						'for_pickup': 'Your document is ready for pickup! Please visit the office.',
+						'released': 'Your document has been released. Thank you!',
+						'non_compliance': 'Your request has been marked as non-compliant. You may be given another chance to resubmit.',
+						'rejected': 'Your request has been rejected. You may submit a new request if needed.',
+						'cancelled': 'Your document request has been cancelled.'
+					};					// Send automated message to document request thread
 					// Use tentativeDate from input (if provided), and paymentAmount from input or existing
 					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : null;
 					const finalPaymentAmount = paymentAmount !== undefined && paymentAmount !== null ? paymentAmount : (existingRequest.payment_amount || null);
 					// Get current payment status (use new status if changed, otherwise existing status)
 					const finalPaymentStatus = updateData.payment_status || existingRequest.payment_status || null;
-					
-				await sendAutomatedStatusMessage(
-					db,
-					requestId,
-					status,
-					user.name || user.full_name,
-					finalTentativeDate,
-					finalPaymentAmount,
-					finalPaymentStatus,
-					isResubmission
-				);					await createDocumentRequestNotification(db, existingRequest.student_id, {
+
+					await sendAutomatedStatusMessage(
+						db,
+						requestId,
+						status,
+						user.name || user.full_name,
+						finalTentativeDate,
+						finalPaymentAmount,
+						finalPaymentStatus,
+						isResubmission
+					); await createDocumentRequestNotification(db, existingRequest.student_id, {
 						title: `Document Request Status Updated`,
 						message: `Your request for "${existingRequest.document_type}" (${requestId}) status changed to: ${statusNames[status]}. ${statusMessages[status] || ''}`,
 						priority: status === 'for_pickup' ? 'high' : 'normal',
@@ -979,7 +1010,7 @@ export async function POST({ request }) {
 				// 2. Notify on payment status change to 'paid'
 				if (paymentStatusChanged) {
 					const paymentAmount = existingRequest.payment_amount || 0;
-					
+
 					// Send automated message to document request thread
 					await sendAutomatedPaymentMessage(
 						db,
@@ -1000,23 +1031,23 @@ export async function POST({ request }) {
 					});
 				}
 
-			// 3. Notify on tentative date change (but not for compliance status, as deadline is already in status message)
-			if (tentativeDateChanged) {
-				const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
-				const currentStatus = updateData.status || existingRequest.status || 'processing';
-				
-				// Don't send separate tentative date message for compliance status
-				if (finalTentativeDate && currentStatus !== 'for_compliance') {
-					// Send automated message to document request thread
-					await sendAutomatedTentativeDateMessage(
-						db,
-						requestId,
-						finalTentativeDate,
-						user.name || user.full_name,
-						currentStatus
-					);
-				}
-			}				// Log activity with detailed information
+				// 3. Notify on tentative date change (but not for compliance status, as deadline is already in status message)
+				if (tentativeDateChanged) {
+					const finalTentativeDate = tentativeDate !== undefined ? tentativeDate : (updateData.tentative_date || null);
+					const currentStatus = updateData.status || existingRequest.status || 'processing';
+
+					// Don't send separate tentative date message for compliance status or verifying status
+					if (finalTentativeDate && currentStatus !== 'for_compliance' && currentStatus !== 'verifying') {
+						// Send automated message to document request thread
+						await sendAutomatedTentativeDateMessage(
+							db,
+							requestId,
+							finalTentativeDate,
+							user.name || user.full_name,
+							currentStatus
+						);
+					}
+				}				// Log activity with detailed information
 				await logActivityWithUser(
 					'document_request_updated',
 					`Document request ${requestId} updated`,
@@ -1183,7 +1214,7 @@ export async function POST({ request }) {
 			case 'markAsRead':
 				// Students can mark messages as read for their own requests
 				const markReadRequestId = data.requestId;
-				
+
 				if (!markReadRequestId) {
 					return json({ error: 'Request ID is required' }, { status: 400 });
 				}
@@ -1219,150 +1250,147 @@ export async function POST({ request }) {
 					return json({ error: 'Failed to mark as read' }, { status: 500 });
 				}
 
-				return json({ 
-					success: true, 
+				return json({
+					success: true,
 					message: 'Messages marked as read',
 					data: { lastReadAt: new Date() }
 				});
 
-		case 'sendMessage':
-			// Both students and admins can send messages
-			const msgRequestId = data.requestId;
-			const messageText = data.message || '';
-			const attachments = data.attachments || [];
+			case 'sendMessage':
+				// Both students and admins can send messages
+				const msgRequestId = data.requestId;
+				const messageText = data.message || '';
+				const attachments = data.attachments || [];
 
-			if (!msgRequestId || (!messageText && attachments.length === 0)) {
-				return json({ error: 'Request ID and message or attachments are required' }, { status: 400 });
-			}
+				if (!msgRequestId || (!messageText && attachments.length === 0)) {
+					return json({ error: 'Request ID and message or attachments are required' }, { status: 400 });
+				}
 
-			// Find the request
-			const targetRequest = await db
-				.collection('document_requests')
-				.findOne({ request_id: msgRequestId });
+				// Find the request
+				const targetRequest = await db
+					.collection('document_requests')
+					.findOne({ request_id: msgRequestId });
 
-			if (!targetRequest) {
-				return json({ error: 'Request not found' }, { status: 404 });
-			}
+				if (!targetRequest) {
+					return json({ error: 'Request not found' }, { status: 404 });
+				}
 
-			// For students, verify they own the request
-			if (user.account_type === 'student' && targetRequest.student_id !== user.id) {
-				return json({ error: 'You can only send messages to your own requests' }, { status: 403 });
-			}
+				// For students, verify they own the request
+				if (user.account_type === 'student' && targetRequest.student_id !== user.id) {
+					return json({ error: 'You can only send messages to your own requests' }, { status: 403 });
+				}
 
-			// Encrypt the message text before storing (if present)
-			const encryptedText = messageText ? encryptMessage(messageText.trim()) : '';
+				// Encrypt the message text before storing (if present)
+				const encryptedText = messageText ? encryptMessage(messageText.trim()) : '';
 
-			// Create the message object with encrypted text and attachments
-			const newMessage = {
-				id: new ObjectId().toString(),
-				author: user.name || user.full_name,
-				authorId: user.id,
-				authorRole: user.account_type,
-				text: encryptedText,
-				attachments: attachments, // Store attachments (already base64 encoded from client)
-				created_at: new Date()
-			};
+				// Create the message object with encrypted text and attachments
+				const newMessage = {
+					id: new ObjectId().toString(),
+					author: user.name || user.full_name,
+					authorId: user.id,
+					authorRole: user.account_type,
+					text: encryptedText,
+					attachments: attachments, // Store attachments (already base64 encoded from client)
+					created_at: new Date()
+				};
 
-			// Add message to the document request
-			const messageResult = await db
-				.collection('document_requests')
-				.updateOne(
-					{ request_id: msgRequestId },
-					{
-						$push: { messages: newMessage },
-						$set: { updated_at: new Date() }
-					}
-				);
-
-			if (messageResult.matchedCount === 0) {
-				return json({ error: 'Failed to send message' }, { status: 500 });
-			}
-
-			// Auto-update status from for_compliance to verifying if student sends files
-			if (user.account_type === 'student' && 
-			    targetRequest.status === 'for_compliance' && 
-			    attachments.length > 0) {
-				try {
-					// Calculate tentative date for verifying status (5 days from now)
-					const verifyingDeadline = new Date();
-					verifyingDeadline.setDate(verifyingDeadline.getDate() + 5);
-
-					await db.collection('document_requests').updateOne(
+				// Add message to the document request
+				const messageResult = await db
+					.collection('document_requests')
+					.updateOne(
 						{ request_id: msgRequestId },
 						{
-							$set: {
-								status: 'verifying',
-								tentative_date: verifyingDeadline,
-								updated_at: new Date()
-							},
-							$push: {
-								status_history: {
-									status: 'verifying',
-									timestamp: new Date(),
-									changedBy: 'System',
-									note: 'Student submitted compliance documents - Automatically moved to verification'
-								}
-							}
+							$push: { messages: newMessage },
+							$set: { updated_at: new Date() }
 						}
 					);
 
-					// Send automated status message
-					await sendAutomatedStatusMessage(
-						db,
-						msgRequestId,
-						'verifying',
-						'System'
-					);
+				if (messageResult.matchedCount === 0) {
+					return json({ error: 'Failed to send message' }, { status: 500 });
+				}
 
-					// Notify student about status change
+				// Auto-update status from for_compliance to verifying if student sends files
+				if (user.account_type === 'student' &&
+					targetRequest.status === 'for_compliance' &&
+					attachments.length > 0) {
+					try {
+						// When moving to 'verifying', do NOT set a tentative_date; keep it null
+						await db.collection('document_requests').updateOne(
+							{ request_id: msgRequestId },
+							{
+								$set: {
+									status: 'verifying',
+									tentative_date: null,
+									updated_at: new Date()
+								},
+								$push: {
+									status_history: {
+										status: 'verifying',
+										timestamp: new Date(),
+										changedBy: 'System',
+										note: 'Student submitted compliance documents - Automatically moved to verification'
+									}
+								}
+							}
+						);
+
+						// Send automated status message
+						await sendAutomatedStatusMessage(
+							db,
+							msgRequestId,
+							'verifying',
+							'System'
+						);
+
+						// Notify student about status change
+						await createDocumentRequestNotification(db, targetRequest.student_id, {
+							title: 'Status Updated to Verifying',
+							message: `Your compliance documents for "${targetRequest.document_type}" (${msgRequestId}) have been received. Your request is now being verified.`,
+							priority: 'normal',
+							requestId: msgRequestId,
+							documentType: targetRequest.document_type,
+							status: 'verifying',
+							adminName: 'System',
+							adminId: null
+						});
+					} catch (error) {
+						console.error('Error auto-updating status:', error);
+						// Don't fail the message send if status update fails
+					}
+				}
+
+				// 3. Notify student when admin/teacher sends a message
+				if (user.account_type === 'admin' || user.account_type === 'teacher') {
+					let notificationMessage = '';
+
+					// Handle different message scenarios
+					if (messageText && attachments.length > 0) {
+						// Both text and attachments
+						const truncatedText = messageText.length > 80
+							? messageText.substring(0, 80) + '...'
+							: messageText;
+						notificationMessage = `${truncatedText} (+ ${attachments.length} file${attachments.length > 1 ? 's' : ''})`;
+					} else if (messageText) {
+						// Only text
+						notificationMessage = messageText.length > 100
+							? messageText.substring(0, 100) + '...'
+							: messageText;
+					} else if (attachments.length > 0) {
+						// Only attachments
+						notificationMessage = `Sent ${attachments.length} file${attachments.length > 1 ? 's' : ''}`;
+					}
+
 					await createDocumentRequestNotification(db, targetRequest.student_id, {
-						title: 'Status Updated to Verifying',
-						message: `Your compliance documents for "${targetRequest.document_type}" (${msgRequestId}) have been received. Your request is now being verified.`,
+						title: `New Message from ${user.name}`,
+						message: `You have a new message regarding your "${targetRequest.document_type}" request (${msgRequestId}): ${notificationMessage}`,
 						priority: 'normal',
 						requestId: msgRequestId,
 						documentType: targetRequest.document_type,
-						status: 'verifying',
-						adminName: 'System',
-						adminId: null
+						status: targetRequest.status,
+						adminName: user.name,
+						adminId: user.id
 					});
-				} catch (error) {
-					console.error('Error auto-updating status:', error);
-					// Don't fail the message send if status update fails
 				}
-			}
-
-			// 3. Notify student when admin/teacher sends a message
-			if (user.account_type === 'admin' || user.account_type === 'teacher') {
-				let notificationMessage = '';
-				
-				// Handle different message scenarios
-				if (messageText && attachments.length > 0) {
-					// Both text and attachments
-					const truncatedText = messageText.length > 80 
-						? messageText.substring(0, 80) + '...' 
-						: messageText;
-					notificationMessage = `${truncatedText} (+ ${attachments.length} file${attachments.length > 1 ? 's' : ''})`;
-				} else if (messageText) {
-					// Only text
-					notificationMessage = messageText.length > 100 
-						? messageText.substring(0, 100) + '...' 
-						: messageText;
-				} else if (attachments.length > 0) {
-					// Only attachments
-					notificationMessage = `Sent ${attachments.length} file${attachments.length > 1 ? 's' : ''}`;
-				}
-				
-				await createDocumentRequestNotification(db, targetRequest.student_id, {
-					title: `New Message from ${user.name}`,
-					message: `You have a new message regarding your "${targetRequest.document_type}" request (${msgRequestId}): ${notificationMessage}`,
-					priority: 'normal',
-					requestId: msgRequestId,
-					documentType: targetRequest.document_type,
-					status: targetRequest.status,
-					adminName: user.name,
-					adminId: user.id
-				});
-			}
 
 				// Return the message with decrypted text for the response
 				return json({
@@ -1415,7 +1443,7 @@ function formatDateDisplay(dateString) {
 function formatReceiptDate(dateString) {
 	if (!dateString) return 'N/A';
 	const date = new Date(dateString);
-	const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+	const months = ['January', 'February', 'March', 'April', 'May', 'June',
 		'July', 'August', 'September', 'October', 'November', 'December'];
 	return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
@@ -1424,7 +1452,7 @@ function formatReceiptDate(dateString) {
 async function generateReceiptPDF(request) {
 	return new Promise((resolve, reject) => {
 		try {
-			const doc = new PDFDocument({ 
+			const doc = new PDFDocument({
 				size: 'LEGAL',
 				margins: { top: 50, bottom: 50, left: 50, right: 50 }
 			});
@@ -1488,18 +1516,18 @@ async function generateReceiptPDF(request) {
 			const studentInfoHeight = 120;
 			doc.roundedRect(margin, studentInfoY, contentWidth, studentInfoHeight, 8)
 				.fill(lightGray);
-			
+
 			doc.fontSize(12)
 				.fillColor(darkGray)
 				.font('Helvetica-Bold')
 				.text('Student Information', margin + 15, studentInfoY + 15);
-			
+
 			// Horizontal line under title
 			doc.moveTo(margin + 15, studentInfoY + 35)
 				.lineTo(pageWidth - margin - 15, studentInfoY + 35)
 				.strokeColor(black)
 				.stroke();
-			
+
 			// Student details
 			const leftColX = margin + 15;
 			const rightColX = pageWidth / 2 + 20;
@@ -1538,18 +1566,18 @@ async function generateReceiptPDF(request) {
 			const docDetailsY = yPos;
 			doc.roundedRect(margin, docDetailsY, contentWidth, 120, 8)
 				.fill(lightGray);
-			
+
 			doc.fontSize(12)
 				.fillColor(darkGray)
 				.font('Helvetica-Bold')
 				.text('Document Details', margin + 15, docDetailsY + 15);
-			
+
 			// Horizontal line under title
 			doc.moveTo(margin + 15, docDetailsY + 35)
 				.lineTo(pageWidth - margin - 15, docDetailsY + 35)
 				.strokeColor(black)
 				.stroke();
-			
+
 			// Document details
 			const docDetailY = docDetailsY + 50;
 
@@ -1627,45 +1655,45 @@ async function generateReceiptPDF(request) {
 			const statusBoxHeight = 55;
 			const statusBoxX = (pageWidth - statusBoxWidth) / 2;
 			const statusBoxY = yPos;
-			
+
 			// Light brown/beige background
 			doc.roundedRect(statusBoxX, statusBoxY, statusBoxWidth, statusBoxHeight, 5)
 				.fill('#D7CCC8');
-			
+
 			// Border
 			doc.roundedRect(statusBoxX, statusBoxY, statusBoxWidth, statusBoxHeight, 5)
 				.strokeColor('#8D6E63')
 				.lineWidth(1)
 				.stroke();
-			
+
 			// "Payment Status" label
 			doc.fontSize(10)
 				.fillColor(darkGray)
 				.font('Helvetica-Bold')
 				.text('Payment Status', statusBoxX + 10, statusBoxY + 10, { width: statusBoxWidth - 20, align: 'center' });
-			
+
 			// Horizontal line under label
 			doc.moveTo(statusBoxX + 10, statusBoxY + 45)
 				.lineTo(statusBoxX + statusBoxWidth - 10, statusBoxY + 45)
 				.strokeColor('#8D6E63')
 				.stroke();
-			
+
 			yPos += statusBoxHeight + 30;
 
 			// Instructions for Cashier
 			const instructionsY = yPos;
 			doc.roundedRect(margin, instructionsY, contentWidth, 120, 8)
 				.fill(lightBlue);
-			
+
 			// Blue vertical line on left
 			doc.rect(margin, instructionsY, 5, 120)
 				.fill('#2196F3');
-			
+
 			doc.fontSize(12)
 				.fillColor(darkGray)
 				.font('Helvetica-Bold')
 				.text('Instructions for Cashier:', margin + 20, instructionsY + 15);
-			
+
 			const instructions = [
 				'Verify student ID matches the name on this receipt',
 				'Confirm payment status before releasing document',
@@ -1678,7 +1706,7 @@ async function generateReceiptPDF(request) {
 			doc.fontSize(10)
 				.fillColor(black)
 				.font('Helvetica');
-			
+
 			instructions.forEach((instruction, index) => {
 				doc.text(`${index + 1}. ${instruction}`, margin + 20, instructionY);
 				instructionY += 15;

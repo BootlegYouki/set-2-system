@@ -6,8 +6,8 @@ import { ObjectId } from 'mongodb';
 // Helper function to get current school year from admin settings
 async function getCurrentSchoolYear(db) {
     try {
-        const setting = await db.collection('admin_settings').findOne({ 
-            setting_key: 'current_school_year' 
+        const setting = await db.collection('admin_settings').findOne({
+            setting_key: 'current_school_year'
         });
         return setting?.setting_value || '2025-2026'; // Fallback if not set
     } catch (error) {
@@ -32,7 +32,7 @@ export async function GET({ url, request }) {
         const scheduleId = url.searchParams.get('scheduleId');
 
         const db = await connectToDatabase();
-        
+
         // Get school year from query params or use current school year from admin settings
         const schoolYear = url.searchParams.get('schoolYear') || await getCurrentSchoolYear(db);
 
@@ -81,7 +81,7 @@ export async function GET({ url, request }) {
                     {
                         $lookup: {
                             from: 'rooms',
-                            localField: 'section.room_id',
+                            localField: 'room_id',
                             foreignField: '_id',
                             as: 'room'
                         }
@@ -90,6 +90,7 @@ export async function GET({ url, request }) {
                         $project: {
                             id: '$_id',
                             section_id: 1,
+                            room_id: 1,
                             section_name: { $arrayElemAt: ['$section.name', 0] },
                             grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
                             day_of_week: 1,
@@ -159,6 +160,7 @@ export async function GET({ url, request }) {
                         $project: {
                             id: '$_id',
                             section_id: 1,
+                            room_id: 1,
                             section_name: { $arrayElemAt: ['$section.name', 0] },
                             grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
                             day_of_week: 1,
@@ -180,11 +182,11 @@ export async function GET({ url, request }) {
                         }
                     }
                 ]).toArray();
-                
+
                 if (singleSchedule.length === 0) {
                     return json({ success: false, error: 'Schedule not found' }, { status: 404 });
                 }
-                
+
                 return json({ success: true, data: singleSchedule[0] });
 
             case 'section-schedules':
@@ -234,7 +236,7 @@ export async function GET({ url, request }) {
                     {
                         $lookup: {
                             from: 'rooms',
-                            localField: 'section.room_id',
+                            localField: 'room_id',
                             foreignField: '_id',
                             as: 'room'
                         }
@@ -243,6 +245,7 @@ export async function GET({ url, request }) {
                         $project: {
                             id: '$_id',
                             section_id: 1,
+                            room_id: 1,
                             section_name: { $arrayElemAt: ['$section.name', 0] },
                             grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
                             day_of_week: 1,
@@ -308,7 +311,7 @@ export async function GET({ url, request }) {
                     {
                         $lookup: {
                             from: 'rooms',
-                            localField: 'section.room_id',
+                            localField: 'room_id',
                             foreignField: '_id',
                             as: 'room'
                         }
@@ -317,6 +320,7 @@ export async function GET({ url, request }) {
                         $project: {
                             id: '$_id',
                             section_id: 1,
+                            room_id: 1,
                             section_name: { $arrayElemAt: ['$section.name', 0] },
                             grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
                             day_of_week: 1,
@@ -404,7 +408,7 @@ export async function GET({ url, request }) {
                     {
                         $lookup: {
                             from: 'rooms',
-                            localField: 'section.room_id',
+                            localField: 'room_id',
                             foreignField: '_id',
                             as: 'room'
                         }
@@ -413,6 +417,7 @@ export async function GET({ url, request }) {
                         $project: {
                             id: '$_id',
                             section_id: 1,
+                            room_id: 1,
                             section_name: { $arrayElemAt: ['$section.name', 0] },
                             grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
                             day_of_week: 1,
@@ -618,6 +623,7 @@ export async function GET({ url, request }) {
                                 start_time: 1,
                                 end_time: 1,
                                 section_id: 1,
+                                room_id: 1,
                                 section_name: { $arrayElemAt: ['$section.name', 0] },
                                 grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
                                 teacher_name: { $arrayElemAt: ['$teacher.full_name', 0] },
@@ -638,8 +644,8 @@ export async function GET({ url, request }) {
                     }
                 }
 
-                return json({ 
-                    success: true, 
+                return json({
+                    success: true,
                     hasConflicts: conflicts.length > 0,
                     conflicts: conflicts
                 });
@@ -689,7 +695,7 @@ export async function GET({ url, request }) {
                     {
                         $lookup: {
                             from: 'rooms',
-                            localField: 'section.room_id',
+                            localField: 'room_id',
                             foreignField: '_id',
                             as: 'room'
                         }
@@ -698,6 +704,7 @@ export async function GET({ url, request }) {
                         $project: {
                             id: '$_id',
                             section_id: 1,
+                            room_id: 1,
                             section_name: { $arrayElemAt: ['$section.name', 0] },
                             grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
                             day_of_week: 1,
@@ -741,17 +748,18 @@ export async function POST({ request, getClientAddress }) {
 
         const data = await request.json();
         console.log('Received schedule data:', data);
-        
-        const { 
-            sectionId, 
-            dayOfWeek, 
-            startTime, 
-            endTime, 
-            scheduleType, 
-            subjectId, 
-            activityTypeId, 
-            teacherId, 
-            schoolYear 
+
+        const {
+            sectionId,
+            dayOfWeek,
+            startTime,
+            endTime,
+            scheduleType,
+            subjectId,
+            activityTypeId,
+            teacherId,
+            roomId,
+            schoolYear
         } = data;
 
         console.log('Received schedule data:', {
@@ -814,8 +822,8 @@ export async function POST({ request, getClientAddress }) {
         const conflictingSchedule = await db.collection('schedules').findOne(conflictQuery);
 
         if (conflictingSchedule) {
-            return json({ 
-                success: false, 
+            return json({
+                success: false,
                 error: 'Time conflict detected with existing schedule in this section',
                 conflictingSchedule: {
                     id: conflictingSchedule._id,
@@ -887,10 +895,95 @@ export async function POST({ request, getClientAddress }) {
 
             if (teacherConflict.length > 0) {
                 const conflict = teacherConflict[0];
-                return json({ 
-                    success: false, 
+                return json({
+                    success: false,
                     error: `Teacher conflict detected: ${conflict.teacher_name} is already scheduled to teach ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${dayOfWeek}`,
                     conflictType: 'teacher_conflict',
+                    conflictingSchedule: conflict
+                }, { status: 409 });
+            }
+        }
+
+        // Check for room conflicts
+        // Determine the effective room ID for this new schedule (prioritize direct assignment, fall back to section default)
+        const effectiveRoomId = roomId ? new ObjectId(roomId) : (section && section.room_id);
+
+        if (effectiveRoomId) {
+            const roomConflicts = await db.collection('schedules').aggregate([
+                {
+                    $match: {
+                        day_of_week: dayOfWeek,
+                        school_year: schoolYear,
+                        // Check for time overlaps
+                        $or: [
+                            {
+                                $and: [
+                                    { start_time: { $lte: startTime } },
+                                    { end_time: { $gt: startTime } }
+                                ]
+                            },
+                            {
+                                $and: [
+                                    { start_time: { $lt: endTime } },
+                                    { end_time: { $gte: endTime } }
+                                ]
+                            },
+                            {
+                                $and: [
+                                    { start_time: { $gte: startTime } },
+                                    { end_time: { $lte: endTime } }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'sections',
+                        localField: 'section_id',
+                        foreignField: '_id',
+                        as: 'conflict_section'
+                    }
+                },
+                {
+                    $addFields: {
+                        // Resolve the room used by the potentially conflicting schedule
+                        used_room_id: {
+                            $ifNull: ["$room_id", { $arrayElemAt: ["$conflict_section.room_id", 0] }]
+                        }
+                    }
+                },
+                {
+                    $match: {
+                        used_room_id: effectiveRoomId
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'rooms',
+                        localField: 'used_room_id',
+                        foreignField: '_id',
+                        as: 'conflict_room'
+                    }
+                },
+                {
+                    $project: {
+                        id: '$_id',
+                        start_time: 1,
+                        end_time: 1,
+                        section_name: { $arrayElemAt: ['$conflict_section.name', 0] },
+                        grade_level: { $arrayElemAt: ['$conflict_section.grade_level', 0] },
+                        room_name: { $arrayElemAt: ['$conflict_room.name', 0] }
+                    }
+                }
+            ]).toArray();
+
+            if (roomConflicts.length > 0) {
+                const conflict = roomConflicts[0];
+                return json({
+                    success: false,
+                    error: `Room Conflict: ${conflict.room_name} is already booked by ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${dayOfWeek}`,
+                    conflictType: 'room_conflict',
                     conflictingSchedule: conflict
                 }, { status: 409 });
             }
@@ -907,6 +1000,7 @@ export async function POST({ request, getClientAddress }) {
                 subject_id: subjectId ? new ObjectId(subjectId) : null,
                 activity_type_id: activityTypeId ? new ObjectId(activityTypeId) : null,
                 teacher_id: teacherId ? new ObjectId(teacherId) : null,
+                room_id: roomId ? new ObjectId(roomId) : null,
                 school_year: schoolYear,
                 created_at: new Date(),
                 updated_at: new Date()
@@ -937,11 +1031,11 @@ export async function POST({ request, getClientAddress }) {
                 console.log('Schedule Creation - User from request:', user);
                 console.log('Schedule Creation - All headers:', Object.fromEntries(request.headers.entries()));
                 console.log('Schedule Creation - x-user-info header:', request.headers.get('x-user-info'));
-                
+
                 // Get client IP and user agent (matching rooms API pattern)
                 const ip_address = getClientAddress();
                 const user_agent = request.headers.get('user-agent');
-                
+
                 // Get human-readable names for logging
                 const [section, subject, activityType, teacher] = await Promise.all([
                     db.collection('sections').findOne({ _id: scheduleDoc.section_id }, { projection: { name: 1, grade_level: 1 } }),
@@ -1008,17 +1102,17 @@ export async function PUT({ request, getClientAddress }) {
         const user = authResult.user;
 
         const data = await request.json();
-        const { 
+        const {
             scheduleId,
-            sectionId, 
-            dayOfWeek, 
-            startTime, 
-            endTime, 
-            scheduleType, 
-            subjectId, 
-            activityTypeId, 
-            teacherId, 
-            schoolYear 
+            sectionId,
+            dayOfWeek,
+            startTime,
+            endTime,
+            scheduleType,
+            subjectId,
+            activityTypeId,
+            teacherId,
+            schoolYear
         } = data;
 
         const clientIP = getClientAddress();
@@ -1076,8 +1170,8 @@ export async function PUT({ request, getClientAddress }) {
         const conflictingSchedule = await db.collection('schedules').findOne(conflictQuery);
 
         if (conflictingSchedule) {
-            return json({ 
-                success: false, 
+            return json({
+                success: false,
                 error: 'Time conflict detected with existing schedule in this section',
                 conflictingSchedule: {
                     id: conflictingSchedule._id,
@@ -1150,12 +1244,97 @@ export async function PUT({ request, getClientAddress }) {
 
             if (teacherConflict.length > 0) {
                 const conflict = teacherConflict[0];
-                return json({ 
-                    success: false, 
+                return json({
+                    success: false,
                     error: `Teacher conflict detected: ${conflict.teacher_name} is already scheduled to teach ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${dayOfWeek}`,
                     conflictType: 'teacher_conflict',
                     conflictingSchedule: conflict
                 }, { status: 409 });
+            }
+        }
+
+        // Check for room conflicts (if section has a room assigned)
+        // Multiple sections can share a room, but not at overlapping times
+        const section = await db.collection('sections').findOne({ _id: new ObjectId(sectionId) });
+        if (section && section.room_id) {
+            // Find all other sections that use the same room
+            const sectionsWithSameRoom = await db.collection('sections').find({
+                room_id: section.room_id,
+                _id: { $ne: new ObjectId(sectionId) },
+                status: 'active'
+            }).toArray();
+
+            if (sectionsWithSameRoom.length > 0) {
+                // Check if any of these sections have conflicting schedules
+                const sectionIds = sectionsWithSameRoom.map(s => s._id);
+                const roomConflictQuery = {
+                    _id: { $ne: new ObjectId(scheduleId) }, // Exclude the schedule being updated
+                    section_id: { $in: sectionIds },
+                    day_of_week: dayOfWeek,
+                    school_year: schoolYear,
+                    $or: [
+                        {
+                            $and: [
+                                { start_time: { $lte: startTime } },
+                                { end_time: { $gt: startTime } }
+                            ]
+                        },
+                        {
+                            $and: [
+                                { start_time: { $lt: endTime } },
+                                { end_time: { $gte: endTime } }
+                            ]
+                        },
+                        {
+                            $and: [
+                                { start_time: { $gte: startTime } },
+                                { end_time: { $lte: endTime } }
+                            ]
+                        }
+                    ]
+                };
+
+                const roomConflict = await db.collection('schedules').aggregate([
+                    { $match: roomConflictQuery },
+                    {
+                        $lookup: {
+                            from: 'sections',
+                            localField: 'section_id',
+                            foreignField: '_id',
+                            as: 'section'
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'rooms',
+                            pipeline: [
+                                { $match: { _id: section.room_id } }
+                            ],
+                            as: 'room'
+                        }
+                    },
+                    {
+                        $project: {
+                            id: '$_id',
+                            start_time: 1,
+                            end_time: 1,
+                            section_id: 1,
+                            section_name: { $arrayElemAt: ['$section.name', 0] },
+                            grade_level: { $arrayElemAt: ['$section.grade_level', 0] },
+                            room_name: { $arrayElemAt: ['$room.name', 0] }
+                        }
+                    }
+                ]).toArray();
+
+                if (roomConflict.length > 0) {
+                    const conflict = roomConflict[0];
+                    return json({
+                        success: false,
+                        error: `Room Schedule Conflict: ${conflict.room_name} is already assigned to ${conflict.section_name} (Grade ${conflict.grade_level}) from ${conflict.start_time} to ${conflict.end_time} on ${dayOfWeek}`,
+                        conflictType: 'room_conflict',
+                        conflictingSchedule: conflict
+                    }, { status: 409 });
+                }
             }
         }
 
@@ -1182,7 +1361,7 @@ export async function PUT({ request, getClientAddress }) {
         try {
             // Get user info from request headers (matching rooms API pattern)
             const user = await getUserFromRequest(request);
-            
+
             // Get human-readable names for logging
             const [section, subject, activityType, teacher] = await Promise.all([
                 db.collection('sections').findOne({ _id: updateData.section_id }, { projection: { name: 1, grade_level: 1 } }),
@@ -1281,7 +1460,7 @@ export async function DELETE({ url, request, getClientAddress }) {
             try {
                 // Get user info from request headers (matching rooms API pattern)
                 const user = await getUserFromRequest(request);
-                
+
                 // Get human-readable names for logging
                 const [section, subject, activityType, teacher] = await Promise.all([
                     db.collection('sections').findOne({ _id: existingSchedule.section_id }, { projection: { name: 1, grade_level: 1 } }),

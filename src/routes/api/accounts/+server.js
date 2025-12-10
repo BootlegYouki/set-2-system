@@ -16,53 +16,53 @@ export async function POST({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const { accountType, gender, gradeLevel, firstName, lastName, middleInitial, email, birthdate, address, guardian, contactNumber, createdBy } = await request.json();
-    
+
     // Validate required fields
     if (!accountType || !gender || !firstName || !lastName) {
       return json({ error: 'Missing required fields' }, { status: 400 });
     }
-    
+
     // Validate email for students and teachers
     if ((accountType === 'student' || accountType === 'teacher') && !email) {
       return json({ error: 'Email is required for students and teachers' }, { status: 400 });
     }
-    
+
     // Validate email format
     if (email && !EMAIL_REGEX.test(email)) {
       return json({ error: 'Invalid email format' }, { status: 400 });
     }
-    
+
     // Check if email already exists (case-insensitive)
     if (email) {
       const db = client.db(process.env.MONGODB_DB_NAME);
       const usersCollection = db.collection('users');
-      const existingEmail = await usersCollection.findOne({ 
+      const existingEmail = await usersCollection.findOne({
         email: email.toLowerCase(),
         $or: [
           { status: { $exists: false } },
           { status: 'active' }
         ]
       });
-      
+
       if (existingEmail) {
         return json({ error: 'This email is already registered' }, { status: 409 });
       }
     }
-    
+
     // Validate grade level for students
     if (accountType === 'student' && !gradeLevel) {
       return json({ error: 'Grade level is required for students' }, { status: 400 });
     }
-    
+
     // Validate additional information for students
     if (accountType === 'student') {
       if (!birthdate || !address || !guardian || !contactNumber) {
         return json({ error: 'Birthdate, address, guardian, and contact number are required for students' }, { status: 400 });
       }
     }
-    
+
     // Calculate age from birthdate for students
     let age = null;
     if (accountType === 'student' && birthdate) {
@@ -74,20 +74,20 @@ export async function POST({ request, getClientAddress }) {
         age--;
       }
     }
-    
+
     // Generate account number
     const accountNumber = await generateAccountNumber(accountType);
-    
+
     // Hash password (using account number as password)
     const hashedPassword = await bcrypt.hash(accountNumber, 10);
-    
+
     // Construct full name
     const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
-    
+
     // Connect to MongoDB and insert document
     const db = client.db(process.env.MONGODB_DB_NAME);
     const usersCollection = db.collection('users');
-    
+
     // Create user document
     const userDoc = {
       account_number: accountNumber,
@@ -109,9 +109,9 @@ export async function POST({ request, getClientAddress }) {
       created_at: new Date(),
       updated_at: new Date()
     };
-    
+
     const result = await usersCollection.insertOne(userDoc);
-    const newAccount = { 
+    const newAccount = {
       id: result.insertedId.toString(),
       account_number: accountNumber,
       full_name: fullName,
@@ -119,16 +119,16 @@ export async function POST({ request, getClientAddress }) {
       created_at: userDoc.created_at,
       updated_at: userDoc.updated_at
     };
-    
+
     // Log the account creation activity
     try {
       // Get user info from request headers
       const user = await getUserFromRequest(request);
-      
+
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
-      
+
       // For MongoDB, we'll create a simple activity log collection
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
@@ -149,7 +149,7 @@ export async function POST({ request, getClientAddress }) {
       console.error('Error logging account creation activity:', logError);
       // Don't fail the account creation if logging fails
     }
-    
+
     // Format response to match frontend expectations
     const response = {
       id: newAccount.id,
@@ -160,7 +160,7 @@ export async function POST({ request, getClientAddress }) {
       updatedDate: new Date(newAccount.updated_at).toLocaleDateString('en-US'),
       status: 'active'
     };
-    
+
     // Send account creation email (don't block the response if email fails)
     if (email) {
       sendAccountCreationEmail({
@@ -178,12 +178,12 @@ export async function POST({ request, getClientAddress }) {
         console.error(`Error sending account creation email to ${email}:`, emailError);
       });
     }
-    
+
     return json({ success: true, account: response, emailSent: !!email }, { status: 201 });
-    
+
   } catch (error) {
     console.error('Error creating account:', error);
-    
+
     // Handle specific MongoDB errors
     if (error.code === 11000) { // Duplicate key error
       if (error.keyPattern && error.keyPattern.email) {
@@ -193,12 +193,12 @@ export async function POST({ request, getClientAddress }) {
         return json({ error: 'Account number already exists' }, { status: 409 });
       }
     }
-    
+
     // MongoDB connection errors
     if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
-    
+
     // Generic error
     return json({ error: 'Failed to create account. Please try again.' }, { status: 500 });
   }
@@ -213,22 +213,24 @@ export async function GET({ url, request }) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
     const user = authResult.user;
-    
+
     const limit = url.searchParams.get('limit'); // Get limit parameter but don't set default
     const type = url.searchParams.get('type'); // Get the type parameter
-    
+    const schoolYear = url.searchParams.get('schoolYear'); // Optional school year filter
+
     // Connect to MongoDB
     const db = client.db(process.env.MONGODB_DB_NAME);
     const usersCollection = db.collection('users');
-    
+
     // Build the query filter
-    let filter = { 
+    let filter = {
       $or: [
         { status: { $exists: false } },
-        { status: 'active' }
+        { status: 'active' },
+        { status: 'unenrolled' } // Include unenrolled students (e.g. after rollover)
       ]
     };
-    
+
     // Authorization: Teachers and advisers can only view student accounts
     if (user.account_type === 'teacher' || user.account_type === 'adviser') {
       filter.account_type = 'student';
@@ -236,9 +238,39 @@ export async function GET({ url, request }) {
       // Admins can filter by type
       filter.account_type = type;
     }
-    
+
+    // Filter by School Year (Created Date)
+    if (schoolYear) {
+      const [startYear, endYear] = schoolYear.split('-').map(Number);
+      // Assumption: School year ends around July/August of endYear, 
+      // but to be safe for "Snapshot", we show accounts created BEFORE the start of the *next* school year
+      // OR simply created before the end of this school year.
+      // Let's assume end of school year is ~August of endYear.
+      // Better: simply Created At <= End of School Year (June/July of endYear).
+      // Standard in PH: School year ends May/June. Let's use End of `endYear`.
+      const endDate = new Date(`${endYear}-08-01`); // Safe buffer
+
+      // Actually, if we are in 2025-2026, and looking at 2024-2025:
+      // We want accounts created BEFORE the rollover to 2025-2026.
+      // The safest bet is: created_at <= (Dec 31 of endYear) or similar logic.
+      // Let's us End of `endYear` (e.g. 2025).
+
+      // Use $and to combine with existing filters safely
+      if (!filter.$and) {
+        filter.$and = [];
+      }
+
+      filter.$and.push({
+        $or: [
+          { created_at: { $lte: endDate } },
+          { created_at: { $exists: false } }, // Include legacy accounts without date
+          { created_at: null }
+        ]
+      });
+    }
+
     let accounts;
-    
+
     // For teacher accounts, use aggregation to get department info
     if (type === 'teacher') {
       const pipeline = [
@@ -262,39 +294,39 @@ export async function GET({ url, request }) {
         {
           $addFields: {
             // Get the first department name if available
-            department_name: { 
-              $arrayElemAt: ['$departments.name', 0] 
+            department_name: {
+              $arrayElemAt: ['$departments.name', 0]
             }
           }
         },
         { $sort: { created_at: -1 } }
       ];
-      
+
       // Only apply limit if explicitly provided
       if (limit && !isNaN(parseInt(limit))) {
         pipeline.push({ $limit: parseInt(limit) });
       }
-      
+
       accounts = await usersCollection.aggregate(pipeline).toArray();
     } else {
       let query = usersCollection
         .find(filter)
         .sort({ created_at: -1 });
-      
+
       // Only apply limit if explicitly provided
       if (limit && !isNaN(parseInt(limit))) {
         query = query.limit(parseInt(limit));
       }
-      
+
       accounts = await query.toArray();
     }
-    
+
     // Get all sections to check for advisory assignments (for teachers)
     const sectionsCollection = db.collection('sections');
-    const activeSections = await sectionsCollection.find({ 
-      status: 'active' 
+    const activeSections = await sectionsCollection.find({
+      status: 'active'
     }).toArray();
-    
+
     // Create a map of adviser_id to section for quick lookup
     const adviserSectionMap = new Map();
     activeSections.forEach(section => {
@@ -305,12 +337,12 @@ export async function GET({ url, request }) {
         });
       }
     });
-    
+
     // Format the data to match frontend expectations
     const formattedAccounts = accounts.map(account => {
       const accountId = account._id.toString();
       const advisorySection = adviserSectionMap.get(accountId);
-      
+
       return {
         id: accountId,
         name: account.full_name,
@@ -333,17 +365,17 @@ export async function GET({ url, request }) {
         status: 'active'
       };
     });
-    
+
     return json({ success: true, accounts: formattedAccounts });
-    
+
   } catch (error) {
     console.error('Error fetching accounts:', error);
-    
+
     // MongoDB connection errors
     if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
-    
+
     return json({ error: 'Failed to fetch accounts' }, { status: 500 });
   }
 }
@@ -356,35 +388,35 @@ export async function PUT({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const { id, firstName, lastName, middleInitial, gradeLevel, birthdate, address, guardian, contactNumber } = await request.json();
-    
+
     // Validate required fields
     if (!id || !firstName || !lastName) {
       return json({ error: 'Account ID, first name, and last name are required' }, { status: 400 });
     }
-    
+
     // Connect to MongoDB
     const db = client.db(process.env.MONGODB_DB_NAME);
     const usersCollection = db.collection('users');
-    
+
     // Check if account exists and get its type
     const existingAccount = await usersCollection.findOne({ _id: new ObjectId(id) });
-    
+
     if (!existingAccount) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
-    
+
     const accountType = existingAccount.account_type;
     const oldFullName = existingAccount.full_name;
-    
+
     // Validate additional information for students
     if (accountType === 'student') {
       if (!birthdate || !address || !guardian || !contactNumber) {
         return json({ error: 'Birthdate, address, guardian, and contact number are required for students' }, { status: 400 });
       }
     }
-    
+
     // Calculate age from birthdate for students
     let age = null;
     if (accountType === 'student' && birthdate) {
@@ -396,10 +428,10 @@ export async function PUT({ request, getClientAddress }) {
         age--;
       }
     }
-    
+
     // Construct full name
     const fullName = `${lastName}, ${firstName}${middleInitial ? ' ' + middleInitial + '.' : ''}`;
-    
+
     // Prepare update document based on account type
     let updateDoc = {
       first_name: firstName,
@@ -421,29 +453,29 @@ export async function PUT({ request, getClientAddress }) {
         contact_number: contactNumber || null
       };
     }
-    
+
     // Update the document in MongoDB
     const result = await usersCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: updateDoc }
     );
-    
+
     if (result.matchedCount === 0) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
-    
+
     // Get the updated document
     const updatedAccount = await usersCollection.findOne({ _id: new ObjectId(id) });
-    
+
     // Log the account update activity
     try {
       // Get user info from request headers
       const user = await getUserFromRequest(request);
-      
+
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
-      
+
       // For MongoDB, we'll create a simple activity log collection
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
@@ -464,7 +496,7 @@ export async function PUT({ request, getClientAddress }) {
       console.error('Error logging account update activity:', logError);
       // Don't fail the update if logging fails
     }
-    
+
     // Format response to match frontend expectations
     const response = {
       id: updatedAccount._id.toString(),
@@ -484,28 +516,28 @@ export async function PUT({ request, getClientAddress }) {
       updatedDate: new Date(updatedAccount.updated_at).toLocaleDateString('en-US'),
       status: 'active'
     };
-    
-    return json({ 
-      success: true, 
+
+    return json({
+      success: true,
       message: `Account for "${updatedAccount.full_name}" has been updated successfully`,
-      account: response 
+      account: response
     });
-    
+
   } catch (error) {
     console.error('Error updating account:', error);
-    
+
     // Handle specific MongoDB errors
     if (error.code === 11000) { // Duplicate key error
       if (error.keyPattern && error.keyPattern.email) {
         return json({ error: 'An account with this email already exists' }, { status: 409 });
       }
     }
-    
+
     // MongoDB connection errors
     if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
-    
+
     // Generic error
     return json({ error: 'Failed to update account. Please try again.' }, { status: 500 });
   }
@@ -519,40 +551,40 @@ export async function DELETE({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const { id } = await request.json();
-    
+
     if (!id) {
       return json({ error: 'Account ID is required' }, { status: 400 });
     }
-    
+
     // Connect to MongoDB
     const db = client.db(process.env.MONGODB_DB_NAME);
     const usersCollection = db.collection('users');
-    
+
     // Check if account exists
     const account = await usersCollection.findOne({ _id: new ObjectId(id) });
-    
+
     if (!account) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
-    
+
     // Delete the account permanently
     const deleteResult = await usersCollection.deleteOne({ _id: new ObjectId(id) });
-    
+
     if (deleteResult.deletedCount === 0) {
       return json({ error: 'Failed to delete account' }, { status: 500 });
     }
-    
+
     // Log the account deletion activity
     try {
       // Get user info from request headers
       const user = await getUserFromRequest(request);
-      
+
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
-      
+
       // For MongoDB, we'll create a simple activity log collection
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
@@ -572,22 +604,22 @@ export async function DELETE({ request, getClientAddress }) {
       console.error('Error logging account deletion activity:', logError);
       // Don't fail the deletion if logging fails
     }
-    
-    const accountTypeLabel = account.account_type === 'student' ? 'Student' : 
-                            account.account_type === 'teacher' ? 'Teacher' : 'Admin';
+
+    const accountTypeLabel = account.account_type === 'student' ? 'Student' :
+      account.account_type === 'teacher' ? 'Teacher' : 'Admin';
     return json({
       success: true,
       message: `${accountTypeLabel} "${account.full_name}" has been deleted successfully`
     });
-    
+
   } catch (error) {
     console.error('Error deleting account:', error);
-    
+
     // MongoDB connection errors
     if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed' }, { status: 503 });
     }
-    
+
     return json({ error: 'Failed to delete account. Please try again.' }, { status: 500 });
   }
 }
@@ -596,16 +628,16 @@ export async function DELETE({ request, getClientAddress }) {
 async function generateAccountNumber(accountType) {
   const prefix = accountType === 'student' ? 'STU' : accountType === 'teacher' ? 'TCH' : 'ADM';
   const year = new Date().getFullYear();
-  
+
   // Connect to MongoDB
   const db = client.db(process.env.MONGODB_DB_NAME);
   const usersCollection = db.collection('users');
-  
+
   // Get all existing account numbers for this type and year (including archived accounts)
   const existingAccounts = await usersCollection.find({
     account_number: { $regex: `^${prefix}-${year}-` }
   }).toArray();
-  
+
   // Extract the numeric parts and create a Set for O(1) lookup
   const existingNumbers = new Set(
     existingAccounts.map(account => {
@@ -613,13 +645,13 @@ async function generateAccountNumber(accountType) {
       return match ? parseInt(match[1]) : 0;
     }).filter(num => num > 0) // Filter out invalid numbers
   );
-  
+
   // Find the lowest available number starting from 1
   let nextNumber = 1;
   while (existingNumbers.has(nextNumber)) {
     nextNumber++;
   }
-  
+
   return `${prefix}-${year}-${nextNumber.toString().padStart(4, '0')}`;
 }
 
@@ -631,58 +663,58 @@ export async function PATCH({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const { id, action } = await request.json();
-    
+
     if (!id) {
       return json({ error: 'Account ID is required' }, { status: 400 });
     }
-    
+
     if (action !== 'archive') {
       return json({ error: 'Invalid action. Only "archive" is supported.' }, { status: 400 });
     }
-    
+
     // Connect to MongoDB
     const db = client.db(process.env.MONGODB_DB_NAME);
     const usersCollection = db.collection('users');
-    
+
     // Check if account exists and is a student or teacher
     const account = await usersCollection.findOne({ _id: new ObjectId(id) });
-    
+
     if (!account) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
-    
+
     if (account.account_type !== 'student' && account.account_type !== 'teacher') {
       return json({ error: 'Only student and teacher accounts can be archived' }, { status: 400 });
     }
-    
+
     // Archive the account
     const updateResult = await usersCollection.updateOne(
       { _id: new ObjectId(id) },
-      { 
-        $set: { 
+      {
+        $set: {
           status: 'archived',
           archived_at: new Date(),
           updated_at: new Date()
         }
       }
     );
-    
+
     if (updateResult.matchedCount === 0) {
       return json({ error: 'Account not found' }, { status: 404 });
     }
-    
+
     // Determine activity type based on account type
     const activityType = account.account_type === 'student' ? 'student_archived' : 'teacher_archived';
     const accountTypeLabel = account.account_type === 'student' ? 'Student' : 'Teacher';
-    
+
     // Log the account archiving activity with user information
     try {
       const user = await getUserFromRequest(request);
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
-      
+
       // Create activity log with proper structure
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
@@ -702,20 +734,20 @@ export async function PATCH({ request, getClientAddress }) {
       console.error('Error logging account archiving activity:', logError);
       // Don't fail the archiving if logging fails
     }
-    
+
     return json({
       success: true,
       message: `${accountTypeLabel} "${account.full_name}" has been archived successfully`
     });
-    
+
   } catch (error) {
     console.error('Error archiving account:', error);
-    
+
     // MongoDB connection errors
     if (error.name === 'MongoNetworkError' || error.name === 'MongoServerError') {
       return json({ error: 'Database connection failed. Please try again.' }, { status: 503 });
     }
-    
+
     return json({ error: 'Failed to archive account. Please try again.' }, { status: 500 });
   }
 }

@@ -110,6 +110,17 @@ function createTeacherProfileStore() {
 
 				const profileData = profileResponse.data;
 
+				// Fetch account_number from users API
+				let accountNumber = teacherIdStr; // Fallback to teacherId
+				try {
+					const userResponse = await api.get(`/api/users?id=${teacherIdStr}`);
+					if (userResponse.success && userResponse.user) {
+						accountNumber = userResponse.user.account_number || teacherIdStr;
+					}
+				} catch (err) {
+					console.warn('Failed to fetch account number from users API:', err);
+				}
+
 				// Extract basic teacher data from the profile response
 				currentUserData = {
 					id: profileData.teacher.id,
@@ -120,6 +131,7 @@ function createTeacherProfileStore() {
 					email: profileData.teacher.email,
 					type: 'Teacher',
 					number: teacherIdStr,
+					accountNumber: accountNumber,
 					position: profileData.teacher.position || 'Teacher',
 					department: profileData.teacher.department || 'Not assigned',
 					contactNumber: 'Not available',

@@ -368,9 +368,8 @@
 				if (result.data.status) {
 					selectedRequest.status = result.data.status;
 				}
-				if (result.data.tentativeDate) {
-					selectedRequest.tentativeDate = result.data.tentativeDate;
-				}
+				// Only set tentative date when server returns one and the status is NOT 'verifying'
+				selectedRequest.tentativeDate = result.data.status === 'verifying' ? null : (result.data.tentativeDate || null);
 				if (result.data.statusHistory) {
 					selectedRequest.statusHistory = result.data.statusHistory;
 				}
@@ -522,7 +521,7 @@
 		</div>
 		<div class="card-value">{selectedRequest.cancelledDate}</div>
 	</div>
-	{:else if selectedRequest.tentativeDate}
+	{:else if selectedRequest.tentativeDate && selectedRequest.status !== 'verifying'}
 	<div class="student-docreq-card third-row">
 		<div class="card-label">
 			<span class="material-symbols-outlined">event</span> {selectedRequest.status === 'for_compliance' ? 'Deadline' : 'Tentative Date'}
