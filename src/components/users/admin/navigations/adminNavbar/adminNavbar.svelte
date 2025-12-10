@@ -6,7 +6,7 @@
 	// Props
 	let {
 		adminName = 'Admin User',
-		firstName = 'Admin',
+		lastName = 'User',
 		gender = 'male',
 		accountNumber = 'ADM-2025-0001',
 		profileImage = null,
@@ -14,6 +14,9 @@
 		onToggleNavRail,
 		onNavigateToSettings
 	} = $props();
+
+	// Fallback: extract last name from full name if lastName is not provided
+	let effectiveLastName = $derived(lastName && lastName !== 'Admin' ? lastName : extractLastName(adminName));
 
 	// Function to get title based on gender
 	function getTitle(gender) {
@@ -159,7 +162,7 @@
 							<img src={profileImage} alt="Profile" class="avatar-image" />
 						{:else}
 							<div class="avatar-placeholder">
-								{getInitials(firstName)}
+								{getInitials(effectiveLastName)}
 							</div>
 						{/if}
 					</div>

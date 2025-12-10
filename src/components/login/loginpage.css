@@ -748,6 +748,57 @@ input:-webkit-autofill:active {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* Download Button Styling */
+.download-button {
+  position: fixed;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  text-decoration: none;
+  font-family: var(--md-sys-typescale-label-large-font);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: var(--md-sys-typescale-label-large-weight);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-fast);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  cursor: pointer;
+}
+
+.download-button:hover {
+  background-color: var(--md-sys-color-surface-variant);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.download-button:active {
+  transform: translateY(0);
+}
+
+.download-button .material-symbols-outlined {
+  font-size: 20px;
+}
+
+/* Dark mode support for download button */
+[data-theme="dark"] .download-button {
+  background-color: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="dark"] .download-button:hover {
+  background-color: rgba(50, 50, 50, 0.9);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 @media (min-width: 768px) {
   .login-container {
   background-size: cover;
@@ -756,6 +807,10 @@ input:-webkit-autofill:active {
 
 /* Mobile responsive - remove background images */
 @media (max-width: 768px) {
+  .download-button {
+    display: none;
+  }
+
 /* Mobile Optimizations */
   .login-container {
     flex-direction: column;

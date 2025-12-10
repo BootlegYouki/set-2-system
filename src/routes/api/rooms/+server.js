@@ -11,18 +11,19 @@ export async function GET({ url, request }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const searchTerm = url.searchParams.get('search') || '';
     const building = url.searchParams.get('building');
     const status = url.searchParams.get('status');
-    
+    const schoolYear = url.searchParams.get('schoolYear'); // Optional school year filter
+
     const db = await connectToDatabase();
     const roomsCollection = db.collection('rooms');
     const sectionsCollection = db.collection('sections');
-    
+
     // Build MongoDB query
     let query = {};
-    
+
     // Add search filter
     if (searchTerm) {
       query.$or = [
@@ -31,17 +32,17 @@ export async function GET({ url, request }) {
         { floor: { $regex: searchTerm, $options: 'i' } }
       ];
     }
-    
+
     // Add building filter
     if (building && building !== '') {
       query.building = { $regex: `^${building}$`, $options: 'i' };
     }
-    
+
     // Add status filter
     if (status && status !== '') {
       query.status = status;
     }
-    
+
     // Fetch rooms with aggregation to include assigned sections
     const rooms = await roomsCollection.aggregate([
       { $match: query },
@@ -52,13 +53,39 @@ export async function GET({ url, request }) {
           foreignField: 'room_id',
           as: 'assignedSections',
           pipeline: [
-            { $match: { status: 'active' } }
+            schoolYear
+              ? { $match: { school_year: schoolYear } }
+              : { $match: { status: 'active' } }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'schedules',
+          localField: '_id',
+          foreignField: 'room_id',
+          as: 'roomSchedules',
+          pipeline: [
+            { $project: { section_id: 1 } }
+          ]
+        }
+      },
+      {
+        $lookup: {
+          from: 'sections',
+          localField: 'roomSchedules.section_id',
+          foreignField: '_id',
+          as: 'scheduledSections',
+          pipeline: [
+            schoolYear
+              ? { $match: { school_year: schoolYear } }
+              : { $match: { status: 'active' } }
           ]
         }
       },
       { $sort: { created_at: -1 } }
     ]).toArray();
-    
+
     // Format response to match frontend expectations
     const formattedRooms = rooms.map(room => ({
       id: room._id.toString(),
@@ -69,19 +96,21 @@ export async function GET({ url, request }) {
       assignedTo: room.assigned_to,
       createdDate: new Date(room.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(room.updated_at).toLocaleDateString('en-US'),
-      assignedSections: room.assignedSections.map(section => ({
-        id: section._id.toString(),
-        name: section.name,
-        gradeLevel: section.grade_level,
-        schoolYear: section.school_year
-      }))
+      assignedSections: [...(room.assignedSections || []), ...(room.scheduledSections || [])]
+        .filter((v, i, a) => a.findIndex(t => t._id.toString() === v._id.toString()) === i)
+        .map(section => ({
+          id: section._id.toString(),
+          name: section.name,
+          gradeLevel: section.grade_level,
+          schoolYear: section.school_year
+        }))
     }));
-    
+
     return json({
       success: true,
       data: formattedRooms
     });
-    
+
   } catch (error) {
     console.error('Error fetching rooms:', error);
     return json({
@@ -99,10 +128,10 @@ export async function POST({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const data = await request.json();
     const { name, building, floor } = data;
-    
+
     // Validation
     if (!name || !building || !floor) {
       return json({
@@ -110,24 +139,24 @@ export async function POST({ request, getClientAddress }) {
         message: 'Name, building, and floor are required'
       }, { status: 400 });
     }
-    
+
     const db = await connectToDatabase();
     const roomsCollection = db.collection('rooms');
-    
+
     // Check if room with same name in same building and floor already exists
     const existingRoom = await roomsCollection.findOne({
       name: { $regex: `^${name}$`, $options: 'i' },
       building: { $regex: `^${building}$`, $options: 'i' },
       floor: { $regex: `^${floor}$`, $options: 'i' }
     });
-    
+
     if (existingRoom) {
       return json({
         success: false,
         message: 'A room with this name already exists in the same building and floor'
       }, { status: 409 });
     }
-    
+
     // Insert new room
     const newRoom = {
       name,
@@ -138,19 +167,19 @@ export async function POST({ request, getClientAddress }) {
       created_at: new Date(),
       updated_at: new Date()
     };
-    
+
     const result = await roomsCollection.insertOne(newRoom);
     newRoom._id = result.insertedId;
-    
+
     // Log the room creation activity
     try {
       // Get user info from request headers
       const user = await getUserFromRequest(request);
-      
+
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
-      
+
       // Create activity log with proper structure
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
@@ -170,7 +199,7 @@ export async function POST({ request, getClientAddress }) {
       console.error('Error logging room creation activity:', logError);
       // Don't fail the room creation if logging fails
     }
-    
+
     // Format response to match component structure
     const formattedRoom = {
       id: newRoom._id.toString(),
@@ -183,13 +212,13 @@ export async function POST({ request, getClientAddress }) {
       updatedDate: new Date(newRoom.updated_at).toLocaleDateString('en-US'),
       assignedSections: []
     };
-    
+
     return json({
       success: true,
       message: `Room "${name}" created successfully`,
       data: formattedRoom
     });
-    
+
   } catch (error) {
     console.error('Error creating room:', error);
     return json({
@@ -207,10 +236,10 @@ export async function PATCH({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const data = await request.json();
     const { roomId, sectionIds, action } = data;
-    
+
     // Validation
     if (!roomId || !action) {
       return json({
@@ -218,18 +247,18 @@ export async function PATCH({ request, getClientAddress }) {
         message: 'Room ID and action are required'
       }, { status: 400 });
     }
-    
+
     if (action === 'assign' && (!sectionIds || !Array.isArray(sectionIds) || sectionIds.length === 0)) {
       return json({
         success: false,
         message: 'Section IDs are required for assignment'
       }, { status: 400 });
     }
-    
+
     const db = await connectToDatabase();
     const roomsCollection = db.collection('rooms');
     const sectionsCollection = db.collection('sections');
-    
+
     // Check if room exists
     const room = await roomsCollection.findOne({ _id: new ObjectId(roomId) });
     if (!room) {
@@ -238,64 +267,64 @@ export async function PATCH({ request, getClientAddress }) {
         message: 'Room not found'
       }, { status: 404 });
     }
-    
+
     if (action === 'assign') {
       // Convert section IDs to ObjectIds
       const sectionObjectIds = sectionIds.map(id => new ObjectId(id));
-      
+
       // Check if sections exist and are not already assigned to other rooms
       const sections = await sectionsCollection.find({
         _id: { $in: sectionObjectIds },
         status: 'active'
       }).toArray();
-      
+
       if (sections.length !== sectionIds.length) {
         return json({
           success: false,
           message: 'One or more sections not found or inactive'
         }, { status: 404 });
       }
-      
+
       // Check for conflicts with other rooms
-      const conflictingSections = sections.filter(section => 
+      const conflictingSections = sections.filter(section =>
         section.room_id && section.room_id.toString() !== roomId
       );
-      
+
       if (conflictingSections.length > 0) {
         return json({
           success: false,
           message: `Some sections are already assigned to other rooms: ${conflictingSections.map(s => s.name).join(', ')}`
         }, { status: 409 });
       }
-      
+
       // Assign sections to room
       await sectionsCollection.updateMany(
         { _id: { $in: sectionObjectIds } },
-        { 
-          $set: { 
+        {
+          $set: {
             room_id: new ObjectId(roomId),
             updated_at: new Date()
           }
         }
       );
-      
+
       // Update room status to assigned
       await roomsCollection.updateOne(
         { _id: new ObjectId(roomId) },
-        { 
-          $set: { 
+        {
+          $set: {
             status: 'assigned',
             updated_at: new Date()
           }
         }
       );
-      
+
       // Log the assignment activity
       try {
         const user = await getUserFromRequest(request);
         const ip_address = getClientAddress();
         const user_agent = request.headers.get('user-agent');
-        
+
         // Create activity log with proper structure
         const activityCollection = db.collection('activity_logs');
         await activityCollection.insertOne({
@@ -313,41 +342,41 @@ export async function PATCH({ request, getClientAddress }) {
       } catch (logError) {
         console.error('Error logging room assignment activity:', logError);
       }
-      
+
       return json({
         success: true,
         message: `Sections assigned to room "${room.name}" successfully`
       });
-      
+
     } else if (action === 'unassign') {
       // Unassign all sections from the room
       const unassignResult = await sectionsCollection.find({ room_id: new ObjectId(roomId) }).toArray();
-      
+
       await sectionsCollection.updateMany(
         { room_id: new ObjectId(roomId) },
-        { 
+        {
           $unset: { room_id: "" },
           $set: { updated_at: new Date() }
         }
       );
-      
+
       // Update room status to available
       await roomsCollection.updateOne(
         { _id: new ObjectId(roomId) },
-        { 
-          $set: { 
+        {
+          $set: {
             status: 'available',
             updated_at: new Date()
           }
         }
       );
-      
+
       // Log the unassignment activity
       try {
         const user = await getUserFromRequest(request);
         const ip_address = getClientAddress();
         const user_agent = request.headers.get('user-agent');
-        
+
         // Create activity log with proper structure
         const activityCollection = db.collection('activity_logs');
         await activityCollection.insertOne({
@@ -365,19 +394,19 @@ export async function PATCH({ request, getClientAddress }) {
       } catch (logError) {
         console.error('Error logging room unassignment activity:', logError);
       }
-      
+
       return json({
         success: true,
         message: `All sections unassigned from room "${room.name}" successfully`
       });
-      
+
     } else {
       return json({
         success: false,
         message: 'Invalid action. Use "assign" or "unassign"'
       }, { status: 400 });
     }
-    
+
   } catch (error) {
     console.error('Error managing room-section assignment:', error);
     return json({
@@ -395,10 +424,10 @@ export async function PUT({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const data = await request.json();
     const { id, name, building, floor, status, assignedTo } = data;
-    
+
     // Validation
     if (!id || !name || !building || !floor) {
       return json({
@@ -406,20 +435,20 @@ export async function PUT({ request, getClientAddress }) {
         message: 'ID, name, building, and floor are required'
       }, { status: 400 });
     }
-    
+
     const db = await connectToDatabase();
     const roomsCollection = db.collection('rooms');
-    
+
     // Check if room exists
     const existingRoom = await roomsCollection.findOne({ _id: new ObjectId(id) });
-    
+
     if (!existingRoom) {
       return json({
         success: false,
         message: 'Room not found'
       }, { status: 404 });
     }
-    
+
     // Check if new name/building/floor conflicts with another room
     const nameConflict = await roomsCollection.findOne({
       name: { $regex: `^${name}$`, $options: 'i' },
@@ -427,14 +456,14 @@ export async function PUT({ request, getClientAddress }) {
       floor: { $regex: `^${floor}$`, $options: 'i' },
       _id: { $ne: new ObjectId(id) }
     });
-    
+
     if (nameConflict) {
       return json({
         success: false,
         message: 'A room with this name already exists in the same building and floor'
       }, { status: 409 });
     }
-    
+
     // Update room
     const updateData = {
       name,
@@ -444,23 +473,23 @@ export async function PUT({ request, getClientAddress }) {
       assigned_to: assignedTo || null,
       updated_at: new Date()
     };
-    
+
     await roomsCollection.updateOne(
       { _id: new ObjectId(id) },
       { $set: updateData }
     );
-    
+
     const updatedRoom = await roomsCollection.findOne({ _id: new ObjectId(id) });
-    
+
     // Log the room update activity
     try {
       // Get user info from request headers
       const user = await getUserFromRequest(request);
-      
+
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
-      
+
       // Create activity log with proper structure
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
@@ -480,7 +509,7 @@ export async function PUT({ request, getClientAddress }) {
       console.error('Error logging room update activity:', logError);
       // Don't fail the update if logging fails
     }
-    
+
     // Format response to match component structure
     const formattedRoom = {
       id: updatedRoom._id.toString(),
@@ -492,13 +521,13 @@ export async function PUT({ request, getClientAddress }) {
       createdDate: new Date(updatedRoom.created_at).toLocaleDateString('en-US'),
       updatedDate: new Date(updatedRoom.updated_at).toLocaleDateString('en-US')
     };
-    
+
     return json({
       success: true,
       message: `Room "${name}" updated successfully`,
       data: formattedRoom
     });
-    
+
   } catch (error) {
     console.error('Error updating room:', error);
     return json({
@@ -516,42 +545,42 @@ export async function DELETE({ request, getClientAddress }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const data = await request.json();
     const { id } = data;
-    
+
     if (!id) {
       return json({
         success: false,
         message: 'Room ID is required'
       }, { status: 400 });
     }
-    
+
     const db = await connectToDatabase();
     const roomsCollection = db.collection('rooms');
-    
+
     // Check if room exists and get its details
     const existingRoom = await roomsCollection.findOne({ _id: new ObjectId(id) });
-    
+
     if (!existingRoom) {
       return json({
         success: false,
         message: 'Room not found'
       }, { status: 404 });
     }
-    
+
     // Delete the room
     await roomsCollection.deleteOne({ _id: new ObjectId(id) });
-    
+
     // Log the room deletion activity
     try {
       // Get user info from request headers
       const user = await getUserFromRequest(request);
-      
+
       // Get client IP and user agent
       const ip_address = getClientAddress();
       const user_agent = request.headers.get('user-agent');
-      
+
       // Create activity log with proper structure
       const activityCollection = db.collection('activity_logs');
       await activityCollection.insertOne({
@@ -571,12 +600,12 @@ export async function DELETE({ request, getClientAddress }) {
       console.error('Error logging room deletion activity:', logError);
       // Don't fail the deletion if logging fails
     }
-    
+
     return json({
       success: true,
       message: `Room "${existingRoom.name}" has been removed successfully`
     });
-    
+
   } catch (error) {
     console.error('Error deleting room:', error);
     return json({

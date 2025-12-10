@@ -240,8 +240,8 @@
 		if (!selectedRequest) return;
 		selectedRequest.status = statusId;
 		
-		// Automatically set tentative date to 5 days from now when status is verifying or processing
-		if (statusId === 'verifying' || statusId === 'processing') {
+		// Automatically set tentative date to 5 days from now only when status is 'processing'
+		if (statusId === 'processing') {
 			const tentativeDate = new Date();
 			tentativeDate.setDate(tentativeDate.getDate() + 5);
 			const year = tentativeDate.getFullYear();
@@ -286,7 +286,8 @@
 	async function confirmUpdate() {
 		const updateData = {
 			status: selectedRequest.status,
-			tentativeDate: selectedRequest.status === 'for_compliance' ? undefined : selectedRequest.tentativeDate,
+			// Do not send tentativeDate for 'for_compliance' (deadline is included in status message) or 'verifying'
+			tentativeDate: (selectedRequest.status === 'for_compliance' || selectedRequest.status === 'verifying') ? undefined : selectedRequest.tentativeDate,
 			paymentAmount: selectedRequest.paymentAmount,
 			paymentStatus: paymentStatus
 		};
@@ -642,7 +643,7 @@
 			</div>
 
 		<!-- Tentative Date card -->
-		{#if selectedRequest.tentativeDate}
+		{#if selectedRequest.tentativeDate && selectedRequest.status !== 'verifying'}
 		<div class="docreq-card">
 			<div class="card-label">
 				<span class="material-symbols-outlined">event</span> {selectedRequest.status === 'for_compliance' ? 'Deadline' : 'Tentative Date'}
@@ -909,7 +910,7 @@
 						<span class="detail-label">New Status:</span>
 						<span class="detail-value">{modalCurrentStatusName}</span>
 					</div>
-					{#if selectedRequest.tentativeDate}
+					{#if selectedRequest.tentativeDate && selectedRequest.status !== 'verifying'}
 					<div class="confirm-detail-row">
 						<span class="detail-label">{selectedRequest.status === 'for_compliance' ? 'Deadline:' : 'Tentative Date:'}</span>
 						<span class="detail-value">{formatTentativeDateForDisplay(selectedRequest.tentativeDate)}</span>

@@ -771,4 +771,15 @@
       </p>
     </div>
   </div>
+
+  <!-- Download Button (Desktop Only) -->
+  <a 
+    href="https://github.com/BootlegYouki/set-2-system/releases/download/Desktop/set-2-system-0.0.1.Setup.exe"
+    class="download-button"
+    aria-label="Download Desktop App"
+    download
+  >
+    <span class="material-symbols-outlined">download</span>
+    <span>Desktop Version</span>
+  </a>
 </div>

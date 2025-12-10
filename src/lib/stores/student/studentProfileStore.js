@@ -199,22 +199,6 @@ function createStudentProfileStore() {
 
 			// Fetch student sections if available
 			let studentSections = [];
-			try {
-				const currentQuarterResponse = await authenticatedFetch('/api/current-quarter');
-				const currentQuarterData = await currentQuarterResponse.json();
-				const schoolYear = currentQuarterData.data?.currentSchoolYear || '2025-2026';
-
-				const sectionsResponse = await authenticatedFetch(`/api/student-sections?studentId=${studentId}&schoolYear=${schoolYear}`);
-				if (sectionsResponse.ok) {
-					const sectionsResult = await sectionsResponse.json();
-					if (sectionsResult.success) {
-						studentSections = sectionsResult.data.classData || [];
-					}
-				}
-			} catch (err) {
-				// Don't throw error here as basic profile should still work
-				console.warn('Failed to fetch student sections:', err);
-			}
 
 			// Update store with new data
 			const profileData = {

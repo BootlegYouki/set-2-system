@@ -11,23 +11,23 @@ export async function GET({ url, request }) {
     if (!authResult.success) {
       return json({ error: authResult.error || 'Authentication required' }, { status: 401 });
     }
-    
+
     const db = await connectToDatabase();
-    
+
     // Get current school year from admin settings
-    const schoolYearSetting = await db.collection('admin_settings').findOne({ 
-      setting_key: 'current_school_year' 
+    const schoolYearSetting = await db.collection('admin_settings').findOne({
+      setting_key: 'current_school_year'
     });
     const school_year = url.searchParams.get('school_year') || schoolYearSetting?.setting_value || '2025-2026';
-    
+
     // Determine current quarter based on system date and quarter settings
     let currentQuarter = 1; // Default fallback
-    
+
     if (!url.searchParams.has('quarter')) {
       // Only auto-detect if quarter is not explicitly provided
       try {
         const quarterSettings = await db.collection('admin_settings').find({
-          setting_key: { 
+          setting_key: {
             $in: [
               'quarter_1_start_date', 'quarter_1_end_date',
               'quarter_2_start_date', 'quarter_2_end_date',
@@ -74,13 +74,13 @@ export async function GET({ url, request }) {
         // Fall back to default quarter 1
       }
     }
-    
+
     const quarter = parseInt(url.searchParams.get('quarter')) || currentQuarter;
 
     // Get all active students
     const activeStudents = await db.collection('users').find({
       account_type: 'student',
-      status: 'active'
+      status: { $in: ['active', 'unenrolled'] }
     }).toArray();
 
     if (activeStudents.length === 0) {
@@ -91,11 +91,26 @@ export async function GET({ url, request }) {
       });
     }
 
-    // Get all active section enrollments for these students
+    // 0. Extract student IDs
     const studentIds = activeStudents.map(student => student._id);
+
+    // 1. Get all sections for the selected school year first
+    const sections = await db.collection('sections').find({
+      school_year: school_year
+    }).toArray();
+
+    const sectionIds = sections.map(s => s._id);
+    const sectionMap = {};
+    sections.forEach(section => {
+      sectionMap[section._id.toString()] = section;
+    });
+
+    // 2. Get enrollments for these sections and students
+    // We include 'active' (current) and 'completed' (past rollover) statuses
     const sectionEnrollments = await db.collection('section_students').find({
       student_id: { $in: studentIds },
-      status: 'active'
+      section_id: { $in: sectionIds },
+      status: { $in: ['active', 'completed'] }
     }).toArray();
 
     // Create a map of student_id to section_id
@@ -104,22 +119,9 @@ export async function GET({ url, request }) {
       studentSectionMap[enrollment.student_id.toString()] = enrollment.section_id;
     });
 
-    // Get all sections for enrolled students
-    const sectionIds = [...new Set(Object.values(studentSectionMap))];
-    const sections = await db.collection('sections').find({
-      _id: { $in: sectionIds },
-      status: 'active'
-    }).toArray();
-
-    // Create a map of section_id to section data
-    const sectionMap = {};
-    sections.forEach(section => {
-      sectionMap[section._id.toString()] = section;
-    });
-
     // Determine if we're calculating overall (all quarters) or specific quarter
     const calculateOverall = url.searchParams.get('quarter') === 'all';
-    
+
     // Get grades based on whether we're calculating overall or specific quarter
     let gradesData;
     if (calculateOverall) {
@@ -162,14 +164,14 @@ export async function GET({ url, request }) {
         const sectionId = studentSectionMap[studentId];
         const section = sectionId && sectionMap[sectionId.toString()];
         const studentGrades = studentGradesMap[studentId] || [];
-        
+
         // Calculate GWA based on mode (overall or specific quarter)
         let gwa = 0;
         if (calculateOverall) {
           // Calculate overall GWA across all quarters
           // Group grades by quarter and subject, then calculate quarter averages, then overall average
           const quarterAverages = {};
-          
+
           studentGrades.forEach(grade => {
             const quarter = grade.quarter;
             if (!quarterAverages[quarter]) {
@@ -179,7 +181,7 @@ export async function GET({ url, request }) {
               quarterAverages[quarter].push(grade.averages.final_grade);
             }
           });
-          
+
           // Calculate average for each quarter
           const quarterGWAs = [];
           Object.keys(quarterAverages).forEach(quarter => {
@@ -189,7 +191,7 @@ export async function GET({ url, request }) {
               quarterGWAs.push(quarterGWA);
             }
           });
-          
+
           // Calculate overall average from quarter GWAs
           if (quarterGWAs.length > 0) {
             gwa = quarterGWAs.reduce((sum, qGWA) => sum + qGWA, 0) / quarterGWAs.length;
@@ -197,12 +199,12 @@ export async function GET({ url, request }) {
         } else {
           // Calculate GWA for specific quarter (original logic)
           if (studentGrades.length > 0) {
-            const validGrades = studentGrades.filter(grade => 
+            const validGrades = studentGrades.filter(grade =>
               grade.averages && grade.averages.final_grade && grade.averages.final_grade > 0
             );
-            
+
             if (validGrades.length > 0) {
-              const totalGrades = validGrades.reduce((sum, grade) => 
+              const totalGrades = validGrades.reduce((sum, grade) =>
                 sum + grade.averages.final_grade, 0
               );
               gwa = totalGrades / validGrades.length;
@@ -223,7 +225,7 @@ export async function GET({ url, request }) {
           section: section ? section.name : 'No Section',
           gwa: gwaDisplay,
           totalSubjects: studentGrades.length,
-          verifiedGrades: studentGrades.filter(grade => 
+          verifiedGrades: studentGrades.filter(grade =>
             (grade.verified === true || grade.verification?.verified === true)
           ).length
         };
@@ -234,10 +236,10 @@ export async function GET({ url, request }) {
           const match = id.match(/-(\d+)$/);
           return match ? parseInt(match[1]) : 0;
         };
-        
+
         const numA = extractNumber(a.id);
         const numB = extractNumber(b.id);
-        
+
         return numA - numB;
       });
 

@@ -14,6 +14,21 @@
 	let searchQuery = '';
 	let selectedDepartment = '';
 
+	// Search state for dropdowns
+	let departmentSearchTerm = '';
+
+    // School Year Store
+    import { selectedSchoolYear } from '../../../../../stores/schoolYearStore.js';
+    let currentSchoolYearString = '';
+    
+    $: if ($selectedSchoolYear && $selectedSchoolYear !== currentSchoolYearString) {
+        currentSchoolYearString = $selectedSchoolYear;
+        loadTeachers(false);
+    } else if (!$selectedSchoolYear && currentSchoolYearString) {
+        currentSchoolYearString = '';
+        loadTeachers(false);
+    }
+
 	// Initialize departments with default value
 	$: if (!departmentOptions || departmentOptions.length === 0) {
 		teacherMasterlistStore.updateDepartments([{ id: '', name: 'All Departments' }]);
@@ -24,6 +39,12 @@
 
 	// Computed values
 	$: selectedDepartmentObj = departmentOptions.find((dept) => dept.id === selectedDepartment);
+
+	// Filter department options based on search term
+	$: filteredDepartmentOptions = departmentOptions.filter((dept) => {
+		if (dept.id === '') return true; // Always show "All Departments"
+		return dept.name.toLowerCase().includes(departmentSearchTerm.toLowerCase());
+	});
 
 	// Reactive filter
 	$: if (teachers) {
@@ -37,7 +58,7 @@
 				teacherMasterlistStore.setLoading(true);
 			}
 
-			const data = await api.get('/api/accounts?type=teacher');
+			const data = await api.get(`/api/accounts?type=teacher${currentSchoolYearString ? `&schoolYear=${currentSchoolYearString}` : ''}`);
 			if (!data.success) {
 				throw new Error('Failed to load teachers');
 			}
@@ -105,6 +126,9 @@
 	// Dropdown functions
 	function toggleDepartmentDropdown() {
 		isDepartmentDropdownOpen = !isDepartmentDropdownOpen;
+		if (!isDepartmentDropdownOpen) {
+			departmentSearchTerm = ''; // Clear search when closing
+		}
 	}
 
 	function selectDepartment(department) {
@@ -261,7 +285,22 @@
 							<span class="material-symbols-outlined dropdown-arrow">expand_more</span>
 						</button>
 						<div class="dropdown-menu">
-							{#each departmentOptions as department (department.id)}
+							<div
+								class="dropdown-search-container"
+								on:click|stopPropagation
+								on:keydown|stopPropagation
+								role="presentation"
+							>
+								<input
+									type="text"
+									class="dropdown-search-input"
+									placeholder="Search departments..."
+									bind:value={departmentSearchTerm}
+								/>
+								<span class="material-symbols-outlined dropdown-search-icon">search</span>
+							</div>
+
+							{#each filteredDepartmentOptions as department (department.id)}
 								<button
 									type="button"
 									class="dropdown-option"

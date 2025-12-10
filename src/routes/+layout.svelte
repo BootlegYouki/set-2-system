@@ -12,6 +12,7 @@
 	import { authStore } from '../components/login/js/auth.js';
 	import { onMount } from 'svelte';
 	import { tick } from 'svelte';
+	import { browser } from '$app/environment';
 	
 	let { children } = $props();
 	let isAuthInitialized = $state(false);
@@ -38,9 +39,12 @@
 			: favicon
 	);
 	
-	// Initialize auth store
-	onMount(() => {		
+
 	
+	// Initialize auth store
+	onMount(() => {
+
+		
 		setTimeout(() => {
 			authStore.initialize();
 			isAuthInitialized = true;

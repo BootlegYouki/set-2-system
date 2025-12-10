@@ -7,9 +7,14 @@
 	import { authStore } from '../../../../login/js/auth.js';
 	import { studentNotificationStore } from '../../../../../lib/stores/student/studentNotificationStore.js';
 
-	// Props
-	let { studentName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'STU-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
 
+	// Props
+	let { studentName, lastName, gender, accountNumber, onlogout, onToggleNavRail, onnavigate, onNavigateToSettings } = $props();
+
+	// Fallback: extract last name from full name if lastName is not provided
+	let effectiveLastName = $derived(lastName && lastName !== 'Student' ? lastName : extractLastName(studentName));
+
+	let unsubscribe;
 	// Notification state from shared store
 	let unreadNotificationCount = $derived($studentNotificationStore.unreadCount);
 
@@ -59,7 +64,7 @@
 		if (!browser) return;
 		
 		const authState = $authStore;
-		if (!authState.isAuthenticated || !authState.userData?.id) return;
+		if (!authState.isAuthenticated || !authState.userData?.id || authState.userType !== 'student') return;
 		
 		try {
 			// Use the store's loadNotifications method with silent refresh
@@ -80,20 +85,10 @@
 		// Add click outside listener
 		document.addEventListener('click', handleClickOutside);
 
-		// Wait for auth store to be initialized before fetching notifications
-		let unsubscribe;
-		unsubscribe = authStore.subscribe((authState) => {
-			if (authState.isAuthenticated) {
-				fetchNotificationCount();
-				if (unsubscribe) {
-					unsubscribe();
-				}
-			}
-		});
 
 		// Refresh notification count every 10 seconds
 		const interval = setInterval(() => {
-			if ($authStore.isAuthenticated) {
+			if ($authStore.isAuthenticated && $authStore.userType === 'student') {
 				fetchNotificationCount();
 			}
 		}, 10000);
@@ -204,13 +199,9 @@
 					</div>
 					
 					<div class="user-avatar">
-						{#if profileImage}
-							<img src={profileImage} alt="Profile" class="avatar-image" />
-						{:else}
-							<div class="avatar-placeholder">
-								{getInitials(firstName)}
-							</div>
-						{/if}
+						<div class="avatar-placeholder">
+							{getInitials(effectiveLastName)}
+						</div>
 					</div>
 				</button>
 

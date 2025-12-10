@@ -4,7 +4,10 @@
 	import { showSuccess } from '../../../../common/js/toastStore.js';
 
 	// Props
-	let { teacherName = 'John Does', firstName = 'John', gender = 'male', accountNumber = 'TCH-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate } = $props();
+	let { teacherName = 'John Does', lastName = 'Does', gender = 'male', accountNumber = 'TCH-2025-0001', profileImage = null, onlogout, onToggleNavRail, onnavigate } = $props();
+
+	// Fallback: extract last name from full name if lastName is not provided
+	let effectiveLastName = $derived(lastName && lastName !== 'Teacher' ? lastName : extractLastName(teacherName));
 
 	// Function to get title based on gender
 	function getTitle(gender) {
@@ -152,7 +155,7 @@
 							<img src={profileImage} alt="Profile" class="avatar-image" />
 						{:else}
 							<div class="avatar-placeholder">
-				{getInitials(firstName)}
+				{getInitials(effectiveLastName)}
 			</div>
 						{/if}
 					</div>

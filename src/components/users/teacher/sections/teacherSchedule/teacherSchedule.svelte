@@ -193,7 +193,7 @@
 
 	<div class="week-navigation">
 		<div class="week-title">
-			<span>{currentDayName}, {currentMonth} {currentDay}</span>
+			<span>{currentDayName}, {currentMonth} {currentDay} - {currentTime.toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'})}</span>
 		</div>
 
 		<div class="schedule-day-selector">

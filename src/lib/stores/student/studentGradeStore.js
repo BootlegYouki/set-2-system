@@ -48,14 +48,14 @@ function createStudentGradeStore() {
 		if (!authState?.isAuthenticated || !authState.userData) {
 			return {};
 		}
-		
+
 		const userInfo = {
 			id: authState.userData.id,
 			name: authState.userData.name,
 			account_number: authState.userData.accountNumber,
 			account_type: authState.userData.account_type || authState.userData.accountType
 		};
-		
+
 		return {
 			'x-user-info': JSON.stringify(userInfo)
 		};
@@ -87,7 +87,7 @@ function createStudentGradeStore() {
 		}
 		return null;
 	}
-	
+
 	// Helper function to get only valid cached data (for init)
 	function getValidCachedData(studentId, quarter, schoolYear) {
 		try {
@@ -126,7 +126,7 @@ function createStudentGradeStore() {
 				headers: getAuthHeaders()
 			});
 			const data = await response.json();
-			
+
 			if (data.success && data.data) {
 				return {
 					currentQuarter: data.data.currentQuarter,
@@ -137,7 +137,7 @@ function createStudentGradeStore() {
 		} catch (err) {
 			// Failed to fetch current quarter - use defaults
 		}
-		
+
 		// Return defaults if fetch fails
 		return {
 			currentQuarter: 2,
@@ -149,11 +149,14 @@ function createStudentGradeStore() {
 	// Fetch student profile data for section info
 	async function fetchStudentProfile(studentId) {
 		try {
+			const headers = getAuthHeaders();
+			if (!headers['x-user-info']) return { sectionInfo: null };
+
 			const response = await fetch(`/api/student-profile?studentId=${studentId}`, {
-				headers: getAuthHeaders()
+				headers
 			});
 			const result = await response.json();
-			
+
 			if (result.success) {
 				const { section } = result.data;
 				return {
@@ -171,11 +174,14 @@ function createStudentGradeStore() {
 	// Fetch class rank for specific quarter and school year
 	async function fetchClassRank(studentId, quarter, schoolYear) {
 		try {
+			const headers = getAuthHeaders();
+			if (!headers['x-user-info']) return { classRank: null, totalStudentsInSection: 0 };
+
 			const response = await fetch(`/api/class-rankings?studentId=${studentId}&quarter=${quarter}&schoolYear=${schoolYear}`, {
-				headers: getAuthHeaders()
+				headers
 			});
 			const result = await response.json();
-			
+
 			if (result.success) {
 				return {
 					classRank: result.myRank,
@@ -197,7 +203,7 @@ function createStudentGradeStore() {
 			// Determine previous quarter
 			let prevQuarter = currentQuarter - 1;
 			let prevSchoolYear = schoolYear;
-			
+
 			// If current quarter is 1, get quarter 4 from previous school year
 			if (prevQuarter < 1) {
 				prevQuarter = 4;
@@ -205,13 +211,16 @@ function createStudentGradeStore() {
 				const [startYear, endYear] = schoolYear.split('-').map(y => parseInt(y));
 				prevSchoolYear = `${startYear - 1}-${endYear - 1}`;
 			}
-			
+
 			// Fetch previous quarter grades
+			const headers = getAuthHeaders();
+			if (!headers['x-user-info']) return null;
+
 			const response = await fetch(`/api/student-grades?student_id=${studentId}&quarter=${prevQuarter}&school_year=${prevSchoolYear}`, {
-				headers: getAuthHeaders()
+				headers
 			});
 			const result = await response.json();
-			
+
 			if (result.success && result.data.statistics) {
 				return result.data.statistics.overallAverage || null;
 			}
@@ -247,111 +256,111 @@ function createStudentGradeStore() {
 				};
 			}
 
-		// Fetch grades data, profile, class rank, and previous quarter average in parallel
-		const [gradesResult, profileData, rankData, previousAverage] = await Promise.all([
-			fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`, {
-				headers: getAuthHeaders()
-			}).then(res => res.json()),
-			fetchStudentProfile(studentId),
-			fetchClassRank(studentId, quarter, schoolYear),
-			fetchPreviousQuarterAverage(studentId, quarter, schoolYear)
-		]);
+			// Fetch grades data, profile, class rank, and previous quarter average in parallel
+			const [gradesResult, profileData, rankData, previousAverage] = await Promise.all([
+				fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`, {
+					headers: getAuthHeaders()
+				}).then(res => res.json()),
+				fetchStudentProfile(studentId),
+				fetchClassRank(studentId, quarter, schoolYear),
+				fetchPreviousQuarterAverage(studentId, quarter, schoolYear)
+			]);
 
-		if (!gradesResult.success) {
-			throw new Error(gradesResult.error || 'Failed to fetch grades data');
-		}
+			if (!gradesResult.success) {
+				throw new Error(gradesResult.error || 'Failed to fetch grades data');
+			}
 
-		// Calculate average change
-		const currentAverage = gradesResult.data.statistics?.overallAverage || 0;
-		let averageChange = null;
-		if (previousAverage !== null && currentAverage > 0) {
-			averageChange = currentAverage - previousAverage;
-		}
+			// Calculate average change
+			const currentAverage = gradesResult.data.statistics?.overallAverage || 0;
+			let averageChange = null;
+			if (previousAverage !== null && currentAverage > 0) {
+				averageChange = currentAverage - previousAverage;
+			}
 
-		// Update store with new data
-		const newState = {
-			grades: gradesResult.data.grades || [],
-			statistics: gradesResult.data.statistics || { overallAverage: 0, totalSubjects: 0 },
-			sectionInfo: profileData.sectionInfo,
-			classRank: rankData.classRank,
-			totalStudentsInSection: rankData.totalStudentsInSection,
-			currentQuarter: quarter,
-			currentQuarterName: quarterData.currentQuarterName,
-			currentSchoolYear: schoolYear,
-			previousQuarterAverage: previousAverage,
-			averageChange: averageChange,
-			isLoading: false,
-			isRefreshing: false,
-			error: null,
-			lastUpdated: new Date().toISOString(),
-			currentStudentId: studentId
-		};
+			// Update store with new data
+			const newState = {
+				grades: gradesResult.data.grades || [],
+				statistics: gradesResult.data.statistics || { overallAverage: 0, totalSubjects: 0 },
+				sectionInfo: profileData.sectionInfo,
+				classRank: rankData.classRank,
+				totalStudentsInSection: rankData.totalStudentsInSection,
+				currentQuarter: quarter,
+				currentQuarterName: quarterData.currentQuarterName,
+				currentSchoolYear: schoolYear,
+				previousQuarterAverage: previousAverage,
+				averageChange: averageChange,
+				isLoading: false,
+				isRefreshing: false,
+				error: null,
+				lastUpdated: new Date().toISOString(),
+				currentStudentId: studentId
+			};
 
 			update(state => ({
 				...state,
 				...newState
 			}));
 
-		// Cache the data (including quarter-specific rank)
-		cacheData(studentId, quarter, schoolYear, {
-			grades: newState.grades,
-			statistics: newState.statistics,
-			sectionInfo: newState.sectionInfo,
-			classRank: newState.classRank,
-			totalStudentsInSection: newState.totalStudentsInSection,
-			currentQuarter: quarter,
-			currentQuarterName: quarterData.currentQuarterName,
-			currentSchoolYear: schoolYear,
-			previousQuarterAverage: newState.previousQuarterAverage,
-			averageChange: newState.averageChange,
-			lastUpdated: newState.lastUpdated
-		});
+			// Cache the data (including quarter-specific rank)
+			cacheData(studentId, quarter, schoolYear, {
+				grades: newState.grades,
+				statistics: newState.statistics,
+				sectionInfo: newState.sectionInfo,
+				classRank: newState.classRank,
+				totalStudentsInSection: newState.totalStudentsInSection,
+				currentQuarter: quarter,
+				currentQuarterName: quarterData.currentQuarterName,
+				currentSchoolYear: schoolYear,
+				previousQuarterAverage: newState.previousQuarterAverage,
+				averageChange: newState.averageChange,
+				lastUpdated: newState.lastUpdated
+			});
 
-	} catch (error) {
-		// Error loading grades - try cached data as fallback
-		
-		// Try to get cached data even if it's expired
-		const cachedData = getCachedData(studentId, quarter, schoolYear);
-		
-		if (cachedData) {
-			// If we have cached data, use it and show a toast notification
-			update(state => ({
-				...state,
-				grades: cachedData.grades || [],
-				statistics: cachedData.statistics || { overallAverage: 0, totalSubjects: 0 },
-				sectionInfo: cachedData.sectionInfo,
-				classRank: cachedData.classRank,
-				totalStudentsInSection: cachedData.totalStudentsInSection,
-				currentQuarter: cachedData.currentQuarter,
-				currentQuarterName: cachedData.currentQuarterName,
-				currentSchoolYear: cachedData.currentSchoolYear,
-				previousQuarterAverage: cachedData.previousQuarterAverage,
-				averageChange: cachedData.averageChange,
-				lastUpdated: cachedData.lastUpdated,
-				isLoading: false,
-				isRefreshing: false,
-				error: null // Don't set error since we have cached data
-			}));
-			
-			// Show connection error toast
-			toastStore.error('No internet connection. Showing offline data.');
-		} else {
-			// No cached data available, show error container
-			update(state => ({
-				...state,
-				isLoading: false,
-				isRefreshing: false,
-				error: error.message,
-				grades: [],
-				statistics: {
-					overallAverage: 0,
-					totalSubjects: 0
-				},
-				previousQuarterAverage: null,
-				averageChange: null
-			}));
+		} catch (error) {
+			// Error loading grades - try cached data as fallback
+
+			// Try to get cached data even if it's expired
+			const cachedData = getCachedData(studentId, quarter, schoolYear);
+
+			if (cachedData) {
+				// If we have cached data, use it and show a toast notification
+				update(state => ({
+					...state,
+					grades: cachedData.grades || [],
+					statistics: cachedData.statistics || { overallAverage: 0, totalSubjects: 0 },
+					sectionInfo: cachedData.sectionInfo,
+					classRank: cachedData.classRank,
+					totalStudentsInSection: cachedData.totalStudentsInSection,
+					currentQuarter: cachedData.currentQuarter,
+					currentQuarterName: cachedData.currentQuarterName,
+					currentSchoolYear: cachedData.currentSchoolYear,
+					previousQuarterAverage: cachedData.previousQuarterAverage,
+					averageChange: cachedData.averageChange,
+					lastUpdated: cachedData.lastUpdated,
+					isLoading: false,
+					isRefreshing: false,
+					error: null // Don't set error since we have cached data
+				}));
+
+				// Show connection error toast
+				toastStore.error('No internet connection. Showing offline data.');
+			} else {
+				// No cached data available, show error container
+				update(state => ({
+					...state,
+					isLoading: false,
+					isRefreshing: false,
+					error: error.message,
+					grades: [],
+					statistics: {
+						overallAverage: 0,
+						totalSubjects: 0
+					},
+					previousQuarterAverage: null,
+					averageChange: null
+				}));
+			}
 		}
-	}
 	}
 
 	// Initialize store with cached data if available
@@ -361,7 +370,7 @@ function createStudentGradeStore() {
 		subscribe(state => {
 			currentStudentId = state.currentStudentId;
 		})();
-		
+
 		if (currentStudentId && currentStudentId !== studentId) {
 			// Different student, clear AI analysis
 			update(state => ({
@@ -372,16 +381,16 @@ function createStudentGradeStore() {
 				aiAnalysisTimestamp: null
 			}));
 		}
-		
+
 		// If quarter/schoolYear not provided, we need to fetch them first
 		if (!quarter || !schoolYear) {
 			fetchCurrentQuarter().then(quarterData => {
 				const cachedData = getValidCachedData(
-					studentId, 
-					quarterData.currentQuarter, 
+					studentId,
+					quarterData.currentQuarter,
 					quarterData.currentSchoolYear
 				);
-				
+
 				if (cachedData) {
 					update(state => ({
 						...state,
@@ -434,7 +443,7 @@ function createStudentGradeStore() {
 			}));
 			return true; // Has cached data
 		}
-		
+
 		// No cached data, set up initial state
 		update(state => ({
 			...state,
@@ -467,7 +476,7 @@ function createStudentGradeStore() {
 				error: null
 			}));
 		}
-		
+
 		// Load fresh data (silent if we have cache)
 		await loadGrades(studentId, quarter, schoolYear, !!cachedData);
 	}
@@ -560,13 +569,13 @@ function createStudentGradeStore() {
 			let previousQuarterInfo = null;
 			let prevQuarter = quarter - 1;
 			let prevSchoolYear = schoolYear;
-			
+
 			if (prevQuarter < 1) {
 				prevQuarter = 4;
 				const [startYear, endYear] = schoolYear.split('-').map(y => parseInt(y));
 				prevSchoolYear = `${startYear - 1}-${endYear - 1}`;
 			}
-			
+
 			// Just send the quarter/year info, let the API fetch the actual data
 			previousQuarterInfo = {
 				quarter: prevQuarter,
@@ -592,7 +601,7 @@ function createStudentGradeStore() {
 			// Set a longer timeout (90 seconds) for AI generation
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => controller.abort(), 90000);
-			
+
 			try {
 				const response = await fetch('/api/ai-grade-analysis', {
 					method: 'POST',
@@ -609,7 +618,7 @@ function createStudentGradeStore() {
 					}),
 					signal: controller.signal
 				});
-				
+
 				clearTimeout(timeoutId);
 
 				if (!response.ok) {
@@ -658,7 +667,7 @@ function createStudentGradeStore() {
 
 		} catch (error) {
 			// Error loading AI analysis - try cached fallback
-			
+
 			// Try localStorage cache as fallback (even if expired)
 			const cachedAnalysis = getCachedAiAnalysis(studentId, quarter, schoolYear);
 			if (cachedAnalysis) {
@@ -680,7 +689,7 @@ function createStudentGradeStore() {
 				aiAnalysisError: error.message,
 				aiAnalysisTimestamp: null
 			}));
-			
+
 			throw error;
 		}
 	}
@@ -712,17 +721,20 @@ function createStudentGradeStore() {
 
 	// Background preload all quarters
 	async function preloadAllQuarters(studentId, currentQuarter, schoolYear) {
-		
+		// Check for auth headers first
+		const headers = getAuthHeaders();
+		if (!headers['x-user-info']) return;
+
 		// Preload all 4 quarters in the background
 		const quarters = [1, 2, 3, 4].filter(q => q !== currentQuarter);
-		
+
 		// Set preloading state
 		update(state => ({
 			...state,
 			isPreloading: true,
 			preloadProgress: { current: 0, total: quarters.length }
 		}));
-		
+
 		// Load quarters sequentially to avoid overwhelming the server
 		for (let i = 0; i < quarters.length; i++) {
 			const quarter = quarters[i];
@@ -736,11 +748,23 @@ function createStudentGradeStore() {
 					}));
 					continue;
 				}
-				
-				
+
+				// Check if still authenticated before fetching
+				const currentHeaders = getAuthHeaders();
+				if (!currentHeaders['x-user-info']) {
+					// User logged out, stop preloading
+					update(state => ({
+						...state,
+						isPreloading: false,
+						preloadProgress: { current: 0, total: 0 }
+					}));
+					return;
+				}
+
+
 				// Fetch grades data, profile, class rank, and previous quarter average
 				const quarterName = `${quarter}${quarter === 1 ? 'st' : quarter === 2 ? 'nd' : quarter === 3 ? 'rd' : 'th'} Quarter`;
-				
+
 				const [gradesResult, profileData, rankData, previousAverage] = await Promise.all([
 					fetch(`/api/student-grades?student_id=${studentId}&quarter=${quarter}&school_year=${schoolYear}`, {
 						headers: getAuthHeaders()
@@ -780,13 +804,13 @@ function createStudentGradeStore() {
 					averageChange: averageChange,
 					lastUpdated: new Date().toISOString()
 				});
-				
+
 				// Update progress
 				update(state => ({
 					...state,
 					preloadProgress: { current: i + 1, total: quarters.length }
 				}));
-				
+
 				// Small delay between requests to avoid overwhelming the server
 				await new Promise(resolve => setTimeout(resolve, 500));
 			} catch (error) {
@@ -797,7 +821,7 @@ function createStudentGradeStore() {
 				}));
 			}
 		}
-		
+
 		// Clear preloading state
 		update(state => ({
 			...state,
@@ -808,10 +832,10 @@ function createStudentGradeStore() {
 
 	// Background preload AI analysis for all quarters (only if analysis already exists)
 	async function preloadAllAiAnalysis(studentId, currentQuarter, schoolYear) {
-		
+
 		// Preload AI for all 4 quarters, but only fetch existing analyses (don't trigger generation)
 		const quarters = [1, 2, 3, 4].filter(q => q !== currentQuarter);
-		
+
 		for (const quarter of quarters) {
 			try {
 				// Check if already cached in localStorage
@@ -819,26 +843,26 @@ function createStudentGradeStore() {
 				if (cachedAnalysis) {
 					continue;
 				}
-				
+
 				// First, check if this quarter has grades (from cache or quick fetch)
 				const cachedGrades = getValidCachedData(studentId, quarter, schoolYear);
 				const hasGrades = cachedGrades && cachedGrades.grades && cachedGrades.grades.length > 0;
-				
+
 				// If no cached grades, skip AI preload (likely no grades for this quarter yet)
 				if (!hasGrades) {
 					continue;
 				}
-				
+
 				// Determine previous quarter info
 				let prevQuarter = quarter - 1;
 				let prevSchoolYear = schoolYear;
-				
+
 				if (prevQuarter < 1) {
 					prevQuarter = 4;
 					const [startYear, endYear] = schoolYear.split('-').map(y => parseInt(y));
 					prevSchoolYear = `${startYear - 1}-${endYear - 1}`;
 				}
-				
+
 				const previousQuarterInfo = {
 					quarter: prevQuarter,
 					schoolYear: prevSchoolYear
@@ -847,7 +871,7 @@ function createStudentGradeStore() {
 				// Fetch AI analysis with cacheOnly flag to prevent generation
 				const controller = new AbortController();
 				const timeoutId = setTimeout(() => controller.abort(), 30000); // Shorter timeout since we're not generating
-				
+
 				try {
 					const response = await fetch('/api/ai-grade-analysis', {
 						method: 'POST',
@@ -865,7 +889,7 @@ function createStudentGradeStore() {
 						}),
 						signal: controller.signal
 					});
-					
+
 					clearTimeout(timeoutId);
 
 					if (!response.ok) {
@@ -886,11 +910,11 @@ function createStudentGradeStore() {
 
 					// Parse and cache to localStorage
 					const analysisData = JSON.parse(jsonString);
-					
+
 					if (analysisData && analysisData.overallInsight) {
 						cacheAiAnalysis(studentId, quarter, schoolYear, analysisData);
 					}
-					
+
 					// Small delay between requests
 					await new Promise(resolve => setTimeout(resolve, 500));
 				} catch (fetchError) {

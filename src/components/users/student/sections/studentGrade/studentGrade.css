@@ -473,7 +473,7 @@
 	overflow: hidden;
 
 	/* Stagger animation */
-	animation: slideInUp 0.5s ease-out backwards;
+	animation: gradeslideInUp 0.5s ease-out backwards;
 	animation-delay: calc(var(--stat-index) * 0.1s);
 }
 
@@ -1560,7 +1560,7 @@
   transition: all var(--transition-normal);
 
   /* Stagger animation */
-  animation: slideInUp 0.5s ease-out backwards;
+  animation: gradeslideInUp 0.5s ease-out backwards;
   animation-delay: calc(var(--card-index) * 0.1s);
 }
 
@@ -1826,7 +1826,7 @@
 }
 
 /* Slide in animation */
-@keyframes slideInUp {
+@keyframes gradeslideInUp {
   0% {
     opacity: 0;
     transform: translateY(20px);

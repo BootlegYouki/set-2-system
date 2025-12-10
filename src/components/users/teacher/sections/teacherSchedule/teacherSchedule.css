@@ -63,7 +63,6 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	margin-bottom: var(--spacing-lg);
 }
 
 .week-title span {
@@ -76,6 +75,7 @@
 .schedule-day-selector {
 	display: flex;
 	gap: var(--spacing-md);
+	margin-top: var(--spacing-lg);
 }
 
 .schedule-day-btn {
@@ -509,6 +509,7 @@
 	color: var(--md-sys-color-on-surface-variant);
 	font-size: 1rem;
 	font-weight: 500;
+	margin-top: var(--spacing-sm);
 }
 
 .teacher-dropdown-toggle-date:hover {

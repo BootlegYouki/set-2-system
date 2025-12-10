@@ -60,7 +60,7 @@
 
 	// Dynamic teacher profile data based on fetched data
 	let teacherProfile = $derived({
-		id: teacherData?.number || authState?.userData?.accountNumber || 'N/A',
+		accountNumber: teacherData?.accountNumber || authState?.userData?.accountNumber || 'N/A',
 		name: teacherData?.name || authState?.userData?.name || 'Teacher Name',
 		firstName: teacherData?.firstName || authState?.userData?.firstName || '',
 		lastName: teacherData?.lastName || '',
@@ -329,14 +329,14 @@
 				{:else}
 				<!-- Row 1: 3 cards -->
 				<div class="teacher-info-row teacher-row-three">
-					<!-- Teacher ID Card -->
+					<!-- Account Number Card -->
 					<div class="teacher-info-card">
 						<div class="teacher-info-icon">
 							<span class="material-symbols-outlined">badge</span>
 						</div>
 						<div class="teacher-info-content">
 							<div class="teacher-info-label">Teacher ID</div>
-							<div class="teacher-info-value">{teacherProfile.id}</div>
+							<div class="teacher-info-value">{teacherProfile.accountNumber}</div>
 						</div>
 					</div>
 

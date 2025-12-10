@@ -30,12 +30,19 @@
 	let editFloor = '';
 	let isUpdating = false;
 
-	// Assign room states (for inline assignment)
-	let assigningRoomId = null;
-	let assignSelectedSection = '';
-	let isAssigningInline = false;
-	let isAssignSectionDropdownOpen = false;
-	let assignSectionSearchTerm = '';
+    // School Year Store
+    import { selectedSchoolYear } from '../../../../../../stores/schoolYearStore.js';
+    let currentSchoolYearString = '';
+    
+    $: if ($selectedSchoolYear && $selectedSchoolYear !== currentSchoolYearString) {
+        currentSchoolYearString = $selectedSchoolYear;
+        loadRooms(false);
+    } else if (!$selectedSchoolYear && currentSchoolYearString) {
+        currentSchoolYearString = '';
+        loadRooms(false);
+    }
+
+
 
 	// Load rooms data from API
 	async function loadRooms(silent = false) {
@@ -44,7 +51,7 @@
 				roomManagementStore.setLoading(true);
 			}
 
-			const data = await api.get('/api/rooms');
+			const data = await api.get(`/api/rooms${currentSchoolYearString ? `?schoolYear=${currentSchoolYearString}` : ''}`);
 
 			if (data.success) {
 				roomManagementStore.updateRooms(data.data || []);
@@ -58,23 +65,7 @@
 		}
 	}
 
-	// Load available sections from API
-	async function loadAvailableSections(silent = false) {
-		try {
-			const data = await api.get('/api/sections?action=available-sections');
 
-			if (data.success) {
-				roomManagementStore.updateSections(data.data || []);
-			} else {
-				throw new Error(data.message || 'Failed to load sections');
-			}
-		} catch (error) {
-			console.error('Error loading sections:', error);
-			if (!silent) {
-				toastStore.error('Failed to load sections. Please try again.');
-			}
-		}
-	}
 
 	// Handle room removal with confirmation
 	const handleRemoveRoom = (room) => {
@@ -135,48 +126,7 @@
 		}
 	}
 
-	// Unassign room with confirmation modal
-	async function unassignRoom(roomId) {
-		const room = existingRooms.find((r) => r.id === roomId);
-		if (!room) return;
 
-		modalStore.confirm(
-			'Unassign Room',
-			`Are you sure you want to unassign room "${room.name}"? This will remove all section assignments from this room.`,
-			async () => {
-				await performUnassignment(roomId);
-			},
-			() => {
-				// User cancelled - do nothing
-			}
-		);
-	}
-
-	// Perform the actual unassignment
-	async function performUnassignment(roomId) {
-		try {
-			const room = existingRooms.find((r) => r.id === roomId);
-			if (!room) return;
-
-			const data = await api.patch('/api/rooms', {
-				roomId: roomId,
-				action: 'unassign'
-			});
-
-			if (data.success) {
-				// Reload rooms to get updated data
-				await loadRooms();
-				// Reload available sections as they may have changed
-				await loadAvailableSections();
-				toastStore.success(data.message);
-			} else {
-				throw new Error(data.message || 'Failed to unassign room');
-			}
-		} catch (error) {
-			console.error('Error unassigning room:', error);
-			toastStore.error('Failed to unassign room. Please try again.');
-		}
-	}
 
 	// Reset forms
 	function resetRoomForm() {
@@ -185,12 +135,7 @@
 		floor = '';
 	}
 
-	// Close dropdowns when clicking outside
-	function handleClickOutside(event) {
-		if (!event.target.closest('.custom-dropdown')) {
-			isAssignSectionDropdownOpen = false;
-		}
-	}
+
 
 	// Edit room functions
 	function toggleEditForm(room) {
@@ -201,12 +146,6 @@
 			editBuilding = '';
 			editFloor = '';
 		} else {
-			// Close assign form if it's open for this room
-			if (assigningRoomId === room.id) {
-				assigningRoomId = null;
-				assignSelectedSection = '';
-				isAssignSectionDropdownOpen = false;
-			}
 			// Open the form
 			editingRoomId = room.id;
 			editRoomName = room.name;
@@ -257,73 +196,7 @@
 		}
 	}
 
-	// Inline assign room functions
-	function toggleAssignForm(room) {
-		if (assigningRoomId === room.id) {
-			// Close the form
-			assigningRoomId = null;
-			assignSelectedSection = '';
-			isAssignSectionDropdownOpen = false;
-		} else {
-			// Close edit form if it's open for this room
-			if (editingRoomId === room.id) {
-				editingRoomId = null;
-				editRoomName = '';
-				editBuilding = '';
-				editFloor = '';
-			}
-			// Open the form
-			assigningRoomId = room.id;
-			assignSelectedSection = '';
-			isAssignSectionDropdownOpen = false;
-		}
-	}
 
-	function toggleAssignSectionDropdown() {
-		isAssignSectionDropdownOpen = !isAssignSectionDropdownOpen;
-	}
-
-	function selectAssignSection(section) {
-		assignSelectedSection = section.id || section._id?.toString();
-		isAssignSectionDropdownOpen = false;
-		assignSectionSearchTerm = ''; // Clear search term
-	}
-
-	async function handleInlineAssignRoom() {
-		if (!assignSelectedSection) {
-			toastStore.warning('Please select a section.');
-			return;
-		}
-
-		isAssigningInline = true;
-
-		try {
-			const data = await api.patch('/api/rooms', {
-				roomId: assigningRoomId,
-				sectionIds: [assignSelectedSection],
-				action: 'assign'
-			});
-
-			if (data.success) {
-				// Reload rooms to get updated data
-				await loadRooms();
-				// Reload available sections as they may have changed
-				await loadAvailableSections();
-				toastStore.success(data.message);
-
-				// Close assign form
-				assigningRoomId = null;
-				assignSelectedSection = '';
-			} else {
-				throw new Error(data.message || 'Failed to assign room');
-			}
-		} catch (error) {
-			console.error('Error assigning room:', error);
-			toastStore.error('Failed to assign room. Please try again.');
-		} finally {
-			isAssigningInline = false;
-		}
-	}
 
 	// Computed properties
 	$: filteredRooms = existingRooms.filter((room) => {
@@ -335,15 +208,7 @@
 		return matchesSearchTerm;
 	});
 
-	$: filteredAvailableSections = availableSections.filter((section) => {
-		const matchesSearchTerm =
-			section.name.toLowerCase().includes(assignSectionSearchTerm.toLowerCase()) ||
-			(`Grade ${section.grade_level}`).toLowerCase().includes(assignSectionSearchTerm.toLowerCase());
-
-		return matchesSearchTerm;
-	});
-
-	// Load rooms and sections when component mounts
+	// Load rooms when component mounts
 	onMount(() => {
 		// Initialize room management store with cached data (instant load)
 		const cachedData = roomManagementStore.getCachedData();
@@ -353,12 +218,10 @@
 
 		// Fetch fresh data (silent if we have cache, visible loading if not)
 		loadRooms(!!cachedData);
-		loadAvailableSections(!!cachedData);
 
 		// Set up periodic silent refresh every 30 seconds
 		const refreshInterval = setInterval(() => {
 			loadRooms(true); // Always silent for periodic refresh
-			loadAvailableSections(true); // Always silent for periodic refresh
 		}, 30000);
 
 		// Cleanup interval on component destroy
@@ -368,7 +231,7 @@
 	});
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+
 
 <div class="admin-room-creation-form-container">
 	<div class="admin-room-creation-form-section">
@@ -492,7 +355,6 @@
 					<div
 						class="admin-room-room-card"
 						class:editing={editingRoomId === room.id}
-						class:assigning={assigningRoomId === room.id}
 						id="admin-room-room-card-{room.id}"
 					>
 						<div class="admin-room-room-header">
@@ -500,29 +362,6 @@
 								<h3 class="admin-room-room-name">{room.name}</h3>
 							</div>
 							<div class="admin-room-action-buttons">
-								{#if room.assignedSections && room.assignedSections.length > 0}
-									<button
-										type="button"
-										class="admin-room-unassign-button"
-										on:click={() => unassignRoom(room.id)}
-										title="Unassign Room"
-									>
-										<span class="material-symbols-outlined">remove_circle</span>
-									</button>
-								{:else}
-									<a href="#admin-room-room-card-{room.id}">
-										<button
-											type="button"
-											class="admin-room-assign-button"
-											on:click={() => toggleAssignForm(room)}
-											title={assigningRoomId === room.id ? 'Cancel Assign' : 'Assign Room'}
-										>
-											<span class="material-symbols-outlined"
-												>{assigningRoomId === room.id ? 'close' : 'add_circle'}</span
-											>
-										</button>
-									</a>
-								{/if}
 								<a href="#admin-room-room-card-{room.id}">
 									<button
 										type="button"
@@ -656,124 +495,7 @@
 							</div>
 						{/if}
 
-						<!-- Inline Assign Form -->
-						{#if assigningRoomId === room.id}
-							<div class="admin-room-assign-form-section">
-								<div class="admin-room-assign-form-container">
-									<div class="admin-room-assign-form-header">
-										<h2 class="admin-room-assign-form-title">Assign Room</h2>
-										<p class="admin-room-assign-form-subtitle">
-											Select a section to assign this room to
-										</p>
-									</div>
 
-									<form
-										class="admin-room-assign-form-content"
-										on:submit|preventDefault={handleInlineAssignRoom}
-									>
-										<!-- Section Selection -->
-										<div class="admin-room-assign-info-row">
-											<div class="admin-room-form-group">
-												<label class="admin-room-form-label" for="assign-section-select"
-													>Select Section *</label
-												>
-												<div class="custom-dropdown" class:open={isAssignSectionDropdownOpen}>
-													<button
-														type="button"
-														class="dropdown-trigger"
-														class:selected={assignSelectedSection}
-														on:click|stopPropagation={toggleAssignSectionDropdown}
-														id="assign-section-select"
-													>
-														{#if assignSelectedSection}
-															{@const selectedSectionObj = availableSections.find(
-																(section) =>
-																	(section.id || section._id?.toString()) === assignSelectedSection
-															)}
-															{#if selectedSectionObj}
-																<div class="selected-option">
-																	<span class="material-symbols-outlined option-icon">group</span>
-																	<div class="option-content">
-																		<span class="option-name">{selectedSectionObj.name}</span>
-																		<span class="option-description"
-																			>Grade {selectedSectionObj.grade_level} Section</span
-																		>
-																	</div>
-																</div>
-															{/if}
-														{:else}
-															<span class="placeholder">Select a section</span>
-														{/if}
-														<span class="material-symbols-outlined dropdown-arrow">expand_more</span
-														>
-													</button>
-													<div class="room-dropdown-menu">
-														<!-- Search Container -->
-														<div class="dropdown-search-container">
-															<input
-																type="text"
-																class="dropdown-search-input"
-																placeholder="Search sections..."
-																bind:value={assignSectionSearchTerm}
-															/>
-															<span class="material-icons dropdown-search-icon">search</span>
-														</div>
-														{#if filteredAvailableSections.length > 0}
-															{#each filteredAvailableSections as section (section.id || section._id)}
-																<button
-																	type="button"
-																	class="dropdown-option"
-																	class:selected={assignSelectedSection ===
-																		(section.id || section._id?.toString())}
-																	on:click|stopPropagation={() => selectAssignSection(section)}
-																>
-																	<span class="material-symbols-outlined option-icon">group</span>
-																	<div class="option-content">
-																		<span class="option-name">{section.name}</span>
-																		<span class="option-description"
-																			>Grade {section.grade_level} Section</span
-																		>
-																	</div>
-																</button>
-															{/each}
-														{:else}
-															<div class="dropdown-empty-state">
-																<span class="material-symbols-outlined empty-icon">inbox</span>
-																<span class="empty-text">
-																	{assignSectionSearchTerm ? 'No sections found' : 'No sections available'}
-																</span>
-															</div>
-														{/if}
-													</div>
-												</div>
-											</div>
-										</div>
-
-										<!-- Form Actions -->
-										<div class="admin-room-assign-form-actions">
-											<button
-												type="button"
-												class="admin-room-cancel-button"
-												on:click={() => toggleAssignForm(room)}
-											>
-												Cancel
-											</button>
-											<button
-												type="submit"
-												class="admin-room-assign-submit-button"
-												disabled={isAssigningInline || !assignSelectedSection}
-											>
-												{#if isAssigningInline}
-													Assigning
-												{:else}
-													Assign
-												{/if}
-											</button>
-										</div>
-									</form>
-								</div>
-							</div>
-						{/if}
 					</div>
 				{/each}
 			</div>

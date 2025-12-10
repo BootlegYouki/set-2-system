@@ -1,5 +1,7 @@
 <script>
   import { authStore } from '../components/login/js/auth.js';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import Login from '../components/login/loginpage.svelte';
   import StudentNavbar from '../components/users/student/navigations/studentNavbar/studentNavbar.svelte';
   import StudentMenu from '../components/users/student/navigations/studentMenu/studentMenu.svelte';
@@ -147,6 +149,30 @@
     adminActiveSection = 'dashboard'; // Reset admin section
   }
 
+  // Handle URL parameters for navigation (e.g., from push notifications)
+  onMount(() => {
+    if (browser) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const section = urlParams.get('section');
+      
+      if (section) {
+        // Valid student sections
+        const validStudentSections = ['profile', 'grades', 'ranking', 'schedule', 'documents', 'notifications', 'todo'];
+        // Valid admin sections
+        const validAdminSections = ['dashboard', 'account-creation', 'student-masterlist', 'teacher-masterlist', 'archived-accounts', 'grades-list', 'schedule-management', 'subjects-activities', 'department-management', 'document-requests', 'settings'];
+        
+        if (validStudentSections.includes(section)) {
+          activeSection = section;
+        } else if (validAdminSections.includes(section)) {
+          adminActiveSection = section;
+        }
+        
+        // Clean up URL after navigation
+        window.history.replaceState({}, '', '/');
+      }
+    }
+  });
+
   // Reactive title based on auth state
   let pageTitle = $derived(
     !authState?.isAuthenticated
@@ -175,7 +201,7 @@
     <div class="student-portal" class:nav-rail-collapsed={!isNavRailVisible}>
       <StudentNavbar 
         studentName={authState.userData?.name || 'Student'}
-        firstName={authState.userData?.firstName || 'Student'}
+        lastName={authState.userData?.lastName || 'Student'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}
@@ -209,7 +235,7 @@
     <div class="teacher-portal" class:nav-rail-collapsed={!teacherNavRailVisible}>
       <TeacherNavbar 
         teacherName={authState.userData?.name || 'Teacher'}
-        firstName={authState.userData?.firstName || 'Teacher'}
+        lastName={authState.userData?.lastName || 'Teacher'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}
@@ -242,7 +268,7 @@
     <div class="admin-portal" class:nav-rail-collapsed={!adminNavRailVisible}>
       <AdminNavbar 
         adminName={authState.userData?.name || 'Admin'}
-        firstName={authState.userData?.firstName || 'Admin'}
+        lastName={authState.userData?.lastName || 'Admin'}
         gender={authState.userData?.gender || 'male'}
         accountNumber={authState.userData?.accountNumber || 'N/A'}
         profileImage={authState.userData?.profileImage}

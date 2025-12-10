@@ -836,7 +836,7 @@
   align-items: start;
 
   /* Stagger animation */
-  animation: slideInUp 0.5s ease-out backwards;
+  animation: todoSlideInUp 0.5s ease-out backwards;
   animation-delay: calc(var(--card-index) * 0.1s);
 }
 
@@ -1093,7 +1093,7 @@
 }
 
 /* Slide in animation */
-@keyframes slideInUp {
+@keyframes todoSlideInUp {
   0% {
     opacity: 0;
     transform: translateY(20px);
